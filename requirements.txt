@@ -11,5 +11,7 @@ colorlog==2.4.0
 # graph diagrams
 #-------------------------------
 pyparsing==1.5.7
+--allow-external=pydot
+--allow-unverified=pydot
 pydot==1.0.28
 
