@@ -95,12 +95,12 @@ class CrawlFrontierSpiderMiddleware(object):
 
     def spider_idle(self, spider):
         self.frontier.logger.debugging.warning('spider_idle')
-        if not self.frontier.finished:
+        if not self.frontier._finished:
             raise DontCloseSpider()
 
     def _schedule_next_requests(self, spider):
         n_scheduled = len(self.queued_pages)
-        if not self.frontier.finished and n_scheduled < self.scheduler_concurrent_requests:
+        if not self.frontier._finished and n_scheduled < self.scheduler_concurrent_requests:
             n_requests_gap = self.scheduler_concurrent_requests - n_scheduled
             next_pages = self._get_next_requests(n_requests_gap)
             for request in next_pages:

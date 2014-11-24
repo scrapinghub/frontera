@@ -198,7 +198,7 @@ class FrontierManager(object):
         # End condition check
         if self.max_pages and self.n_pages >= self.max_pages:
             self.logger.manager.warning(self._msg('MAX PAGES REACHED! (%s/%s)' % (self.n_pages, self.max_pages)))
-            self.finished = True
+            self._finished = True
             return []
 
         # Calculate number of pages to request
