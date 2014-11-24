@@ -19,7 +19,9 @@ class Model(object):
         return json.dumps(self._get_values(), indent=4, cls=DateTimeEncoder, sort_keys=True)
 
     def __str__(self):
-        return '<%s:%s:%s>' % (self.__class__.__name__, hex(id(self)), self._name)
+        return '<%s:%s:%s>' % (self.__class__.__name__,
+                               hex(id(self)),
+                               self._name.encode('utf-8'))
 
     @property
     def _name(self):
