@@ -2,13 +2,13 @@
 Frontier API
 ============
 
-This section documents the Crawl Frontier core API, and it’s intended for developers of middlewares and backends.
+This section documents the Crawl Frontier core API, and is intended for developers of middlewares and backends.
 
 Crawl Frontier API / Manager
 ============================
 
 The main entry point to Crawl Frontier API is the :class:`FrontierManager` object, passed to middlewares and backend
-through the from_manager class method. This object provides access to all Crawl Frontier core components, and it’s the
+through the from_manager class method. This object provides access to all Crawl Frontier core components, and is the
 only way for middlewares and backend to access them and hook their functionality into Crawl Frontier.
 
 The :class:`FrontierManager` is responsible for loading the installed middlewares and backend, as well as for managing
@@ -19,7 +19,7 @@ the data flow around the whole frontier.
 Loading from settings
 =====================
 
-Although :class:`FrontierManager` can be initializated using parameters the most common way of doing it is using
+Although :class:`FrontierManager` can be initialized using parameters the most common way of doing this is using
 :doc:`Frontier Settings <frontier-settings>`.
 
 This can be done through the ``from_settings`` class method, using either a string path::
@@ -46,7 +46,7 @@ Frontier Manager
 
 .. class:: FrontierManager(page_model, link_model, backend, logger, event_logger, [frontier_middlewares, test_mode, max_pages, max_next_pages, auto_start, settings])
 
-    The :class:`FrontierManager` object encapsulates the whole frontier, providing an API to interact with the it.
+    The :class:`FrontierManager` object encapsulates the whole frontier, providing an API to interact with.
     It's also responsible of loading and communicating all different frontier components.
 
     :param page_model: The :class:`Page` object to be used by the frontier. Can be defined with :setting:`PAGE_MODEL` setting.
@@ -190,7 +190,7 @@ Frontier Manager
 
     .. method:: get_page(url)
 
-        Returns a :class:`Page` object corrensponding to the passed URL.
+        Returns a :class:`Page` object corresponding to the passed URL.
 
         :param url: the URL of the page.
         :type url: string
@@ -202,20 +202,20 @@ Frontier Manager
 
     .. classmethod:: from_settings([settings])
 
-        Returns a :class:`FrontierManager` instance initializated with the passed settings argument. Argument value can
+        Returns a :class:`FrontierManager` instance initialized with the passed settings argument. Argument value can
         either be a string path pointing to settings file or a :class:`Settings` object instance. If no settings
         is given, :ref:`frontier default settings <frontier-default-settings>` are used.
 
 
     .. method:: start()
 
-        Notifies all the components of the frontier start. Tipically used for initializations.
+        Notifies all the components of the frontier start. Typically used for initializations.
         See :ref:`starting/stopping the frontier <frontier-start-stop>`.
 
 
     .. method:: stop()
 
-        Notifies all the components of the frontier stop. Tipically used for finalizations.
+        Notifies all the components of the frontier stop. Typically used for finalizations.
         See :ref:`starting/stopping the frontier <frontier-start-stop>`.
 
 
@@ -229,8 +229,8 @@ notify the different components of the frontier start and stop is done by the ``
 respectively.
 
 By default ``auto_start`` frontier value is activated, this means that components will be notified once the
-:class:`FrontierManager` object is created. If you need to have more fined control of when different components
-are initializated, deactivate ``auto_start`` and manually call frontier API ``start()`` and ``stop()`` methods.
+:class:`FrontierManager` object is created. If you need to have more fine control of when different components
+are initialized, deactivate ``auto_start`` and manually call frontier API ``start()`` and ``stop()`` methods.
 
 .. note:: Frontier ``stop()`` method is not automatically called when ``auto_start`` is active (because frontier is not aware of the crawling state). If you need to notify components of frontier end you should call the method manually.
 
@@ -242,7 +242,7 @@ Frontier iterations
 
 Once frontier is running, the usual process is the one described in the :ref:`data flow <frontier-data-flow>` section.
 
-Crawler askes the frontier for next pages using ``get_next_pages`` method. Each time the frontier returns a non empty
+Crawler asks the frontier for next pages using ``get_next_pages`` method. Each time the frontier returns a non empty
 list of pages (data available), is what we call a frontier iteration.
 
 Current frontier iteration can be accessed using the ``iteration`` attribute.
@@ -253,7 +253,7 @@ Current frontier iteration can be accessed using the ``iteration`` attribute.
 Finishing the frontier
 ======================
 
-Crawl can be finished either by the Crawler of by the Crawl Frontier. Crawl frontier will finish when a maximum number
+Crawl can be finished either by the Crawler or by the Crawl Frontier. Crawl frontier will finish when a maximum number
 of pages are returned. This limit is controlled by the ``max_pages`` attribute (:setting:`MAX_PAGES` setting).
 
 If ``max_pages`` has a value of 0 (default value) the frontier will continue indefinitely.
@@ -304,7 +304,7 @@ Component objects
 Test mode
 =========
 
-In some cases while testing, frontier components needs to act in a different way than they usually do (for instance
+In some cases while testing, frontier components need to act in a different way than they usually do (for instance
 domain middleware accepts non valid URLs like 'A1 or B1' when parsing domain urls in test mode).
 
 Components can know if the frontier is in test mode via the boolean ``test_mode`` attribute.
@@ -314,6 +314,6 @@ Components can know if the frontier is in test mode via the boolean ``test_mode`
 Another ways of using the frontier
 ==================================
 
-Communication with the frontier can also be done through other mechanisms such as an http API or a queue system. These
+Communication with the frontier can also be done through other mechanisms such as a HTTP API or a queue system. These
 functionalities are not available for the time being, but hopefully will be included in future versions.
 

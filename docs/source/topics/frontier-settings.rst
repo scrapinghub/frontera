@@ -5,8 +5,8 @@ Settings
 The Crawl Frontier settings allows you to customize the behaviour of all components, including the
 :class:`FrontierManager`, :class:`Middleware` and :class:`Backend` themselves.
 
-The infrastructure of the settings provides a global namespace of key-value mappings that the code can use to
-pull configuration values from. The settings can be populated through different mechanisms, which are described below.
+The infrastructure of the settings provides a global namespace of key-value mappings that can be used to pull
+configuration values from. The settings can be populated through different mechanisms, which are described below.
 
 For a list of available built-in settings see: :ref:`Built-in settings reference <frontier-built-in-frontier-settings>`.
 
@@ -169,8 +169,8 @@ The function used to calculate the ``domain`` fingerprint.
 Default settings
 ================
 
-If no settings are specificed, frontier will use the built-in default ones. For a complete list of default values see:
-:ref:`Built-in settings reference <frontier-built-in-frontier-settings>`. All default settings can be overriden.
+If no settings are specified, frontier will use the built-in default ones. For a complete list of default values see:
+:ref:`Built-in settings reference <frontier-built-in-frontier-settings>`. All default settings can be overridden.
 
 Frontier default settings
 -------------------------
