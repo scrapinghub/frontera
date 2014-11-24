@@ -1,18 +1,12 @@
-from os.path import dirname, join
-from setuptools import setup
-
-
-with open(join(dirname(__file__), 'crawlfrontier/VERSION'), 'rb') as f:
-    version = f.read().decode('ascii').strip()
+from setuptools import setup, find_packages
 
 
 setup(
     name='crawl-frontier',
-    packages=['crawlfrontier'],
-    version=version,
+    packages=find_packages(exclude=('tests', 'tests.*', 'examples', 'examples.*')),
+    version=0.1,
     url='https://github.com/scrapinghub/crawl-frontier',
     description='A flexible frontier for web crawlers',
-    long_description=open('README.md').read(),
     author='Scrapy developers',
     maintainer='Javier Casas',
     maintainer_email='javier@scrapinghub.com',
@@ -21,7 +15,7 @@ setup(
     zip_safe=False,
     keywords=['crawler', 'frontier', 'scrapy', 'web', 'requests'],
     classifiers=[
-        'Framework :: Crawl Frontier',
+        #'Framework :: Crawl Frontier',
         'Development Status :: 4 - Beta',
         'Environment :: Console',
         'Intended Audience :: Developers',
