@@ -314,6 +314,6 @@ Components can know if the frontier is in test mode via the boolean ``test_mode`
 Another ways of using the frontier
 ==================================
 
-Communication with the frontier can also be done through other mechanisms such as a HTTP API or a queue system. These
+Communication with the frontier can also be done through other mechanisms such as an HTTP API or a queue system. These
 functionalities are not available for the time being, but hopefully will be included in future versions.
 

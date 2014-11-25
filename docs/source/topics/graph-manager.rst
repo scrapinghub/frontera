@@ -239,7 +239,7 @@ Graphs Database
 
 Graph Manager uses `SQLAlchemy`_ to store and represent graphs.
 
-By default it uses an in-memory SQLite database as a storage engine, but `any other SQLAlchemy supported database`_ can
+By default it uses an in-memory SQLite database as a storage engine, but `any databases supported by SQLAlchemy`_ can
 be used.
 
 An example using SQLite::
@@ -337,6 +337,6 @@ Graph Manager can be used to test frontiers in conjunction with :doc:`Frontier T
 with :doc:`Scrapy Recordings <scrapy-recorder>`.
 
 .. _SQLAlchemy: http://www.sqlalchemy.org/
-.. _any other SQLAlchemy supported databases: http://docs.sqlalchemy.org/en/rel_0_9/dialects/index.html
+.. _any databases supported by SQLAlchemy: http://docs.sqlalchemy.org/en/rel_0_9/dialects/index.html
 .. _pydot: https://code.google.com/p/pydot/
 .. _Graphviz: http://www.graphviz.org/

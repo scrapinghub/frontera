@@ -33,7 +33,7 @@ Frontier API / Manager
 The main entry point to Crawl Frontier API (3) is the FrontierManager object. Frontier users, in our case the Crawler (2),
 will communicate with the frontier through it.
 
-Communication with the frontier can also be done through other mechanisms such as a HTTP API or a queue system. These
+Communication with the frontier can also be done through other mechanisms such as an HTTP API or a queue system. These
 functionalities are not available for the time being, but hopefully will be in future versions.
 
 

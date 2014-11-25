@@ -199,7 +199,7 @@ sqlalchemy backends
 This set of :class:`Backend` objects will use `SQLAlchemy`_ as storage for
 :ref:`basic algorithms <frontier-backends-basic-algorithms>`.
 
-By default it uses an in-memory SQLite database as a storage engine, but `any other SQLAlchemy supported database`_ can
+By default it uses an in-memory SQLite database as a storage engine, but `any databases supported by SQLAlchemy`_ can
 be used.
 
 :class:`Page` objects are represented by a `declarative sqlalchemy model`_::
@@ -285,5 +285,5 @@ For a complete list of all settings used for sqlalchemy backends check the :doc:
 .. _OrderedDict: https://docs.python.org/2/library/collections.html#collections.OrderedDict
 .. _heapq: https://docs.python.org/2/library/heapq.html
 .. _SQLAlchemy: http://www.sqlalchemy.org/
-.. _any other SQLAlchemy supported database: http://docs.sqlalchemy.org/en/rel_0_9/dialects/index.html
+.. _any databases supported by SQLAlchemy: http://docs.sqlalchemy.org/en/rel_0_9/dialects/index.html
 .. _declarative sqlalchemy model: http://docs.sqlalchemy.org/en/rel_0_9/orm/extensions/declarative.html
