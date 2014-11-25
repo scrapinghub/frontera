@@ -5,10 +5,6 @@ Using the Frontier with Scrapy
 Using Crawl Frontier is quite easy, it includes a set of `Scrapy middlewares`_  that encapsulates frontier usage and
 can be easily configured using `Scrapy settings`_.
 
-Recorder is a set of Scrapy middlewares that will allow you to record a scrapy crawl and store it into a Graph Manager.
-
-This can be useful to perform frontier tests without having to crawl the entire site again or even using Scrapy.
-
 
 Activating the frontier
 =======================
