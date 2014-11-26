@@ -4,7 +4,7 @@ Graph Manager
 
 The Graph Manager is a tool to represent web sitemaps as a graph.
 
-It can easily be used to test frontiers. We can "fake" crawler request/responses by quering pages to the graph manager,
+It can easily be used to test frontiers. We can "fake" crawler request/responses by querying pages to the graph manager,
 and also know the links extracted for each one without using a crawler at all. You can make your own fake tests or use
 the :doc:`Frontier Tester tool <frontier-tester>`.
 
@@ -140,7 +140,7 @@ Pages are represented as a :class:`CrawlPage` object:
 
     .. attribute:: status
 
-            Represents the http code status of the page.
+            Represents the HTTP code status of the page.
 
     .. attribute:: is_seed
 
@@ -239,13 +239,14 @@ Graphs Database
 
 Graph Manager uses `SQLAlchemy`_ to store and represent graphs.
 
-By default it uses memory as storage engine, but `any other SQLAlchemy supported databases`_ can be used.
+By default it uses an in-memory SQLite database as a storage engine, but `any databases supported by SQLAlchemy`_ can
+be used.
 
 An example using SQLite::
 
     >>> g = graphs.Manager(engine='sqlite:///graph.db')
 
-Changes are commited with every new add by default, graphs can be loaded later::
+Changes are committed with every new add by default, graphs can be loaded later::
 
     >>> graph = graphs.Manager(engine='sqlite:///graph.db')
     >>> graph.add_site(('A', []))
@@ -261,7 +262,7 @@ A database content reset can be done using `clear_content` parameter::
 Using graphs with status codes
 ==============================
 
-In order to recreate/simulate crawling using graphs, http response codes can be defined for each page.
+In order to recreate/simulate crawling using graphs, HTTP response codes can be defined for each page.
 
 Example for a 404 error::
 
@@ -336,6 +337,6 @@ Graph Manager can be used to test frontiers in conjunction with :doc:`Frontier T
 with :doc:`Scrapy Recordings <scrapy-recorder>`.
 
 .. _SQLAlchemy: http://www.sqlalchemy.org/
-.. _any other SQLAlchemy supported databases: http://docs.sqlalchemy.org/en/rel_0_9/dialects/index.html
+.. _any databases supported by SQLAlchemy: http://docs.sqlalchemy.org/en/rel_0_9/dialects/index.html
 .. _pydot: https://code.google.com/p/pydot/
 .. _Graphviz: http://www.graphviz.org/

@@ -13,7 +13,7 @@ Activating a middleware
 =======================
 
 To activate a :class:`Middleware` component, add it to the :setting:`MIDDLEWARES` setting, which is a list
-whose values can be class paths or intances of :class:`Middleware` objects.
+whose values can be class paths or instances of :class:`Middleware` objects.
 
 Here’s an example::
 
@@ -28,7 +28,7 @@ performs a different action and your middleware could depend on some previous (o
 Finally, keep in mind that some middlewares may need to be enabled through a particular setting. See
 :ref:`each middleware documentation <frontier-built-in-middleware>` for more info.
 
-.. _frontier-writting-middleware:
+.. _frontier-writing-middleware:
 
 Writing your own middleware
 ===========================
@@ -58,7 +58,7 @@ Writing your own frontier middleware is easy. Each :class:`Middleware` component
     .. method:: add_seeds(links)
 
         This method is called when new seeds are are added to the frontier. It receives a list of :class:`Link` objects
-        created from the inital URLs passed to the :class:`FrontierManager`.
+        created from the initial URLs passed to the :class:`FrontierManager`.
 
         ``add_seeds()`` should either return None or a list of :class:`Link` objects.
 
@@ -148,7 +148,7 @@ Built-in middleware reference
 =============================
 
 This page describes all :class:`Middleware` components that come with Crawl Frontier. For information on how to use them and
-how to write your own middleware, see the :ref:`middleware usage guide. <frontier-writting-middleware>`.
+how to write your own middleware, see the :ref:`middleware usage guide. <frontier-writing-middleware>`.
 
 For a list of the components enabled by default (and their orders) see the :setting:`MIDDLEWARES` setting.
 

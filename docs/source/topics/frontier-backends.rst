@@ -27,7 +27,7 @@ Here’s an example::
 Keep in mind that some backends may need to be enabled through a particular setting. See
 :ref:`each backend documentation <frontier-built-in-backend>` for more info.
 
-.. _frontier-writting-backend:
+.. _frontier-writing-backend:
 
 Writing your own backend
 ===========================
@@ -119,7 +119,7 @@ Built-in backend reference
 =============================
 
 This page describes all :class:`Backend` components that come with Crawl Frontier. For information on how to use them and
-how to write your own middleware, see the :ref:`backend usage guide. <frontier-writting-backend>`.
+how to write your own middleware, see the :ref:`backend usage guide. <frontier-writing-backend>`.
 
 To know the default activated :class:`Backend` check the :setting:`BACKEND` setting.
 
@@ -199,7 +199,8 @@ sqlalchemy backends
 This set of :class:`Backend` objects will use `SQLAlchemy`_ as storage for
 :ref:`basic algorithms <frontier-backends-basic-algorithms>`.
 
-By default it uses memory as storage engine, but `any other SQLAlchemy supported databases`_ can be used.
+By default it uses an in-memory SQLite database as a storage engine, but `any databases supported by SQLAlchemy`_ can
+be used.
 
 :class:`Page` objects are represented by a `declarative sqlalchemy model`_::
 
@@ -284,5 +285,5 @@ For a complete list of all settings used for sqlalchemy backends check the :doc:
 .. _OrderedDict: https://docs.python.org/2/library/collections.html#collections.OrderedDict
 .. _heapq: https://docs.python.org/2/library/heapq.html
 .. _SQLAlchemy: http://www.sqlalchemy.org/
-.. _any other SQLAlchemy supported databases: http://docs.sqlalchemy.org/en/rel_0_9/dialects/index.html
+.. _any databases supported by SQLAlchemy: http://docs.sqlalchemy.org/en/rel_0_9/dialects/index.html
 .. _declarative sqlalchemy model: http://docs.sqlalchemy.org/en/rel_0_9/orm/extensions/declarative.html

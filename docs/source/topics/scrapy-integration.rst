@@ -31,7 +31,7 @@ Create a Crawl Frontier ``settings.py`` file and add it to your Scrapy settings:
 Organizing files
 ================
 
-When frontier with a Scrapy project, we propose the following directory structure::
+When using frontier with a Scrapy project, we propose the following directory structure::
 
     my_scrapy_project/
         my_scrapy_project/
