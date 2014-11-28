@@ -6,6 +6,10 @@ from sqlalchemy.orm import sessionmaker
 from crawlfrontier import Backend
 from crawlfrontier.utils.misc import load_object
 
+from sqlalchemy import Column, String, Integer, TIMESTAMP, CHAR
+from sqlalchemy import types
+from sqlalchemy import UniqueConstraint
+
 Base = declarative_base()
 
 # Default settings
@@ -14,8 +18,54 @@ DEFAULT_ENGINE_ECHO = False
 DEFAULT_DROP_ALL_TABLES = True
 DEFAULT_CLEAR_CONTENT = True
 DEFAULT_MODELS = {
-    'Page': 'crawlfrontier.contrib.backends.sqlalchemy.models.Page',
+    'Page': 'crawlfrontier.contrib.backends.sqlalchemy.DBPage',
 }
+
+FINGERPRINT = String(40)
+URL_FIELD = String(1000)
+
+
+class DBModel(Base):
+    __abstract__ = True
+
+    @classmethod
+    def query(cls, session):
+        return session.query(cls)
+
+
+class DBPageBase(DBModel):
+    __abstract__ = True
+    __tablename__ = 'pages'
+    __table_args__ = (
+        UniqueConstraint('url'),
+    )
+
+    url = Column(URL_FIELD, nullable=False)
+
+    def __repr__(self):
+        return '<Page:%s>' % self.url
+
+
+class DBPage(DBPageBase):
+    __table_args__ = {'extend_existing': True}
+
+    fingerprint = Column(FINGERPRINT, primary_key=True, nullable=False, index=True, unique=True)
+    depth = Column(Integer, nullable=False)
+    created_at = Column(TIMESTAMP, nullable=False)
+    last_update = Column(TIMESTAMP, nullable=False)
+    status = Column(String(20))
+    last_redirects = Column(Integer)
+    last_iteration = Column(Integer, nullable=False)
+    state = Column(CHAR)
+    n_adds = Column(Integer, default=0)
+    n_queued = Column(Integer, default=0)
+    n_crawls = Column(Integer, default=0)
+    n_errors = Column(Integer, default=0)
+
+    @property
+    def is_seed(self):
+        return self.depth == 0
+
 
 
 class SQLiteBackend(Backend):
@@ -130,7 +180,7 @@ class SQLiteBackend(Backend):
 
         # query pages
         query = self.page_model.query(self.session)
-        query = query.filter(self.page_model.state == self.page_model.States.NOT_CRAWLED)
+        query = query.filter(self.page_model.state == self.manager.page_model.State.NOT_CRAWLED)
         query = self._get_order_by(query)
         if max_next_pages:
             query = query.limit(max_next_pages)
@@ -138,7 +188,7 @@ class SQLiteBackend(Backend):
         # update page fields and create frontier pages to return
         next_pages = []
         for db_page in query:
-            db_page.state = self.page_model.States.QUEUED
+            db_page.state = self.manager.page_model.State.QUEUED
             db_page.last_update = datetime.datetime.utcnow()
             next_pages.append(self._get_frontier_page_from_db_page(db_page))
 
@@ -168,7 +218,7 @@ class SQLiteBackend(Backend):
         if not exists:
             db_page = self.page_model()
             db_page.fingerprint = fingerprint
-            db_page.state = db_page.States.NOT_CRAWLED
+            db_page.state = self.manager.page_model.State.NOT_CRAWLED
             db_page.url = url
             db_page.depth = 0
             db_page.created_at = now

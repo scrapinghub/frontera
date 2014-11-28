@@ -1,27 +1,38 @@
 import re
 
 from crawlfrontier.core.components import Middleware
-from crawlfrontier.core.models import Model
+from crawlfrontier.core.models import Model, Field
 from crawlfrontier.utils.url import parse_domain_from_url
 
 
 class Domain(Model):
-    component_name = 'Domain Middleware'
+    netloc = Field(order=1)
+    name = Field(order=2)
+    scheme = Field(order=3)
+    sld = Field(order=4)
+    tld = Field(order=5)
+    subdomain = Field(order=6)
 
-    def __init__(self, netloc, name, scheme, sld, tld, subdomain):
-        self.netloc = netloc
-        self.name = name
-        self.scheme = scheme
-        self.sld = sld
-        self.tld = tld
-        self.subdomain = subdomain
-
-    @property
-    def _name(self):
-        return self.name
+    def __init__(self, url, test_mode=False):
+        if test_mode:
+            match = re.match('([A-Z])\w+', url)
+            netloc = name = match.groups()[0] if match else '?'
+            scheme = sld = tld = subdomain = '-'
+        else:
+            netloc, name, scheme, sld, tld, subdomain = parse_domain_from_url(url)
+        data = {
+            'netloc': netloc,
+            'name': name,
+            'scheme': scheme,
+            'sld': sld,
+            'tld': tld,
+            'subdomain': subdomain,
+        }
+        super(Domain, self).__init__(**data)
 
 
 class DomainMiddleware(Middleware):
+    component_name = 'Domain Middleware'
 
     def __init__(self, manager):
         self.test_mode = manager.test_mode
@@ -47,15 +58,5 @@ class DomainMiddleware(Middleware):
         return self._add_domain(link)
 
     def _add_domain(self, obj):
-        setattr(obj, 'domain', self._get_domain_from_url(obj.url))
+        obj.domain = Domain(obj.url, self.test_mode)
         return obj
-
-    def _get_domain_from_url(self, url):
-        if self.test_mode:
-            match = re.match('([A-Z])\w+', url)
-            netloc = name = match.groups()[0] if match else '?'
-            scheme = sld = tld = subdomain = '-'
-        else:
-            netloc, name, scheme, sld, tld, subdomain = parse_domain_from_url(url)
-
-        return Domain(name=name, netloc=netloc, scheme=scheme, sld=sld, tld=tld, subdomain=subdomain)

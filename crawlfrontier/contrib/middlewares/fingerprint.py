@@ -44,8 +44,7 @@ class UrlFingerprintMiddleware(BaseFingerprintMiddleware):
     fingerprint_function_name = 'URL_FINGERPRINT_FUNCTION'
 
     def _add_fingerprint(self, obj):
-        if hasattr(obj, 'url'):
-            obj.fingerprint = self.fingerprint_function(canonicalize_url(obj.url))
+        obj.fingerprint = self.fingerprint_function(canonicalize_url(obj.url))
         return obj
 
 
@@ -54,6 +53,6 @@ class DomainFingerprintMiddleware(BaseFingerprintMiddleware):
     fingerprint_function_name = 'DOMAIN_FINGERPRINT_FUNCTION'
 
     def _add_fingerprint(self, obj):
-        if hasattr(obj, 'domain'):
+        if 'domain' in obj:
             obj.domain.fingerprint = self.fingerprint_function(obj.domain.name)
         return obj

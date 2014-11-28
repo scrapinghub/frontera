@@ -1,72 +1,94 @@
-import json
-import copy
-from collections import OrderedDict
-
-from crawlfrontier.utils.encoders import DateTimeEncoder
+from crawlfrontier.utils.collections import OrderedAttrDict
+from crawlfrontier.exceptions import MissingRequiredField
 
 
-class Model(object):
-    def _get_values(self):
-        values_dict = {}
-        for attr_name in self.__dict__:
-            value = getattr(self, attr_name)
-            value = value._get_values() if isinstance(value, Model) else value
-            values_dict[attr_name] = value
-        values_dict['_'] = str(self)
-        return values_dict
+class Field(object):
+    def __init__(self, default=None, required=False, order=0):
+        self.default = default
+        self.required = required
+        self.order = order
 
-    def __repr__(self):
-        return json.dumps(self._get_values(), indent=4, cls=DateTimeEncoder, sort_keys=True)
 
-    def __str__(self):
-        return '<%s:%s:%s>' % (self.__class__.__name__,
-                               hex(id(self)),
-                               self._name.encode('utf-8'))
+class Meta(object):
+    def __init__(self):
+        self.fields = dict()
 
-    @property
-    def _name(self):
-        raise NotImplementedError
+    def merge(self, new_options):
+        self.fields.update(new_options.fields)
+
+
+class ModelMetaClass(type):
+    def __new__(mcs, name, bases, attrs):
+        new_attrs = {}
+        if name != 'Model':
+            meta = attrs.get('_meta', Meta())
+            for base in bases:
+                if hasattr(base, '_meta'):
+                    meta.merge(base._meta)
+            for attr_name, attr_value in attrs.iteritems():
+                if isinstance(attr_value, Field):
+                    meta.fields[attr_name] = attr_value
+                else:
+                    new_attrs[attr_name] = attr_value
+            new_attrs['_meta'] = meta
+        else:
+            new_attrs = attrs
+        return super(ModelMetaClass, mcs).__new__(mcs, name, bases, new_attrs)
+
+
+class Model(OrderedAttrDict):
+    __metaclass__ = ModelMetaClass
+
+    def __init__(self, *args, **kwargs):
+        super(Model, self).__init__(*args, **kwargs)
+        for field_name, field in self._meta.fields.items():
+            if field_name not in self:
+                self[field_name] = field.default
+            if field.required and self[field_name] is None:
+                raise MissingRequiredField('Missing required field "%s"' % field_name)
+
+        sorted_fields = sorted(self._meta.fields.items(), key=lambda x: x[1].order)
+        sorted_values = [(key, self[key]) for key, _ in sorted_fields]
+        self.clear()
+        for name, value in sorted_values:
+            self[name] = value
+
+        self.init_fields()
+
+    def init_fields(self):
+        pass
 
 
 class Link(Model):
-
-    def __init__(self, url):
-        self.url = url
-
-    @property
-    def _name(self):
-        return self.url
+    url = Field(required=True)
 
 
-class Page(Link):
+class Page(Model):
+    url = Field(required=True)
 
+
+class BasicLink(Link):
+    pass
+
+
+class BasicPage(Page):
     class State(object):
         NOT_CRAWLED = 'N'
         QUEUED = 'Q'
         CRAWLED = 'C'
         ERROR = 'E'
 
-    def __init__(self, url):
-        super(Page, self).__init__(url)
-        self.url = url
-        self.state = self.State.NOT_CRAWLED
-        self.depth = 0
-        self.created_at = None
-        self.last_update = None
-        self.status = None
-        self.n_adds = 0
-        self.n_queued = 0
-        self.n_crawls = 0
-        self.n_errors = 0
-        self.meta = OrderedDict()
-
-    @classmethod
-    def from_link(cls, link):
-        page = Page(link.url)
-        for attr_name in link.__dict__:
-            if not attr_name.startswith('_'):
-                setattr(page, attr_name, copy.deepcopy(getattr(link, attr_name)))
-        return page
+    fingerprint = Field()
+    state = Field(default=State.NOT_CRAWLED)
+    depth = Field(default=0)
+    created_at = Field()
+    last_update = Field()
+    status = Field()
+    n_adds = Field(default=0)
+    n_queued = Field(default=0)
+    n_crawls = Field(default=0)
+    n_errors = Field(default=0)
+    meta = Field(default={})
 
     @property
     def is_seed(self):

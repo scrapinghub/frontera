@@ -111,7 +111,7 @@ class MemoryBackend(Backend):
     def _get_or_create_page_from_link(self, link, now):
         fingerprint = link.fingerprint
         if not fingerprint in self.pages:
-            new_page = self.manager.page_model.from_link(link)
+            new_page = self.manager.page_model(link)
             self.pages[fingerprint] = new_page
             new_page.created_at = now
             self.manager.logger.backend.debug('Creating page %s from link %s' % (new_page, link))

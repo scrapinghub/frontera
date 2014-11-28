@@ -5,7 +5,7 @@ from crawlfrontier.utils.misc import load_object
 from crawlfrontier.settings import Settings
 from crawlfrontier.core.components import Backend, Middleware
 from crawlfrontier.logger import FrontierLogger
-from models import Page, Link
+from crawlfrontier.core.models import Page, Link
 
 
 class FrontierManager(object):
