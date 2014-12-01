@@ -21,17 +21,15 @@ class EventLogManager(object):
     def frontier_stop(self):
         self._log(event='FRONTIER_STOP')
 
-    def add_seed(self, link):
-        params = OrderedDict()
-        self._add_url_info(params, link)
-        self._log(event='ADD_SEED', params=params)
 
     def add_seeds(self, links):
+        return  # TODO
         params = OrderedDict()
         params['n_seeds'] = len(links)
         self._log(event='ADD_SEEDS', params=params)
 
     def page_crawled(self, page, links):
+        return  # TODO
         params = OrderedDict()
         self._add_url_info(params, page)
         params['n_links'] = len(links) if links else 0
@@ -42,19 +40,22 @@ class EventLogManager(object):
         self._log(event='PAGE_CRAWLED', params=params)
 
     def page_crawled_error(self, page, error):
+        return  # TODO
         params = OrderedDict()
         self._add_url_info(params, page)
         params['error'] = error
         self._log(event='PAGE_CRAWLED_ERROR', params=params)
 
-    def get_next_pages(self, max_next_pages, next_pages):
-        if next_pages:
+    def get_next_requests(self, max_next_requests, next_requests):
+        return  # TODO
+        if next_requests:
             params = OrderedDict()
-            params['n_next_pages'] = len(next_pages)
-            params['max_next_pages'] = max_next_pages
+            params['n_next_pages'] = len(next_requests)
+            params['max_next_requests'] = max_next_requests
             self._log(event='GET_NEXT_PAGES', params=params)
 
     def _log(self, event, params=None):
+        return  # TODO
         event_params = OrderedDict()
         event_params['job_id'] = self.job_id
         event_params['iteration'] = self.manager.iteration
@@ -63,6 +64,7 @@ class EventLogManager(object):
         self.manager.logger.events.event(event=event, params=event_params)
 
     def _add_url_info(self, params, obj):
+        return  # TODO
         params['url'] = obj.url
         if self.include_domain and hasattr(obj, 'domain'):
             for field in self.include_domain_fields:

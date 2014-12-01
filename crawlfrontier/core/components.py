@@ -3,7 +3,7 @@ class Component(object):
 
     @property
     def name(self):
-        return self.__component_name__
+        return self.component_name
 
     def frontier_start(self):
         pass
@@ -11,21 +11,21 @@ class Component(object):
     def frontier_stop(self):
         pass
 
-    def add_seeds(self, links):
+    def add_seeds(self, seeds):
         raise NotImplementedError
 
-    def page_crawled(self, page, links):
+    def page_crawled(self, response, links):
         raise NotImplementedError
 
-    def page_crawled_error(self, page, error):
-        raise NotImplementedError
-
-    def get_page(self, link):
+    def request_error(self, page, error):
         raise NotImplementedError
 
 
 class Backend(Component):
     component_name = 'Base Backend'
+
+    def get_next_requests(self, max_n_requests):
+        raise NotImplementedError
 
 
 class Middleware(Component):

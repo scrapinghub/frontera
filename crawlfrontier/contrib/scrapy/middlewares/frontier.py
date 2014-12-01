@@ -36,7 +36,7 @@ class CrawlFrontierSpiderMiddleware(object):
                                                        DEFAULT_FRONTIER_SCHEDULER_INTERVAL)
         self.scheduler_concurrent_requests = crawler.settings.get('FRONTIER_SCHEDULER_CONCURRENT_REQUESTS',
                                                                   DEFAULT_FRONTIER_SCHEDULER_CONCURRENT_REQUESTS)
-        # Queued pages set
+        # Queued requests set
         self.queued_pages = set()
 
         # Signals

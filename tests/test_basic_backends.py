@@ -8,7 +8,7 @@ class TestParameters(object):
     add_all_pages = False
     required_attributes = [
         'site_list',
-        'max_next_pages',
+        'max_next_requests',
         'site_list',
         'add_all_pages',
     ]
@@ -23,7 +23,7 @@ class TestParameters(object):
 #-----------------------------------------------------
 class FIFO_T01_W1(TestParameters):
     site_list = graphs.data.SITE_LIST_01
-    max_next_pages = 1
+    max_next_requests = 1
     expected_sequence = [
         'A1',
         'A11', 'A12',
@@ -34,7 +34,7 @@ class FIFO_T01_W1(TestParameters):
 
 class FIFO_T01_W100(TestParameters):
     site_list = graphs.data.SITE_LIST_01
-    max_next_pages = 100
+    max_next_requests = 100
     expected_sequence = [
         'A1',
         'A11', 'A12',
@@ -45,7 +45,7 @@ class FIFO_T01_W100(TestParameters):
 
 class FIFO_T01_W100_ALL(TestParameters):
     site_list = graphs.data.SITE_LIST_01
-    max_next_pages = 100
+    max_next_requests = 100
     add_all_pages = True
     expected_sequence = [
         'A1',
@@ -57,7 +57,7 @@ class FIFO_T01_W100_ALL(TestParameters):
 
 class FIFO_T02_W1(TestParameters):
     site_list = graphs.data.SITE_LIST_02
-    max_next_pages = 1
+    max_next_requests = 1
     expected_sequence = [
         'A1', 'B1',
         'A11', 'A12', 'B11', 'B12',
@@ -69,7 +69,7 @@ class FIFO_T02_W1(TestParameters):
 
 class FIFO_T02_W100(TestParameters):
     site_list = graphs.data.SITE_LIST_02
-    max_next_pages = 100
+    max_next_requests = 100
     expected_sequence = [
         'A1', 'B1',
         'A11', 'A12', 'B11', 'B12',
@@ -81,7 +81,7 @@ class FIFO_T02_W100(TestParameters):
 
 class FIFO_T02_W100_ALL(TestParameters):
     site_list = graphs.data.SITE_LIST_02
-    max_next_pages = 100
+    max_next_requests = 100
     add_all_pages = True
     expected_sequence = [
         'A1', 'A11', 'A12', 'A111', 'A112', 'A121', 'A122',
@@ -93,7 +93,7 @@ class FIFO_T02_W100_ALL(TestParameters):
 
 class FIFO_T03_W1(TestParameters):
     site_list = graphs.data.SITE_LIST_03
-    max_next_pages = 1
+    max_next_requests = 1
     expected_sequence = [
         'C1',
         'C11', 'C12',
@@ -106,7 +106,7 @@ class FIFO_T03_W1(TestParameters):
 
 class FIFO_T03_W100(TestParameters):
     site_list = graphs.data.SITE_LIST_03
-    max_next_pages = 100
+    max_next_requests = 100
     expected_sequence = [
         'C1',
         'C11', 'C12',
@@ -122,7 +122,7 @@ class FIFO_T03_W100(TestParameters):
 #-----------------------------------------------------
 class LIFO_T01_W1(TestParameters):
     site_list = graphs.data.SITE_LIST_01
-    max_next_pages = 1
+    max_next_requests = 1
     expected_sequence = [
         'A1',
         'A12', 'A122', 'A1222', 'A1221', 'A121', 'A1212', 'A1211',
@@ -132,7 +132,7 @@ class LIFO_T01_W1(TestParameters):
 
 class LIFO_T01_W100(TestParameters):
     site_list = graphs.data.SITE_LIST_01
-    max_next_pages = 100
+    max_next_requests = 100
     expected_sequence = [
         'A1',
         'A12', 'A11',
@@ -143,7 +143,7 @@ class LIFO_T01_W100(TestParameters):
 
 class LIFO_T01_W100_ALL(TestParameters):
     site_list = graphs.data.SITE_LIST_01
-    max_next_pages = 100
+    max_next_requests = 100
     add_all_pages = True
     expected_sequence = [
         'A1222', 'A1221', 'A1212', 'A1211', 'A1122', 'A1121', 'A1112', 'A1111',
@@ -155,7 +155,7 @@ class LIFO_T01_W100_ALL(TestParameters):
 
 class LIFO_T02_W1(TestParameters):
     site_list = graphs.data.SITE_LIST_02
-    max_next_pages = 1
+    max_next_requests = 1
     expected_sequence = [
         'B1', 'B12', 'B122', 'B1222', 'B1221', 'B121', 'B1212', 'B1211',
         'B11', 'B112', 'B1122', 'B1121', 'B111', 'B1112', 'B1111',
@@ -166,7 +166,7 @@ class LIFO_T02_W1(TestParameters):
 
 class LIFO_T02_W100(TestParameters):
     site_list = graphs.data.SITE_LIST_02
-    max_next_pages = 100
+    max_next_requests = 100
     expected_sequence = [
         'B1', 'A1',
         'A12', 'A11', 'B12', 'B11',
@@ -178,7 +178,7 @@ class LIFO_T02_W100(TestParameters):
 
 class LIFO_T02_W100_ALL(TestParameters):
     site_list = graphs.data.SITE_LIST_02
-    max_next_pages = 100
+    max_next_requests = 100
     add_all_pages = True
     expected_sequence = [
         'B1222', 'B1221', 'B1212', 'B1211', 'B1122', 'B1121', 'B1112', 'B1111',
@@ -194,7 +194,7 @@ class LIFO_T02_W100_ALL(TestParameters):
 
 class LIFO_T03_W1(TestParameters):
     site_list = graphs.data.SITE_LIST_03
-    max_next_pages = 1
+    max_next_requests = 1
     expected_sequence = [
         'C1', 'C12', 'C122', 'C1222', 'C12222', 'C12221', 'C1221', 'C12212', 'C12211',
         'C121', 'C1212', 'C12122', 'C12121', 'C1211', 'C12112', 'C12111',
@@ -205,7 +205,7 @@ class LIFO_T03_W1(TestParameters):
 
 class LIFO_T03_W100(TestParameters):
     site_list = graphs.data.SITE_LIST_03
-    max_next_pages = 100
+    max_next_requests = 100
     expected_sequence = [
         'C1',
         'C12', 'C11',
@@ -221,7 +221,7 @@ class LIFO_T03_W100(TestParameters):
 #-----------------------------------------------------
 class DFS_T01_W1(TestParameters):
     site_list = graphs.data.SITE_LIST_01
-    max_next_pages = 1
+    max_next_requests = 1
     expected_sequence = [
         'A1',
         'A11', 'A111', 'A1111', 'A1112', 'A112', 'A1121', 'A1122',
@@ -231,7 +231,7 @@ class DFS_T01_W1(TestParameters):
 
 class DFS_T01_W100(TestParameters):
     site_list = graphs.data.SITE_LIST_01
-    max_next_pages = 100
+    max_next_requests = 100
     expected_sequence = [
         'A1',
         'A11', 'A12',
@@ -242,7 +242,7 @@ class DFS_T01_W100(TestParameters):
 
 class DFS_T02_W1(TestParameters):
     site_list = graphs.data.SITE_LIST_02
-    max_next_pages = 1
+    max_next_requests = 1
     expected_sequence = [
         'A1',
         'A11',
@@ -263,7 +263,7 @@ class DFS_T02_W1(TestParameters):
 
 class DFS_T02_W100(TestParameters):
     site_list = graphs.data.SITE_LIST_02
-    max_next_pages = 100
+    max_next_requests = 100
     expected_sequence = [
         'A1', 'B1',
         'A11', 'A12', 'B11', 'B12',
@@ -276,7 +276,7 @@ class DFS_T02_W100(TestParameters):
 
 class DFS_T03_W1(TestParameters):
     site_list = graphs.data.SITE_LIST_03
-    max_next_pages = 1
+    max_next_requests = 1
     expected_sequence = [
         'C1',
         'C11',
@@ -290,7 +290,7 @@ class DFS_T03_W1(TestParameters):
 
 class DFS_T03_W100(TestParameters):
     site_list = graphs.data.SITE_LIST_03
-    max_next_pages = 100
+    max_next_requests = 100
     expected_sequence = [
         'C1',
         'C11', 'C12',
@@ -306,7 +306,7 @@ class DFS_T03_W100(TestParameters):
 #-----------------------------------------------------
 class BFS_T01_W1(TestParameters):
     site_list = graphs.data.SITE_LIST_01
-    max_next_pages = 1
+    max_next_requests = 1
     expected_sequence = [
         'A1',
         'A11', 'A12',
@@ -318,7 +318,7 @@ class BFS_T01_W1(TestParameters):
 
 class BFS_T01_W100(TestParameters):
     site_list = graphs.data.SITE_LIST_01
-    max_next_pages = 100
+    max_next_requests = 100
     expected_sequence = [
         'A1',
         'A11', 'A12',
@@ -330,7 +330,7 @@ class BFS_T01_W100(TestParameters):
 
 class BFS_T01_W100_ALL(TestParameters):
     site_list = graphs.data.SITE_LIST_01
-    max_next_pages = 100
+    max_next_requests = 100
     add_all_pages = True
     expected_sequence = [
         'A1',
@@ -343,7 +343,7 @@ class BFS_T01_W100_ALL(TestParameters):
 
 class BFS_T02_W1(TestParameters):
     site_list = graphs.data.SITE_LIST_02
-    max_next_pages = 1
+    max_next_requests = 1
     expected_sequence = [
         'A1', 'B1',
         'A11', 'A12', 'B11', 'B12',
@@ -356,7 +356,7 @@ class BFS_T02_W1(TestParameters):
 
 class BFS_T02_W100(TestParameters):
     site_list = graphs.data.SITE_LIST_02
-    max_next_pages = 100
+    max_next_requests = 100
     expected_sequence = [
         'A1', 'B1',
         'A11', 'A12', 'B11', 'B12',
@@ -369,7 +369,7 @@ class BFS_T02_W100(TestParameters):
 
 class BFS_T03_W1(TestParameters):
     site_list = graphs.data.SITE_LIST_03
-    max_next_pages = 1
+    max_next_requests = 1
     expected_sequence = [
         'C1',
         'C11', 'C12',
@@ -382,7 +382,7 @@ class BFS_T03_W1(TestParameters):
 
 class BFS_T03_W100(TestParameters):
     site_list = graphs.data.SITE_LIST_03
-    max_next_pages = 100
+    max_next_requests = 100
     expected_sequence = [
         'C1',
         'C11', 'C12',
@@ -405,6 +405,8 @@ class BackendTestCase(unittest.TestCase):
         # Settings
         self.settings.TEST_MODE = True
         self.settings.BACKEND = self.backend
+        self.settings.LINK_MODEL = 'crawlfrontier.BasicLink'
+        self.settings.PAGE_MODEL = 'crawlfrontier.BasicPage'
         self.settings.LOGGING_MANAGER_ENABLED = False
         self.settings.LOGGING_BACKEND_ENABLED = False
         self.settings.LOGGING_DEBUGGING_ENABLED = False
@@ -415,7 +417,7 @@ class BackendTestCase(unittest.TestCase):
         # Tester
         self.tester = FrontierTester(frontier=self.frontier,
                                      graph_manager=graph_manager,
-                                     max_next_pages=self.test_parameters.max_next_pages)
+                                     max_next_requests=self.test_parameters.max_next_requests)
         self.tester.run(add_all_pages=self.test_parameters.add_all_pages)
 
     def tearDown(self):
@@ -500,53 +502,27 @@ SQLALCHEMY_SQLITE_FILE_TEARDOWN_CALLBACKS = [delete_test_db]
 # BACKEND TESTS
 #-----------------------------------------------------
 #-----------------------------
-# memory dict
+# memory
 #-----------------------------
-MEMORY_DICT_BACKEND_TESTS = [
+MEMORY_BACKEND_TESTS = [
     BackendTest(
-        name='DICT_FIFO',
-        backend='crawlfrontier.contrib.backends.memory.dict.FIFO',
+        name='MEMORY_FIFO',
+        backend='crawlfrontier.contrib.backends.memory.FIFO',
         test_parameters=FIFO_TEST_PARAMETERS
     ),
     BackendTest(
-        name='DICT_LIFO',
-        backend='crawlfrontier.contrib.backends.memory.dict.LIFO',
+        name='MEMORY_LIFO',
+        backend='crawlfrontier.contrib.backends.memory.LIFO',
         test_parameters=LIFO_TEST_PARAMETERS
     ),
     BackendTest(
-        name='DICT_DFS',
-        backend='crawlfrontier.contrib.backends.memory.dict.DFS',
+        name='MEMORY_DFS',
+        backend='crawlfrontier.contrib.backends.memory.DFS',
         test_parameters=DFS_TEST_PARAMETERS
     ),
     BackendTest(
-        name='DICT_BFS',
-        backend='crawlfrontier.contrib.backends.memory.dict.BFS',
-        test_parameters=BFS_TEST_PARAMETERS
-    ),
-]
-
-#-----------------------------
-# memory heapq
-#-----------------------------
-MEMORY_HEAPQ_BACKEND_TESTS = [
-    BackendTest(
-        name='HEAPQ_FIFO',
-        backend='crawlfrontier.contrib.backends.memory.heapq.FIFO',
-        test_parameters=FIFO_TEST_PARAMETERS
-    ),
-    BackendTest(
-        name='HEAPQ_LIFO',
-        backend='crawlfrontier.contrib.backends.memory.heapq.LIFO',
-        test_parameters=LIFO_TEST_PARAMETERS
-    ),
-    BackendTest(
-        name='HEAPQ_DFS',
-        backend='crawlfrontier.contrib.backends.memory.heapq.DFS',
-        test_parameters=DFS_TEST_PARAMETERS
-    ),
-    BackendTest(
-        name='HEAPQ_BFS',
-        backend='crawlfrontier.contrib.backends.memory.heapq.BFS',
+        name='MEMORY_BFS',
+        backend='crawlfrontier.contrib.backends.memory.BFS',
         test_parameters=BFS_TEST_PARAMETERS
     ),
 ]
@@ -617,8 +593,7 @@ SQLALCHEMY_FILE_BACKEND_TESTS = [
 
 
 BACKEND_TESTS = \
-    MEMORY_DICT_BACKEND_TESTS + \
-    MEMORY_HEAPQ_BACKEND_TESTS + \
+    MEMORY_BACKEND_TESTS + \
     SQLALCHEMY_MEMORY_BACKEND_TESTS + \
     SQLALCHEMY_FILE_BACKEND_TESTS
 

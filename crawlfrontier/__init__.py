@@ -1,5 +1,5 @@
 from core.manager import FrontierManager
-from core.models import Model, Page, Link, BasicPage, BasicLink
+from core import models
 from core.components import Backend, Middleware
 from settings import Settings
 from utils import graphs

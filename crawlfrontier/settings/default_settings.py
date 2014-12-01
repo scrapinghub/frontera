@@ -3,8 +3,8 @@ import logging
 #--------------------------------------------------------
 # Frontier
 #--------------------------------------------------------
-PAGE_MODEL = 'crawlfrontier.core.models.Page'
-LINK_MODEL = 'crawlfrontier.core.models.Link'
+REQUEST_MODEL = 'crawlfrontier.core.models.Request'
+RESPONSE_MODEL = 'crawlfrontier.core.models.Response'
 MIDDLEWARES = [
     'crawlfrontier.contrib.middlewares.domain.DomainMiddleware',
     'crawlfrontier.contrib.middlewares.fingerprint.UrlFingerprintMiddleware',
@@ -12,8 +12,8 @@ MIDDLEWARES = [
 ]
 BACKEND = 'crawlfrontier.contrib.backends.memory.heapq.FIFO'
 TEST_MODE = False
-MAX_PAGES = 0
-MAX_NEXT_PAGES = 0
+MAX_REQUESTS = 0
+MAX_NEXT_REQUESTS = 0
 AUTO_START = True
 
 #--------------------------------------------------------
