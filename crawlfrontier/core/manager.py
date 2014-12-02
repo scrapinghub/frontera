@@ -164,6 +164,7 @@ class FrontierManager(object):
 
     def add_seeds(self, seeds):
         self._check_startstop()
+        # FIXME probably seeds should be a generator here
         assert len(seeds), "Empty seeds list"
         for seed in seeds:
             assert isinstance(seed, self._request_model), "Seed objects must subclass '%s', '%s' found" % \

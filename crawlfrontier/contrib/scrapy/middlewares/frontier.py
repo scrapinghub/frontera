@@ -5,6 +5,7 @@ from scrapy.http import Request
 from scrapy import signals
 
 from crawlfrontier import FrontierManager
+from crawlfrontier.core import models
 
 # Signals
 frontier_download_error = object()
@@ -63,22 +64,27 @@ class CrawlFrontierSpiderMiddleware(object):
     def process_start_requests(self, start_requests, spider):
         if start_requests:
             self.frontier.logger.debugging.warning("gets seeds")
-            self.frontier.add_seeds([req.url for req in start_requests])
+            # FIXME better add seeds using a generator here
+            self.frontier.add_seeds(list(start_requests))
         self.frontier.logger.debugging.warning("added seeds")
         return self._get_next_requests()
 
     def process_spider_output(self, response, result, spider):
-        page = response.meta['page']
-        page.status = response.status
-        requests = []
+        stored = response.meta['page']
+        page = models.Response(url=stored.url,
+                               status_code=response.status,
+                               request=stored)
+        page.fingerprint = stored.fingerprint
+        page.domain = stored.domain
+        links = []
         for element in result:
             if isinstance(element, Request):
-                requests.append(element)
+                links.append(models.Request(url=element.url,meta=element.meta))
             else:
                 yield element
-        self.frontier.logger.debugging.warning('spider output: %s' % requests)
-        self.frontier.page_crawled(page=page,
-                                   links=[r.url for r in requests])
+        self.frontier.logger.debugging.warning('spider output: %s' % links)
+        self.frontier.page_crawled(response=page,
+                                   links=links)
         self._remove_queued_page(page)
 
     def download_error(self, request, exception, spider):
@@ -90,7 +96,7 @@ class CrawlFrontierSpiderMiddleware(object):
             error = 'TIMEOUT_ERROR'
 
         page = request.meta['page']
-        self.frontier.page_crawled_error(page, error)
+        self.frontier.request_error(request=page, error=error)
         self._remove_queued_page(page)
 
     def spider_idle(self, spider):
@@ -106,9 +112,9 @@ class CrawlFrontierSpiderMiddleware(object):
             for request in next_pages:
                 self.crawler.engine.crawl(request, spider)
 
-    def _get_next_requests(self, max_next_pages=0):
+    def _get_next_requests(self, max_next_requests=0):
         requests = []
-        for page in self.frontier.get_next_pages(max_next_pages=max_next_pages):
+        for page in self.frontier.get_next_requests(max_next_requests):
             request = Request(url=page.url, dont_filter=True)
             request.meta['page'] = page
             requests.append(request)

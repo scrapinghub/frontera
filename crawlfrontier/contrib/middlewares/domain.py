@@ -5,20 +5,20 @@ from crawlfrontier.utils.url import parse_domain_from_url
 
 
 def parse_domain_info(url, test_mode=False):
-        if test_mode:
-            match = re.match('([A-Z])\w+', url)
-            netloc = name = match.groups()[0] if match else '?'
-            scheme = sld = tld = subdomain = '-'
-        else:
-            netloc, name, scheme, sld, tld, subdomain = parse_domain_from_url(url)
-        return {
-            'netloc': netloc,
-            'name': name,
-            'scheme': scheme,
-            'sld': sld,
-            'tld': tld,
-            'subdomain': subdomain,
-        }
+    if test_mode:
+        match = re.match('([A-Z])\w+', url)
+        netloc = name = match.groups()[0] if match else '?'
+        scheme = sld = tld = subdomain = '-'
+    else:
+        netloc, name, scheme, sld, tld, subdomain = parse_domain_from_url(url)
+    return {
+        'netloc': netloc,
+        'name': name,
+        'scheme': scheme,
+        'sld': sld,
+        'tld': tld,
+        'subdomain': subdomain,
+    }
 
 class DomainMiddleware(Middleware):
     component_name = 'Domain Middleware'

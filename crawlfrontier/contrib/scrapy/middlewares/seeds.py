@@ -1,7 +1,7 @@
 
 import codecs
 from boto import connect_s3
-from scrapy.http import Request
+from crawlfrontier.core import models
 from scrapy.exceptions import NotConfigured
 from six.moves.urllib.parse import urlparse
 
@@ -45,7 +45,7 @@ class FileSeedLoader(SeedLoader):
         for seed in data:
             clean_seed = self.clean_seed(seed)
             if clean_seed:
-                seeds.append(Request(clean_seed))
+                seeds.append(models.Request(clean_seed))
         return seeds
 
     def clean_seed(self, url):
