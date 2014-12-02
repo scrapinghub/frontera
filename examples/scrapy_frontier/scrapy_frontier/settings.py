@@ -7,7 +7,7 @@ SPIDER_MODULES = ['scrapy_frontier.spiders']
 NEWSPIDER_MODULE = 'scrapy_frontier.spiders'
 
 HTTPCACHE_ENABLED = True
-REDIRECT_ENABLED = False
+REDIRECT_ENABLED = True
 COOKIES_ENABLED = False
 DOWNLOAD_TIMEOUT = 20
 RETRY_ENABLED = False
@@ -31,6 +31,7 @@ DOWNLOADER_MIDDLEWARES = {
 #--------------------------------------------------------------------------
 SPIDER_MIDDLEWARES.update({
     'crawlfrontier.contrib.scrapy.middlewares.frontier.CrawlFrontierSpiderMiddleware': 0,
+    'crawlfrontier.contrib.scrapy.middlewares.seeds.file.FileSeedLoader': 1,
 })
 DOWNLOADER_MIDDLEWARES.update({
     'crawlfrontier.contrib.scrapy.middlewares.frontier.CrawlFrontierDownloaderMiddleware': 100,  # After retry mw.
@@ -39,3 +40,6 @@ FRONTIER_ENABLED = True
 FRONTIER_SETTINGS = 'scrapy_frontier.frontier.settings'
 FRONTIER_SCHEDULER_INTERVAL = 0.01
 FRONTIER_SCHEDULER_CONCURRENT_REQUESTS = 256
+
+SEEDS_SOURCE = 'seeds.txt'
+
