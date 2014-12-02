@@ -74,8 +74,6 @@ class CrawlFrontierSpiderMiddleware(object):
         page = models.Response(url=stored.url,
                                status_code=response.status,
                                request=stored)
-        page.fingerprint = stored.fingerprint
-        page.domain = stored.domain
         links = []
         for element in result:
             if isinstance(element, Request):
@@ -85,7 +83,7 @@ class CrawlFrontierSpiderMiddleware(object):
         self.frontier.logger.debugging.warning('spider output: %s' % links)
         self.frontier.page_crawled(response=page,
                                    links=links)
-        self._remove_queued_page(page)
+        self._remove_queued_page(stored)
 
     def download_error(self, request, exception, spider):
         # TO-DO: Add more errors...
@@ -95,9 +93,9 @@ class CrawlFrontierSpiderMiddleware(object):
         elif isinstance(exception, TimeoutError):
             error = 'TIMEOUT_ERROR'
 
-        page = request.meta['page']
-        self.frontier.request_error(request=page, error=error)
-        self._remove_queued_page(page)
+        stored = request.meta['page']
+        self.frontier.request_error(request=stored, error=error)
+        self._remove_queued_page(stored)
 
     def spider_idle(self, spider):
         self.frontier.logger.debugging.warning('spider_idle')
