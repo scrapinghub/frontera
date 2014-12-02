@@ -5,7 +5,7 @@ Frontier objects
 Internally the frontier uses 2 object types: :class:`Link` and :class:`Page`.
 They are used to represent the info required to manage links and pages respectively.
 
-These classes are used by most Frontier API methods either as parameter or as a return value depending on the method
+These classes are used by most Frontier API methods either as a parameter or as a return value depending on the method
 used.
 
 Frontier also uses these objects to internally communicate between different components (middlewares and backend).
@@ -184,13 +184,13 @@ The same case applies to :class:`Link` objects
 
 .. _frontier-unique-objects:
 
-Identifing unique objects
+Identifying unique objects
 =========================
 
 As frontier objects are shared between the crawler and the frontier, some mechanism to uniquely identify objects is
 needed. This method may vary depending on the frontier logic (in most cases due to the backend used).
 
-By default, Crawl Frontier uses the :ref:`fingerprint middleware <frontier-url-fingerprint-middleware>` to generate an
+By default, Crawl Frontier uses the :ref:`fingerprint middleware <frontier-url-fingerprint-middleware>` to generate a
 unique fingerprint calculated from the :class:`Link` or :class:`Page` url, which is added to the object. You can use
 this middleware or implement your own method to manage frontier objects identification.
 

@@ -25,7 +25,7 @@ The Crawler (2) is responsible for fetching web pages from the sites (1) and fee
 what pages should be crawled next.
 
 Crawler can be implemented using `Scrapy`_ or any other crawling framework/system as the framework offers a generic
-frontier functionallity.
+frontier functionality.
 
 Frontier API / Manager
 ----------------------
@@ -33,7 +33,7 @@ Frontier API / Manager
 The main entry point to Crawl Frontier API (3) is the FrontierManager object. Frontier users, in our case the Crawler (2),
 will communicate with the frontier through it.
 
-Communication with the frontier can also be done through other mechanisms such as an http API or a queue system. These
+Communication with the frontier can also be done through other mechanisms such as an HTTP API or a queue system. These
 functionalities are not available for the time being, but hopefully will be in future versions.
 
 
@@ -43,8 +43,8 @@ For more information see :doc:`frontier-api`.
 Middlewares
 -----------
 
-Frontier middlewares (4) are specific hooks that sit between the Manager (3) and the Backend (5) and process
-:class:`Link` and :class:`Page` objects when they pass from and to the Frontier and the Backend. They provide a
+Frontier middlewares (4) are specific hooks that sit between the Manager (3) and the Backend (5). These middlewares
+process :class:`Link` and :class:`Page` objects when they pass to and from the Frontier and the Backend. They provide a
 convenient mechanism for extending functionality by plugging custom code.
 
 For more information see :doc:`frontier-middlewares`.
@@ -67,10 +67,10 @@ Data Flow
 =========
 
 The data flow in Crawl Frontier is controlled by the Frontier Manager, all data passes through the
-manager-middlewares-backend squeme and goes like this:
+manager-middlewares-backend scheme and goes like this:
 
 1. The frontier is initialized with a list of seed URLs as entry point for the crawl.
-2. The crawler askes for a list of urls to crawl.
+2. The crawler asks for a list of urls to crawl.
 3. Each url is crawled and the frontier is notified back of the crawl result as well of the extracted links the page contains. If anything went wrong during the crawl, the frontier is also informed of it.
 
 Once all urls have been crawled, steps 2-3 are repeated until crawl of frontier end condition is reached.

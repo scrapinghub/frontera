@@ -2,14 +2,14 @@
 Crawl Frontier at a glance
 ==========================
 
-Crawl Frontier is an application framework that is meant to be used as part of a `Crawling System`_, allowing to easily
-manage and define tasks related to a :doc:`Crawling Frontier <what-is-a-crawl-frontier>`.
+Crawl Frontier is an application framework that is meant to be used as part of a `Crawling System`_, allowing you to
+easily manage and define tasks related to a :doc:`Crawling Frontier <what-is-a-crawl-frontier>`.
 
 Even though it was originally designed for `Scrapy`_, it can also be used with any other Crawling Framework/System as
-the framework offers a generic frontier functionallity.
+the framework offers a generic frontier functionality.
 
-The purpose of this document is to introduce you to the concepts behind Crawl Frontier so you can get an idea of how it
-works and decide if it fits your needs.
+The purpose of this document is to introduce you to the concepts behind Crawl Frontier so that you can get an idea of
+how it works and to decide if it is suited to your needs.
 
 
 1. Create your crawler
@@ -79,7 +79,7 @@ What else?
 ==========
 
 You’ve seen a simple example of how to use Crawl Frontier with Scrapy, but this is just the surface.
-Crawl provides a lot of powerful features for making Frontier managemen easy and efficient, such as:
+Crawl Frontier provides many powerful features for making Frontier management easy and efficient, such as:
 
 * Easy :doc:`built-in integration with Scrapy <scrapy-integration>` and :doc:`any other crawler <frontier-api>`
   through its API.
