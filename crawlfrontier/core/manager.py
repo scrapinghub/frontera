@@ -148,6 +148,10 @@ class FrontierManager(object):
     def n_requests(self):
         return self._n_requests
 
+    @property
+    def finished(self):
+        return self._finished
+
     def start(self):
         assert not self._started, 'Frontier already started!'
         #self.event_log_manager.frontier_start()

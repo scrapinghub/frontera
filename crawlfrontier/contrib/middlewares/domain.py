@@ -20,6 +20,7 @@ def parse_domain_info(url, test_mode=False):
         'subdomain': subdomain,
     }
 
+
 class DomainMiddleware(Middleware):
     component_name = 'Domain Middleware'
 

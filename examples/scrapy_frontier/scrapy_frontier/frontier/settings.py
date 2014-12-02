@@ -1,7 +1,7 @@
 #--------------------------------------------------------
 # Frontier
 #--------------------------------------------------------
-BACKEND = 'crawlfrontier.contrib.backends.memory.heapq.RANDOM'
+BACKEND = 'crawlfrontier.contrib.backends.memory.FIFO'
 MAX_PAGES = 1000
 MAX_NEXT_PAGES = 100
 
