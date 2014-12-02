@@ -92,6 +92,12 @@ class SQLiteBackend(Backend):
     def page_model(self):
         return self.models['Page']
 
+    def frontier_start(self):
+        pass
+
+    def frontier_stop(self):
+        pass
+
     def add_seeds(self, seeds):
         for seed in seeds:
             db_page, _ = self._get_or_create_db_page(url=seed.url, fingerprint=seed.meta['fingerprint'])
@@ -121,8 +127,8 @@ class SQLiteBackend(Backend):
                 db_page_from_link.depth = db_page.depth+1
         self.session.commit()
 
-    def page_crawled_error(self, response, error):
-        db_page, _ = self._get_or_create_db_page(url=response.url, fingerprint=response.meta['fingerprint'])
+    def request_error(self, request, error):
+        db_page, _ = self._get_or_create_db_page(url=request.url, fingerprint=request.meta['fingerprint'])
         db_page.state = Page.State.ERROR
         db_page.error = error
         self.session.commit()

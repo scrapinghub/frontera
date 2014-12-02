@@ -31,6 +31,12 @@ class DomainMiddleware(Middleware):
     def from_manager(cls, manager):
         return cls(manager)
 
+    def frontier_start(self):
+        pass
+
+    def frontier_stop(self):
+        pass
+
     def add_seeds(self, seeds):
         for seed in seeds:
             self._add_domain(seed)
