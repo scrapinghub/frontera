@@ -9,14 +9,24 @@ from crawlfrontier.core.models import Response as FrontierResponse
 class RequestConversor():
     @classmethod
     def scrapy_to_frontier(cls, scrapy_request):
+        if isinstance(scrapy_request.cookies, dict):
+            cookies = scrapy_request.cookies
+        else:
+            cookies = dict(sum([d.items() for d in scrapy_request.cookies], []))
         return FrontierRequest(url=scrapy_request.url,
+                               method=scrapy_request.method,
+                               headers=scrapy_request.headers,
+                               cookies=cookies,
                                meta=scrapy_request.meta)
 
     @classmethod
     def frontier_to_scrapy(cls, frontier_request):
         return ScrapyRequest(url=frontier_request.url,
-                             dont_filter=True,
-                             meta={'frontier_request': frontier_request})
+                             method=frontier_request.method,
+                             headers=frontier_request.headers,
+                             cookies=frontier_request.cookies,
+                             meta={'frontier_request': frontier_request},
+                             dont_filter=True)
 
 
 class ResponseConversor():
@@ -24,12 +34,16 @@ class ResponseConversor():
     def scrapy_to_frontier(cls, scrapy_response):
         return FrontierResponse(url=scrapy_response.url,
                                 status_code=scrapy_response.status,
+                                headers=scrapy_response.headers,
+                                body=scrapy_response.body,
                                 request=scrapy_response.meta['frontier_request'])
 
     @classmethod
     def frontier_to_scrapy(cls, frontier_response):
         return ScrapyResponse(url=frontier_response.url,
                               status=frontier_response.status,
+                              headers=frontier_response.headers,
+                              body=frontier_response.body,
                               request=RequestConversor.frontier_to_scrapy(frontier_response.request))
 
 
