@@ -94,4 +94,4 @@ COLORED_CONSOLE_DEBUGGING = ColorFormatter(
 
 COLORED_CONSOLE_MANAGER.log_colors['DEBUG'] = 'blue'
 COLORED_CONSOLE_BACKEND.log_colors['DEBUG'] = 'green'
-COLORED_CONSOLE_DEBUGGING.log_colors['DEBUG'] = 'white'
+COLORED_CONSOLE_DEBUGGING.log_colors['DEBUG'] = 'cyan'

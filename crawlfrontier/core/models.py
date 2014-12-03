@@ -1,73 +1,60 @@
-import json
 import copy
-from collections import OrderedDict
-
-from crawlfrontier.utils.encoders import DateTimeEncoder
 
 
-class Model(object):
-    def _get_values(self):
-        values_dict = {}
-        for attr_name in self.__dict__:
-            value = getattr(self, attr_name)
-            value = value._get_values() if isinstance(value, Model) else value
-            values_dict[attr_name] = value
-        values_dict['_'] = str(self)
-        return values_dict
+class FrontierObject(object):
+    def copy(self):
+        return copy.deepcopy(self)
 
-    def __repr__(self):
-        return json.dumps(self._get_values(), indent=4, cls=DateTimeEncoder, sort_keys=True)
+
+class Request(FrontierObject):
+    """
+    ....
+
+    :param url: URL to send.
+    :param method: HTTP method to use.
+    :param headers: dictionary of headers to send.
+    :param cookies: dictionary of cookies to attach to this request.
+    :param meta: dictionary that contains arbitrary metadata for this request.
+    """
+    def __init__(self, url, method='GET', headers=None, cookies=None, meta=None):
+        self.url = url
+        self.method = str(method).upper()
+        self.headers = headers or {}
+        self.cookies = cookies or {}
+        self.meta = meta or {}
 
     def __str__(self):
-        return '<%s:%s:%s>' % (self.__class__.__name__,
-                               hex(id(self)),
-                               self._name.encode('utf-8'))
+        return "<%s at 0x%0x %s>" % (type(self).__name__, id(self), self.url)
 
-    @property
-    def _name(self):
-        raise NotImplementedError
+    __repr__ = __str__
 
 
-class Link(Model):
+class Response(FrontierObject):
+    """
+    ....
 
-    def __init__(self, url):
+    :param url: URL of this response.
+    :param status_code: the HTTP status of the response. Defaults to 200.
+    :param headers: dictionary of headers to send.
+    :param body: the response body.
+    :param request: The Request object that generated this response.
+    """
+    def __init__(self, url, status_code=200, headers=None, body='', request=None):
         self.url = url
+        self.status_code = int(status_code)
+        self.headers = headers or {}
+        self.body = body
+        self.request = request
 
     @property
-    def _name(self):
-        return self.url
+    def meta(self):
+        try:
+            return self.request.meta
+        except AttributeError:
+            raise AttributeError("Response.meta not available, this response " \
+                                 "is not tied to any request")
 
+    def __str__(self):
+        return "<%s at 0x%0x %s %s>" % (type(self).__name__, id(self), self.status_code, self.url)
 
-class Page(Link):
-
-    class State(object):
-        NOT_CRAWLED = 'N'
-        QUEUED = 'Q'
-        CRAWLED = 'C'
-        ERROR = 'E'
-
-    def __init__(self, url):
-        super(Page, self).__init__(url)
-        self.url = url
-        self.state = self.State.NOT_CRAWLED
-        self.depth = 0
-        self.created_at = None
-        self.last_update = None
-        self.status = None
-        self.n_adds = 0
-        self.n_queued = 0
-        self.n_crawls = 0
-        self.n_errors = 0
-        self.meta = OrderedDict()
-
-    @classmethod
-    def from_link(cls, link):
-        page = Page(link.url)
-        for attr_name in link.__dict__:
-            if not attr_name.startswith('_'):
-                setattr(page, attr_name, copy.deepcopy(getattr(link, attr_name)))
-        return page
-
-    @property
-    def is_seed(self):
-        return self.depth == 0
+    __repr__ = __str__

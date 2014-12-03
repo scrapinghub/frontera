@@ -19,21 +19,24 @@ class BaseFingerprintMiddleware(Middleware):
     def from_manager(cls, manager):
         return cls(manager)
 
-    def add_seeds(self, links):
+    def frontier_start(self):
+        pass
+
+    def frontier_stop(self):
+        pass
+
+    def add_seeds(self, seeds):
+        for seed in seeds:
+            self._add_fingerprint(seed)
+        return seeds
+
+    def page_crawled(self, response, links):
         for link in links:
             self._add_fingerprint(link)
-        return links
+        return self._add_fingerprint(response)
 
-    def page_crawled(self, page, links):
-        for link in links:
-            self._add_fingerprint(link)
-        return self._add_fingerprint(page)
-
-    def page_crawled_error(self, page, error):
-        return self._add_fingerprint(page)
-
-    def get_page(self, link):
-        return self._add_fingerprint(link)
+    def request_error(self, request, error):
+        return self._add_fingerprint(request)
 
     def _add_fingerprint(self, obj):
         raise NotImplementedError
@@ -44,8 +47,7 @@ class UrlFingerprintMiddleware(BaseFingerprintMiddleware):
     fingerprint_function_name = 'URL_FINGERPRINT_FUNCTION'
 
     def _add_fingerprint(self, obj):
-        if hasattr(obj, 'url'):
-            obj.fingerprint = self.fingerprint_function(canonicalize_url(obj.url))
+        obj.meta['fingerprint'] = self.fingerprint_function(canonicalize_url(obj.url))
         return obj
 
 
@@ -54,6 +56,6 @@ class DomainFingerprintMiddleware(BaseFingerprintMiddleware):
     fingerprint_function_name = 'DOMAIN_FINGERPRINT_FUNCTION'
 
     def _add_fingerprint(self, obj):
-        if hasattr(obj, 'domain'):
-            obj.domain.fingerprint = self.fingerprint_function(obj.domain.name)
+        if 'domain' in obj.meta:
+            obj.meta['domain']['fingerprint'] = self.fingerprint_function(obj.meta['domain']['name'])
         return obj

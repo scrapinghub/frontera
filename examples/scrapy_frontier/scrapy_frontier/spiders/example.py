@@ -17,11 +17,6 @@ class FallbackLinkExtractor(object):
 class MySpider(CrawlSpider):
     name = 'example'
 
-    allowed_domains = ['scrapinghub.com']
-    start_urls = [
-        'http://scrapinghub.com',
-    ]
-
     rules = [Rule(FallbackLinkExtractor([
         LxmlLinkExtractor(),
         SgmlLinkExtractor(),

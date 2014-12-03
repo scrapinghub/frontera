@@ -1,61 +1,55 @@
 import re
 
 from crawlfrontier.core.components import Middleware
-from crawlfrontier.core.models import Model
 from crawlfrontier.utils.url import parse_domain_from_url
 
 
-class Domain(Model):
-    component_name = 'Domain Middleware'
-
-    def __init__(self, netloc, name, scheme, sld, tld, subdomain):
-        self.netloc = netloc
-        self.name = name
-        self.scheme = scheme
-        self.sld = sld
-        self.tld = tld
-        self.subdomain = subdomain
-
-    @property
-    def _name(self):
-        return self.name
+def parse_domain_info(url, test_mode=False):
+    if test_mode:
+        match = re.match('([A-Z])\w+', url)
+        netloc = name = match.groups()[0] if match else '?'
+        scheme = sld = tld = subdomain = '-'
+    else:
+        netloc, name, scheme, sld, tld, subdomain = parse_domain_from_url(url)
+    return {
+        'netloc': netloc,
+        'name': name,
+        'scheme': scheme,
+        'sld': sld,
+        'tld': tld,
+        'subdomain': subdomain,
+    }
 
 
 class DomainMiddleware(Middleware):
+    component_name = 'Domain Middleware'
 
     def __init__(self, manager):
-        self.test_mode = manager.test_mode
+        self.manager = manager
 
     @classmethod
     def from_manager(cls, manager):
         return cls(manager)
 
-    def add_seeds(self, links):
+    def frontier_start(self):
+        pass
+
+    def frontier_stop(self):
+        pass
+
+    def add_seeds(self, seeds):
+        for seed in seeds:
+            self._add_domain(seed)
+        return seeds
+
+    def page_crawled(self, response, links):
         for link in links:
             self._add_domain(link)
-        return links
+        return self._add_domain(response)
 
-    def page_crawled(self, page, links):
-        for link in links:
-            self._add_domain(link)
-        return self._add_domain(page)
-
-    def page_crawled_error(self, page, error):
-        return self._add_domain(page)
-
-    def get_page(self, link):
-        return self._add_domain(link)
+    def request_error(self, request, error):
+        return self._add_domain(request)
 
     def _add_domain(self, obj):
-        setattr(obj, 'domain', self._get_domain_from_url(obj.url))
+        obj.meta['domain'] = parse_domain_info(obj.url, self.manager.test_mode)
         return obj
-
-    def _get_domain_from_url(self, url):
-        if self.test_mode:
-            match = re.match('([A-Z])\w+', url)
-            netloc = name = match.groups()[0] if match else '?'
-            scheme = sld = tld = subdomain = '-'
-        else:
-            netloc, name, scheme, sld, tld, subdomain = parse_domain_from_url(url)
-
-        return Domain(name=name, netloc=netloc, scheme=scheme, sld=sld, tld=tld, subdomain=subdomain)

@@ -4,7 +4,7 @@ from scrapy.exceptions import NotConfigured, DontCloseSpider
 from scrapy.http import Request
 from scrapy import signals
 
-from crawlfrontier import FrontierManager
+from crawlfrontier.contrib.scrapy.manager import ScrapyFrontierManager
 
 # Signals
 frontier_download_error = object()
@@ -29,15 +29,15 @@ class CrawlFrontierSpiderMiddleware(object):
         frontier_settings = crawler.settings.get('FRONTIER_SETTINGS', None)
         if not frontier_settings:
             raise NotConfigured
-        self.frontier = FrontierManager.from_settings(frontier_settings)
+        self.frontier = ScrapyFrontierManager(frontier_settings)
 
         # Scheduler settings
         self.scheduler_interval = crawler.settings.get('FRONTIER_SCHEDULER_INTERVAL',
                                                        DEFAULT_FRONTIER_SCHEDULER_INTERVAL)
         self.scheduler_concurrent_requests = crawler.settings.get('FRONTIER_SCHEDULER_CONCURRENT_REQUESTS',
                                                                   DEFAULT_FRONTIER_SCHEDULER_CONCURRENT_REQUESTS)
-        # Queued pages set
-        self.queued_pages = set()
+        # Queued requests set
+        self.queued_requests = set()
 
         # Signals
         self.crawler.signals.connect(self.spider_opened, signals.spider_opened)
@@ -51,7 +51,7 @@ class CrawlFrontierSpiderMiddleware(object):
         return cls(crawler, crawler.stats)
 
     def spider_opened(self, spider):
-        if not self.frontier.auto_start:
+        if not self.frontier.manager.auto_start:
             self.frontier.start()
         self.next_requests_task = LoopingCall(self._schedule_next_requests, spider)
         self.next_requests_task.start(self.scheduler_interval)
@@ -62,64 +62,57 @@ class CrawlFrontierSpiderMiddleware(object):
 
     def process_start_requests(self, start_requests, spider):
         if start_requests:
-            self.frontier.logger.debugging.warning("gets seeds")
-            self.frontier.add_seeds([req.url for req in start_requests])
-        self.frontier.logger.debugging.warning("added seeds")
+            self.frontier.add_seeds(list(start_requests))
         return self._get_next_requests()
 
     def process_spider_output(self, response, result, spider):
-        page = response.meta['page']
-        page.status = response.status
-        requests = []
+        links = []
         for element in result:
             if isinstance(element, Request):
-                requests.append(element)
+                links.append(element)
             else:
                 yield element
-        self.frontier.logger.debugging.warning('spider output: %s' % requests)
-        self.frontier.page_crawled(page=page,
-                                   links=[r.url for r in requests])
-        self._remove_queued_page(page)
+        self.frontier.page_crawled(scrapy_response=response,
+                                   scrapy_links=links)
+        self._remove_queued_request(response.request)
 
     def download_error(self, request, exception, spider):
-        # TO-DO: Add more errors...
+        # TODO: Add more errors...
         error = '?'
         if isinstance(exception, DNSLookupError):
             error = 'DNS_ERROR'
         elif isinstance(exception, TimeoutError):
             error = 'TIMEOUT_ERROR'
-
-        page = request.meta['page']
-        self.frontier.page_crawled_error(page, error)
-        self._remove_queued_page(page)
+        self.frontier.request_error(scrapy_request=request, error=error)
+        self._remove_queued_request(request)
 
     def spider_idle(self, spider):
-        self.frontier.logger.debugging.warning('spider_idle')
-        if not self.frontier._finished:
+        if not self.frontier.manager.finished:
             raise DontCloseSpider()
 
     def _schedule_next_requests(self, spider):
-        n_scheduled = len(self.queued_pages)
-        if not self.frontier._finished and n_scheduled < self.scheduler_concurrent_requests:
+        n_scheduled = len(self.queued_requests)
+        if not self.frontier.manager.finished and n_scheduled < self.scheduler_concurrent_requests:
             n_requests_gap = self.scheduler_concurrent_requests - n_scheduled
             next_pages = self._get_next_requests(n_requests_gap)
             for request in next_pages:
                 self.crawler.engine.crawl(request, spider)
 
-    def _get_next_requests(self, max_next_pages=0):
-        requests = []
-        for page in self.frontier.get_next_pages(max_next_pages=max_next_pages):
-            request = Request(url=page.url, dont_filter=True)
-            request.meta['page'] = page
-            requests.append(request)
-            self._add_queued_page(page)
+    def _get_next_requests(self, max_next_requests=0):
+        requests = self.frontier.get_next_requests(max_next_requests)
+        for request in requests:
+            self._add_queued_request(request)
         return requests
 
-    def _add_queued_page(self, page):
-        self.queued_pages.add(page.fingerprint)
+    def _add_queued_request(self, request):
+        self.queued_requests.add(request.url)
 
-    def _remove_queued_page(self, page):
-        self.queued_pages.remove(page.fingerprint)
+    def _remove_queued_request(self, request):
+        if 'redirect_urls' in request.meta:
+            url = request.meta['redirect_urls'][0]
+        else:
+            url = request.url
+        self.queued_requests.remove(url)
 
 
 class CrawlFrontierDownloaderMiddleware(object):
