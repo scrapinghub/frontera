@@ -66,7 +66,7 @@ COLORED_EVENTS = ColorFormatter(
 
 CONSOLE_COLORS = {
     "DEBUG": "white",
-    "INFO": "white",
+    "INFO": "black",
     "WARNING": "yellow",
     "ERROR": "red",
     "CRITICAL": "bold_purple",
