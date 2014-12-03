@@ -20,7 +20,7 @@ The basic idea of this backend is to crawl pages with a frequency
 proportional to a weighted average of the hub and authority scores.
 """
 from crawlfrontier import Backend
-from crawlfrontier.core.models import Page
+from crawlfrontier.core.models import Request
 
 from opichits import OpicHits
 
@@ -33,13 +33,15 @@ class OpicHitsBackend(Backend):
     to HITS scoring
     """
 
-    def __init__(self, manager):
+    component_name = 'OPIC-HITS Backend'
+
+    def __init__(self, manager, db_graph=None, db_scores=None, db_pages=None):
         # Adjacency between pages and links
-        self._graph = graphdb.SQLite()
+        self._graph = db_graph or graphdb.SQLite()
         # Score database to decide next page to crawl
-        self._scores = scoredb.SQLite()
+        self._scores = db_scores or scoredb.SQLite()
         # Additional information (URL, domain) 
-        self._pages = pagedb.SQLite()
+        self._pages = db_pages or pagedb.SQLite()
 
         # Implementation of the algorithm
         self._opic = OpicHits(db_graph=self._graph)
@@ -63,55 +65,57 @@ class OpicHitsBackend(Backend):
     # Add pages
     ####################################################################
     def _add_new_link(self, link):
-        """Add a new node to the graph, if not present"""         
-        self._graph.add_node(link.fingerprint)
-        self._pages.add(link.fingerprint,
-                        pagedb.PageData(link.url, link.domain.name))
-        self._scores.add(link.fingerprint, 0.0)
+        """Add a new node to the graph, if not present
+
+        Returns the fingerprint used to add the link
+        """         
+        fingerprint = link.meta['fingerprint']
+        self._graph.add_node(fingerprint)
+        self._pages.add(fingerprint,
+                        pagedb.PageData(link.url, link.meta['domain_name']))
+        self._scores.add(fingerprint, 0.0)
+
+        return fingerprint
 
     # FrontierManager interface
-    def add_seeds(self, links):
-        """Start crawling from this links"""
-        for link in links:
-            self._add_new_link(link)
+    def add_seeds(self, seeds):
+        """Start crawling from this seeds"""
+        for seed in seeds:
+            self._add_new_link(seed)
 
     # FrontierManager interface
-    def page_crawled(self, page, links):
+    def page_crawled(self, response, links):
         """Add page info to the graph and reset its score"""
+        page_fingerprint = response.meta['fingerprint']
         for link in links:
-            self._add_new_link(link)
-            self._graph.add_edge(page.fingerprint, link.fingerprint)
+            link_fingerprint = self._add_new_seed(link)        
+            self._graph.add_edge(page_fingerprint, link_fingerprint)
 
-        self._scores.set(page.fingerprint, 0.0)
-        return page
+        self._scores.set(page_fingerprint, 0.0)
 
     # FrontierManager interface
-    def page_crawled_error(self, page, error):
+    def request_error(self, page, error):
         """TODO"""
-        return page
+        pass
 
     # Retrieve pages
     ####################################################################
-    def _get_page_from_id(self, page_id):
+    def _get_request_from_id(self, page_id):
         page_data = self._pages.get(page_id)
         if page_data:
-            result = Page(page_data.url)
-            result.fingerprint = page_id
-            result.domain = page_data.domain
+            result = Request(page_data.url)
+            result.meta['fingerprint'] = page_id
+            result.meta['domain_name'] = page_data.domain
         else:
             result = None
 
         return result
 
     # FrontierManager interface
-    def get_page(self, link):
-        """Build a Page object from stored information"""
-        return self._get_page_from_id(link.fingerprint)
-
-    # FrontierManager interface
-    def get_next_pages(self, max_next_pages):
+    def get_next_request(self, max_n_requests):
         """Retrieve the next pages to be crawled"""
         self._opic.update()
+
         for page_id, h_score, a_score in self._opic.iscores():
             score = self._scores.get(page_id)
             self._scores.set(page_id,
@@ -119,8 +123,8 @@ class OpicHitsBackend(Backend):
 
         return filter(
             lambda x: x!= None,
-            [self._get_page_from_id(page_id) for page_id, page_data in 
-             self._scores.get_best_scores(max_next_pages)]
+            [self._get_request_from_id(page_id) for page_id, page_data in 
+             self._scores.get_best_scores(max_n_requests)]
         )
 
 
