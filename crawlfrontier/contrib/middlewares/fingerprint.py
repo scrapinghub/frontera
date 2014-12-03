@@ -11,7 +11,6 @@ class BaseFingerprintMiddleware(Middleware):
     def __init__(self, manager):
         fingerprint_function_name = manager.settings.get(self.fingerprint_function_name, None)
         if not fingerprint_function_name:
-            manager.logger.frontier.warning('Missing function "%s" in settings' % self.fingerprint_function_name)
             raise NotConfigured
         self.fingerprint_function = load_object(fingerprint_function_name)
 

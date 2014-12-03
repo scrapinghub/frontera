@@ -273,11 +273,14 @@ class FrontierManager(object):
         mws = []
         for mw_name in middleware_names or []:
             self.logger.manager.debug("Loading middleware '%s'" % mw_name)
-            mw = self._load_object(mw_name, silent=True)
-            assert isinstance(mw, Middleware), "middleware '%s' must subclass Middleware" % \
-                                               mw.__class__.__name__
-            if mw:
-                mws.append(mw)
+            try:
+                mw = self._load_object(mw_name, silent=False)
+                assert isinstance(mw, Middleware), "middleware '%s' must subclass Middleware" % mw.__class__.__name__
+                if mw:
+                    mws.append(mw)
+            except NotConfigured:
+                self.logger.manager.warning("middleware '%s' disabled!" % mw_name)
+
         return mws
 
     def _process_components(self, method_name, obj=None, return_classes=None, **kwargs):
