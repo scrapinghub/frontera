@@ -206,8 +206,6 @@ class OpicHitsBackend(Backend):
              self._scores.get_best_scores(max_n_requests)]
         )
 
-        print "-----> Asked for {0}, returning {1} requests".format(max_n_requests, len(result))
-
         return result
 
 
