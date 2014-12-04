@@ -112,7 +112,10 @@ class CrawlFrontierSpiderMiddleware(object):
             url = request.meta['redirect_urls'][0]
         else:
             url = request.url
-        self.queued_requests.remove(url)
+        try:
+            self.queued_requests.remove(url)
+        except KeyError:
+            pass
 
 
 class CrawlFrontierDownloaderMiddleware(object):

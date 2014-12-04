@@ -3,13 +3,17 @@ Interface definition for graphs and a simple SQLite based implementation
 """
 from abc import ABCMeta, abstractmethod
 from itertools import imap
-import sqlite3
 
-from sqlite import CursorIterator
+import sqlite
 
 class GraphInterface(object):
     """Interface definition for a Graph database"""
     __metaclass__ = ABCMeta
+
+    @abstractmethod
+    def clear(self):
+        """Delete all contents"""
+        pass
 
     @abstractmethod
     def close(self):
@@ -61,18 +65,20 @@ class GraphInterface(object):
         """An iterator for all the edges"""
         pass
     
+    @abstractmethod
+    def start_batch(self):
+        """Do not commit changes to the graph until this batch ends"""
+        pass
 
-class SQLite(GraphInterface):
+    @abstractmethod
+    def end_batch(self):
+        """Commit pending changes"""
+        pass
+
+class SQLite(sqlite.Connection, GraphInterface):
     """SQLite implementation of GraphInterface"""
     def __init__(self, db=None):
-        if not db:
-            db = ':memory:'
-
-        self._connection = sqlite3.connect(db)
-        # auto-commit
-        self._connection.isolation_level = None
-
-        self._cursor = self._connection.cursor()
+        super(SQLite, self).__init__(db)
       
         self._cursor.executescript(
             """
@@ -88,13 +94,18 @@ class SQLite(GraphInterface):
             );
 
             CREATE INDEX IF NOT EXISTS
-                node_index on nodes(name);
-
-            CREATE INDEX IF NOT EXISTS
                 start_index on edges(start);
 
             CREATE INDEX IF NOT EXISTS
                 end_index on edges(end);
+            """
+        )
+
+    def clear(self):
+        self._cursor.executescript(
+            """
+            DELETE FROM nodes;
+            DELETE FROM edges;
             """
         )
 
@@ -173,7 +184,7 @@ class SQLite(GraphInterface):
 
     def inodes(self):        
         return imap(lambda x: x[0], # un-tuple
-                    CursorIterator(
+                    sqlite.CursorIterator(
                         self._connection
                             .cursor()
                             .execute('SELECT name FROM nodes')
@@ -181,12 +192,8 @@ class SQLite(GraphInterface):
         )
 
     def iedges(self):
-        return CursorIterator(
+        return sqlite.CursorIterator(
             self._connection
                 .cursor()
                 .execute('SELECT start,end FROM edges')
         )
-
-    def close(self, comit=True):
-        self._connection.commit()
-        self._connection.close()

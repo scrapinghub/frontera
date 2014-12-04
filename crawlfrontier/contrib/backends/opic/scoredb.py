@@ -3,12 +3,16 @@ A simple association between pages and scores.
 Score is in this a single real number.
 """
 from abc import ABCMeta, abstractmethod
-import sqlite3
 
-from sqlite import CursorIterator
+import sqlite
 
 class ScoreDBInterface(object):
     __metaclass__ = ABCMeta
+
+    @abstractmethod
+    def clear(self):
+        """Delete all contents"""
+        pass
 
     @abstractmethod
     def add(self, page_id, page_score):
@@ -41,15 +45,14 @@ class ScoreDBInterface(object):
         """An iterator over all tuples (page_id, page_score)"""
         pass
 
-class SQLite(ScoreDBInterface):
+    @abstractmethod
+    def close(self):
+        pass
+
+class SQLite(sqlite.Connection, ScoreDBInterface):
     """A SQLite implementation for the ScoreDBInterface"""
     def __init__(self, db=None):
-        if not db:
-            db = ':memory:'
-
-        self._connection = sqlite3.connect(db)
-        self._cursor = self._connection.cursor()
-        
+        super(SQLite, self).__init__(db)
 
         self._cursor.executescript(
             """
@@ -59,10 +62,14 @@ class SQLite(ScoreDBInterface):
             );
 
             CREATE INDEX IF NOT EXISTS
-                page_id_index on scores(page_id);
-
-            CREATE INDEX IF NOT EXISTS
                 score_index on scores(score);
+            """
+        )
+
+    def clear(self):
+        self._cursor.executescript(
+            """
+            DELETE FROM scores;
             """
         )
 
@@ -117,7 +124,7 @@ class SQLite(ScoreDBInterface):
         return self._cursor.fetchall()
 
     def iscores(self):
-        return CursorIterator(
+        return sqlite.CursorIterator(
             self._connection
                 .cursor()
                 .execute(
@@ -126,3 +133,11 @@ class SQLite(ScoreDBInterface):
                     """
                 )
         )        
+
+    def close(self, comit=True):
+        if not self._closed:
+            if comit:
+                self._connection.commit()
+            self._connection.close()
+
+        self._closed = True

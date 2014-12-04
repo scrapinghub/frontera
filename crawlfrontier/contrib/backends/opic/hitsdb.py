@@ -5,11 +5,17 @@ necessary for the OPIC-HITS algorithm
 """
 from abc import ABCMeta, abstractmethod
 from itertools import imap
-import sqlite3
+
+import sqlite
 
 class HitsDBInterface(object):
     """Interface definition for every HITS database"""
     __metaclass__ = ABCMeta
+
+    @abstractmethod
+    def clear(self):
+        """Delete all contents"""
+        pass
 
     @abstractmethod
     def close(self):
@@ -55,6 +61,20 @@ class HitsDBInterface(object):
         """
         pass
 
+    @abstractmethod
+    def get_highest_h_cash(self, n=1):
+        """
+        Get the highest hub cash
+        """
+        pass
+
+    @abstractmethod
+    def get_highest_a_cash(self, n=1):
+        """
+        Get the highest authority cash
+        """
+        pass
+
 class HitsScore(object):
     """Just a container for the following (modifiable) fields:
 
@@ -69,34 +89,24 @@ class HitsScore(object):
         self.a_history = a_history
         self.a_cash = a_cash
     
-class SQLite(HitsDBInterface):
+class SQLite(sqlite.Connection, HitsDBInterface):
     """SQLite based implementation for HitsDBInterface"""
 
     def __init__(self, db=None):
         """Make a new connection to a HITS scores database or, if 
         None provided make a new in-memory
         """
-        if not db:
-            db = ':memory:'
-
-        self._connection = sqlite3.connect(db)
-        # auto-commit 
-        self._connection.isolation_level = None 
-
-        self._cursor = self._connection.cursor()
+        super(SQLite, self).__init__(db)
 
         self._cursor.executescript(
             """
             CREATE TABLE IF NOT EXISTS page_score (
-                page_id   TEXT,
+                page_id   TEXT UNIQUE,
                 h_history REAL,
                 h_cash    REAL,
                 a_history REAL,
                 a_cash    REAL
             );
-
-            CREATE INDEX IF NOT EXISTS
-                page_id_index on page_score(page_id);
 
             CREATE INDEX IF NOT EXISTS
                 h_cash_index on page_score(h_cash);
@@ -105,10 +115,14 @@ class SQLite(HitsDBInterface):
                 a_cash_index on page_score(a_cash);
             """
         )
-      
-    def close(self):
-        self._connection.commit()
-        self._connection.close()
+
+
+    def clear(self):
+        self._cursor.executescript(
+            """
+            DELETE FROM page_score;
+            """
+        )
 
     def add(self, page_id, page_score):
         self._cursor.execute(
@@ -178,3 +192,21 @@ class SQLite(HitsDBInterface):
                 """
             )
         )
+
+    def get_highest_h_cash(self, n=1):
+        self._cursor.execute(
+            """
+            SELECT page_id, h_cash FROM page_score ORDER BY h_cash DESC LIMIT ?
+            """,
+            (n,)
+        )
+        return self._cursor.fetchall()
+
+    def get_highest_a_cash(self, n=1):
+        self._cursor.execute(
+            """
+            SELECT page_id, a_cash FROM page_score ORDER BY a_cash DESC LIMIT ?
+            """,
+            (n,)
+        )
+        return self._cursor.fetchall()

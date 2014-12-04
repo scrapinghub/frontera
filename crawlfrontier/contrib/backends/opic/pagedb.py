@@ -2,11 +2,16 @@
 Database for PageData
 """
 from abc import ABCMeta, abstractmethod
-import sqlite3
+import sqlite
 
 class PageDBInterface(object):
     """Interface for the Page database"""
     __metaclass__ = ABCMeta
+
+    @abstractmethod
+    def clear(self):
+        """Delete all contents"""
+        pass
 
     @abstractmethod
     def add(self, page_id, page):
@@ -28,21 +33,21 @@ class PageDBInterface(object):
         """Delete association"""
         pass
 
+    @abstractmethod
+    def close(self):
+        """Close database"""
+        pass
+
 class PageData(object):
     """A container for the necessary page data"""
     def __init__(self, url, domain):
         self.url = url
         self.domain = domain
 
-class SQLite(PageDBInterface):
+class SQLite(sqlite.Connection, PageDBInterface):
     """SQLite implementation of the page database interface"""
     def __init__(self, db=None):
-        if not db:
-            db = ':memory:'
-
-        self._connection = sqlite3.connect(db)
-        self._cursor = self._connection.cursor()
-        
+        super(SQLite, self).__init__(db)
 
         self._cursor.executescript(
             """
@@ -51,9 +56,13 @@ class SQLite(PageDBInterface):
                url     TEXT,
                domain  TEXT
             );
+            """
+        )
 
-            CREATE INDEX IF NOT EXISTS
-                page_id_index on pages(page_id);
+    def clear(self):
+        self._cursor.executescript(
+            """
+            DELETE FROM pages;
             """
         )
 
@@ -95,3 +104,4 @@ class SQLite(PageDBInterface):
             """,
             (page_id,)
         )
+

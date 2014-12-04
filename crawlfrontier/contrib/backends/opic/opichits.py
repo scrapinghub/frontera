@@ -37,21 +37,31 @@ class OpicHits(object):
             a_cash    = 1.0
         )
 
-    def _add_new_page(self, page_id):
+        self._closed = False
+
+        # Initialize scores
+        for page_id in self._graph.inodes():
+            self.add_new_page(page_id)
+
+    def add_new_page(self, page_id):
         """Add a new page, with fresh score information"""
-        self._n_pages += 1
+        if not page_id in self._scores:
+            self._n_pages += 1
 
-        new_score = hitsdb.HitsScore(
-            h_history = self._h_total/self._n_pages,
-            h_cash    = 0.0,
-            a_history = self._a_total/self._n_pages,
-            a_cash    = 0.0            
-        )
+            new_score = hitsdb.HitsScore(
+                h_history = self._h_total/self._n_pages,
+                h_cash    = 0.0,
+                a_history = self._a_total/self._n_pages,
+                a_cash    = 0.0            
+            )
 
-        self._scores.add(page_id, new_score)
+            self._scores.add(page_id, new_score)
 
-        self._h_total += new_score.h_history
-        self._a_total += new_score.a_history
+            self._h_total += new_score.h_history
+            self._a_total += new_score.a_history
+
+        else:
+            new_score = None
 
         return new_score
 
@@ -59,9 +69,9 @@ class OpicHits(object):
         """Return HITS score information. If page has not been 
         associated yet it will create a new association
         """
-        if not page_id in self._scores:
-            score = self._add_new_page(page_id)
-        else:
+      
+        score = self.add_new_page(page_id)
+        if not score:
             score = self._scores.get(page_id)
 
         return score
@@ -114,12 +124,18 @@ class OpicHits(object):
         h_dist = self._virtual_page.a_cash/self._n_pages
         a_dist = self._virtual_page.h_cash/self._n_pages
 
+        self._scores.start_batch()
         for page_id in self._graph.inodes():
             score = self._scores.get(page_id)
-            score.h_cash += h_dist
-            score.a_cash += a_dist
+            if not score:
+                self.add_new_page(page_id)
+            else:
+                score.h_cash += h_dist
+                score.a_cash += a_dist
 
-            self._scores.set(page_id, score)
+                self._scores.set(page_id, score)
+
+        self._scores.end_batch()
 
         self._virtual_page.h_history += self._virtual_page.h_cash
         self._virtual_page.a_history += self._virtual_page.a_cash
@@ -127,13 +143,22 @@ class OpicHits(object):
         self._virtual_page.h_cash = 0.0
         self._virtual_page.a_cash = 0.0        
 
-    def update(self, n_iter=1):
+    def update(self, n_iter=1, n_scores=100):
         """Run a full iteration of the OPIC-HITS algorithm"""
         for i in xrange(n_iter):           
-            for page_id in self._graph.inodes():
+            best_h, h_cash = zip(*self._scores.get_highest_h_cash(n_scores))
+            best_a, a_cash = zip(*self._scores.get_highest_a_cash(n_scores))
+            
+            best = set(best_h + best_a)
+               
+            self._scores.start_batch()
+            for page_id in best:
                 self.update_page(page_id)
+            self._scores.end_batch()
 
-            self.update_virtual_page()
+            if (self._virtual_page.h_cash > h_cash[-1] or
+                self._virtual_page.a_cash > a_cash[-1]):
+                self.update_virtual_page()
 
     def get_scores(self, page_id):
         """Return a tuple (hub score, authority score) for the given 
@@ -150,4 +175,9 @@ class OpicHits(object):
                    score.h_history/self._h_total,
                    score.a_history/self._a_total)
         
+    def close(self):
+        if not self._closed:
+            self._graph.close()
+            self._scores.close()
 
+        self._closed = True

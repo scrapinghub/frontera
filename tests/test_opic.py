@@ -2,10 +2,14 @@ import crawlfrontier.contrib.backends.opic.graphdb as graphdb
 import crawlfrontier.contrib.backends.opic.hitsdb as hitsdb
 import crawlfrontier.contrib.backends.opic.pagedb as pagedb
 import crawlfrontier.contrib.backends.opic.scoredb as scoredb
+import crawlfrontier.contrib.backends.opic.pagechange as pagechange
+import crawlfrontier.contrib.backends.opic.hashdb as hashdb
 
 from crawlfrontier.contrib.backends.opic.opichits import OpicHits
 
 def create_test_graph_1(g):
+    g.clear()
+
     g.add_node('a')
     g.add_node('b')
     g.add_node('c')
@@ -19,6 +23,8 @@ def create_test_graph_1(g):
     return g
 
 def create_test_graph_2(g):
+    g.clear()
+
     g.add_node('0')
     g.add_node('1')
     g.add_node('2')
@@ -75,7 +81,12 @@ def _test_graph_db(g):
     
     
 def test_graph_lite_db():
-    _test_graph_db(graphdb.SQLite())
+    g = graphdb.SQLite()
+    g.clear()
+
+    _test_graph_db(g)
+
+    g.close()
 
 def _test_hits_db(db):
     db.add('a', hitsdb.HitsScore(1, 2, 3, 4))
@@ -118,7 +129,13 @@ def _test_hits_db(db):
     assert db.get('a') == None
 
 def test_hits_lite_db():
-    _test_hits_db(hitsdb.SQLite())
+    db = hitsdb.SQLite()
+    db.clear()
+
+    _test_hits_db(db)
+
+    db.clear()
+    db.close()
 
 def _test_page_db(db):
     db.add('a', pagedb.PageData(url='foo', domain='bar'))
@@ -142,7 +159,13 @@ def _test_page_db(db):
     assert db.get('b') == None
 
 def test_page_lite_db():
-    _test_page_db(pagedb.SQLite())
+    db = pagedb.SQLite()
+    db.clear()
+
+    _test_page_db(db)
+
+    db.clear()
+    db.close()
 
 def _test_score_db(db):
     db.add('a', 1)
@@ -174,10 +197,22 @@ def _test_score_db(db):
     assert db.get('c') == 0.0
 
 def test_score_lite_db():
-    _test_score_db(scoredb.SQLite())
+    db = scoredb.SQLite()
+    db.clear()
 
-def test_opic():
-    opic = OpicHits(db_graph=create_test_graph_2(graphdb.SQLite()))
+    _test_score_db(db)
+
+    db.clear()
+    db.close()
+
+def test_opic():    
+    g = graphdb.SQLite()
+    g.clear()
+
+    h = hitsdb.SQLite()
+    h.clear()
+
+    opic = OpicHits(db_graph=create_test_graph_2(g), db_scores=h)
     opic.update(n_iter=10)
 
     h_score, a_score = zip(
@@ -192,4 +227,24 @@ def test_opic():
         assert s >= 0.15 and s<= 0.2
     for s in a_score[1:]:
         assert s >= 0.15 and s<= 0.2
+
+    g.close()
+    h.close()
+
+def _test_pagechange(db):
+    assert db.update('a', '123')
+    assert db.update('b', 'aaa')
+    assert not db.update('b', 'aaa')
+    assert not db.update('a', '123')
+    assert db.update('a', '120')
+
+def test_pagechange_sha1():
+    db = hashdb.SQLite()
+    db.clear()
+
+    _test_pagechange(pagechange.PageChangeSHA1(db))
+
+    db.clear()
+    db.close()
+
 
