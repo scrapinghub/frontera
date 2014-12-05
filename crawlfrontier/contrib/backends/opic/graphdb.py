@@ -56,6 +56,11 @@ class GraphInterface(object):
         pass
 
     @abstractmethod
+    def neighbours(self, node):
+        """A set of nodes going to or from 'node'"""
+        pass
+
+    @abstractmethod
     def inodes(self):
         """An iterator for all the nodes"""
         pass
@@ -180,7 +185,9 @@ class SQLite(sqlite.Connection, GraphInterface):
         return map(lambda x: x[0], # un-tuple
                    self._cursor.fetchall())
 
-
+    def neighbours(self, node):
+        return set(self.successors(node) + 
+                   self.predecessors(node))
 
     def inodes(self):        
         return imap(lambda x: x[0], # un-tuple

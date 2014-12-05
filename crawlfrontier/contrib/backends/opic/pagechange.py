@@ -14,7 +14,7 @@ class PageChangeInterface(object):
         pass
 
 
-class PageChangeSHA1(PageChangeInterface):
+class BodySHA1(PageChangeInterface):
     def __init__(self, db=None):
         self._db = db or hashdb.SQLite()
 

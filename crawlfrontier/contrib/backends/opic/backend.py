@@ -130,7 +130,7 @@ class OpicHitsBackend(Backend):
 
     # Add pages
     ####################################################################
-    def _add_new_link(self, link):
+    def _add_new_link(self, link, score=1.0):
         """Add a new node to the graph, if not present
 
         Returns the fingerprint used to add the link
@@ -140,7 +140,7 @@ class OpicHitsBackend(Backend):
         self._opic.add_new_page(fingerprint)
         self._pages.add(fingerprint,
                         pagedb.PageData(link.url, link.meta['domain']['name']))
-        self._scores.add(fingerprint, 0.0)
+        self._scores.add(fingerprint, score)
 
         return fingerprint
 
@@ -160,14 +160,12 @@ class OpicHitsBackend(Backend):
     def page_crawled(self, response, links):
         """Add page info to the graph and reset its score"""
         page_fingerprint = response.meta['fingerprint']
-
+        page_h, page_a = self._opic.get_scores(page_fingerprint)
         self._graph.start_batch()
         for link in links:
-            link_fingerprint = self._add_new_link(link)        
+            link_fingerprint = self._add_new_link(link, 0.7*page_h + 0.3*page_a)        
             self._graph.add_edge(page_fingerprint, link_fingerprint)
         self._pages.end_batch()
-
-        self._scores.set(page_fingerprint, 0.0)
 
     # FrontierManager interface
     def request_error(self, page, error):
@@ -192,21 +190,27 @@ class OpicHitsBackend(Backend):
     # FrontierManager interface
     def get_next_requests(self, max_n_requests):
         """Retrieve the next pages to be crawled"""
-        self._opic.update()
-
-        for page_id, h_score, a_score in self._opic.iscores():
-            score = self._scores.get(page_id)
-            self._scores.set(page_id,
-                             score + 0.7*h_score + 0.3*a_score)
-
+        updated = self._opic.update()
+        for page_id in updated:
+            h_score, a_score = self._opic.get_scores(page_id)
+            for link_id in self._graph.neighbours(page_id):
+                score = self._scores.get(link_id)
+                if score != 0: # otherwise it has already been crawled
+                    self._scores.set(link_id, 0.7*h_score + 0.3*a_score)
         
-        result = filter(
+        # build requests for the best scores
+        best_scores = self._scores.get_best_scores(max_n_requests)
+        requests = filter(
             lambda x: x!= None,
-            [self._get_request_from_id(page_id) for page_id, page_data in 
-             self._scores.get_best_scores(max_n_requests)]
+            [self._get_request_from_id(page_id) 
+             for page_id, page_data in  best_scores]
         )
 
-        return result
+        # do not re-crawl
+        for page_id, page_data in best_scores:
+            self._scores.set(page_id, 0.0)
+
+        return requests
 
 
     # Just for testing/debugging

@@ -160,11 +160,13 @@ class OpicHits(object):
                 self._virtual_page.a_cash > a_cash[-1]):
                 self.update_virtual_page()
 
+        return best
+
     def get_scores(self, page_id):
         """Return a tuple (hub score, authority score) for the given 
         page_id"""
 
-        score = self._scores.get(page_id)
+        score = self._get_page_score(page_id)
         return (score.h_history/self._h_total,
                 score.a_history/self._a_total)
 

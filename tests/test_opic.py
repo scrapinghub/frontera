@@ -242,7 +242,7 @@ def test_pagechange_sha1():
     db = hashdb.SQLite()
     db.clear()
 
-    _test_pagechange(pagechange.PageChangeSHA1(db))
+    _test_pagechange(pagechange.BodySHA1(db))
 
     db.clear()
     db.close()

@@ -35,7 +35,7 @@ class Connection(object):
         self._cursor = self._connection.cursor()        
         self._cursor.executescript(
             """
-            PRAGMA cache_size=200000;
+            PRAGMA cache_size=2000000;
             PRAGMA synchronous=OFF;
             PRAGMA temp_store=2;
             """
