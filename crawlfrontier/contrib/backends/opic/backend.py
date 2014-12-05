@@ -137,7 +137,7 @@ class OpicHitsBackend(Backend):
         """         
         fingerprint = link.meta['fingerprint']
         self._graph.add_node(fingerprint)
-        self._opic.add_new_page(fingerprint)
+        self._opic.add_page(fingerprint)
         self._pages.add(fingerprint,
                         pagedb.PageData(link.url, link.meta['domain']['name']))
         self._scores.add(fingerprint, score)
@@ -159,6 +159,7 @@ class OpicHitsBackend(Backend):
     # FrontierManager interface
     def page_crawled(self, response, links):
         """Add page info to the graph and reset its score"""
+
         page_fingerprint = response.meta['fingerprint']
         page_h, page_a = self._opic.get_scores(page_fingerprint)
         self._graph.start_batch()
@@ -190,6 +191,7 @@ class OpicHitsBackend(Backend):
     # FrontierManager interface
     def get_next_requests(self, max_n_requests):
         """Retrieve the next pages to be crawled"""
+
         updated = self._opic.update()
         for page_id in updated:
             h_score, a_score = self._opic.get_scores(page_id)

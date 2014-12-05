@@ -75,6 +75,13 @@ class HitsDBInterface(object):
         """
         pass
 
+    @abstractmethod
+    def increase_all_cash(self, h_cash, a_cash):
+        """
+        Increase the cash in all pages in this amount
+        """
+        pass
+
 class HitsScore(object):
     """Just a container for the following (modifiable) fields:
 
@@ -210,3 +217,11 @@ class SQLite(sqlite.Connection, HitsDBInterface):
             (n,)
         )
         return self._cursor.fetchall()
+
+    def increase_all_cash(self, h_cash, a_cash):
+        self._cursor.execute(
+            """
+            UPDATE page_score SET h_cash=h_cash + ?, a_cash=a_cash + ?
+            """,
+            (h_cash, a_cash)
+        )

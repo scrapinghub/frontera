@@ -4,7 +4,6 @@ An implementation of the OPIC-HITS algorithm
 import hitsdb
 import graphdb
 
-
 class OpicHits(object):
     def __init__(self, db_graph=None, db_scores=None):
         """Make a new instance, using db_graph as the graph database and 
@@ -19,6 +18,8 @@ class OpicHits(object):
   
         # Number of scored web pages
         self._n_pages = 0
+        # Number of pages added since last update
+        self._n_new = 0
 
         # Total hub history, excluding virtual page
         # adding a small quantity is easier and faster than checking 0/0
@@ -41,12 +42,13 @@ class OpicHits(object):
 
         # Initialize scores
         for page_id in self._graph.inodes():
-            self.add_new_page(page_id)
+            self.add_page(page_id)
 
-    def add_new_page(self, page_id):
+    def add_page(self, page_id):
         """Add a new page, with fresh score information"""
         if not page_id in self._scores:
             self._n_pages += 1
+            self._n_new += 1
 
             new_score = hitsdb.HitsScore(
                 h_history = self._h_total/self._n_pages,
@@ -59,7 +61,6 @@ class OpicHits(object):
 
             self._h_total += new_score.h_history
             self._a_total += new_score.a_history
-
         else:
             new_score = None
 
@@ -70,7 +71,7 @@ class OpicHits(object):
         associated yet it will create a new association
         """
       
-        score = self.add_new_page(page_id)
+        score = self.add_page(page_id)
         if not score:
             score = self._scores.get(page_id)
 
@@ -88,7 +89,7 @@ class OpicHits(object):
         succ = self._graph.successors(page_id)        
         pred = self._graph.predecessors(page_id)
 
-        # Authority cash gets distributed to hubs
+        # Authority cash gets distributed to hubs       
         h_dist = score.a_cash/(len(pred) + 1.0)
         # Hub cash gets distributed to authorities
         a_dist = score.h_cash/(len(succ) + 1.0)
@@ -120,45 +121,45 @@ class OpicHits(object):
 
     def update_virtual_page(self):
         """Repeat update_page, but on the virtual page"""
-
+      
         h_dist = self._virtual_page.a_cash/self._n_pages
         a_dist = self._virtual_page.h_cash/self._n_pages
 
-        self._scores.start_batch()
-        for page_id in self._graph.inodes():
-            score = self._scores.get(page_id)
-            if not score:
-                self.add_new_page(page_id)
-            else:
-                score.h_cash += h_dist
-                score.a_cash += a_dist
-
-                self._scores.set(page_id, score)
-
-        self._scores.end_batch()
-
+        self._scores.increase_all_cash(h_dist, a_dist)
+        
         self._virtual_page.h_history += self._virtual_page.h_cash
         self._virtual_page.a_history += self._virtual_page.a_cash
 
         self._virtual_page.h_cash = 0.0
-        self._virtual_page.a_cash = 0.0        
+        self._virtual_page.a_cash = 0.0
 
-    def update(self, n_iter=1, n_scores=100):
-        """Run a full iteration of the OPIC-HITS algorithm"""
-        for i in xrange(n_iter):           
-            best_h, h_cash = zip(*self._scores.get_highest_h_cash(n_scores))
-            best_a, a_cash = zip(*self._scores.get_highest_a_cash(n_scores))
+    def update(self, n_iter=1):
+        """Run a full iteration of the
+        OPIC-HITS algorithm"""
+
+        # update proportional to the rate of graph grow
+        n_updates = max(1, self._n_new)
+
+        for i in xrange(n_iter):                       
+            best_h, h_cash = zip(*self._scores.get_highest_h_cash(n_updates))
+            best_a, a_cash = zip(*self._scores.get_highest_a_cash(n_updates))
             
             best = set(best_h + best_a)
-               
+
             self._scores.start_batch()
-            for page_id in best:
-                self.update_page(page_id)
-            self._scores.end_batch()
+            self._graph.start_batch()
 
             if (self._virtual_page.h_cash > h_cash[-1] or
-                self._virtual_page.a_cash > a_cash[-1]):
+                self._virtual_page.a_cash > a_cash[-1]):                                
                 self.update_virtual_page()
+
+            for page_id in best:
+                self.update_page(page_id)
+
+            self._graph.end_batch()
+            self._scores.end_batch()
+
+        self._n_new = 0
 
         return best
 
