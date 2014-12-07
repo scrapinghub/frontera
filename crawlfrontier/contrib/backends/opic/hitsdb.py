@@ -122,6 +122,8 @@ class SQLite(sqlite.Connection, HitsDBInterface):
                 a_cash_index on page_score(a_cash);
             """
         )
+        self._a_cash_increase = 0.0
+        self._h_cash_increase = 0.0
 
 
     def clear(self):
@@ -138,9 +140,9 @@ class SQLite(sqlite.Connection, HitsDBInterface):
             """,
             (page_id,
              page_score.h_history,
-             page_score.h_cash,
+             page_score.h_cash - self._h_cash_increase,
              page_score.a_history,
-             page_score.a_cash)
+             page_score.a_cash - self._a_cash_increase)
         )
         
     def get(self, page_id):
@@ -152,7 +154,8 @@ class SQLite(sqlite.Connection, HitsDBInterface):
         ).fetchone()
 
         if scores:
-            return HitsScore(*scores)
+            return HitsScore(scores[0], scores[1] + self._h_cash_increase,
+                scores[2], scores[3] + self._a_cash_increase)
         else:
             return None
         
@@ -165,9 +168,9 @@ class SQLite(sqlite.Connection, HitsDBInterface):
             WHERE page_id=?
             """,
             (page_score.h_history,
-             page_score.h_cash,
+             page_score.h_cash - self._h_cash_increase,
              page_score.a_history,
-             page_score.a_cash,
+             page_score.a_cash - self._a_cash_increase,
              page_id)
         )
 
@@ -207,7 +210,8 @@ class SQLite(sqlite.Connection, HitsDBInterface):
             """,
             (n,)
         )
-        return self._cursor.fetchall()
+        return ((pid, c + self._h_cash_increase)
+            for (pid, c) in self._cursor.fetchall())
 
     def get_highest_a_cash(self, n=1):
         self._cursor.execute(
@@ -216,12 +220,23 @@ class SQLite(sqlite.Connection, HitsDBInterface):
             """,
             (n,)
         )
-        return self._cursor.fetchall()
+        return ((pid, a + self._a_cash_increase)
+            for (pid, a) in self._cursor.fetchall())
 
     def increase_all_cash(self, h_cash, a_cash):
-        self._cursor.execute(
-            """
-            UPDATE page_score SET h_cash=h_cash + ?, a_cash=a_cash + ?
-            """,
-            (h_cash, a_cash)
-        )
+        # TODO: we should be saving the deltas to the database (ideally
+        #    periodically) and load on startup so this it will work when using
+        #    a persistent db
+        self._a_cash_increase += a_cash
+        self._h_cash_increase += h_cash
+
+        # eventually we may want to reset the db and write back the increases to
+        # avoid precision loss (with reals) or overflow/underflow if we use int
+
+        #self._cursor.execute(
+        #    """
+        #    UPDATE page_score SET h_cash=h_cash + ?, a_cash=a_cash + ?
+        #    """,
+        #    (h_cash, a_cash)
+        #)
+        #"""
