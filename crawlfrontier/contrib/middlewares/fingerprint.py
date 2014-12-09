@@ -42,6 +42,25 @@ class BaseFingerprintMiddleware(Middleware):
 
 
 class UrlFingerprintMiddleware(BaseFingerprintMiddleware):
+    """
+    This :class:`Middleware <crawlfrontier.core.components.Middleware>` will add a ``fingerprint`` field for every
+    :attr:`Request.meta <crawlfrontier.core.models.Request.meta>` and
+    :attr:`Response.meta <crawlfrontier.core.models.Response.meta>` if is activated.
+
+    Fingerprint will be calculated from object ``URL``, using the function defined in
+    :setting:`URL_FINGERPRINT_FUNCTION` setting.
+    You can write your own fingerprint calculation function and use by changing this setting.
+
+    An example for a :class:`Request <crawlfrontier.core.models.Request>` object::
+
+        >>> request.url
+        'http//www.scrapinghub.com:8080'
+
+        >>> request.meta['fingerprint']
+        '60d846bc2969e9706829d5f1690f11dafb70ed18'
+
+    """
+
     component_name = 'URL Fingerprint Middleware'
     fingerprint_function_name = 'URL_FINGERPRINT_FUNCTION'
 
@@ -51,6 +70,33 @@ class UrlFingerprintMiddleware(BaseFingerprintMiddleware):
 
 
 class DomainFingerprintMiddleware(BaseFingerprintMiddleware):
+    """
+    This :class:`Middleware <crawlfrontier.core.components.Middleware>` will add a ``fingerprint`` field for every
+    :attr:`Request.meta <crawlfrontier.core.models.Request.meta>` and
+    :attr:`Response.meta <crawlfrontier.core.models.Response.meta>` ``domain`` fields if is activated.
+
+    Fingerprint will be calculated from object ``URL``, using the function defined in
+    :setting:`DOMAIN_FINGERPRINT_FUNCTION` setting.
+    You can write your own fingerprint calculation function and use by changing this setting.
+
+    An example for a :class:`Request <crawlfrontier.core.models.Request>` object::
+
+        >>> request.url
+        'http//www.scrapinghub.com:8080'
+
+        >>> request.meta['domain']
+        {
+            "fingerprint": "5bab61eb53176449e25c2c82f172b82cb13ffb9d",
+            "name": "scrapinghub.com",
+            "netloc": "www.scrapinghub.com",
+            "scheme": "http",
+            "sld": "scrapinghub",
+            "subdomain": "www",
+            "tld": "com"
+        }
+
+    """
+
     component_name = 'Domain Fingerprint Middleware'
     fingerprint_function_name = 'DOMAIN_FINGERPRINT_FUNCTION'
 

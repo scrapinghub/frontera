@@ -30,7 +30,7 @@ class method, using either a string path::
     >>> from crawlfrontier import FrontierManager
     >>> frontier = FrontierManager.from_settings('my_project.frontier.settings')
 
-or a :class:`Settings` object instance::
+or a :class:`Settings <crawlfrontier.settings.Settings>` object instance::
 
     >>> from crawlfrontier import FrontierManager, Settings
     >>> settings = Settings()
@@ -158,6 +158,10 @@ Component objects
     .. automethod:: crawlfrontier.core.components.Component.add_seeds
     .. automethod:: crawlfrontier.core.components.Component.page_crawled
     .. automethod:: crawlfrontier.core.components.Component.request_error
+
+    **Class Methods**
+
+    .. automethod:: crawlfrontier.core.components.Component.from_manager
 
 
 Test mode

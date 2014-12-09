@@ -22,6 +22,54 @@ def parse_domain_info(url, test_mode=False):
 
 
 class DomainMiddleware(Middleware):
+    """
+    This :class:`Middleware <crawlfrontier.core.components.Middleware>` will add a ``domain`` info field for every
+    :attr:`Request.meta <crawlfrontier.core.models.Request.meta>` and
+    :attr:`Response.meta <crawlfrontier.core.models.Response.meta>` if is activated.
+
+
+    ``domain`` object will contains the following fields:
+
+    - **netloc**: URL netloc according to `RFC 1808`_ syntax specifications
+    - **name**: Domain name
+    - **scheme**: URL scheme
+    - **tld**: Top level domain
+    - **sld**: Second level domain
+    - **subdomain**: URL subdomain(s)
+
+    An example for a :class:`Request <crawlfrontier.core.models.Request>` object::
+
+        >>> request.url
+        'http://www.scrapinghub.com:8080/this/is/an/url'
+
+        >>> request.meta['domain']
+        {
+            "name": "scrapinghub.com",
+            "netloc": "www.scrapinghub.com",
+            "scheme": "http",
+            "sld": "scrapinghub",
+            "subdomain": "www",
+            "tld": "com"
+        }
+
+    If :setting:`TEST_MODE` is active, It will accept testing URLs, parsing letter domains::
+
+        >>> request.url
+        'A1'
+
+        >>> request.meta['domain']
+        {
+            "name": "A",
+            "netloc": "A",
+            "scheme": "-",
+            "sld": "-",
+            "subdomain": "-",
+            "tld": "-"
+        }
+
+    .. _`RFC 1808`: http://tools.ietf.org/html/rfc1808.html
+
+    """
     component_name = 'Domain Middleware'
 
     def __init__(self, manager):

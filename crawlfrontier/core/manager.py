@@ -30,7 +30,8 @@ class FrontierManager(object):
 
         :param object/string event_log_manager: The :class:`EventLogger` object to be used by the frontier.
 
-        :param list middlewares: A list of :class:`Middleware` objects to be used by the frontier.
+        :param list middlewares: A list of :class:`Middleware <crawlfrontier.core.components.Middleware>` \
+        objects to be used by the frontier.
 
         :param bool test_mode: Activate/deactivate :ref:`frontier test mode <frontier-test-mode>`.
 
@@ -43,7 +44,8 @@ class FrontierManager(object):
         :param bool auto_start: Activate/deactivate automatic frontier start (See :ref:`starting/stopping the \
         frontier <frontier-start-stop>`).
 
-        :param object/string settings: The :class:`Settings` object used by the frontier.
+        :param object/string settings: The :class:`Settings <crawlfrontier.settings.Settings>` object used by \
+        the frontier.
         """
 
         # Settings
@@ -119,8 +121,8 @@ class FrontierManager(object):
         """
         Returns a :class:`FrontierManager <crawlfrontier.core.manager.FrontierManager>`  instance initialized with \
         the passed settings argument. Argument value can either be a string path pointing to settings file or a \
-        :class:`Settings` object instance. If no settings is given, :ref:`frontier default settings \
-        <frontier-default-settings>` are used.
+        :class:`Settings <crawlfrontier.settings.Settings>` object instance. If no settings is given,
+        :ref:`frontier default settings <frontier-default-settings>` are used.
         """
         manager_settings = Settings(settings)
         return FrontierManager(request_model=manager_settings.REQUEST_MODEL,
@@ -177,7 +179,7 @@ class FrontierManager(object):
     @property
     def middlewares(self):
         """
-        A list of :class:`Middleware` objects to be used by the frontier. \
+        A list of :class:`Middleware <crawlfrontier.core.components.Middleware>` objects to be used by the frontier. \
         Can be defined with :setting:`MIDDLEWARES` setting.
         """
         return self._middlewares
@@ -194,7 +196,7 @@ class FrontierManager(object):
     def max_requests(self):
         """
         Number of pages after which the frontier would stop (See :ref:`Finish conditions <frontier-finish>`). \
-        Can be defined with :setting:`MAX_PAGES` setting.
+        Can be defined with :setting:`MAX_REQUESTS` setting.
         """
         return self._max_requests
 
@@ -203,7 +205,7 @@ class FrontierManager(object):
         """
         Maximum number of requests returned by \
         :attr:`get_next_requests <crawlfrontier.core.manager.FrontierManager.get_next_requests>` method. \
-        Can be defined with :setting:`MAX_NEXT_PAGES` setting.
+        Can be defined with :setting:`MAX_NEXT_REQUESTS` setting.
         """
         return self._max_next_requests
 
@@ -219,7 +221,7 @@ class FrontierManager(object):
     @property
     def settings(self):
         """
-        The :class:`Settings` object used by the frontier.
+        The :class:`Settings <crawlfrontier.settings.Settings>` object used by the frontier.
         """
         return self._settings
 

@@ -5,7 +5,15 @@ import default_settings
 
 
 class Settings(object):
+    """
+    An object that holds frontier settings values.
+    """
     def __init__(self, module=None, attributes=None):
+        """
+        :param object/string module: A :class:`Settings <crawlfrontier.settings.Settings>` object or a path string.
+        :param dict attributes: A dict object containing the settings values.
+
+        """
         self.attributes = {}
         self.add_module(default_settings)
         if module:

@@ -49,11 +49,31 @@ single Python class inherited from :class:`Component <crawlfrontier.core.compone
     **Methods**
 
     .. automethod:: crawlfrontier.core.components.Backend.frontier_start
+
+        :return: None.
+
     .. automethod:: crawlfrontier.core.components.Backend.frontier_stop
+
+        :return: None.
+
     .. automethod:: crawlfrontier.core.components.Backend.add_seeds
+
+        :return: None.
+
     .. automethod:: crawlfrontier.core.components.Backend.get_next_requests
+
     .. automethod:: crawlfrontier.core.components.Backend.page_crawled
+
+        :return: None.
+
     .. automethod:: crawlfrontier.core.components.Backend.request_error
+
+        :return: None.
+
+    **Class Methods**
+
+    .. automethod:: crawlfrontier.core.components.Backend.from_manager
+
 
 
 

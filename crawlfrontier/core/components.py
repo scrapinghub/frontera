@@ -23,8 +23,6 @@ class Component(object):
     def frontier_start(self):
         """
         Called when the frontier starts, see :ref:`starting/stopping the frontier <frontier-start-stop>`.
-
-        :return: None.
         """
         pass
 
@@ -32,8 +30,6 @@ class Component(object):
     def frontier_stop(self):
         """
         Called when the frontier stops, see :ref:`starting/stopping the frontier <frontier-start-stop>`.
-
-        :return: None.
         """
         pass
 
@@ -43,8 +39,6 @@ class Component(object):
         This method is called when new seeds are are added to the frontier.
 
         :param list seeds: A list of :class:`Request <crawlfrontier.core.models.Request>` objects.
-
-        :return: None.
         """
         pass
 
@@ -56,8 +50,6 @@ class Component(object):
         :param object response: The :class:`Response <crawlfrontier.core.models.Response>` object for the crawled page.
         :param list links: A list of :class:`Request <crawlfrontier.core.models.Request>` objects generated from \
         the links extracted for the crawled page.
-
-        :return: None.
         """
         pass
 
@@ -68,8 +60,6 @@ class Component(object):
 
         :param object request: The crawled with error :class:`Request <crawlfrontier.core.models.Request>` object.
         :param string error: A string identifier for the error.
-
-        :return: None.
         """
         pass
 
@@ -79,6 +69,20 @@ class Component(object):
         The component name
         """
         return self.component_name
+
+    @classmethod
+    def from_manager(cls, manager):
+        """
+        Class method called from :class:`FrontierManager <crawlfrontier.core.manager.FrontierManager>` passing the
+        manager itself.
+
+        Example of usage::
+
+            def from_manager(cls, manager):
+                return cls(settings=manager.settings)
+
+        """
+        return cls()
 
 
 class Backend(Component):
@@ -99,6 +103,6 @@ class Backend(Component):
 
 
 class Middleware(Component):
-    """Interface definition for a Frontier Middleware"""
+    """Interface definition for a Frontier Middlewares"""
     __metaclass__ = ABCMeta
     component_name = 'Base Middleware'
