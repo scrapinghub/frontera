@@ -116,14 +116,24 @@ Default::
         'crawlfrontier.contrib.middlewares.fingerprint.DomainFingerprintMiddleware',
     ]
 
-.. setting:: PAGE_MODEL
+.. setting:: REQUEST_MODEL
 
-PAGE_MODEL
-----------
+REQUEST_MODEL
+-------------
 
-Default: ``'crawlfrontier.core.models.Page'``
+Default: ``'crawlfrontier.core.models.Request'``
 
-The :class:`Page` model to be used by the frontier.
+The :class:`Request` model to be used by the frontier.
+
+
+.. setting:: RESPONSE_MODEL
+
+RESPONSE_MODEL
+-------------
+
+Default: ``'crawlfrontier.core.models.Request'``
+
+The :class:`Request` model to be used by the frontier.
 
 
 .. setting:: TEST_MODE

@@ -15,9 +15,9 @@ A usual crawler-frontier scheme is:
 The frontier is initialized with a list of start URLs, that we call the seeds. Once the frontier is initialized
 the crawler asks it what pages should be visited next. As the crawler starts to visit the pages and obtains
 results, it will inform the frontier of each page response and also of the extracted hyperlinks contained within the
-page. These links are added by the frontier as new pages to visit according to the frontier policies.
+page. These links are added by the frontier as new requests to visit according to the frontier policies.
 
-This process (ask for new pages/notify results) is repeated until the end condition for the crawl is reached. Some
+This process (ask for new requests/notify results) is repeated until the end condition for the crawl is reached. Some
 crawlers may never stop, that's what we call continuous crawls.
 
 

@@ -7,22 +7,25 @@ This section documents the Crawl Frontier core API, and is intended for develope
 Crawl Frontier API / Manager
 ============================
 
-The main entry point to Crawl Frontier API is the :class:`FrontierManager` object, passed to middlewares and backend
-through the from_manager class method. This object provides access to all Crawl Frontier core components, and is the
-only way for middlewares and backend to access them and hook their functionality into Crawl Frontier.
+The main entry point to Crawl Frontier API is the :class:`FrontierManager <crawlfrontier.core.manager.FrontierManager>`
+object, passed to middlewares and backend through the from_manager class method. This object provides access to all
+Crawl Frontier core components, and is the only way for middlewares and backend to access them and hook their
+functionality into Crawl Frontier.
 
-The :class:`FrontierManager` is responsible for loading the installed middlewares and backend, as well as for managing
-the data flow around the whole frontier.
+The :class:`FrontierManager <crawlfrontier.core.manager.FrontierManager>` is responsible for loading the installed
+middlewares and backend, as well as for managing the data flow around the whole frontier.
 
 .. _frontier-loading-from-settings:
 
 Loading from settings
 =====================
 
-Although :class:`FrontierManager` can be initialized using parameters the most common way of doing this is using
+Although :class:`FrontierManager <crawlfrontier.core.manager.FrontierManager>` can be initialized using parameters the most common way of doing this is using
 :doc:`Frontier Settings <frontier-settings>`.
 
-This can be done through the ``from_settings`` class method, using either a string path::
+
+This can be done through the :attr:`from_settings <crawlfrontier.core.manager.FrontierManager.from_settings>`
+class method, using either a string path::
 
     >>> from crawlfrontier import FrontierManager
     >>> frontier = FrontierManager.from_settings('my_project.frontier.settings')
@@ -44,179 +47,39 @@ It can also be initialized without parameters, in this case the frontier will us
 Frontier Manager
 ================
 
-.. class:: FrontierManager(page_model, link_model, backend, logger, event_logger, [frontier_middlewares, test_mode, max_pages, max_next_pages, auto_start, settings])
 
-    The :class:`FrontierManager` object encapsulates the whole frontier, providing an API to interact with.
-    It's also responsible of loading and communicating all different frontier components.
-
-    :param page_model: The :class:`Page` object to be used by the frontier. Can be defined with :setting:`PAGE_MODEL` setting.
-    :type page_model: object/string path
-
-    :param link_model: The :class:`Link` object to be used by the frontier. Can be defined with :setting:`LINK_MODEL` setting.
-    :type link_model: object/string path
-
-    :param backend: The :class:`Backend` object to be used by the frontier. Can be defined with :setting:`BACKEND` setting.
-    :type backend: object/string path
-
-    :param logger: The :class:`Logger` object to be used by the frontier. Can be defined with :setting:`LOGGER` setting.
-    :type logger: object/string path
-
-    :param event_logger: The :class:`EventLogger` object to be used by the frontier. Can be defined with :setting:`EVENT_LOGGER` setting.
-    :type event_logger: object/string path
-
-    :param frontier_middlewares: A list of :class:`Middleware` objects to be used by the frontier. Can be defined with :setting:`MIDDLEWARES` setting.
-    :type frontier_middlewares: list of objects/string paths=[]
-
-    :param test_mode: Activate/deactivate :ref:`frontier test mode <frontier-test-mode>`. Can be defined with :setting:`TEST_MODE` setting.
-    :type test_mode: bool=False
-
-    :param max_pages: Number of pages after which the frontier would stop. See :ref:`Finish conditions <frontier-finish>`. Can be defined with :setting:`MAX_PAGES` setting.
-    :type max_pages: int=0
-
-    :param max_next_pages: Maximum number of pages returned by ``get_next_pages`` method. Can be defined with :setting:`MAX_NEXT_PAGES` setting.
-    :type max_next_pages: int=0
-
-    :param auto_start: Activate/deactivate automatic frontier start. See :ref:`starting/stopping the frontier <frontier-start-stop>`. Can be defined with :setting:`AUTO_START` setting.
-    :type auto_start: bool=True
-
-    :param settings: The :class:`Settings` object used by the frontier.
-    :type settings: object=None
+.. autoclass:: crawlfrontier.core.manager.FrontierManager
 
     **Attributes**
 
-    .. attribute:: page_model
-
-        :class:`Page` object to be used by the frontier.
-
-    .. attribute:: link_model
-
-        :class:`Link` object to be used by the frontier.
-
-    .. attribute:: backend
-
-        :class:`Backend` object to be used by the frontier.
-
-    .. attribute:: logger
-
-        :class:`Logger` object to be used by the frontier.
-
-    .. attribute:: event_logger
-
-        :class:`EventLogger` object to be used by the frontier.
-
-    .. attribute:: frontier_middlewares
-
-        List of :class:`Middleware` objects to be used by the frontier.
-
-    .. attribute:: test_mode
-
-        Boolean value indicating if the frontier is using :ref:`frontier test mode <frontier-test-mode>`.
-
-    .. attribute:: max_pages
-
-        Number of pages after which the frontier would stop. See :ref:`Finish conditions <frontier-finish>`.
-
-    .. attribute:: max_next_pages
-
-        Maximum number of pages returned by ``get_next_pages`` method.
-
-    .. attribute:: n_pages
-
-        Number of pages returned by the frontier.
-
-    .. attribute:: iteration
-
-        Current :ref:`frontier iteration <frontier-iterations>`.
-
-    .. attribute:: finished
-
-        Boolean value indicating if the frontier has finished. See :ref:`Finish conditions <frontier-finish>`.
-
-    .. attribute:: auto_start
-
-        Boolean value indicating if automatic frontier start is activated. See :ref:`starting/stopping the frontier <frontier-start-stop>`.
+    .. autoattribute:: crawlfrontier.core.manager.FrontierManager.request_model
+    .. autoattribute:: crawlfrontier.core.manager.FrontierManager.response_model
+    .. autoattribute:: crawlfrontier.core.manager.FrontierManager.backend
+    .. autoattribute:: crawlfrontier.core.manager.FrontierManager.logger
+    .. autoattribute:: crawlfrontier.core.manager.FrontierManager.event_log_manager
+    .. autoattribute:: crawlfrontier.core.manager.FrontierManager.middlewares
+    .. autoattribute:: crawlfrontier.core.manager.FrontierManager.test_mode
+    .. autoattribute:: crawlfrontier.core.manager.FrontierManager.max_requests
+    .. autoattribute:: crawlfrontier.core.manager.FrontierManager.max_next_requests
+    .. autoattribute:: crawlfrontier.core.manager.FrontierManager.auto_start
+    .. autoattribute:: crawlfrontier.core.manager.FrontierManager.settings
+    .. autoattribute:: crawlfrontier.core.manager.FrontierManager.iteration
+    .. autoattribute:: crawlfrontier.core.manager.FrontierManager.n_requests
+    .. autoattribute:: crawlfrontier.core.manager.FrontierManager.finished
 
     **API Methods**
 
-    .. warning:: In ``page_crawled`` and ``page_crawled_error`` methods, passed :class:`Page` object should be the same one the frontier already returned to be crawled by the ``get_next_pages`` method. Being the same object doesn't necessarily mean using the same instance, it depends on :ref:`how frontier identifies unique pages <frontier-unique-objects>` (usually using the ``fingerprint`` field).
+    .. automethod:: crawlfrontier.core.manager.FrontierManager.start
+    .. automethod:: crawlfrontier.core.manager.FrontierManager.stop
+    .. automethod:: crawlfrontier.core.manager.FrontierManager.add_seeds
+    .. automethod:: crawlfrontier.core.manager.FrontierManager.get_next_requests
+    .. automethod:: crawlfrontier.core.manager.FrontierManager.page_crawled
+    .. automethod:: crawlfrontier.core.manager.FrontierManager.request_error
 
-    .. method:: add_seeds(urls)
+    **Class Methods**
 
-        Adds a list of seed URLs as entry point for the crawl. Manager will create a list of :class:`Link` objects from
-        each URL and pass it to the middlewares and backend. Backend should return a list of :class:`Page` objects
+    .. automethod:: crawlfrontier.core.manager.FrontierManager.from_settings
 
-        :param url: A list of seeds URLs.
-        :type url: string list
-
-        :return: :class:`Page` list
-
-    .. method:: page_crawled(page, [links])
-
-        Informs the frontier about the page crawl result. Crawl info is passed by using :class:`Page` object fields,
-        like status and metadata fields. Extracted links for the current page must be also passed as a list of URLs.
-
-        :param page: The crawled page object
-        :type page: :class:`Page`
-
-        :param links: List of URLs extracted from the crawled page.
-        :type links: string list=[]
-
-        :return: :class:`Page`
-
-
-    .. method:: page_crawled_error(page, error)
-
-        Informs the frontier about a page crawl error. An error identifier must be provided.
-
-        :param page: The crawled with error page object.
-        :type page: :class:`Page`
-
-        :param error: A string identifier for the error.
-        :type error: string
-
-        :return: :class:`Page`
-
-
-    .. method:: get_next_pages([max_next_pages])
-
-        Returns a list of next pages to be crawled. Optionally a maximum number of pages can be passed, if no value is
-        set ``max_next_pages`` attribute is used instead (defined by :setting:`MAX_NEXT_PAGES` setting).
-
-        :param max_next_pages: maximum number of pages to return.
-        :type max_next_pages: int
-
-        :return: :class:`Page` list
-
-
-    .. method:: get_page(url)
-
-        Returns a :class:`Page` object corresponding to the passed URL.
-
-        :param url: the URL of the page.
-        :type url: string
-
-        :return: :class:`Page` or None.
-
-
-    **Manager Methods**
-
-    .. classmethod:: from_settings([settings])
-
-        Returns a :class:`FrontierManager` instance initialized with the passed settings argument. Argument value can
-        either be a string path pointing to settings file or a :class:`Settings` object instance. If no settings
-        is given, :ref:`frontier default settings <frontier-default-settings>` are used.
-
-
-    .. method:: start()
-
-        Notifies all the components of the frontier start. Typically used for initializations.
-        See :ref:`starting/stopping the frontier <frontier-start-stop>`.
-
-
-    .. method:: stop()
-
-        Notifies all the components of the frontier stop. Typically used for finalizations.
-        See :ref:`starting/stopping the frontier <frontier-start-stop>`.
 
 
 .. _frontier-start-stop:
@@ -225,14 +88,24 @@ Starting/Stopping the frontier
 ==============================
 
 Sometimes, frontier components need to perform initialization and finalization operations. The frontier mechanism to
-notify the different components of the frontier start and stop is done by the ``start()`` and ``stop()`` methods
+notify the different components of the frontier start and stop is done by the
+:attr:`start() <crawlfrontier.core.manager.FrontierManager.start>` and
+:attr:`stop() <crawlfrontier.core.manager.FrontierManager.stop>` methods
 respectively.
 
-By default ``auto_start`` frontier value is activated, this means that components will be notified once the
-:class:`FrontierManager` object is created. If you need to have more fine control of when different components
-are initialized, deactivate ``auto_start`` and manually call frontier API ``start()`` and ``stop()`` methods.
+By default :attr:`auto_start <crawlfrontier.core.manager.FrontierManager.auto_start>` frontier value is activated,
+this means that components will be notified once the
+:class:`FrontierManager <crawlfrontier.core.manager.FrontierManager>` object is created.
+If you need to have more fine control of when different components are initialized, deactivate
+:attr:`auto_start <crawlfrontier.core.manager.FrontierManager.auto_start>` and manually call frontier API
+:attr:`start() <crawlfrontier.core.manager.FrontierManager.start>` and
+:attr:`stop() <crawlfrontier.core.manager.FrontierManager.stop>` methods.
 
-.. note:: Frontier ``stop()`` method is not automatically called when ``auto_start`` is active (because frontier is not aware of the crawling state). If you need to notify components of frontier end you should call the method manually.
+.. note::
+    Frontier :attr:`stop() <crawlfrontier.core.manager.FrontierManager.stop>` method is not automatically called
+    when :attr:`auto_start <crawlfrontier.core.manager.FrontierManager.auto_start>` is active (because frontier is
+    not aware of the crawling state). If you need to notify components of frontier end you should call the method
+    manually.
 
 
 .. _frontier-iterations:
@@ -242,10 +115,12 @@ Frontier iterations
 
 Once frontier is running, the usual process is the one described in the :ref:`data flow <frontier-data-flow>` section.
 
-Crawler asks the frontier for next pages using ``get_next_pages`` method. Each time the frontier returns a non empty
-list of pages (data available), is what we call a frontier iteration.
+Crawler asks the frontier for next pages using the
+:attr:`get_next_requests() <crawlfrontier.core.manager.FrontierManager.get_next_requests>` method.
+Each time the frontier returns a non empty list of pages (data available), is what we call a frontier iteration.
 
-Current frontier iteration can be accessed using the ``iteration`` attribute.
+Current frontier iteration can be accessed using the
+:attr:`iteration <crawlfrontier.core.manager.FrontierManager.iteration>` attribute.
 
 
 .. _frontier-finish:
@@ -254,12 +129,16 @@ Finishing the frontier
 ======================
 
 Crawl can be finished either by the Crawler or by the Crawl Frontier. Crawl frontier will finish when a maximum number
-of pages are returned. This limit is controlled by the ``max_pages`` attribute (:setting:`MAX_PAGES` setting).
+of pages are returned. This limit is controlled by the
+:attr:`max_requests <crawlfrontier.core.manager.FrontierManager.max_requests>` attribute
+(:setting:`MAX_REQUESTS` setting).
 
-If ``max_pages`` has a value of 0 (default value) the frontier will continue indefinitely.
+If :attr:`max_requests <crawlfrontier.core.manager.FrontierManager.max_requests>` has a value of 0 (default value)
+the frontier will continue indefinitely.
 
-Once the frontier is finished, no more pages will be returned by the ``get_next_pages`` method and ``finished``
-attribute will be True.
+Once the frontier is finished, no more pages will be returned by the
+:attr:`get_next_requests <crawlfrontier.core.manager.FrontierManager.get_next_requests>` method and
+:attr:`finished <crawlfrontier.core.manager.FrontierManager.finished>` attribute will be True.
 
 .. _frontier-test-mode:
 
