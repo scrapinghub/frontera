@@ -9,10 +9,40 @@ from crawlfrontier.core import models
 
 
 class FrontierManager(object):
+    """
+    The :class:`FrontierManager <crawlfrontier.core.manager.FrontierManager>` object encapsulates the whole frontier,
+    providing an API to interact with. It's also responsible of loading and communicating all different frontier
+    components.
+    """
+    def __init__(self, request_model, response_model, backend, logger, event_log_manager, middlewares=None,
+                 test_mode=False, max_requests=0, max_next_requests=0, auto_start=True, settings=None):
+        """
+        :param object/string request_model: The :class:`Request <crawlfrontier.core.models.Request>` object to be \
+        used by the frontier.
 
-    def __init__(self, request_model, response_model, backend, logger, event_log_manager,
-                 frontier_middlewares=None, test_mode=False,
-                 max_requests=0, max_next_requests=0, auto_start=True, settings=None):
+        :param object/string response_model: The :class:`Response <crawlfrontier.core.models.Response>` object to be \
+        used by the frontier.
+
+        :param object/string backend: The :class:`Backend` object to be used by the frontier.
+
+        :param object/string logger: The :class:`Logger` object to be used by the frontier.
+
+        :param object/string event_log_manager: The :class:`EventLogger` object to be used by the frontier.
+
+        :param list middlewares: A list of :class:`Middleware` objects to be used by the frontier.
+
+        :param bool test_mode: Activate/deactivate :ref:`frontier test mode <frontier-test-mode>`.
+
+        :param int max_requests: Number of pages after which the frontier would stop (See \
+        :ref:`Finish conditions <frontier-finish>`).
+
+        :param int max_next_requests: Maximum number of requests returned by ``get_next_pages`` method.
+
+        :param bool auto_start: Activate/deactivate automatic frontier start (See :ref:`starting/stopping the \
+        frontier <frontier-start-stop>`).
+
+        :param object/string settings: The :class:`Settings` object used by the frontier.
+        """
 
         # Settings
         self._settings = settings or Settings()
@@ -41,7 +71,7 @@ class FrontierManager(object):
                                                                   self._response_model.__name__
 
         # Load middlewares
-        self._frontier_middlewares = self._load_middlewares(frontier_middlewares)
+        self._middlewares = self._load_middlewares(middlewares)
 
         # Load backend
         self.logger.manager.debug("Loading backend '%s'" % backend)
@@ -51,7 +81,7 @@ class FrontierManager(object):
 
         # Init frontier components pipeline
         self._components_pipeline = [
-            ('Middleware', self.frontier_middlewares, True),
+            ('Middleware', self.middlewares, True),
             ('Backend', self.backend, False),
         ]
 
@@ -84,75 +114,139 @@ class FrontierManager(object):
 
     @classmethod
     def from_settings(cls, settings=None):
+        """
+        Returns a :class:`FrontierManager <crawlfrontier.core.manager.FrontierManager>`  instance initialized with \
+        the passed settings argument. Argument value can either be a string path pointing to settings file or a \
+        :class:`Settings` object instance. If no settings is given, :ref:`frontier default settings \
+        <frontier-default-settings>` are used.
+        """
         manager_settings = Settings(settings)
         return FrontierManager(request_model=manager_settings.REQUEST_MODEL,
                                response_model=manager_settings.RESPONSE_MODEL,
                                backend=manager_settings.BACKEND,
                                logger=manager_settings.LOGGER,
                                event_log_manager=manager_settings.EVENT_LOG_MANAGER,
-                               frontier_middlewares=manager_settings.MIDDLEWARES,
+                               middlewares=manager_settings.MIDDLEWARES,
                                test_mode=manager_settings.TEST_MODE,
                                max_requests=manager_settings.MAX_REQUESTS,
                                max_next_requests=manager_settings.MAX_NEXT_REQUESTS,
                                auto_start=manager_settings.AUTO_START,
                                settings=manager_settings)
-    @property
-    def settings(self):
-        return self._settings
-
-    @property
-    def logger(self):
-        return self._logger
-
-    @property
-    def test_mode(self):
-        return self._test_mode
-
-    @property
-    def response_model(self):
-        return self._response_model
 
     @property
     def request_model(self):
+        """
+        The :class:`Request <crawlfrontier.core.models.Request>` object to be used by the frontier. \
+        Can be defined with :setting:`REQUEST_MODEL` setting.
+        """
         return self._request_model
 
     @property
-    def frontier_middlewares(self):
-        return self._frontier_middlewares
+    def response_model(self):
+        """
+        The :class:`Response <crawlfrontier.core.models.Response>` object to be used by the frontier. \
+        Can be defined with :setting:`RESPONSE_MODEL` setting.
+        """
+        return self._response_model
 
     @property
     def backend(self):
+        """
+        The :class:`Backend` object to be used by the frontier. Can be defined with :setting:`BACKEND` setting.
+        """
         return self._backend
 
     @property
-    def auto_start(self):
-        return self._auto_start
+    def logger(self):
+        """
+        The :class:`Logger` object to be used by the frontier. Can be defined with :setting:`LOGGER` setting.
+        """
+        return self._logger
 
     @property
     def event_log_manager(self):
+        """
+        The :class:`EventLogger` object to be used by the frontier. \
+        Can be defined with :setting:`EVENT_LOGGER` setting.
+        """
         return self._event_log_manager
 
     @property
-    def iteration(self):
-        return self._iteration
+    def middlewares(self):
+        """
+        A list of :class:`Middleware` objects to be used by the frontier. \
+        Can be defined with :setting:`MIDDLEWARES` setting.
+        """
+        return self._middlewares
+
+    @property
+    def test_mode(self):
+        """
+        Boolean value indicating if the frontier is using :ref:`frontier test mode <frontier-test-mode>`. \
+        Can be defined with :setting:`TEST_MODE` setting.
+        """
+        return self._test_mode
 
     @property
     def max_requests(self):
+        """
+        Number of pages after which the frontier would stop (See :ref:`Finish conditions <frontier-finish>`). \
+        Can be defined with :setting:`MAX_PAGES` setting.
+        """
         return self._max_requests
 
     @property
     def max_next_requests(self):
+        """
+        Maximum number of requests returned by ``get_next_pages`` method. \
+        Can be defined with :setting:`MAX_NEXT_PAGES` setting.
+        """
         return self._max_next_requests
 
     @property
+    def auto_start(self):
+        """
+        Boolean value indicating if automatic frontier start is activated. \
+        See :ref:`starting/stopping the frontier <frontier-start-stop>`. \
+        Can be defined with :setting:`AUTO_START` setting.
+        """
+        return self._auto_start
+
+    @property
+    def settings(self):
+        """
+        The :class:`Settings` object used by the frontier.
+        """
+        return self._settings
+
+    @property
+    def iteration(self):
+        """
+        Current :ref:`frontier iteration <frontier-iterations>`.
+        """
+        return self._iteration
+
+    @property
     def n_requests(self):
+        """
+        Number of accumulated requests returned by the frontier.
+        """
         return self._n_requests
 
     @property
     def finished(self):
+        """
+        Boolean value indicating if the frontier has finished. See :ref:`Finish conditions <frontier-finish>`.
+        """
         return self._finished
 
     def start(self):
+        """
+        Notifies all the components of the frontier start. Typically used for initializations (See \
+        :ref:`starting/stopping the frontier <frontier-start-stop>`).
+
+        :return: None.
+        """
         assert not self._started, 'Frontier already started!'
         #self.event_log_manager.frontier_start()
         self.logger.manager.debug(self._msg('START'))
@@ -160,6 +254,12 @@ class FrontierManager(object):
         self._started = True
 
     def stop(self):
+        """
+        Notifies all the components of the frontier stop. Typically used for finalizations (See \
+        :ref:`starting/stopping the frontier <frontier-start-stop>`).
+
+        :return: None.
+        """
         self._check_startstop()
         self.logger.manager.debug(self._msg('STOP'))
         self._process_components(method_name='frontier_stop')
@@ -167,6 +267,13 @@ class FrontierManager(object):
         #self.event_log_manager.frontier_stop()
 
     def add_seeds(self, seeds):
+        """
+        Adds a list of seed requests (seed URLs) as entry point for the crawl.
+
+        :param list seeds: A list of :class:`Request <crawlfrontier.core.models.Request>` objects.
+
+        :return: None.
+        """
         self._check_startstop()
         # FIXME probably seeds should be a generator here
         assert len(seeds), "Empty seeds list"
@@ -179,39 +286,17 @@ class FrontierManager(object):
                                  obj=seeds,
                                  return_classes=(list,))  # TODO: Dar vuelta
 
-    def page_crawled(self, response, links=None):
-        self._check_startstop()
-        self.logger.manager.debug(self._msg('PAGE_CRAWLED url=%s status=%s links=%s'%
-                                            (response.url, response.status_code, len(links) if links else 0)))
-        assert isinstance(response, self.response_model), "Response object must subclass '%s', '%s' found" % \
-                                                          (self.response_model.__name__, type(response).__name__)
-        assert hasattr(response, 'request') and response.request, "Empty response request"
-        assert isinstance(response.request, self.request_model), "Response request object must subclass '%s', " \
-                                                                 "'%s' found" % \
-                                                                  (self.request_model.__name__,
-                                                                  type(response.request).__name__)
-        assert isinstance(response, self.response_model), "Response object must subclass '%s', '%s' found" % \
-                                                          (self.response_model.__name__, type(response).__name__)
-        if links:
-            for link in links:
-                assert isinstance(link, self._request_model), "Link objects must subclass '%s', '%s' found" % \
-                                                              (self._request_model.__name__, type(link).__name__)
-        self._process_components(method_name='page_crawled',
-                                 obj=response,
-                                 return_classes=self.response_model,
-                                 links=links or [])
-
-    def request_error(self, request, error):
-        self._check_startstop()
-        self.logger.manager.debug(self._msg('PAGE_REQUEST_ERROR url=%s' % request.url))
-        processed_page = self._process_components(method_name='request_error',
-                                                  obj=request,
-                                                  return_classes=self.request_model,
-                                                  error=error)
-        #self.event_log_manager.page_crawled_error(processed_page, error)
-        return processed_page
-
     def get_next_requests(self, max_next_requests=0):
+        """
+        Returns a list of next requests to be crawled. Optionally a maximum number of pages can be passed. If no
+        value is passed, \
+        :attr:`FrontierManager.max_next_requests <crawlfrontier.core.manager.FrontierManager.max_next_requests>`
+        will be used instead. (:setting:`MAX_NEXT_REQUESTS` setting).
+
+        :param int max_next_requests: Maximum number of requests to be returned by this method.
+
+        :return: list of :class:`Request <crawlfrontier.core.models.Request>` objects.
+        """
         self._check_startstop()
 
         # End condition check
@@ -250,6 +335,55 @@ class FrontierManager(object):
 
         # Return next requests
         return next_requests
+
+    def page_crawled(self, response, links=None):
+        """
+        Informs the frontier about the crawl result and extracted links for the current page.
+
+        :param object response: The :class:`Response <crawlfrontier.core.models.Response>` object for the crawled page.
+        :param list links: A list of :class:`Request <crawlfrontier.core.models.Request>` objects generated from \
+        the links extracted for the crawled page.
+
+        :return: None.
+        """
+        self._check_startstop()
+        self.logger.manager.debug(self._msg('PAGE_CRAWLED url=%s status=%s links=%s'%
+                                            (response.url, response.status_code, len(links) if links else 0)))
+        assert isinstance(response, self.response_model), "Response object must subclass '%s', '%s' found" % \
+                                                          (self.response_model.__name__, type(response).__name__)
+        assert hasattr(response, 'request') and response.request, "Empty response request"
+        assert isinstance(response.request, self.request_model), "Response request object must subclass '%s', " \
+                                                                 "'%s' found" % \
+                                                                  (self.request_model.__name__,
+                                                                  type(response.request).__name__)
+        assert isinstance(response, self.response_model), "Response object must subclass '%s', '%s' found" % \
+                                                          (self.response_model.__name__, type(response).__name__)
+        if links:
+            for link in links:
+                assert isinstance(link, self._request_model), "Link objects must subclass '%s', '%s' found" % \
+                                                              (self._request_model.__name__, type(link).__name__)
+        self._process_components(method_name='page_crawled',
+                                 obj=response,
+                                 return_classes=self.response_model,
+                                 links=links or [])
+
+    def request_error(self, request, error):
+        """
+        Informs the frontier about a page crawl error. An error identifier must be provided.
+
+        :param object request: The crawled with error :class:`Request <crawlfrontier.core.models.Request>` object.
+        :param string error: A string identifier for the error.
+
+        :return: None.
+        """
+        self._check_startstop()
+        self.logger.manager.debug(self._msg('PAGE_REQUEST_ERROR url=%s' % request.url))
+        processed_page = self._process_components(method_name='request_error',
+                                                  obj=request,
+                                                  return_classes=self.request_model,
+                                                  error=error)
+        #self.event_log_manager.page_crawled_error(processed_page, error)
+        return processed_page
 
     def _msg(self, msg):
         return '(%s) %s' % (self.iteration, msg)
