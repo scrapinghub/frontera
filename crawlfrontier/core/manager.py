@@ -23,7 +23,8 @@ class FrontierManager(object):
         :param object/string response_model: The :class:`Response <crawlfrontier.core.models.Response>` object to be \
         used by the frontier.
 
-        :param object/string backend: The :class:`Backend` object to be used by the frontier.
+        :param object/string backend: The :class:`Backend <crawlfrontier.core.components.Backend>` object to be \
+        used by the frontier.
 
         :param object/string logger: The :class:`Logger` object to be used by the frontier.
 
@@ -36,7 +37,8 @@ class FrontierManager(object):
         :param int max_requests: Number of pages after which the frontier would stop (See \
         :ref:`Finish conditions <frontier-finish>`).
 
-        :param int max_next_requests: Maximum number of requests returned by ``get_next_pages`` method.
+        :param int max_next_requests: Maximum number of requests returned by \
+        :attr:`get_next_requests <crawlfrontier.core.manager.FrontierManager.get_next_requests>` method.
 
         :param bool auto_start: Activate/deactivate automatic frontier start (See :ref:`starting/stopping the \
         frontier <frontier-start-stop>`).
@@ -152,7 +154,8 @@ class FrontierManager(object):
     @property
     def backend(self):
         """
-        The :class:`Backend` object to be used by the frontier. Can be defined with :setting:`BACKEND` setting.
+        The :class:`Backend <crawlfrontier.core.components.Backend>` object to be used by the frontier. \
+        Can be defined with :setting:`BACKEND` setting.
         """
         return self._backend
 
@@ -198,7 +201,8 @@ class FrontierManager(object):
     @property
     def max_next_requests(self):
         """
-        Maximum number of requests returned by ``get_next_pages`` method. \
+        Maximum number of requests returned by \
+        :attr:`get_next_requests <crawlfrontier.core.manager.FrontierManager.get_next_requests>` method. \
         Can be defined with :setting:`MAX_NEXT_PAGES` setting.
         """
         return self._max_next_requests

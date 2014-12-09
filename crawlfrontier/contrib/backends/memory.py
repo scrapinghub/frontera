@@ -7,6 +7,9 @@ from crawlfrontier.utils.heap import Heap
 
 
 class MemoryBaseBackend(Backend):
+    """
+    Base class for in-memory heapq Backend objects.
+    """
     component_name = 'Memory Base Backend'
 
     def __init__(self, manager):

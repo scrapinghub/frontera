@@ -145,48 +145,30 @@ Once the frontier is finished, no more pages will be returned by the
 Component objects
 =================
 
-.. class:: Component()
+.. autoclass:: crawlfrontier.core.components.Component
 
-    The :class:`Component` object is the base class for frontier :class:`Middleware` and :class:`Backend` objects.
+    **Attributes**
 
-    :class:`FrontierManager` communicates with the active components using the hook methods listed below.
-    Implementations are different for :class:`Middleware` and :class:`Backend` objects, therefore methods are not
-    fully described here but in their corresponding section.
+    .. autoattribute:: crawlfrontier.core.components.Component.name
 
-    Each derived class should implement the following methods:
+    **Abstract methods**
 
-    .. method:: frontier_start()
-
-        Called when the frontier starts, see :ref:`Starting/Stopping the frontier <frontier-start-stop>`
-
-    .. method:: frontier_stop()
-
-       Called when the frontier stops, see :ref:`Starting/Stopping the frontier <frontier-start-stop>`
-
-    .. method:: add_seeds(links)
-
-        This method is called when new seeds are are added to the frontier
-
-    .. method:: page_crawled(page, links)
-
-        This method is called each time a page has been crawled
-
-    .. method:: page_crawled_error(page, error)
-
-        This method is called each time an error occurs when crawling a page
-
-    .. method:: get_page(link)
-
-        Called when a page wants to be retrieved from its URL
+    .. automethod:: crawlfrontier.core.components.Component.frontier_start
+    .. automethod:: crawlfrontier.core.components.Component.frontier_stop
+    .. automethod:: crawlfrontier.core.components.Component.add_seeds
+    .. automethod:: crawlfrontier.core.components.Component.page_crawled
+    .. automethod:: crawlfrontier.core.components.Component.request_error
 
 
 Test mode
 =========
 
 In some cases while testing, frontier components need to act in a different way than they usually do (for instance
-domain middleware accepts non valid URLs like 'A1 or B1' when parsing domain urls in test mode).
+:ref:`domain middleware <frontier-domain-middleware>` accepts non valid URLs like ``'A1'`` or ``'B1'`` when parsing
+domain urls in test mode).
 
-Components can know if the frontier is in test mode via the boolean ``test_mode`` attribute.
+Components can know if the frontier is in test mode via the boolean
+:attr:`test_mode <crawlfrontier.core.manager.FrontierManager.test_mode>` attribute.
 
 .. _frontier-another-ways:
 
