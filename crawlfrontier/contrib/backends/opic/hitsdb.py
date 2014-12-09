@@ -82,6 +82,20 @@ class HitsDBInterface(object):
         """
         pass
 
+    @abstractmethod
+    def increase_h_cash(self, page_id_list, h_cash):
+        """
+        Increase the cash in the given pages in this amount
+        """
+        pass
+
+    @abstractmethod
+    def increase_a_cash(self, page_id_list, a_cash):
+        """
+        Increase the cash in the given pages in this amount
+        """
+        pass
+
 class HitsScore(object):
     """Just a container for the following (modifiable) fields:
 
@@ -120,11 +134,51 @@ class SQLite(sqlite.Connection, HitsDBInterface):
 
             CREATE INDEX IF NOT EXISTS
                 a_cash_index on page_score(a_cash);
+
+
+            CREATE TABLE IF NOT EXISTS global_increase (
+                name  TEXT unique,
+                value REAL
+            );
+
+            INSERT OR IGNORE INTO global_increase VALUES 
+                ('a_cash', 0.0),
+                ('h_cash', 0.0);
+
             """
         )
-        self._a_cash_increase = 0.0
-        self._h_cash_increase = 0.0
+        self._a_cash_increase = self._restore_a_cash_increase()
+        self._h_cash_increase = self._restore_h_cash_increase();
 
+
+    def _restore_a_cash_increase(self):
+        return self._cursor.execute(
+            """
+            SELECT value FROM global_increase WHERE name='a_cash'
+            """
+        ).fetchone()[0]
+
+    def _restore_h_cash_increase(self):
+        return self._cursor.execute(
+            """
+            SELECT value FROM global_increase WHERE name='h_cash'
+            """
+        ).fetchone()[0]
+
+    def _save_a_cash_increase(self):
+        return self._cursor.execute(
+            """
+            UPDATE FROM global_increase SET value=? WHERE name='a_cash'
+            """,
+            (self._a_cash_increase,)
+        )
+    def _save_h_cash_increase(self):
+        return self._cursor.execute(
+            """
+            UPDATE FROM global_increase SET value=? WHERE name='h_cash'
+            """,
+            (self._h_cash_increase,)
+        )
 
     def clear(self):
         self._cursor.executescript(
@@ -233,10 +287,28 @@ class SQLite(sqlite.Connection, HitsDBInterface):
         # eventually we may want to reset the db and write back the increases to
         # avoid precision loss (with reals) or overflow/underflow if we use int
 
-        #self._cursor.execute(
-        #    """
-        #    UPDATE page_score SET h_cash=h_cash + ?, a_cash=a_cash + ?
-        #    """,
-        #    (h_cash, a_cash)
-        #)
-        #"""
+    def increase_h_cash(self, page_id_list, h_cash):
+        self._cursor.execute(
+            """
+            UPDATE OR IGNORE page_score 
+            SET h_cash=?
+            WHERE page_id IN (?)
+            """,
+            (h_cash, ','.join(page_id_list))
+        )        
+
+    def increase_a_cash(self, page_id_list, a_cash):
+        self._cursor.execute(
+            """
+            UPDATE OR IGNORE page_score 
+            SET a_cash=?
+            WHERE page_id IN (?)
+            """,
+            (a_cash, ','.join(page_id_list))
+        )        
+
+    def close(self):
+        self._save_a_cash_increase()
+        self._save_h_cash_increase()
+
+        super(SQLite, self).close()

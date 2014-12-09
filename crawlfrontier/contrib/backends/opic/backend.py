@@ -162,11 +162,17 @@ class OpicHitsBackend(Backend):
 
         page_fingerprint = response.meta['fingerprint']
         page_h, page_a = self._opic.get_scores(page_fingerprint)
+
+        self._pages.start_batch()
         self._graph.start_batch()
         for link in links:
             link_fingerprint = self._add_new_link(link, 0.7*page_h + 0.3*page_a)        
             self._graph.add_edge(page_fingerprint, link_fingerprint)
+        self._graph.end_batch()
         self._pages.end_batch()
+
+        # mark page to update
+        self._opic.mark_update(page_fingerprint)
 
     # FrontierManager interface
     def request_error(self, page, error):
@@ -193,6 +199,7 @@ class OpicHitsBackend(Backend):
         """Retrieve the next pages to be crawled"""
 
         updated = self._opic.update()
+
         for page_id in updated:
             h_score, a_score = self._opic.get_scores(page_id)
             for link_id in self._graph.neighbours(page_id):

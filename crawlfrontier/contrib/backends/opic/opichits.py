@@ -18,8 +18,6 @@ class OpicHits(object):
   
         # Number of scored web pages
         self._n_pages = 0
-        # Number of pages added since last update
-        self._n_new = 0
 
         # Total hub history, excluding virtual page
         # adding a small quantity is easier and faster than checking 0/0
@@ -28,6 +26,9 @@ class OpicHits(object):
         # Total authority history, excluding virtual page
         # adding a small quantity is easier and faster than checking 0/0
         self._a_total = 1e-6 
+
+        # A list of pages to update
+        self._to_update = []
 
         # A virtual page connected from and to every
         # other web page
@@ -44,11 +45,14 @@ class OpicHits(object):
         for page_id in self._graph.inodes():
             self.add_page(page_id)
 
+    def mark_update(self, page_id):
+        """Add this to the list of pages to update"""
+        self._to_update.append(page_id)
+
     def add_page(self, page_id):
         """Add a new page, with fresh score information"""
         if not page_id in self._scores:
             self._n_pages += 1
-            self._n_new += 1
 
             new_score = hitsdb.HitsScore(
                 h_history = self._h_total/self._n_pages,
@@ -79,6 +83,7 @@ class OpicHits(object):
 
     def update_page(self, page_id):
         """Update HITS score for the given page"""
+
         score = self._get_page_score(page_id)
 
         # Add cash to total cash count
@@ -95,18 +100,9 @@ class OpicHits(object):
         a_dist = score.h_cash/(len(succ) + 1.0)
 
         # Give authority to successors
-        for s_page_id in succ:
-            s_page_score = self._get_page_score(s_page_id)
-            s_page_score.a_cash += a_dist
-
-            self._scores.set(s_page_id, s_page_score)
-
+        self._scores.increase_a_cash(succ, a_dist)
         # Give hub score to predecessors
-        for p_page_id in pred:
-            p_page_score = self._get_page_score(p_page_id)
-            p_page_score.h_cash += h_dist
-
-            self._scores.set(p_page_id, p_page_score)
+        self._scores.increase_h_cash(succ, h_dist)
 
         self._virtual_page.h_cash += h_dist
         self._virtual_page.a_cash += a_dist
@@ -116,7 +112,7 @@ class OpicHits(object):
         score.h_cash = 0
         score.a_history += score.a_cash
         score.a_cash = 0
-        
+
         self._scores.set(page_id, score)        
 
     def update_virtual_page(self):
@@ -138,28 +134,22 @@ class OpicHits(object):
         OPIC-HITS algorithm"""
 
         # update proportional to the rate of graph grow
-        n_updates = max(1, self._n_new)
+        n_updates = max(1, len(self._to_update))
 
         for i in xrange(n_iter):                       
             best_h, h_cash = zip(*self._scores.get_highest_h_cash(n_updates))
             best_a, a_cash = zip(*self._scores.get_highest_a_cash(n_updates))
             
-            best = set(best_h + best_a)
-
-            self._scores.start_batch()
-            self._graph.start_batch()
+            best = set(best_h + best_a + tuple(self._to_update))            
 
             if (self._virtual_page.h_cash > h_cash[-1] or
                 self._virtual_page.a_cash > a_cash[-1]):                                
                 self.update_virtual_page()
-
+           
             for page_id in best:
                 self.update_page(page_id)
 
-            self._graph.end_batch()
-            self._scores.end_batch()
-
-        self._n_new = 0
+        self._to_update = []
 
         return best
 
