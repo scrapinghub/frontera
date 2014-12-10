@@ -289,7 +289,7 @@ A simple crawl faking example
 Frontier tests can better be done using the :doc:`Frontier Tester tool <frontier-tester>`, but here's an example of
 how fake a crawl with a frontier::
 
-    from crawlfrontier import FrontierManager, graphs
+    from crawlfrontier import FrontierManager, graphs, Request, Response
 
     if __name__ == '__main__':
         # Load graph from existing database
@@ -298,25 +298,28 @@ how fake a crawl with a frontier::
         # Create frontier from default settings
         frontier = FrontierManager.from_settings()
 
-        # Add seeds
-        frontier.add_seeds([seed.url for seed in graph.seeds])
+        # Create and add seeds
+        seeds = [Request(seed.url) for seed in graph.seeds]
+        frontier.add_seeds(seeds)
 
-        # Get next pages
-        next_pages = frontier.get_next_pages()
+        # Get next requests
+        next_requets = frontier.get_next_requests()
 
         # Crawl pages
-        while (next_pages):
-            for page_to_crawl in next_pages:
+        while (next_requests):
+            for request in next_requests:
 
                 # Fake page crawling
-                crawled_page = graph.get_page(page_to_crawl.url)
+                crawled_page = graph.get_page(request.url)
+
+                # Create response
+                response = Response(url=crawled_page.url, status_code=crawled_page.status)
 
                 # Update Page
-                page_to_crawl.status = crawled_page.status
-                page = frontier.page_crawled(page=page_to_crawl,
+                page = frontier.page_crawled(response=response
                                              links=[link.url for link in crawled_page.links])
-                # Get next pages
-                next_pages = frontier.get_next_pages()
+                # Get next requests
+                next_requets = frontier.get_next_requests()
 
 
 

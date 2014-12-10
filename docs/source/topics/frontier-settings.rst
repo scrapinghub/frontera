@@ -3,7 +3,9 @@ Settings
 ========
 
 The Crawl Frontier settings allows you to customize the behaviour of all components, including the
-:class:`FrontierManager`, :class:`Middleware` and :class:`Backend` themselves.
+:class:`FrontierManager <crawlfrontier.core.manager.FrontierManager>`,
+:class:`Middleware <crawlfrontier.core.components.Middleware>` and
+:class:`Backend <crawlfrontier.core.components.Backend>` themselves.
 
 The infrastructure of the settings provides a global namespace of key-value mappings that can be used to pull
 configuration values from. The settings can be populated through different mechanisms, which are described below.
@@ -13,9 +15,10 @@ For a list of available built-in settings see: :ref:`Built-in settings reference
 Designating the settings
 ========================
 
-When you use Crawl Frontier, you have to tell it which settings you’re using. As :class:`FrontierManager` is the main
-entry point to Frontier usage, you can do this by using the method described in the
-:ref:`Loading from settings <frontier-loading-from-settings>` section.
+When you use Crawl Frontier, you have to tell it which settings you’re using. As
+:class:`FrontierManager <crawlfrontier.core.manager.FrontierManager>` is the main entry point to Frontier usage,
+you can do this by using the method described in the :ref:`Loading from settings <frontier-loading-from-settings>`
+section.
 
 When using a string path pointing to a settings file for the frontier we propose the following directory structure::
 
@@ -36,8 +39,10 @@ These are basically:
 
 How to access settings
 ======================
-:class:`Settings` can be accessed through the ``settings`` attribute of the :class:`FrontierManager`, that is passed to
-``from_manager`` class method in :class:`Middleware` and :class:`Backend` objects::
+:class:`Settings <crawlfrontier.settings.Settings>` can be accessed through the
+:attr:`FrontierManager.settings <crawlfrontier.core.manager.FrontierManager.settings>` attribute, that is passed to
+:attr:`Middleware.from_manager <crawlfrontier.core.components.Middleware.from_manager>` and
+:attr:`Backend.from_manager <crawlfrontier.core.components.Backend.from_manager>` class methods::
 
     class MyMiddleware(Component):
 
@@ -47,7 +52,13 @@ How to access settings
             if settings.TEST_MODE:
                 print "test mode is enabled!"
 
-In other words, settings can be accessed as attributes of the :class:`Settings` object.
+In other words, settings can be accessed as attributes of the
+:class:`Settings <crawlfrontier.settings.Settings>` object.
+
+Settings class
+==============
+
+.. autoclass:: crawlfrontier.settings.Settings
 
 .. _frontier-built-in-frontier-settings:
 
@@ -58,6 +69,7 @@ Here’s a list of all available Crawl Frontier settings, in alphabetical order,
 scope where they apply.
 
 .. setting:: AUTO_START
+
 AUTO_START
 ----------
 
@@ -66,44 +78,61 @@ Default: ``True``
 Whether to enable frontier automatic start. See :ref:`Starting/Stopping the frontier <frontier-start-stop>`
 
 .. setting:: BACKEND
+
 BACKEND
 -------
 
-Default: ``'crawlfrontier.contrib.backends.memory.heapq.FIFO'``
+Default: ``'crawlfrontier.contrib.backends.memory.FIFO'``
 
-The :class:`Backend` to be used by the frontier. For more info see
+The :class:`Backend <crawlfrontier.core.components.Backend>` to be used by the frontier. For more info see
 :ref:`Activating a backend <frontier-activating-backend>`.
 
-.. setting:: LINK_MODEL
-LINK_MODEL
-----------
 
-Default: ``'crawlfrontier.core.models.Link'``
+.. setting:: EVENT_LOGGER
 
-The :class:`Link` model to be used by the frontier.
+EVENT_LOGGER
+------------
 
-.. setting:: MAX_NEXT_PAGES
-MAX_NEXT_PAGES
---------------
+Default: ``'crawlfrontier.logger.events.EventLogManager'``
+
+The EventLoggerManager class to be used by the Frontier.
+
+
+.. setting:: LOGGER
+
+LOGGER
+------
+
+Default: ``'crawlfrontier.logger.FrontierLogger'``
+
+The Logger class to be used by the Frontier.
+
+.. setting:: MAX_NEXT_REQUESTS
+
+MAX_NEXT_REQUESTS
+-----------------
 
 Default: ``0``
 
-The maximum number of pages returned by ``get_next_pages`` API method. If value is 0 (default), no maximum value will
-be used.
+The maximum number of requests returned by
+:attr:`get_next_requests <crawlfrontier.core.manager.FrontierManager.get_next_requests>` API method.
+If value is 0 (default), no maximum value will be used.
 
-.. setting:: MAX_PAGES
-MAX_PAGES
---------------
+.. setting:: MAX_REQUESTS
+
+MAX_REQUESTS
+------------
 
 Default: ``0``
 
-Maximum number of returned pages after Crawl frontier is finished. If value is 0 (default), the frontier will continue
-indefinitely. See :ref:`Finishing the frontier <frontier-finish>`.
+Maximum number of returned requests after which Crawl frontier is finished.
+If value is 0 (default), the frontier will continue indefinitely. See :ref:`Finishing the frontier <frontier-finish>`.
 
 
 .. setting:: MIDDLEWARES
+
 MIDDLEWARES
---------------------
+-----------
 
 A list containing the middlewares enabled in the frontier. For more info see
 :ref:`Activating a middleware <frontier-activating-middleware>`.
@@ -116,14 +145,24 @@ Default::
         'crawlfrontier.contrib.middlewares.fingerprint.DomainFingerprintMiddleware',
     ]
 
-.. setting:: PAGE_MODEL
+.. setting:: REQUEST_MODEL
 
-PAGE_MODEL
-----------
+REQUEST_MODEL
+-------------
 
-Default: ``'crawlfrontier.core.models.Page'``
+Default: ``'crawlfrontier.core.models.Request'``
 
-The :class:`Page` model to be used by the frontier.
+The :class:`Request <crawlfrontier.core.models.Request>` model to be used by the frontier.
+
+
+.. setting:: RESPONSE_MODEL
+
+RESPONSE_MODEL
+-------------
+
+Default: ``'crawlfrontier.core.models.Response'``
+
+The :class:`Response <crawlfrontier.core.models.Response>` model to be used by the frontier.
 
 
 .. setting:: TEST_MODE
@@ -185,7 +224,7 @@ Values::
         'crawlfrontier.contrib.middlewares.fingerprint.UrlFingerprintMiddleware',
         'crawlfrontier.contrib.middlewares.fingerprint.DomainFingerprintMiddleware',
     ]
-    BACKEND = 'crawlfrontier.contrib.backends.memory.heapq.FIFO'
+    BACKEND = 'crawlfrontier.contrib.backends.memory.FIFO'
     TEST_MODE = False
     MAX_PAGES = 0
     MAX_NEXT_PAGES = 0

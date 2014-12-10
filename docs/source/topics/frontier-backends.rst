@@ -2,15 +2,20 @@
 Backends
 ========
 
-Frontier :class:`Backend` is where the crawling logic/policies lies. It’s responsible for receiving all the crawl info
-and selecting the next pages to be crawled. It's called by the :class:`FrontierManager` after Frontier :class:`Middleware`, using hooks for :class:`Link`
-and :class:`Page` processing according to :ref:`frontier data flow <frontier-data-flow>`.
+Frontier :class:`Backend <crawlfrontier.core.components.Backend>` is where the crawling logic/policies lies.
+It’s responsible for receiving all the crawl info and selecting the next pages to be crawled.
+It's called by the :class:`FrontierManager <crawlfrontier.core.manager.FrontierManager>` after
+:class:`Middleware <crawlfrontier.core.components.Middleware>`, using hooks for
+:class:`Request <crawlfrontier.core.models.Request>`
+and :class:`Response <crawlfrontier.core.models.Response>` processing according to
+:ref:`frontier data flow <frontier-data-flow>`.
 
-Unlike :class:`Middleware`, that can have many different instances activated, only one :class:`Backend` can be used per
-frontier.
+Unlike :class:`Middleware`, that can have many different instances activated, only one
+:class:`Backend <crawlfrontier.core.components.Backend>` can be used per frontier.
 
-Some backends require, depending on the logic implemented, a persistent storage to manage :class:`Link` and
-:class:`Page` objects info.
+Some backends require, depending on the logic implemented, a persistent storage to manage
+:class:`Request <crawlfrontier.core.models.Request>`
+and :class:`Response <crawlfrontier.core.models.Response>` objects info.
 
 
 .. _frontier-activating-backend:
@@ -22,7 +27,7 @@ To activate the frontier middleware component, set it through the :setting:`BACK
 
 Here’s an example::
 
-    BACKEND = 'crawlfrontier.contrib.backends.memory.heapq.FIFO'
+    BACKEND = 'crawlfrontier.contrib.backends.memory.FIFO'
 
 Keep in mind that some backends may need to be enabled through a particular setting. See
 :ref:`each backend documentation <frontier-built-in-backend>` for more info.
@@ -32,85 +37,45 @@ Keep in mind that some backends may need to be enabled through a particular sett
 Writing your own backend
 ===========================
 
-Writing your own frontier backend is easy. Each :class:`Backend` component is a single Python class inherited from
-:class:`Component`.
+Writing your own frontier backend is easy. Each :class:`Backend <crawlfrontier.core.components.Backend>` component is a
+single Python class inherited from :class:`Component <crawlfrontier.core.components.Component>`.
 
-:class:`FrontierManager` will communicate with active :class:`Backend` through the methods described below.
-
-.. class:: Backend()
-
-    It must implement the following methods:
-
-    .. method:: frontier_start()
-
-       Called when the frontier starts, see :ref:`Starting/Stopping the frontier <frontier-start-stop>`
-
-       :returns: None
-
-    .. method:: frontier_stop()
-
-       Called when the frontier stops, see :ref:`Starting/Stopping the frontier <frontier-start-stop>`
-
-       :returns: None
-
-    .. method:: add_seeds(links)
-
-        This method is called when new seeds are are added to the frontier. It receives a list of :class:`Link` objects
-        created from the inital URLs passed to the :class:`FrontierManager`.
-
-        ``add_seeds()`` should either return None or a list of :class:`Page` objects.
-
-        .. note:: :class:`Backend` must create and return the different :class:`Page` objects created from the passed :class:`Link` objects list.
-
-        :param links: A list of links created from the passed URLs.
-        :type links: :class:`Link` list
-
-        :returns: :class:`Page` list or None
+:class:`FrontierManager <crawlfrontier.core.manager.FrontierManager>` will communicate with active
+:class:`Backend <crawlfrontier.core.components.Backend>` through the methods described below.
 
 
-    .. method:: page_crawled(page, links)
+.. autoclass:: crawlfrontier.core.components.Backend
 
-        This method is called each time a page has been crawled. It will receive the :class:`Page` object and a list
-        of :class:`Link` objects created from the extracted page URLs.
+    **Methods**
 
-        ``page_crawled()`` should either return None or a :class:`Page` object.
+    .. automethod:: crawlfrontier.core.components.Backend.frontier_start
 
-        :param page: The crawled page.
-        :type page: :class:`Page`
+        :return: None.
 
-        :param links: A list of links created from the extracted page URLs.
-        :type links: :class:`Link` list
+    .. automethod:: crawlfrontier.core.components.Backend.frontier_stop
 
-        :returns: :class:`Page` or None
+        :return: None.
 
-    .. method:: page_crawled_error(page, error)
+    .. automethod:: crawlfrontier.core.components.Backend.add_seeds
 
-        This method is called each time an error occurs when crawling a page. It will receive the :class:`Page` object
-        and a string containing the error code.
+        :return: None.
 
-        ``page_crawled_error()`` should either return None or a :class:`Page` object.
+    .. automethod:: crawlfrontier.core.components.Backend.get_next_requests
 
-        :param page: The crawled page with error.
-        :type page: :class:`Page`
+    .. automethod:: crawlfrontier.core.components.Backend.page_crawled
 
-        :param links: The code of the generated error.
-        :type links: string
+        :return: None.
 
-        :returns: :class:`Page` or None
+    .. automethod:: crawlfrontier.core.components.Backend.request_error
 
-    .. method:: get_page(link)
+        :return: None.
 
-        Called when a page wants to be retrieved from its URL. It will receive the :class:`Link` object
-        generated from the page URL.
+    **Class Methods**
 
-        ``get_page()`` should either return None or a :class:`Page` object.
+    .. automethod:: crawlfrontier.core.components.Backend.from_manager
 
-        .. note:: If page exists :class:`Backend` must return a :class:`Page` object created from the passed :class:`Link`.
 
-        :param link: The link object created from the page URL.
-        :type link: :class:`Link`
 
-        :returns: :class:`Page` or None
 
 
 .. _frontier-built-in-backend:
@@ -118,125 +83,92 @@ Writing your own frontier backend is easy. Each :class:`Backend` component is a 
 Built-in backend reference
 =============================
 
-This page describes all :class:`Backend` components that come with Crawl Frontier. For information on how to use them and
-how to write your own middleware, see the :ref:`backend usage guide. <frontier-writing-backend>`.
+This page describes all :ref:`each backend documentation <frontier-built-in-backend>` components that come with
+Crawl Frontier. For information on how to use them and how to write your own middleware, see the
+:ref:`backend usage guide. <frontier-writing-backend>`.
 
-To know the default activated :class:`Backend` check the :setting:`BACKEND` setting.
+To know the default activated :class:`Backend <crawlfrontier.core.components.Backend>` check the
+:setting:`BACKEND` setting.
 
 .. _frontier-backends-basic-algorithms:
 
-basic algorithms
+Basic algorithms
 ----------------
-Some of the built-in :class:`Backend` objects implement basic algorithms as as `FIFO`_/`LIFO`_ or
-`DFS`_/`BFS`_ for page visit ordering.
+Some of the built-in :class:`Backend <crawlfrontier.core.components.Backend>` objects implement basic algorithms as
+as `FIFO`_/`LIFO`_ or `DFS`_/`BFS`_ for page visit ordering.
 
-Differences between them will be on storage engine used. For instance, ``memory.FIFO``, ``heapq.FIFO`` and
-``sqlalchemy.FIFO`` will use the same logic but with different storage engines.
+Differences between them will be on storage engine used. For instance,
+:class:`memory.FIFO <crawlfrontier.contrib.backends.memory.FIFO>` and
+:class:`sqlalchemy.FIFO <crawlfrontier.contrib.backends.sqlalchemy.FIFO>` will use the same logic but with different
+storage engines.
 
 .. _frontier-backends-memory:
 
-memory.dict backends
---------------------
 
-This set of :class:`Backend` objects will use an `OrderedDict`_ python object as storage for
-:ref:`basic algorithms <frontier-backends-basic-algorithms>`.
-
-.. warning:: Use of `OrderedDict`_ for large crawls is **extremely inefficient in terms of speed**, if you want to use a volatile storage engine use :ref:`heapq implementations <frontier-backends-heapq>` instead. This storages have been intentionally left in the framework for learning purposes.
-
-.. class:: crawlfrontier.contrib.backends.memory.dict.BASE
-
-    Base class for in-memory dict :class:`Backend` objects.
-
-.. class:: crawlfrontier.contrib.backends.memory.dict.FIFO
-
-    In-memory dict :class:`Backend` implementation of `FIFO`_ algorithm.
-
-.. class:: crawlfrontier.contrib.backends.memory.dict.LIFO
-
-    In-memory dict  :class:`Backend` implementation of `LIFO`_ algorithm.
-
-.. class:: crawlfrontier.contrib.backends.memory.dict.BFS
-
-    In-memory dict :class:`Backend` implementation of `BFS`_ algorithm.
-
-.. class:: crawlfrontier.contrib.backends.memory.dict.DFS
-
-    In-memory dict :class:`Backend` implementation of `DFS`_ algorithm.
-
-.. _frontier-backends-heapq:
-
-memory.heapq backends
+Memory backends
 ---------------------
 
-This set of :class:`Backend` objects will use an `heapq`_ object as storage for
+This set of :class:`Backend <crawlfrontier.core.components.Backend>` objects will use an `heapq`_ object as storage for
 :ref:`basic algorithms <frontier-backends-basic-algorithms>`.
 
-.. class:: crawlfrontier.contrib.backends.memory.heapq.BASE
 
-    Base class for in-memory heapq :class:`Backend` objects.
+.. class:: crawlfrontier.contrib.backends.memory.BASE
 
-.. class:: crawlfrontier.contrib.backends.memory.heapq.FIFO
+    Base class for in-memory heapq :class:`Backend <crawlfrontier.core.components.Backend>` objects.
 
-    In-memory heapq :class:`Backend` implementation of `FIFO`_ algorithm.
+.. class:: crawlfrontier.contrib.backends.memory.FIFO
 
-.. class:: crawlfrontier.contrib.backends.memory.heapq.LIFO
+    In-memory heapq :class:`Backend <crawlfrontier.core.components.Backend>` implementation of `FIFO`_ algorithm.
 
-    In-memory heapq :class:`Backend` implementation of `LIFO`_ algorithm.
+.. class:: crawlfrontier.contrib.backends.memory.LIFO
 
-.. class:: crawlfrontier.contrib.backends.memory.heapq.BFS
+    In-memory heapq :class:`Backend <crawlfrontier.core.components.Backend>` implementation of `LIFO`_ algorithm.
 
-    In-memory heapq :class:`Backend` implementation of `BFS`_ algorithm.
+.. class:: crawlfrontier.contrib.backends.memory.BFS
 
-.. class:: crawlfrontier.contrib.backends.memory.heapq.DFS
+    In-memory heapq :class:`Backend <crawlfrontier.core.components.Backend>` implementation of `BFS`_ algorithm.
 
-    In-memory heapq :class:`Backend` implementation of `DFS`_ algorithm.
+.. class:: crawlfrontier.contrib.backends.memory.DFS
+
+    In-memory heapq :class:`Backend <crawlfrontier.core.components.Backend>` implementation of `DFS`_ algorithm.
+
+.. class:: crawlfrontier.contrib.backends.memory.RANDOM
+
+    In-memory heapq :class:`Backend <crawlfrontier.core.components.Backend>` implementation of a random selection
+    algorithm.
 
 .. _frontier-backends-sqlalchemy:
 
-sqlalchemy backends
+SQLAlchemy backends
 ---------------------
 
-This set of :class:`Backend` objects will use `SQLAlchemy`_ as storage for
+This set of :class:`Backend <crawlfrontier.core.components.Backend>` objects will use `SQLAlchemy`_ as storage for
 :ref:`basic algorithms <frontier-backends-basic-algorithms>`.
 
 By default it uses an in-memory SQLite database as a storage engine, but `any databases supported by SQLAlchemy`_ can
 be used.
 
-:class:`Page` objects are represented by a `declarative sqlalchemy model`_::
+:class:`Request <crawlfrontier.core.models.Request>` and :class:`Response <crawlfrontier.core.models.Response>` are
+represented by a `declarative sqlalchemy model`_::
 
-    class PageBase(Model):
-        __abstract__ = True
+    class Page(Base):
         __tablename__ = 'pages'
         __table_args__ = (
             UniqueConstraint('url'),
         )
+        class State:
+            NOT_CRAWLED = 'NOT CRAWLED'
+            QUEUED = 'QUEUED'
+            CRAWLED = 'CRAWLED'
+            ERROR = 'ERROR'
 
-        class States:
-            NOT_CRAWLED = 'N'
-            QUEUED = 'Q'
-            CRAWLED = 'C'
-            ERROR = 'E'
-
-        STATES = [
-            (States.NOT_CRAWLED, FrontierPage.State.NOT_CRAWLED),
-            (States.QUEUED, FrontierPage.State.QUEUED),
-            (States.CRAWLED, FrontierPage.State.CRAWLED),
-            (States.ERROR, FrontierPage.State.ERROR),
-        ]
-
-        fingerprint = Column(FINGERPRINT, primary_key=True, nullable=False, index=True, unique=True)
-        url = Column(URL_FIELD, nullable=False)
+        url = Column(String(1000), nullable=False)
+        fingerprint = Column(String(40), primary_key=True, nullable=False, index=True, unique=True)
         depth = Column(Integer, nullable=False)
         created_at = Column(TIMESTAMP, nullable=False)
-        last_update = Column(TIMESTAMP, nullable=False)
-        status = Column(String(20))
-        last_redirects = Column(Integer)
-        last_iteration = Column(Integer, nullable=False)
-        state = Column(Choice(choices=STATES, default=States.NOT_CRAWLED))
-        n_adds = Column(Integer, default=0)
-        n_queued = Column(Integer, default=0)
-        n_crawls = Column(Integer, default=0)
-        n_errors = Column(Integer, default=0)
+        status_code = Column(String(20))
+        state = Column(String(10))
+        error = Column(String(20))
 
 If you need to create your own models, you can do it by using the :setting:`DEFAULT_MODELS` setting::
 
@@ -252,29 +184,34 @@ If you want for instance to create a model to represent domains::
         'Domain': 'myproject.backends.sqlalchemy.models.Domain',
     }
 
-Models can be accessed from the :class:`Backend` dictionary attribute ``models``.
+Models can be accessed from the Backend dictionary attribute ``models``.
 
 For a complete list of all settings used for sqlalchemy backends check the :doc:`settings <frontier-settings>` section.
 
 .. class:: crawlfrontier.contrib.backends.sqlalchemy.BASE
 
-    Base class for SQLAlchemy :class:`Backend` objects.
+    Base class for SQLAlchemy :class:`Backend <crawlfrontier.core.components.Backend>` objects.
 
 .. class:: crawlfrontier.contrib.backends.sqlalchemy.FIFO
 
-    SQLAlchemy :class:`Backend` implementation of `FIFO`_ algorithm.
+    SQLAlchemy :class:`Backend <crawlfrontier.core.components.Backend>` implementation of `FIFO`_ algorithm.
 
 .. class:: crawlfrontier.contrib.backends.sqlalchemy.LIFO
 
-    SQLAlchemy heapq :class:`Backend` implementation of `LIFO`_ algorithm.
+    SQLAlchemy :class:`Backend <crawlfrontier.core.components.Backend>` implementation of `LIFO`_ algorithm.
 
 .. class:: crawlfrontier.contrib.backends.sqlalchemy.BFS
 
-    SQLAlchemy heapq :class:`Backend` implementation of `BFS`_ algorithm.
+    SQLAlchemy :class:`Backend <crawlfrontier.core.components.Backend>` implementation of `BFS`_ algorithm.
 
 .. class:: crawlfrontier.contrib.backends.sqlalchemy.DFS
 
-    SQLAlchemy heapq :class:`Backend` implementation of `DFS`_ algorithm.
+    SQLAlchemy :class:`Backend <crawlfrontier.core.components.Backend>` implementation of `DFS`_ algorithm.
+
+.. class:: crawlfrontier.contrib.backends.sqlalchemy.RANDOM
+
+    SQLAlchemy :class:`Backend <crawlfrontier.core.components.Backend>` implementation of a random selection
+    algorithm.
 
 
 

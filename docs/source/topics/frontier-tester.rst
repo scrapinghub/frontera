@@ -10,7 +10,8 @@ instance.
 Creating a Frontier Tester
 ==========================
 
-FrontierTester needs a :doc:`Graph Manager <graph-manager>` and a :class:`FrontierManager` instances::
+FrontierTester needs a :doc:`Graph Manager <graph-manager>` and a
+:class:`FrontierManager <crawlfrontier.core.manager.FrontierManager>` instances::
 
     >>> from crawlfrontier import FrontierManager, FrontierTester, graphs
     >>> graph = graphs.Manager('sqlite:///graph.db')  # Crawl fake data loading
@@ -32,35 +33,9 @@ When run method is called the tester will:
 
 Steps 1 and 2 are repeated until crawl or frontier ends.
 
-Once the test is finished, the crawling page ``sequence`` is available as a list of frontier :class:`Page` objects::
+Once the test is finished, the crawling page ``sequence`` is available as a list of frontier
+:class:`Request <crawlfrontier.core.models.Request>` objects::
 
-    >>> tester.sequence
-    [{
-        "_": "<Page:0x103609750:A1>",
-        "created_at": "2014-11-20T13:20:27.205854",
-        "depth": 0,
-        "domain": {
-            "_": "<Domain:0x1034d2a90:A>",
-            "fingerprint": "6dcd4ce23d88e2ee9568ba546c007c63d9131c1b",
-            "name": "A",
-            "netloc": "A",
-            "scheme": "-",
-            "sld": "-",
-            "subdomain": "-",
-            "tld": "-"
-        },
-        "fingerprint": "1ffd4ba3eb9ffadf4db3c3ff4c1bbcf94a64cc59",
-        "last_update": "2014-11-20T13:20:27.271851",
-        "meta": {},
-        "n_adds": 1,
-        "n_crawls": 1,
-        "n_errors": 0,
-        "n_queued": 1,
-        "state": "C",
-        "status": "200",
-        "url": "A1"
-    },
-    ...
 
 Test Parameters
 ===============
@@ -69,8 +44,9 @@ In some test cases you may want to add all graph pages as seeds, this can be don
 
     >>> tester.run(add_all_pages=True)
 
-Maximum number of returned pages per ``get_next_pages`` call can be set using frontier settings, but also can be modified
-when creating the FrontierTester with the ``max_next_pages`` argument::
+Maximum number of returned pages per
+:attr:`get_next_requests <crawlfrontier.core.manager.FrontierManager.get_next_requests>` call can be set using frontier
+settings, but also can be modified when creating the FrontierTester with the ``max_next_pages`` argument::
 
     >>> tester = FrontierTester(frontier, graph, max_next_pages=10)
 

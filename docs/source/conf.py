@@ -29,6 +29,7 @@ sys.path.append(path.join(path.dirname(__file__), "_ext"))
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    'sphinx.ext.autodoc',
     'crawlfrontierdocs',
 ]
 
@@ -270,3 +271,7 @@ else:
     import sphinx_rtd_theme
     html_theme = "sphinx_rtd_theme"
     html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+
+# -- Options for autoclass ------------------------------------------------
+# Use class and init docstrings for autoclass directive
+autoclass_content = 'both'

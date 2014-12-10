@@ -47,5 +47,5 @@ class RedisListHandler(logging.Handler):
                 p.execute()
             else:
                 self.redis_client.rpush(self.list_name, self.format(record))
-        except redis.RedisError, e:
+        except redis.RedisError:
             pass

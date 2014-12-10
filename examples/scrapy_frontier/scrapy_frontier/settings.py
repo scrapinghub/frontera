@@ -19,7 +19,7 @@ LOGSTATS_INTERVAL = 10
 
 #DUPEFILTER_CLASS = 'scrapy.dupefilter.BaseDupeFilter'
 
-CLOSESPIDER_PAGECOUNT = 20
+#CLOSESPIDER_PAGECOUNT = 1000
 
 SPIDER_MIDDLEWARES = {}
 DOWNLOADER_MIDDLEWARES = {
@@ -31,6 +31,7 @@ DOWNLOADER_MIDDLEWARES = {
 #--------------------------------------------------------------------------
 SPIDER_MIDDLEWARES.update({
     'crawlfrontier.contrib.scrapy.middlewares.frontier.CrawlFrontierSpiderMiddleware': 0,
+    'crawlfrontier.contrib.scrapy.middlewares.seeds.file.FileSeedLoader': 1,
 })
 DOWNLOADER_MIDDLEWARES.update({
     'crawlfrontier.contrib.scrapy.middlewares.frontier.CrawlFrontierDownloaderMiddleware': 100,  # After retry mw.
@@ -39,3 +40,6 @@ FRONTIER_ENABLED = True
 FRONTIER_SETTINGS = 'scrapy_frontier.frontier.settings'
 FRONTIER_SCHEDULER_INTERVAL = 0.01
 FRONTIER_SCHEDULER_CONCURRENT_REQUESTS = 256
+
+SEEDS_SOURCE = 'seeds.txt'
+
