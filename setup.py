@@ -42,7 +42,7 @@ setup(
         'tldextract>=1.5.1',
     ],
     extras_require={
-        'graphs':  [
+        'graphs': [
             "pyparsing==1.5.7",
             "pydot==1.0.28",
             "SQLAlchemy>=0.9.8",
