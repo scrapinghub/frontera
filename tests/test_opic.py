@@ -7,6 +7,7 @@ import crawlfrontier.contrib.backends.opic.scoredb as scoredb
 import crawlfrontier.contrib.backends.opic.pagechange as pagechange
 import crawlfrontier.contrib.backends.opic.hashdb as hashdb
 import crawlfrontier.contrib.backends.opic.freqdb as freqdb
+import crawlfrontier.contrib.backends.opic.linksdb as linksdb
 
 from crawlfrontier.contrib.backends.opic.opichits import OpicHits
 
@@ -312,6 +313,36 @@ def test_freq_lite_db():
     db.clear()
 
     _test_freq(db)
+
+    db.clear()
+    db.close()
+
+
+def _test_links(db):
+    db.add('a', 'b', 1, 2)
+    db.add('a', 'c', 0, 0)
+    db.add('a', 'd', 3, 1)
+    db.add('b', 'a', 5, 5)
+    db.add('b', 'd', 8, 9)
+    db.add('b', 'c', 8, 9)
+
+    db.delete('b', 'c')
+
+    db.set('b', 'd', 0, 0)
+
+
+    assert db.get('a', 'b') == (1, 2)
+    assert db.get('a', 'c') == (0, 0)
+    assert db.get('a', 'd') == (3, 1)
+    assert db.get('b', 'a') == (5, 5)
+    assert db.get('b', 'c') == None
+    assert db.get('b', 'd') == (0, 0)
+
+def test_links_lite_db():
+    db = linksdb.SQLite()
+    db.clear()
+
+    _test_links(db)
 
     db.clear()
     db.close()
