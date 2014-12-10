@@ -17,9 +17,9 @@ class BackendTestParameters(object):
             assert getattr(self, required_attribute, None) is not None, "Missing attribute %s" % required_attribute
 
 
-#-----------------------------------------------------
-# FIFO Tests Parameters
-#-----------------------------------------------------
+# -----------------------------------------------------
+#  FIFO Tests Parameters
+# -----------------------------------------------------
 class FIFO_T01_W1(BackendTestParameters):
     site_list = graphs.data.SITE_LIST_01
     max_next_requests = 1
@@ -116,9 +116,9 @@ class FIFO_T03_W100(BackendTestParameters):
     ]
 
 
-#-----------------------------------------------------
-# LIFO Tests Parameters
-#-----------------------------------------------------
+# -----------------------------------------------------
+#  LIFO Tests Parameters
+# -----------------------------------------------------
 class LIFO_T01_W1(BackendTestParameters):
     site_list = graphs.data.SITE_LIST_01
     max_next_requests = 1
@@ -215,9 +215,9 @@ class LIFO_T03_W100(BackendTestParameters):
     ]
 
 
-#-----------------------------------------------------
-# DFS Tests Parameters
-#-----------------------------------------------------
+# -----------------------------------------------------
+#  DFS Tests Parameters
+# -----------------------------------------------------
 class DFS_T01_W1(BackendTestParameters):
     site_list = graphs.data.SITE_LIST_01
     max_next_requests = 1
@@ -300,9 +300,9 @@ class DFS_T03_W100(BackendTestParameters):
     ]
 
 
-#-----------------------------------------------------
-# BFS Tests Parameters
-#-----------------------------------------------------
+# -----------------------------------------------------
+#  BFS Tests Parameters
+# -----------------------------------------------------
 class BFS_T01_W1(BackendTestParameters):
     site_list = graphs.data.SITE_LIST_01
     max_next_requests = 1
@@ -392,9 +392,9 @@ class BFS_T03_W100(BackendTestParameters):
     ]
 
 
-#-----------------------------------------------------
-# Test Parameters
-#-----------------------------------------------------
+# -----------------------------------------------------
+#  Test Parameters
+# -----------------------------------------------------
 FIFO_TEST_PARAMETERS = [
     FIFO_T01_W1,
     FIFO_T01_W100,
@@ -437,9 +437,9 @@ BFS_TEST_PARAMETERS = [
 ]
 
 
-#-----------------------------------------------------
-# Sqlalchemy settings
-#-----------------------------------------------------
+# -----------------------------------------------------
+#  Sqlalchemy settings
+# -----------------------------------------------------
 def delete_test_db():
     os.remove(SQLALCHEMY_DB_NAME)
 
@@ -449,9 +449,9 @@ SQLALCHEMY_SQLITE_FILE_SETTINGS = Settings.from_params(SQLALCHEMYBACKEND_ENGINE=
 SQLALCHEMY_SQLITE_FILE_TEARDOWN_CALLBACKS = [delete_test_db]
 
 
-#-----------------------------------------------------
-# BACKEND TESTS
-#-----------------------------------------------------
+# -----------------------------------------------------
+#  BACKEND TESTS
+# -----------------------------------------------------
 class BackendTest(object):
     def __init__(self, name, backend, test_parameters, settings=None, teardown_callbacks=None):
         self.name = name
@@ -460,9 +460,9 @@ class BackendTest(object):
         self.test_parameters = test_parameters
         self.teardown_callbacks = teardown_callbacks
 
-#-----------------------------
-# memory
-#-----------------------------
+# -----------------------------
+#  memory
+# -----------------------------
 MEMORY_BACKEND_TESTS = [
     BackendTest(
         name='MEMORY_FIFO',
@@ -486,9 +486,9 @@ MEMORY_BACKEND_TESTS = [
     ),
 ]
 
-#-----------------------------
-# sqlalchemy sqlite/memory
-#-----------------------------
+# -----------------------------
+#  sqlalchemy sqlite/memory
+# -----------------------------
 SQLALCHEMY_MEMORY_BACKEND_TESTS = [
     BackendTest(
         name='SQLALCHEMY_SQLITE_MEM_FIFO',
@@ -516,9 +516,9 @@ SQLALCHEMY_MEMORY_BACKEND_TESTS = [
     ),
 ]
 
-#-----------------------------
-# sqlalchemy sqlite/file
-#-----------------------------
+# -----------------------------
+#  sqlalchemy sqlite/file
+# -----------------------------
 SQLALCHEMY_FILE_BACKEND_TESTS = [
     BackendTest(
         name='SQLALCHEMY_SQLITE_FILE_FIFO',
@@ -556,15 +556,10 @@ BACKEND_TESTS = \
     SQLALCHEMY_FILE_BACKEND_TESTS
 
 
-#-----------------------------------------------------
-# Test loading/creation
-#-----------------------------------------------------
+# -----------------------------------------------------
+#  Test loading/creation
+# -----------------------------------------------------
 def test_backend_sequence(backend_test, test_parameters):
-    #print
-    #print '-'*80
-    #print backend_test
-    #print test_parameters
-    #print '-'*80
 
     # Graph
     graph_manager = graphs.Manager()
@@ -587,7 +582,6 @@ def test_backend_sequence(backend_test, test_parameters):
 
     tester.run(add_all_pages=test_parameters.add_all_pages)
     sequence = [page.url for page in tester.sequence]
-    #print sequence
 
     assert len(sequence) == len(test_parameters.expected_sequence)  # to help preparing tests
     assert sequence == test_parameters.expected_sequence  # real test

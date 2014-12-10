@@ -65,7 +65,6 @@ class Request(FrontierObject):
         """
         return self._meta
 
-
     def __str__(self):
         return "<%s at 0x%0x %s>" % (type(self).__name__, id(self), self.url)
 
@@ -93,7 +92,6 @@ class Response(FrontierObject):
         self._headers = headers or {}
         self._body = body
         self._request = request
-
 
     @property
     def url(self):
@@ -130,7 +128,6 @@ class Response(FrontierObject):
         """
         return self._request
 
-
     @property
     def meta(self):
         """
@@ -140,7 +137,7 @@ class Response(FrontierObject):
         try:
             return self.request.meta
         except AttributeError:
-            raise AttributeError("Response.meta not available, this response " \
+            raise AttributeError("Response.meta not available, this response "
                                  "is not tied to any request")
 
     def __str__(self):

@@ -137,7 +137,7 @@ SITE_LIST_08 = CrawlSiteListData(
             ]),
         ],
         [
-                ('https://www.a.net', []),
+            ('https://www.a.net', []),
         ],
         [
             ('http://b.com', [

@@ -27,6 +27,7 @@ class Page(Base):
     __table_args__ = (
         UniqueConstraint('url'),
     )
+
     class State:
         NOT_CRAWLED = 'NOT CRAWLED'
         QUEUED = 'QUEUED'

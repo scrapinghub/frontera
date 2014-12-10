@@ -115,7 +115,6 @@ class FrontierManager(object):
         if self.auto_start:
             self.start()
 
-
     @classmethod
     def from_settings(cls, settings=None):
         """
@@ -353,14 +352,14 @@ class FrontierManager(object):
         :return: None.
         """
         self._check_startstop()
-        self.logger.manager.debug(self._msg('PAGE_CRAWLED url=%s status=%s links=%s'%
+        self.logger.manager.debug(self._msg('PAGE_CRAWLED url=%s status=%s links=%s' %
                                             (response.url, response.status_code, len(links) if links else 0)))
         assert isinstance(response, self.response_model), "Response object must subclass '%s', '%s' found" % \
                                                           (self.response_model.__name__, type(response).__name__)
         assert hasattr(response, 'request') and response.request, "Empty response request"
         assert isinstance(response.request, self.request_model), "Response request object must subclass '%s', " \
                                                                  "'%s' found" % \
-                                                                  (self.request_model.__name__,
+                                                                 (self.request_model.__name__,
                                                                   type(response.request).__name__)
         assert isinstance(response, self.response_model), "Response object must subclass '%s', '%s' found" % \
                                                           (self.response_model.__name__, type(response).__name__)

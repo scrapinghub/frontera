@@ -21,7 +21,6 @@ class EventLogManager(object):
     def frontier_stop(self):
         self._log(event='FRONTIER_STOP')
 
-
     def add_seeds(self, links):
         return  # TODO
         params = OrderedDict()

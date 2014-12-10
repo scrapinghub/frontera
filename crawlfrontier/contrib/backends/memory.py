@@ -47,7 +47,7 @@ class MemoryBaseBackend(Backend):
 
     def _get_or_create_request(self, request):
         fingerprint = request.meta['fingerprint']
-        if not fingerprint in self.requests:
+        if fingerprint not in self.requests:
             new_request = request.copy()
             new_request.meta['created_at'] = datetime.datetime.utcnow()
             new_request.meta['depth'] = 0

@@ -1,5 +1,6 @@
 import logging
 
+
 def format_str(s):
     if isinstance(s, unicode):
         return s.encode('ascii', 'ignore')

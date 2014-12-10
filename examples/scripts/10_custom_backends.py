@@ -31,6 +31,7 @@ class RandomSortBackend(heapq.BASE):
     def _compare_pages(self, first, second):
         return random.choice([-1, 0, 1])
 
+
 def test_backend(backend):
 
     # Graph
