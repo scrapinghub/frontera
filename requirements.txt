@@ -14,6 +14,4 @@ pytest==2.6.4
 pyparsing==1.5.7
 
 --allow-external pydot
---allow-unverified pydot
---allow-external pydot==1.0.28
-
+pydot==1.0.28
