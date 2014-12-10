@@ -1,0 +1,3 @@
+pyparsing==1.5.7
+--allow-external pydot
+pydot==1.0.28

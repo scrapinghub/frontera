@@ -37,12 +37,22 @@ setup(
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
     install_requires=[
-        'SQLAlchemy>=0.9.8',
         'six>=1.8.0',
         'w3lib>=1.10.0',
         'tldextract>=1.5.1',
-        'colorlog>=2.4.0',
-        'pyparsing==1.5.7',
-        'pydot==1.0.28',
     ],
+    extras_require={
+        'graphs':  [
+            "pyparsing==1.5.7",
+            "pydot==1.0.28",
+            "SQLAlchemy>=0.9.8",
+        ],
+        'logging': [
+            "colorlog>=2.4.0",
+        ],
+    },
+    tests_require=[
+        "pytest>=2.6.4",
+        "SQLAlchemy>=0.9.8",
+    ]
 )
