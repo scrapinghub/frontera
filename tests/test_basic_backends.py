@@ -3,7 +3,7 @@ import os
 from crawlfrontier import FrontierManager, Settings, FrontierTester, graphs
 
 
-class TestParameters(object):
+class BackendTestParameters(object):
     add_all_pages = False
     required_attributes = [
         'site_list',
@@ -20,7 +20,7 @@ class TestParameters(object):
 #-----------------------------------------------------
 # FIFO Tests Parameters
 #-----------------------------------------------------
-class FIFO_T01_W1(TestParameters):
+class FIFO_T01_W1(BackendTestParameters):
     site_list = graphs.data.SITE_LIST_01
     max_next_requests = 1
     expected_sequence = [
@@ -31,7 +31,7 @@ class FIFO_T01_W1(TestParameters):
     ]
 
 
-class FIFO_T01_W100(TestParameters):
+class FIFO_T01_W100(BackendTestParameters):
     site_list = graphs.data.SITE_LIST_01
     max_next_requests = 100
     expected_sequence = [
@@ -42,7 +42,7 @@ class FIFO_T01_W100(TestParameters):
     ]
 
 
-class FIFO_T01_W100_ALL(TestParameters):
+class FIFO_T01_W100_ALL(BackendTestParameters):
     site_list = graphs.data.SITE_LIST_01
     max_next_requests = 100
     add_all_pages = True
@@ -54,7 +54,7 @@ class FIFO_T01_W100_ALL(TestParameters):
     ]
 
 
-class FIFO_T02_W1(TestParameters):
+class FIFO_T02_W1(BackendTestParameters):
     site_list = graphs.data.SITE_LIST_02
     max_next_requests = 1
     expected_sequence = [
@@ -66,7 +66,7 @@ class FIFO_T02_W1(TestParameters):
     ]
 
 
-class FIFO_T02_W100(TestParameters):
+class FIFO_T02_W100(BackendTestParameters):
     site_list = graphs.data.SITE_LIST_02
     max_next_requests = 100
     expected_sequence = [
@@ -78,7 +78,7 @@ class FIFO_T02_W100(TestParameters):
     ]
 
 
-class FIFO_T02_W100_ALL(TestParameters):
+class FIFO_T02_W100_ALL(BackendTestParameters):
     site_list = graphs.data.SITE_LIST_02
     max_next_requests = 100
     add_all_pages = True
@@ -90,7 +90,7 @@ class FIFO_T02_W100_ALL(TestParameters):
     ]
 
 
-class FIFO_T03_W1(TestParameters):
+class FIFO_T03_W1(BackendTestParameters):
     site_list = graphs.data.SITE_LIST_03
     max_next_requests = 1
     expected_sequence = [
@@ -103,7 +103,7 @@ class FIFO_T03_W1(TestParameters):
     ]
 
 
-class FIFO_T03_W100(TestParameters):
+class FIFO_T03_W100(BackendTestParameters):
     site_list = graphs.data.SITE_LIST_03
     max_next_requests = 100
     expected_sequence = [
@@ -119,7 +119,7 @@ class FIFO_T03_W100(TestParameters):
 #-----------------------------------------------------
 # LIFO Tests Parameters
 #-----------------------------------------------------
-class LIFO_T01_W1(TestParameters):
+class LIFO_T01_W1(BackendTestParameters):
     site_list = graphs.data.SITE_LIST_01
     max_next_requests = 1
     expected_sequence = [
@@ -129,7 +129,7 @@ class LIFO_T01_W1(TestParameters):
     ]
 
 
-class LIFO_T01_W100(TestParameters):
+class LIFO_T01_W100(BackendTestParameters):
     site_list = graphs.data.SITE_LIST_01
     max_next_requests = 100
     expected_sequence = [
@@ -140,7 +140,7 @@ class LIFO_T01_W100(TestParameters):
     ]
 
 
-class LIFO_T01_W100_ALL(TestParameters):
+class LIFO_T01_W100_ALL(BackendTestParameters):
     site_list = graphs.data.SITE_LIST_01
     max_next_requests = 100
     add_all_pages = True
@@ -152,7 +152,7 @@ class LIFO_T01_W100_ALL(TestParameters):
     ]
 
 
-class LIFO_T02_W1(TestParameters):
+class LIFO_T02_W1(BackendTestParameters):
     site_list = graphs.data.SITE_LIST_02
     max_next_requests = 1
     expected_sequence = [
@@ -163,7 +163,7 @@ class LIFO_T02_W1(TestParameters):
     ]
 
 
-class LIFO_T02_W100(TestParameters):
+class LIFO_T02_W100(BackendTestParameters):
     site_list = graphs.data.SITE_LIST_02
     max_next_requests = 100
     expected_sequence = [
@@ -175,7 +175,7 @@ class LIFO_T02_W100(TestParameters):
     ]
 
 
-class LIFO_T02_W100_ALL(TestParameters):
+class LIFO_T02_W100_ALL(BackendTestParameters):
     site_list = graphs.data.SITE_LIST_02
     max_next_requests = 100
     add_all_pages = True
@@ -191,7 +191,7 @@ class LIFO_T02_W100_ALL(TestParameters):
     ]
 
 
-class LIFO_T03_W1(TestParameters):
+class LIFO_T03_W1(BackendTestParameters):
     site_list = graphs.data.SITE_LIST_03
     max_next_requests = 1
     expected_sequence = [
@@ -202,7 +202,7 @@ class LIFO_T03_W1(TestParameters):
     ]
 
 
-class LIFO_T03_W100(TestParameters):
+class LIFO_T03_W100(BackendTestParameters):
     site_list = graphs.data.SITE_LIST_03
     max_next_requests = 100
     expected_sequence = [
@@ -218,7 +218,7 @@ class LIFO_T03_W100(TestParameters):
 #-----------------------------------------------------
 # DFS Tests Parameters
 #-----------------------------------------------------
-class DFS_T01_W1(TestParameters):
+class DFS_T01_W1(BackendTestParameters):
     site_list = graphs.data.SITE_LIST_01
     max_next_requests = 1
     expected_sequence = [
@@ -228,7 +228,7 @@ class DFS_T01_W1(TestParameters):
     ]
 
 
-class DFS_T01_W100(TestParameters):
+class DFS_T01_W100(BackendTestParameters):
     site_list = graphs.data.SITE_LIST_01
     max_next_requests = 100
     expected_sequence = [
@@ -239,7 +239,7 @@ class DFS_T01_W100(TestParameters):
     ]
 
 
-class DFS_T02_W1(TestParameters):
+class DFS_T02_W1(BackendTestParameters):
     site_list = graphs.data.SITE_LIST_02
     max_next_requests = 1
     expected_sequence = [
@@ -260,7 +260,7 @@ class DFS_T02_W1(TestParameters):
     ]
 
 
-class DFS_T02_W100(TestParameters):
+class DFS_T02_W100(BackendTestParameters):
     site_list = graphs.data.SITE_LIST_02
     max_next_requests = 100
     expected_sequence = [
@@ -273,7 +273,7 @@ class DFS_T02_W100(TestParameters):
     ]
 
 
-class DFS_T03_W1(TestParameters):
+class DFS_T03_W1(BackendTestParameters):
     site_list = graphs.data.SITE_LIST_03
     max_next_requests = 1
     expected_sequence = [
@@ -287,7 +287,7 @@ class DFS_T03_W1(TestParameters):
     ]
 
 
-class DFS_T03_W100(TestParameters):
+class DFS_T03_W100(BackendTestParameters):
     site_list = graphs.data.SITE_LIST_03
     max_next_requests = 100
     expected_sequence = [
@@ -303,7 +303,7 @@ class DFS_T03_W100(TestParameters):
 #-----------------------------------------------------
 # BFS Tests Parameters
 #-----------------------------------------------------
-class BFS_T01_W1(TestParameters):
+class BFS_T01_W1(BackendTestParameters):
     site_list = graphs.data.SITE_LIST_01
     max_next_requests = 1
     expected_sequence = [
@@ -315,7 +315,7 @@ class BFS_T01_W1(TestParameters):
     ]
 
 
-class BFS_T01_W100(TestParameters):
+class BFS_T01_W100(BackendTestParameters):
     site_list = graphs.data.SITE_LIST_01
     max_next_requests = 100
     expected_sequence = [
@@ -327,7 +327,7 @@ class BFS_T01_W100(TestParameters):
     ]
 
 
-class BFS_T01_W100_ALL(TestParameters):
+class BFS_T01_W100_ALL(BackendTestParameters):
     site_list = graphs.data.SITE_LIST_01
     max_next_requests = 100
     add_all_pages = True
@@ -340,7 +340,7 @@ class BFS_T01_W100_ALL(TestParameters):
     ]
 
 
-class BFS_T02_W1(TestParameters):
+class BFS_T02_W1(BackendTestParameters):
     site_list = graphs.data.SITE_LIST_02
     max_next_requests = 1
     expected_sequence = [
@@ -353,7 +353,7 @@ class BFS_T02_W1(TestParameters):
     ]
 
 
-class BFS_T02_W100(TestParameters):
+class BFS_T02_W100(BackendTestParameters):
     site_list = graphs.data.SITE_LIST_02
     max_next_requests = 100
     expected_sequence = [
@@ -366,7 +366,7 @@ class BFS_T02_W100(TestParameters):
     ]
 
 
-class BFS_T03_W1(TestParameters):
+class BFS_T03_W1(BackendTestParameters):
     site_list = graphs.data.SITE_LIST_03
     max_next_requests = 1
     expected_sequence = [
@@ -379,7 +379,7 @@ class BFS_T03_W1(TestParameters):
     ]
 
 
-class BFS_T03_W100(TestParameters):
+class BFS_T03_W100(BackendTestParameters):
     site_list = graphs.data.SITE_LIST_03
     max_next_requests = 100
     expected_sequence = [
