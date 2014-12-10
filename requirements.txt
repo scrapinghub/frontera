@@ -6,6 +6,7 @@ six==1.8.0
 w3lib==1.10.0
 tldextract==1.5.1
 colorlog==2.4.0
+pytest==2.6.4
 
 #-------------------------------
 # graph diagrams
