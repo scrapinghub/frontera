@@ -21,6 +21,7 @@ proportional to a weighted average of the hub and authority scores.
 """
 import datetime
 import os
+import time
 
 from crawlfrontier import Backend
 from crawlfrontier.core.models import Request
@@ -64,58 +65,48 @@ class OpicHitsBackend(Backend):
         )
 
         self._test = test
+        self._manager = manager
 
     # FrontierManager interface
     @classmethod
     def from_manager(cls, manager):
 
         in_memory = manager.settings.get('BACKEND_OPIC_IN_MEMORY', False)
-        if not in_memory:
-            now = datetime.datetime.utcnow()
-            workdir = 'crawl-db-D{0}.{1:02d}.{2:02d}-T{3:02d}.{4:02d}.{5:02d}'.format(
-                now.year,
-                now.month,
-                now.day,
-                now.hour,
-                now.minute,
-                now.second
+        if not in_memory:                    
+            now = datetime.datetime.utcnow()            
+            workdir = manager.settings.get(
+                'BACKEND_OPIC_WORKDIR',
+                'crawl-opic-D{0}.{1:02d}.{2:02d}-T{3:02d}.{4:02d}.{5:02d}'.format(
+                    now.year,
+                    now.month,
+                    now.day,
+                    now.hour,
+                    now.minute,
+                    now.second
+                )
             )
             if not os.path.isdir(workdir):
                 os.mkdir(workdir)
 
             db_graph = graphdb.SQLite(
-                os.path.join(
-                    workdir,
-                    manager.settings.get(
-                        'BACKEND_OPIC_GRAPH_DB', 'graph.sqlite')
-                )
+                os.path.join(workdir, 'graph.sqlite')
             )
             db_pages = pagedb.SQLite(
-                os.path.join(
-                    workdir,
-                    manager.settings.get(
-                        'BACKEND_OPIC_SCORES_DB', 'pages.sqlite')
-                )
+                os.path.join(workdir, 'pages.sqlite')
             )
             db_scores = scoredb.SQLite(
-                os.path.join(
-                    workdir,
-                    manager.settings.get(
-                        'BACKEND_OPIC_PAGES_DB', 'scores.sqlite')
-                )
+                os.path.join(workdir, 'scores.sqlite')
             )
             db_hits = hitsdb.SQLite(
-                os.path.join(
-                    workdir,
-                    manager.settings.get(
-                        'BACKEND_OPIC_HITS_DB', 'hits.sqlite')
-                )
+                os.path.join(workdir, 'hits.sqlite')
             )
+            manager.logger.backend.debug('OPIC backend workdir: {0}'.format(workdir))
         else:
             db_graph = None
             db_pages = None
             db_scores = None
             db_hits = None
+            manager.logger.backend.debug('OPIC backend workdir: in-memory')
 
         return cls(manager, db_graph, db_scores, db_pages, db_hits,
                    test=manager.settings.get('BACKEND_TEST', False))
@@ -155,6 +146,8 @@ class OpicHitsBackend(Backend):
     # FrontierManager interface
     def add_seeds(self, seeds):
         """Start crawling from this seeds"""
+        tic = time.clock()
+
         self._graph.start_batch()
         self._pages.start_batch()
 
@@ -164,9 +157,14 @@ class OpicHitsBackend(Backend):
         self._graph.end_batch()
         self._pages.end_batch()
 
+        toc = time.clock()
+        self._manager.logger.backend.debug('ADD_SEEDS time: {0:.2f}'.format(toc - tic))
+
     # FrontierManager interface
     def page_crawled(self, response, links):
         """Add page info to the graph and reset its score"""
+
+        tic = time.clock()
 
         page_fingerprint = response.meta['fingerprint']
         page_h, page_a = self._opic.get_scores(page_fingerprint)
@@ -181,6 +179,9 @@ class OpicHitsBackend(Backend):
 
         # mark page to update
         self._opic.mark_update(page_fingerprint)
+
+        toc = time.clock()
+        self._manager.logger.backend.debug('PAGE_CRAWLED time: {0:.2f}'.format(toc - tic))
 
     # FrontierManager interface
     def request_error(self, page, error):
@@ -205,6 +206,7 @@ class OpicHitsBackend(Backend):
     # FrontierManager interface
     def get_next_requests(self, max_n_requests):
         """Retrieve the next pages to be crawled"""
+        tic = time.clock()
 
         updated = self._opic.update()
 
@@ -226,6 +228,9 @@ class OpicHitsBackend(Backend):
         # do not re-crawl
         for page_id, page_data in best_scores:
             self._scores.set(page_id, 0.0)
+
+        toc = time.clock()
+        self._manager.logger.backend.debug('GET_NEXT_REQUESTS time: {0:.2f}'.format(toc - tic))
 
         return requests
 

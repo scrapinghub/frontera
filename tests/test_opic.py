@@ -157,6 +157,8 @@ def _test_hits_db(db):
     assert db.get('2').h_cash == 2.6
     assert db.get('2').a_cash == 2.7
 
+    assert db.get_count() == 5
+
 def test_hits_lite_db():
     db = hitsdb.SQLite()
     db.clear()

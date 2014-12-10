@@ -96,6 +96,13 @@ class HitsDBInterface(object):
         """
         pass
 
+    @abstractmethod
+    def get_count(self):
+        """
+        Get number of scores in database
+        """
+        pass
+
 class HitsScore(object):
     """Just a container for the following (modifiable) fields:
 
@@ -310,6 +317,13 @@ class SQLite(sqlite.Connection, HitsDBInterface):
                 ','.join(["'" + x + "'" for x in page_id_list])
             )
         )        
+
+    def get_count(self):
+        return self._cursor.execute(
+            """
+            SELECT Count(*) FROM page_score
+            """
+        ).fetchone()[0]
 
     def close(self):
         self._save_a_cash_increase()

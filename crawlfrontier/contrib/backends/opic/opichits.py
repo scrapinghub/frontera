@@ -17,7 +17,7 @@ class OpicHits(object):
         self._scores = db_scores or hitsdb.SQLite()
   
         # Number of scored web pages
-        self._n_pages = 0
+        self._n_pages = self._scores.get_count()
 
         # Total hub history, excluding virtual page
         # adding a small quantity is easier and faster than checking 0/0
