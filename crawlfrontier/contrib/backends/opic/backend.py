@@ -20,6 +20,7 @@ The basic idea of this backend is to crawl pages with a frequency
 proportional to a weighted average of the hub and authority scores.
 """
 import datetime
+import os
 
 from crawlfrontier import Backend
 from crawlfrontier.core.models import Request
@@ -71,7 +72,7 @@ class OpicHitsBackend(Backend):
         in_memory = manager.settings.get('BACKEND_OPIC_IN_MEMORY', False)
         if not in_memory:
             now = datetime.datetime.utcnow()
-            date_str = 'D{0}{1:02d}{2:02d}T{3:02d}{4:02d}{5:02d}'.format(
+            workdir = 'crawl-db-D{0}.{1:02d}.{2:02d}-T{3:02d}.{4:02d}.{5:02d}'.format(
                 now.year,
                 now.month,
                 now.day,
@@ -79,28 +80,35 @@ class OpicHitsBackend(Backend):
                 now.minute,
                 now.second
             )
+            if not os.path.isdir(workdir):
+                os.mkdir(workdir)
+
             db_graph = graphdb.SQLite(
-                manager.settings.get(
-                    'BACKEND_OPIC_GRAPH_DB', 
-                    'graph-{0}.sqlite'.format(date_str)
+                os.path.join(
+                    workdir,
+                    manager.settings.get(
+                        'BACKEND_OPIC_GRAPH_DB', 'graph.sqlite')
                 )
             )
             db_pages = pagedb.SQLite(
-                manager.settings.get(
-                    'BACKEND_OPIC_SCORES_DB', 
-                    'pages-{0}.sqlite'.format(date_str)
+                os.path.join(
+                    workdir,
+                    manager.settings.get(
+                        'BACKEND_OPIC_SCORES_DB', 'pages.sqlite')
                 )
             )
             db_scores = scoredb.SQLite(
-                manager.settings.get(
-                    'BACKEND_OPIC_PAGES_DB', 
-                    'scores-{0}.sqlite'.format(date_str)
+                os.path.join(
+                    workdir,
+                    manager.settings.get(
+                        'BACKEND_OPIC_PAGES_DB', 'scores.sqlite')
                 )
             )
             db_hits = hitsdb.SQLite(
-                manager.settings.get(
-                    'BACKEND_OPIC_HITS_DB', 
-                    'hits-{0}.sqlite'.format(date_str)
+                os.path.join(
+                    workdir,
+                    manager.settings.get(
+                        'BACKEND_OPIC_HITS_DB', 'hits.sqlite')
                 )
             )
         else:

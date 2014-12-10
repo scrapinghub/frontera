@@ -168,14 +168,14 @@ class SQLite(sqlite.Connection, HitsDBInterface):
     def _save_a_cash_increase(self):
         return self._cursor.execute(
             """
-            UPDATE FROM global_increase SET value=? WHERE name='a_cash'
+            UPDATE global_increase SET value=? WHERE name='a_cash'
             """,
             (self._a_cash_increase,)
         )
     def _save_h_cash_increase(self):
         return self._cursor.execute(
             """
-            UPDATE FROM global_increase SET value=? WHERE name='h_cash'
+            UPDATE global_increase SET value=? WHERE name='h_cash'
             """,
             (self._h_cash_increase,)
         )
@@ -291,20 +291,24 @@ class SQLite(sqlite.Connection, HitsDBInterface):
         self._cursor.execute(
             """
             UPDATE OR IGNORE page_score 
-            SET h_cash=?
-            WHERE page_id IN (?)
-            """,
-            (h_cash, ','.join(page_id_list))
+            SET h_cash=h_cash + {0}
+            WHERE page_id IN ({1})
+            """.format(
+                h_cash,
+                ','.join(["'" + x + "'" for x in page_id_list])
+            )
         )        
 
     def increase_a_cash(self, page_id_list, a_cash):
         self._cursor.execute(
             """
             UPDATE OR IGNORE page_score 
-            SET a_cash=?
-            WHERE page_id IN (?)
-            """,
-            (a_cash, ','.join(page_id_list))
+            SET a_cash=a_cash + {0}
+            WHERE page_id IN ({1})
+            """.format(
+                a_cash,
+                ','.join(["'" + x + "'" for x in page_id_list])
+            )
         )        
 
     def close(self):

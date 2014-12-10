@@ -102,7 +102,7 @@ class OpicHits(object):
         # Give authority to successors
         self._scores.increase_a_cash(succ, a_dist)
         # Give hub score to predecessors
-        self._scores.increase_h_cash(succ, h_dist)
+        self._scores.increase_h_cash(pred, h_dist)
 
         self._virtual_page.h_cash += h_dist
         self._virtual_page.a_cash += a_dist
