@@ -15,5 +15,5 @@ pyparsing==1.5.7
 
 --allow-external pydot
 --allow-unverified pydot
-pydot==1.0.28 
+--allow-external pydot==1.0.28
 
