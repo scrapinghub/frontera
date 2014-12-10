@@ -1,11 +1,25 @@
+from collections import defaultdict
+
 import crawlfrontier.contrib.backends.opic.graphdb as graphdb
 import crawlfrontier.contrib.backends.opic.hitsdb as hitsdb
 import crawlfrontier.contrib.backends.opic.pagedb as pagedb
 import crawlfrontier.contrib.backends.opic.scoredb as scoredb
 import crawlfrontier.contrib.backends.opic.pagechange as pagechange
 import crawlfrontier.contrib.backends.opic.hashdb as hashdb
+import crawlfrontier.contrib.backends.opic.freqdb as freqdb
 
 from crawlfrontier.contrib.backends.opic.opichits import OpicHits
+
+def freq_counter(iterable):
+    """Count how many times each element is repeated inside the iterable
+
+    Returns: a dictionary mapping each element to its count
+    """
+    freqs = defaultdict(int)
+    for i in iterable:
+        freqs[i] += 1
+    
+    return freqs
 
 def create_test_graph_1(g):
     g.clear()
@@ -128,6 +142,20 @@ def _test_hits_db(db):
     db.delete('a')
     assert db.get('a') == None
 
+    db.add('0', hitsdb.HitsScore(0, 0.1, 0, 0.2))
+    db.add('1', hitsdb.HitsScore(0, 1.1, 0, 1.2))
+    db.add('2', hitsdb.HitsScore(0, 2.1, 0, 2.2))
+
+    db.increase_h_cash(['0', '1', '2'], 0.5)
+    db.increase_a_cash(['0', '1', '2'], 0.5)
+
+    assert db.get('0').h_cash == 0.6
+    assert db.get('0').a_cash == 0.7
+    assert db.get('1').h_cash == 1.6
+    assert db.get('1').a_cash == 1.7
+    assert db.get('2').h_cash == 2.6
+    assert db.get('2').a_cash == 2.7
+
 def test_hits_lite_db():
     db = hitsdb.SQLite()
     db.clear()
@@ -213,7 +241,7 @@ def test_opic():
     h.clear()
 
     opic = OpicHits(db_graph=create_test_graph_2(g), db_scores=h)
-    opic.update(n_iter=10)
+    opic.update(n_iter=100)
 
     h_score, a_score = zip(
         *[opic.get_scores(page_id) 
@@ -248,3 +276,42 @@ def test_pagechange_sha1():
     db.close()
 
 
+def _test_freq(db):
+    
+    db.add('0', 1.0)
+    db.add('1', 1.0)
+    db.add('2', 4.0)
+    db.add('3', 8.0)
+    db.add('4', 8.0)
+    db.add('5', 1.0)
+    db.add('6', 100.0)
+
+    db.set('5', 8.5)
+    db.delete('6')
+
+    N = 1000
+    pages = []
+    for i in xrange(N):
+        pages += db.get_next_pages()
+    freq = freq_counter(pages)
+
+    
+    def check_eps(x, a, eps=1e-1):
+        return (a - eps <= x) and (x <= a + eps)
+
+    assert freq['0'] > 0
+    assert check_eps(freq['1'],       freq['0'], N*0.05)
+    assert check_eps(freq['2'], 4.0 * freq['0'], N*0.05)
+    assert check_eps(freq['3'], 8.0 * freq['0'], N*0.05)
+    assert check_eps(freq['4'], 8.0 * freq['0'], N*0.05)
+    assert check_eps(freq['5'], 8.5 * freq['0'], N*0.05)
+    assert check_eps(freq['6'], 0)
+
+def test_freq_lite_db():
+    db = freqdb.SQLite()
+    db.clear()
+
+    _test_freq(db)
+
+    db.clear()
+    db.close()
