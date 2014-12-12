@@ -6,6 +6,7 @@ from hashlib import sha1
 
 import hashdb
 
+
 class PageChangeInterface(object):
     __metaclass__ = ABCMeta
 

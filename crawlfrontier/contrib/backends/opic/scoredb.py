@@ -6,6 +6,7 @@ from abc import ABCMeta, abstractmethod
 
 import sqlite
 
+
 class ScoreDBInterface(object):
     __metaclass__ = ABCMeta
 
@@ -27,7 +28,7 @@ class ScoreDBInterface(object):
     @abstractmethod
     def set(self, page_id, page_score):
         """Change score"""
-        pass    
+        pass
 
     @abstractmethod
     def delete(self, page_id):
@@ -48,6 +49,7 @@ class ScoreDBInterface(object):
     @abstractmethod
     def close(self):
         pass
+
 
 class SQLite(sqlite.Connection, ScoreDBInterface):
     """A SQLite implementation for the ScoreDBInterface"""
@@ -76,7 +78,7 @@ class SQLite(sqlite.Connection, ScoreDBInterface):
     def add(self, page_id, page_score):
         self._cursor.execute(
             """
-            INSERT OR IGNORE INTO scores VALUES (?,?)            
+            INSERT OR IGNORE INTO scores VALUES (?,?)
             """,
             (page_id, page_score)
         )
@@ -88,7 +90,7 @@ class SQLite(sqlite.Connection, ScoreDBInterface):
             """,
             (page_id,)
         )
-        score = self._cursor.fetchone() 
+        score = self._cursor.fetchone()
         if score:
             score = score[0]
         else:
@@ -101,9 +103,9 @@ class SQLite(sqlite.Connection, ScoreDBInterface):
             """
             UPDATE OR IGNORE scores
             SET score=?
-            WHERE page_id=?                
+            WHERE page_id=?
             """,
-            (page_score, page_id)                 
+            (page_score, page_id)
         )
 
     def delete(self, page_id):
@@ -132,7 +134,7 @@ class SQLite(sqlite.Connection, ScoreDBInterface):
                     SELECT page_id, score FROM scores
                     """
                 )
-        )        
+        )
 
     def close(self, comit=True):
         if not self._closed:

@@ -6,6 +6,7 @@ from itertools import imap
 
 import sqlite
 
+
 class GraphInterface(object):
     """Interface definition for a Graph database"""
     __metaclass__ = ABCMeta
@@ -69,7 +70,7 @@ class GraphInterface(object):
     def iedges(self):
         """An iterator for all the edges"""
         pass
-    
+
     @abstractmethod
     def start_batch(self):
         """Do not commit changes to the graph until this batch ends"""
@@ -90,11 +91,12 @@ class GraphInterface(object):
         """Number of edges"""
         pass
 
+
 class SQLite(sqlite.Connection, GraphInterface):
     """SQLite implementation of GraphInterface"""
     def __init__(self, db=None):
         super(SQLite, self).__init__(db)
-      
+
         self._cursor.executescript(
             """
             CREATE TABLE IF NOT EXISTS edges (
@@ -127,7 +129,7 @@ class SQLite(sqlite.Connection, GraphInterface):
     def add_node(self, node):
         self._cursor.execute(
             """
-            INSERT OR IGNORE INTO nodes VALUES (?)            
+            INSERT OR IGNORE INTO nodes VALUES (?)
             """,
             (node,)
         )
@@ -139,8 +141,8 @@ class SQLite(sqlite.Connection, GraphInterface):
             """,
             (node,)
         )
-        
-        return self._cursor.fetchone() != None
+
+        return self._cursor.fetchone() is not None
 
     def delete_node(self, node):
         self._cursor.execute(
@@ -156,7 +158,7 @@ class SQLite(sqlite.Connection, GraphInterface):
             (node, node)
         )
 
-    def add_edge(self, start, end):        
+    def add_edge(self, start, end):
         self.add_node(start)
         self.add_node(end)
 
@@ -182,7 +184,7 @@ class SQLite(sqlite.Connection, GraphInterface):
             """,
             (node,)
         )
-        return map(lambda x: x[0], # un-tuple
+        return map(lambda x: x[0],  # un-tuple
                    self._cursor.fetchall())
 
     def predecessors(self, node):
@@ -192,21 +194,19 @@ class SQLite(sqlite.Connection, GraphInterface):
             """,
             (node,)
         )
-        return map(lambda x: x[0], # un-tuple
+        return map(lambda x: x[0],  # un-tuple
                    self._cursor.fetchall())
 
     def neighbours(self, node):
-        return set(self.successors(node) + 
+        return set(self.successors(node) +
                    self.predecessors(node))
 
-    def inodes(self):        
-        return imap(lambda x: x[0], # un-tuple
+    def inodes(self):
+        return imap(lambda x: x[0],  # un-tuple
                     sqlite.CursorIterator(
                         self._connection
-                            .cursor()
-                            .execute('SELECT name FROM nodes')
-                    )
-        )
+                        .cursor()
+                        .execute('SELECT name FROM nodes')))
 
     def iedges(self):
         return sqlite.CursorIterator(

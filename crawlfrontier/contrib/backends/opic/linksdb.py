@@ -5,6 +5,7 @@ from abc import ABCMeta, abstractmethod
 
 import sqlite
 
+
 class LinksDBInterface(object):
     """Interface definition for every LinksDB database"""
     __metaclass__ = ABCMeta
@@ -17,7 +18,7 @@ class LinksDBInterface(object):
     @abstractmethod
     def close(self):
         """Close connection and commit changes """
-        pass    
+        pass
 
     @abstractmethod
     def add(self, start, end, h_weight, a_weight):
@@ -32,18 +33,19 @@ class LinksDBInterface(object):
     @abstractmethod
     def delete(self, start, end):
         """Delete association"""
-        pass 
+        pass
 
     @abstractmethod
-    def get(self, start,end):
+    def get(self, start, end):
         """ Return a tuple with the weights """
         pass
+
 
 class SQLite(sqlite.Connection, LinksDBInterface):
     """SQLite implementation of LinksDBInterface"""
     def __init__(self, db=None):
         super(SQLite, self).__init__(db)
-      
+
         self._cursor.executescript(
             """
             CREATE TABLE IF NOT EXISTS links (
@@ -64,7 +66,7 @@ class SQLite(sqlite.Connection, LinksDBInterface):
             """
         )
 
-    def add(self, start, end, h_weight, a_weight):        
+    def add(self, start, end, h_weight, a_weight):
         self._cursor.execute(
             """
             INSERT OR IGNORE INTO links VALUES (?, ?, ?, ?)
@@ -80,11 +82,11 @@ class SQLite(sqlite.Connection, LinksDBInterface):
             (start, end)
         )
 
-    def set(self, start, end, h_weight, a_weight):        
+    def set(self, start, end, h_weight, a_weight):
         self._cursor.execute(
             """
-            UPDATE OR IGNORE links 
-            SET h_weight=?, a_weight=? 
+            UPDATE OR IGNORE links
+            SET h_weight=?, a_weight=?
             WHERE start=? and end=?
             """,
             (h_weight, a_weight, start, end)
@@ -97,5 +99,3 @@ class SQLite(sqlite.Connection, LinksDBInterface):
             """,
             (start, end)
         ).fetchone()
-
-

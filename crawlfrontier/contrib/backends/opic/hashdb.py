@@ -4,6 +4,7 @@ Interface definition for web page hash database
 from abc import ABCMeta, abstractmethod
 import sqlite
 
+
 class HashDBInterface(object):
     __metaclass__ = ABCMeta
 
@@ -11,7 +12,7 @@ class HashDBInterface(object):
     def clear(self):
         """Delete all contents"""
         pass
-    
+
     @abstractmethod
     def add(self, page_id, page_hash):
         pass
@@ -52,7 +53,7 @@ class SQLite(sqlite.Connection, HashDBInterface):
     def add(self, page_id, page_hash):
         self._cursor.execute(
             """
-            INSERT OR IGNORE INTO hashes VALUES (?,?)            
+            INSERT OR IGNORE INTO hashes VALUES (?,?)
             """,
             (page_id, page_hash)
         )
@@ -62,9 +63,9 @@ class SQLite(sqlite.Connection, HashDBInterface):
             """
             UPDATE OR IGNORE hashes
             SET page_hash=?
-            WHERE page_id=?                
+            WHERE page_id=?
             """,
-            (page_hash, page_id)                 
+            (page_hash, page_id)
         )
 
     def get(self, page_id):

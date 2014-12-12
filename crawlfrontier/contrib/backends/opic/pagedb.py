@@ -4,6 +4,7 @@ Database for PageData
 from abc import ABCMeta, abstractmethod
 import sqlite
 
+
 class PageDBInterface(object):
     """Interface for the Page database"""
     __metaclass__ = ABCMeta
@@ -38,11 +39,13 @@ class PageDBInterface(object):
         """Close database"""
         pass
 
+
 class PageData(object):
     """A container for the necessary page data"""
     def __init__(self, url, domain):
         self.url = url
         self.domain = domain
+
 
 class SQLite(sqlite.Connection, PageDBInterface):
     """SQLite implementation of the page database interface"""
@@ -69,7 +72,7 @@ class SQLite(sqlite.Connection, PageDBInterface):
     def add(self, page_id, page):
         self._cursor.execute(
             """
-            INSERT OR IGNORE INTO pages VALUES (?,?,?)            
+            INSERT OR IGNORE INTO pages VALUES (?,?,?)
             """,
             (page_id, page.url, page.domain)
         )
@@ -92,9 +95,9 @@ class SQLite(sqlite.Connection, PageDBInterface):
             """
             UPDATE OR IGNORE pages
             SET url=?, domain=?
-            WHERE page_id=?                
+            WHERE page_id=?
             """,
-            (page_data.url, page_data.domain, page_id)                 
+            (page_data.url, page_data.domain, page_id)
         )
 
     def delete(self, page_id):
@@ -104,4 +107,3 @@ class SQLite(sqlite.Connection, PageDBInterface):
             """,
             (page_id,)
         )
-

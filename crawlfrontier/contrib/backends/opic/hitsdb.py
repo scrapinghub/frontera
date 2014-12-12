@@ -1,12 +1,13 @@
 """
-A HITS database associates a page identification (think page hash) to 
-a HitsScore instance, containing all the hub/authority information 
+A HITS database associates a page identification (think page hash) to
+a HitsScore instance, containing all the hub/authority information
 necessary for the OPIC-HITS algorithm
 """
 from abc import ABCMeta, abstractmethod
 from itertools import imap
 
 import sqlite
+
 
 class HitsDBInterface(object):
     """Interface definition for every HITS database"""
@@ -26,7 +27,7 @@ class HitsDBInterface(object):
     def add(self, page_id, page_score):
         """Associate page_score with page_id, where:
 
-        page_id    -- An string which identifies the page 
+        page_id    -- An string which identifies the page
         page_score -- An instance of HitsScore
         """
         pass
@@ -53,9 +54,9 @@ class HitsDBInterface(object):
 
     @abstractmethod
     def iteritems(self):
-        """Return an iterator over the tuples (page_id, page_score), 
+        """Return an iterator over the tuples (page_id, page_score),
         where:
-         
+
             -page_id    -- An string identifier for the page
             -page_score -- A HitsScore instance
         """
@@ -106,16 +107,17 @@ class HitsDBInterface(object):
     @abstractmethod
     def get_h_total(self):
         """
-        Total accumulated hub score        
+        Total accumulated hub score
         """
         pass
 
     @abstractmethod
     def get_a_total(self):
         """
-        Total accumulated authority score        
+        Total accumulated authority score
         """
         pass
+
 
 class HitsScore(object):
     """Just a container for the following (modifiable) fields:
@@ -130,12 +132,13 @@ class HitsScore(object):
         self.h_cash = h_cash
         self.a_history = a_history
         self.a_cash = a_cash
-    
+
+
 class SQLite(sqlite.Connection, HitsDBInterface):
     """SQLite based implementation for HitsDBInterface"""
 
     def __init__(self, db=None):
-        """Make a new connection to a HITS scores database or, if 
+        """Make a new connection to a HITS scores database or, if
         None provided make a new in-memory
         """
         super(SQLite, self).__init__(db)
@@ -162,15 +165,14 @@ class SQLite(sqlite.Connection, HitsDBInterface):
                 value REAL
             );
 
-            INSERT OR IGNORE INTO global_increase VALUES 
+            INSERT OR IGNORE INTO global_increase VALUES
                 ('a_cash', 0.0),
                 ('h_cash', 0.0);
 
             """
         )
         self._a_cash_increase = self._restore_a_cash_increase()
-        self._h_cash_increase = self._restore_h_cash_increase();
-
+        self._h_cash_increase = self._restore_h_cash_increase()
 
     def _restore_a_cash_increase(self):
         return self._cursor.execute(
@@ -193,6 +195,7 @@ class SQLite(sqlite.Connection, HitsDBInterface):
             """,
             (self._a_cash_increase,)
         )
+
     def _save_h_cash_increase(self):
         return self._cursor.execute(
             """
@@ -211,7 +214,7 @@ class SQLite(sqlite.Connection, HitsDBInterface):
     def add(self, page_id, page_score):
         self._cursor.execute(
             """
-            INSERT OR IGNORE INTO page_score VALUES (?,?,?,?,?)            
+            INSERT OR IGNORE INTO page_score VALUES (?,?,?,?,?)
             """,
             (page_id,
              page_score.h_history,
@@ -219,27 +222,29 @@ class SQLite(sqlite.Connection, HitsDBInterface):
              page_score.a_history,
              page_score.a_cash - self._a_cash_increase)
         )
-        
+
     def get(self, page_id):
         scores = self._cursor.execute(
             """
-            SELECT h_history, h_cash, a_history, a_cash FROM page_score WHERE page_id=?
+            SELECT h_history, h_cash, a_history, a_cash
+            FROM page_score
+            WHERE page_id=?
             """,
             (page_id,)
         ).fetchone()
 
         if scores:
-            return HitsScore(scores[0], scores[1] + self._h_cash_increase,
+            return HitsScore(
+                scores[0], scores[1] + self._h_cash_increase,
                 scores[2], scores[3] + self._a_cash_increase)
         else:
             return None
-        
 
     def set(self, page_id, page_score):
         self._cursor.execute(
             """
-            UPDATE OR IGNORE page_score 
-            SET h_history=?, h_cash=?, a_history=?, a_cash=? 
+            UPDATE OR IGNORE page_score
+            SET h_history=?, h_cash=?, a_history=?, a_cash=?
             WHERE page_id=?
             """,
             (page_score.h_history,
@@ -264,9 +269,8 @@ class SQLite(sqlite.Connection, HitsDBInterface):
             """,
             (page_id,)
         )
-        
-        return self._cursor.fetchone() != None        
 
+        return self._cursor.fetchone() is not None
 
     def iteritems(self):
         return imap(
@@ -286,7 +290,7 @@ class SQLite(sqlite.Connection, HitsDBInterface):
             (n,)
         )
         return ((pid, c + self._h_cash_increase)
-            for (pid, c) in self._cursor.fetchall())
+                for (pid, c) in self._cursor.fetchall())
 
     def get_highest_a_cash(self, n=1):
         self._cursor.execute(
@@ -296,7 +300,7 @@ class SQLite(sqlite.Connection, HitsDBInterface):
             (n,)
         )
         return ((pid, a + self._a_cash_increase)
-            for (pid, a) in self._cursor.fetchall())
+                for (pid, a) in self._cursor.fetchall())
 
     def increase_all_cash(self, h_cash, a_cash):
         # TODO: we should be saving the deltas to the database (ideally
@@ -305,32 +309,33 @@ class SQLite(sqlite.Connection, HitsDBInterface):
         self._a_cash_increase += a_cash
         self._h_cash_increase += h_cash
 
-        # eventually we may want to reset the db and write back the increases to
-        # avoid precision loss (with reals) or overflow/underflow if we use int
+        # eventually we may want to reset the db and write back the increases
+        # to avoid precision loss (with reals) or overflow/underflow if we use
+        # int
 
     def increase_h_cash(self, page_id_list, h_cash):
         self._cursor.execute(
             """
-            UPDATE OR IGNORE page_score 
+            UPDATE OR IGNORE page_score
             SET h_cash=h_cash + {0}
             WHERE page_id IN ({1})
             """.format(
                 h_cash,
                 ','.join(["'" + x + "'" for x in page_id_list])
             )
-        )        
+        )
 
     def increase_a_cash(self, page_id_list, a_cash):
         self._cursor.execute(
             """
-            UPDATE OR IGNORE page_score 
+            UPDATE OR IGNORE page_score
             SET a_cash=a_cash + {0}
             WHERE page_id IN ({1})
             """.format(
                 a_cash,
                 ','.join(["'" + x + "'" for x in page_id_list])
             )
-        )        
+        )
 
     def get_count(self):
         return self._cursor.execute(
@@ -352,7 +357,7 @@ class SQLite(sqlite.Connection, HitsDBInterface):
             SELECT Sum(a_history) FROM page_score
             """
         ).fetchone()[0]
-           
+
     def close(self):
         self._save_a_cash_increase()
         self._save_h_cash_increase()

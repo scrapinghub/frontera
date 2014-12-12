@@ -19,6 +19,7 @@ import crawlfrontier.contrib.backends.opic.linksdb as linksdb
 from crawlfrontier.contrib.backends.opic.opichits import OpicHits
 from crawlfrontier.contrib.backends.opic.backend import OpicHitsBackend
 
+
 def freq_counter(iterable):
     """Count how many times each element is repeated inside the iterable
 
@@ -27,8 +28,9 @@ def freq_counter(iterable):
     freqs = defaultdict(int)
     for i in iterable:
         freqs[i] += 1
-    
+
     return freqs
+
 
 def create_test_graph_1(g):
     g.clear()
@@ -44,6 +46,7 @@ def create_test_graph_1(g):
     g.add_edge('c', 'd')
 
     return g
+
 
 def create_test_graph_2(g):
     g.clear()
@@ -70,6 +73,7 @@ def create_test_graph_2(g):
 
     return g
 
+
 def _test_graph_db(g):
     g = create_test_graph_1(g)
 
@@ -82,8 +86,8 @@ def _test_graph_db(g):
 
     assert set(g.inodes()) == set(['a', 'b', 'c', 'd'])
     assert set(g.iedges()) == set([
-        ('a', 'b'), 
-        ('a', 'c'), 
+        ('a', 'b'),
+        ('a', 'c'),
         ('b', 'd'),
         ('c', 'd')
     ])
@@ -101,8 +105,8 @@ def _test_graph_db(g):
     g.delete_node('b')
     assert set(g.successors('a')) == set(['c'])
     assert set(g.predecessors('d')) == set(['c'])
-    
-    
+
+
 def test_graph_lite_db():
     g = graphdb.SQLite()
     g.clear()
@@ -110,6 +114,7 @@ def test_graph_lite_db():
     _test_graph_db(g)
 
     g.close()
+
 
 def _test_hits_db(db):
     db.add('a', hitsdb.HitsScore(1, 2, 3, 4))
@@ -141,7 +146,7 @@ def _test_hits_db(db):
     assert 'x' not in db
 
     db.set('b', hitsdb.HitsScore(-1, -2, -3, -4))
-    b_get = db.get('b')    
+    b_get = db.get('b')
 
     assert b_get.h_history == -1
     assert b_get.h_cash == -2
@@ -149,7 +154,7 @@ def _test_hits_db(db):
     assert b_get.a_cash == -4
 
     db.delete('a')
-    assert db.get('a') == None
+    assert db.get('a') is None
 
     db.add('0', hitsdb.HitsScore(0, 0.1, 0, 0.2))
     db.add('1', hitsdb.HitsScore(0, 1.1, 0, 1.2))
@@ -167,6 +172,7 @@ def _test_hits_db(db):
 
     assert db.get_count() == 5
 
+
 def test_hits_lite_db():
     db = hitsdb.SQLite()
     db.clear()
@@ -175,6 +181,7 @@ def test_hits_lite_db():
 
     db.clear()
     db.close()
+
 
 def _test_page_db(db):
     db.add('a', pagedb.PageData(url='foo', domain='bar'))
@@ -195,7 +202,8 @@ def _test_page_db(db):
     assert a_get.domain == 'swallow'
 
     db.delete('b')
-    assert db.get('b') == None
+    assert db.get('b') is None
+
 
 def test_page_lite_db():
     db = pagedb.SQLite()
@@ -205,6 +213,7 @@ def test_page_lite_db():
 
     db.clear()
     db.close()
+
 
 def _test_score_db(db):
     db.add('a', 1)
@@ -235,6 +244,7 @@ def _test_score_db(db):
     db.delete('c')
     assert db.get('c') == 0.0
 
+
 def test_score_lite_db():
     db = scoredb.SQLite()
     db.clear()
@@ -244,7 +254,8 @@ def test_score_lite_db():
     db.clear()
     db.close()
 
-def test_opic():    
+
+def test_opic():
     g = graphdb.SQLite()
     g.clear()
 
@@ -255,7 +266,7 @@ def test_opic():
     opic.update(n_iter=100)
 
     h_score, a_score = zip(
-        *[opic.get_scores(page_id) 
+        *[opic.get_scores(page_id)
           for page_id in ['0', '1', '2', '3', '4']]
     )
 
@@ -263,12 +274,13 @@ def test_opic():
     assert a_score[0] >= 0.25 and a_score[0] <= 0.3
 
     for s in h_score[1:]:
-        assert s >= 0.15 and s<= 0.2
+        assert s >= 0.15 and s <= 0.2
     for s in a_score[1:]:
-        assert s >= 0.15 and s<= 0.2
+        assert s >= 0.15 and s <= 0.2
 
     g.close()
     h.close()
+
 
 def _test_pagechange(db):
     assert db.update('a', '123')
@@ -276,6 +288,7 @@ def _test_pagechange(db):
     assert not db.update('b', 'aaa')
     assert not db.update('a', '123')
     assert db.update('a', '120')
+
 
 def test_pagechange_sha1():
     db = hashdb.SQLite()
@@ -288,7 +301,7 @@ def test_pagechange_sha1():
 
 
 def _test_freq(db):
-    
+
     db.add('0', 1.0)
     db.add('1', 1.0)
     db.add('2', 4.0)
@@ -306,7 +319,6 @@ def _test_freq(db):
         pages += db.get_next_pages()
     freq = freq_counter(pages)
 
-    
     def check_eps(x, a, eps=1e-1):
         return (a - eps <= x) and (x <= a + eps)
 
@@ -317,6 +329,7 @@ def _test_freq(db):
     assert check_eps(freq['4'], 8.0 * freq['0'], N*0.05)
     assert check_eps(freq['5'], 8.5 * freq['0'], N*0.05)
     assert check_eps(freq['6'], 0)
+
 
 def test_freq_lite_db():
     db = freqdb.SQLite()
@@ -340,13 +353,13 @@ def _test_links(db):
 
     db.set('b', 'd', 0, 0)
 
-
     assert db.get('a', 'b') == (1, 2)
     assert db.get('a', 'c') == (0, 0)
     assert db.get('a', 'd') == (3, 1)
     assert db.get('b', 'a') == (5, 5)
-    assert db.get('b', 'c') == None
+    assert db.get('b', 'c') is None
     assert db.get('b', 'd') == (0, 0)
+
 
 def test_links_lite_db():
     db = linksdb.SQLite()
@@ -368,21 +381,22 @@ def test_stop_resume():
 
     def simple_response(url):
         return Response(url, request=simple_request(url))
-        
+
     workdir = tempfile.mkdtemp()
-    settings = Settings('diffeo.frontier.settings', 
+    settings = Settings(None,
                         attributes={
-                            'BACKEND'               : 'crawlfrontier.contrib.backends.opic.backend.OpicHitsBackend',
-                            'BACKEND_OPIC_IN_MEMORY': False,  
-                            'BACKEND_OPIC_WORKDIR'  : workdir,
+                            'BACKEND':
+                            'crawlfrontier.contrib.backends.opic.backend.OpicHitsBackend',
+                            'BACKEND_OPIC_IN_MEMORY': False,
+                            'BACKEND_OPIC_WORKDIR': workdir,
                             'BACKEND_MIN_NEXT_PAGES': 1,
                             'LOGGING_EVENTS_ENABLED': False,
-                            'BACKEND_DOMAIN_DEPTH'  : None,
-                            'MAX_REQUESTS'          : 100,
-                            'BACKEND_MIN_NEXT_PAGES': 1, 
-                            'MAX_NEXT_REQUESTS'     : 1  
-                        }
-    )
+                            'BACKEND_DOMAIN_DEPTH': None,
+                            'MAX_REQUESTS': 100,
+                            'BACKEND_MIN_NEXT_PAGES': 1,
+                            'MAX_NEXT_REQUESTS': 1
+                        })
+
     frontier = FrontierManager.from_settings(settings)
 
     # First crawl
@@ -400,9 +414,9 @@ def test_stop_resume():
 
     crawled1 += backend1.get_next_requests(1)
     crawled1 += backend1.get_next_requests(1)
-    
+
     backend1.page_crawled(
-        simple_response('A'), 
+        simple_response('A'),
         [
             simple_response('1'),
             simple_response('2'),
@@ -411,17 +425,17 @@ def test_stop_resume():
     )
 
     backend1.page_crawled(
-        simple_response('B'), 
+        simple_response('B'),
         [
             simple_response('4'),
             simple_response('5'),
             simple_response('6')
         ]
     )
-    
+
     crawled1 += backend1.get_next_requests(1)
     crawled1 += backend1.get_next_requests(1)
-    
+
     backend1.frontier_stop()
 
     # Second crawl
@@ -435,7 +449,7 @@ def test_stop_resume():
         crawled2 += requests
         for request in requests:
             backend2.page_crawled(
-                simple_response(request.url), 
+                simple_response(request.url),
                 []
             )
 
@@ -447,7 +461,7 @@ def test_stop_resume():
     crawled1 = set([r.url for r in crawled1])
     crawled2 = set([r.url for r in crawled2])
 
-    assert (crawled1 | crawled2 == 
+    assert (crawled1 | crawled2 ==
             set(['A', 'B', '1', '2', '3', '4', '5', '6']))
 
     assert crawled1 & crawled2 == set([])

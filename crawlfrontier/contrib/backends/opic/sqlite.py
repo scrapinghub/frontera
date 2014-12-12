@@ -1,10 +1,11 @@
 """
-Some utilities for SQLite 
+Some utilities for SQLite
 """
 import sqlite3
 
+
 class CursorIterator(object):
-    """An iterator for a sqlite3.Cursor which closes 
+    """An iterator for a sqlite3.Cursor which closes
     when the iteration ends
     """
     def __init__(self, cursor):
@@ -20,9 +21,10 @@ class CursorIterator(object):
             self.cursor.close()
             raise
 
+
 class Connection(object):
     def __init__(self, db=None):
-        self._db = db or ':memory:'                
+        self._db = db or ':memory:'
         self._batch = False
 
         self.open()
@@ -32,7 +34,7 @@ class Connection(object):
         # auto-commit
         self._connection.isolation_level = None
 
-        self._cursor = self._connection.cursor()        
+        self._cursor = self._connection.cursor()
         self._cursor.executescript(
             """
             PRAGMA cache_size=2000000;
@@ -50,12 +52,10 @@ class Connection(object):
 
         self._closed = True
 
-
     def start_batch(self):
         if not self._batch:
             self._batch = True
             self._cursor.execute('BEGIN;')
-
 
     def end_batch(self):
         if self._batch:
