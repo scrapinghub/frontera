@@ -103,6 +103,20 @@ class HitsDBInterface(object):
         """
         pass
 
+    @abstractmethod
+    def get_h_total(self):
+        """
+        Total accumulated hub score        
+        """
+        pass
+
+    @abstractmethod
+    def get_a_total(self):
+        """
+        Total accumulated authority score        
+        """
+        pass
+
 class HitsScore(object):
     """Just a container for the following (modifiable) fields:
 
@@ -325,6 +339,20 @@ class SQLite(sqlite.Connection, HitsDBInterface):
             """
         ).fetchone()[0]
 
+    def get_h_total(self):
+        return self._cursor.execute(
+            """
+            SELECT Sum(h_history) FROM page_score
+            """
+        ).fetchone()[0]
+
+    def get_a_total(self):
+        return self._cursor.execute(
+            """
+            SELECT Sum(a_history) FROM page_score
+            """
+        ).fetchone()[0]
+           
     def close(self):
         self._save_a_cash_increase()
         self._save_h_cash_increase()

@@ -177,8 +177,11 @@ class OpicHitsBackend(Backend):
         self._graph.end_batch()
         self._pages.end_batch()
 
+        # do not request again
+        self._scores.set(page_fingerprint, 0.0)
+
         # mark page to update
-        self._opic.mark_update(page_fingerprint)
+        self._opic.mark_update(page_fingerprint)        
 
         toc = time.clock()
         self._manager.logger.backend.debug('PAGE_CRAWLED time: {0:.2f}'.format(toc - tic))
@@ -217,15 +220,18 @@ class OpicHitsBackend(Backend):
                 if score != 0: # otherwise it has already been crawled
                     self._scores.set(link_id, 0.7*h_score + 0.3*a_score)
         
-        # build requests for the best scores
-        best_scores = self._scores.get_best_scores(max_n_requests)
+        # build requests for the best scores, which must be strictly positive
+        best_scores = filter(
+            lambda x: x[1] > 0,
+            self._scores.get_best_scores(max_n_requests)
+        )
         requests = filter(
             lambda x: x!= None,
             [self._get_request_from_id(page_id) 
-             for page_id, page_data in  best_scores]
+             for page_id, page_score in  best_scores]
         )
 
-        # do not re-crawl
+        # do not request again
         for page_id, page_data in best_scores:
             self._scores.set(page_id, 0.0)
 

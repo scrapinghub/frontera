@@ -1,4 +1,11 @@
+import shutil
+import tempfile
+
 from collections import defaultdict
+
+from crawlfrontier import FrontierManager, Settings
+from crawlfrontier.core.models import Request, Response
+
 
 import crawlfrontier.contrib.backends.opic.graphdb as graphdb
 import crawlfrontier.contrib.backends.opic.hitsdb as hitsdb
@@ -10,6 +17,7 @@ import crawlfrontier.contrib.backends.opic.freqdb as freqdb
 import crawlfrontier.contrib.backends.opic.linksdb as linksdb
 
 from crawlfrontier.contrib.backends.opic.opichits import OpicHits
+from crawlfrontier.contrib.backends.opic.backend import OpicHitsBackend
 
 def freq_counter(iterable):
     """Count how many times each element is repeated inside the iterable
@@ -348,3 +356,98 @@ def test_links_lite_db():
 
     db.clear()
     db.close()
+
+
+def test_stop_resume():
+    def simple_request(url):
+        r = Request(url)
+        r.meta['fingerprint'] = url
+        r.meta['domain'] = {'name': ''}
+
+        return r
+
+    def simple_response(url):
+        return Response(url, request=simple_request(url))
+        
+    workdir = tempfile.mkdtemp()
+    settings = Settings('diffeo.frontier.settings', 
+                        attributes={
+                            'BACKEND'               : 'crawlfrontier.contrib.backends.opic.backend.OpicHitsBackend',
+                            'BACKEND_OPIC_IN_MEMORY': False,  
+                            'BACKEND_OPIC_WORKDIR'  : workdir,
+                            'BACKEND_MIN_NEXT_PAGES': 1,
+                            'LOGGING_EVENTS_ENABLED': False,
+                            'BACKEND_DOMAIN_DEPTH'  : None,
+                            'MAX_REQUESTS'          : 100,
+                            'BACKEND_MIN_NEXT_PAGES': 1, 
+                            'MAX_NEXT_REQUESTS'     : 1  
+                        }
+    )
+    frontier = FrontierManager.from_settings(settings)
+
+    # First crawl
+    # -----------------------------------
+    crawled1 = []
+    backend1 = OpicHitsBackend.from_manager(frontier)
+    backend1.frontier_start()
+
+    seeds = [
+        simple_request('A'),
+        simple_request('B'),
+    ]
+
+    backend1.add_seeds(seeds)
+
+    crawled1 += backend1.get_next_requests(1)
+    crawled1 += backend1.get_next_requests(1)
+    
+    backend1.page_crawled(
+        simple_response('A'), 
+        [
+            simple_response('1'),
+            simple_response('2'),
+            simple_response('3')
+        ]
+    )
+
+    backend1.page_crawled(
+        simple_response('B'), 
+        [
+            simple_response('4'),
+            simple_response('5'),
+            simple_response('6')
+        ]
+    )
+    
+    crawled1 += backend1.get_next_requests(1)
+    crawled1 += backend1.get_next_requests(1)
+    
+    backend1.frontier_stop()
+
+    # Second crawl
+    # -----------------------------------
+    backend2 = OpicHitsBackend.from_manager(frontier)
+    backend2.frontier_start()
+
+    crawled2 = []
+    for i in xrange(100):
+        requests = backend2.get_next_requests(1)
+        crawled2 += requests
+        for request in requests:
+            backend2.page_crawled(
+                simple_response(request.url), 
+                []
+            )
+
+    backend2.frontier_stop()
+
+    # Clean temp files
+    shutil.rmtree(workdir)
+
+    crawled1 = set([r.url for r in crawled1])
+    crawled2 = set([r.url for r in crawled2])
+
+    assert (crawled1 | crawled2 == 
+            set(['A', 'B', '1', '2', '3', '4', '5', '6']))
+
+    assert crawled1 & crawled2 == set([])

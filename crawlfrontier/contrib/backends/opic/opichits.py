@@ -21,11 +21,11 @@ class OpicHits(object):
 
         # Total hub history, excluding virtual page
         # adding a small quantity is easier and faster than checking 0/0
-        self._h_total = 1e-6 
+        self._h_total = max(1e-6, self._scores.get_h_total())
         
         # Total authority history, excluding virtual page
         # adding a small quantity is easier and faster than checking 0/0
-        self._a_total = 1e-6 
+        self._a_total = max(1e-6, self._scores.get_a_total())
 
         # A list of pages to update
         self._to_update = []

@@ -80,6 +80,16 @@ class GraphInterface(object):
         """Commit pending changes"""
         pass
 
+    @abstractmethod
+    def nnodes(self):
+        """Number of nodes"""
+        pass
+
+    @abstractmethod
+    def nedges(self):
+        """Number of edges"""
+        pass
+
 class SQLite(sqlite.Connection, GraphInterface):
     """SQLite implementation of GraphInterface"""
     def __init__(self, db=None):
@@ -204,3 +214,17 @@ class SQLite(sqlite.Connection, GraphInterface):
                 .cursor()
                 .execute('SELECT start,end FROM edges')
         )
+
+    def nnodes(self):
+        return self._cursor.execute(
+            """
+            SELECT Count(*) FROM nodes
+            """
+        ).fetchone[0]
+
+    def nedges(self):
+        return self._cursor.execute(
+            """
+            SELECT Count(*) FROM edges
+            """
+        ).fetchone[0]
