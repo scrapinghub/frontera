@@ -82,7 +82,7 @@ class SQLite(sqlite.Connection, FreqDBInterface):
             """
             INSERT OR IGNORE INTO page_frequency VALUES (?,?,?)
             """,
-            (page_id, page_frequency,  0.0)
+            (page_id, page_frequency, 0.0)
         )
 
     def set(self, page_id, page_frequency):
@@ -114,8 +114,9 @@ class SQLite(sqlite.Connection, FreqDBInterface):
         self._cursor.execute(
             """
             UPDATE OR IGNORE page_frequency SET score=score + 1.0/frequency
-            ORDER BY score ASC LIMIT ?
-            """,
-            (n,)
+            WHERE page_id IN ({0})
+            """.format(
+                ','.join(["'" + p[0] + "'" for p in pages]))
         )
+
         return [p[0] for p in pages]

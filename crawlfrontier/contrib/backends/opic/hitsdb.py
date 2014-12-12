@@ -165,9 +165,8 @@ class SQLite(sqlite.Connection, HitsDBInterface):
                 value REAL
             );
 
-            INSERT OR IGNORE INTO global_increase VALUES
-                ('a_cash', 0.0),
-                ('h_cash', 0.0);
+            INSERT OR IGNORE INTO global_increase VALUES ('a_cash', 0.0);
+            INSERT OR IGNORE INTO global_increase VALUES ('h_cash', 0.0);
 
             """
         )
