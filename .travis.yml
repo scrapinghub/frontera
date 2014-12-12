@@ -13,5 +13,5 @@ deploy:
   password:
     secure: bG1ycgBJrVfgBsHAwaWScL2V1x52/aZy2znE2kFzFfYq95HS51mu1GO2PKwpATJyMCs/xUIKGhiBtoo8LzNmNU2kPgarQFwzpLkx2ninOm+3uAwuIfGGWsonBW/h854n+cNwppJOlfEOxvMVerVVpdV4EFeJfEkVYascwOBbnqo=
   on:
-    branch: master
+    branch: development
     condition: $TOXENV == py27
