@@ -323,7 +323,7 @@ def _test_freq(db):
         return (a - eps <= x) and (x <= a + eps)
 
     assert freq['0'] > 0
-    assert check_eps(freq['1'],       freq['0'], N*0.05)
+    assert check_eps(freq['1'], freq['0'], N*0.05)
     assert check_eps(freq['2'], 4.0 * freq['0'], N*0.05)
     assert check_eps(freq['3'], 8.0 * freq['0'], N*0.05)
     assert check_eps(freq['4'], 8.0 * freq['0'], N*0.05)
