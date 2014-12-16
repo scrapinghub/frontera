@@ -13,19 +13,29 @@ class RequestConversor():
             cookies = scrapy_request.cookies
         else:
             cookies = dict(sum([d.items() for d in scrapy_request.cookies], []))
+        meta = {
+            'scrapy_callback': scrapy_request.callback,
+            'origin_is_frontier': True,
+        }
+        meta.update(scrapy_request.meta or {})
         return FrontierRequest(url=scrapy_request.url,
                                method=scrapy_request.method,
                                headers=scrapy_request.headers,
                                cookies=cookies,
-                               meta=scrapy_request.meta)
+                               meta=meta)
 
     @classmethod
     def frontier_to_scrapy(cls, frontier_request):
+        meta = {
+            'frontier_request': frontier_request
+        }
+        meta.update(frontier_request.meta or {})
         return ScrapyRequest(url=frontier_request.url,
+                             callback=meta.get('scrapy_callback', None),
                              method=frontier_request.method,
                              headers=frontier_request.headers,
                              cookies=frontier_request.cookies,
-                             meta={'frontier_request': frontier_request},
+                             meta=meta,
                              dont_filter=True)
 
 

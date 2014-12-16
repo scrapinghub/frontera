@@ -3,7 +3,7 @@ import copy
 
 class FrontierObject(object):
     def copy(self):
-        return copy.deepcopy(self)
+        return copy.copy(self)
 
 
 class Request(FrontierObject):

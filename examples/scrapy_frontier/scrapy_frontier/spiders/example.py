@@ -25,3 +25,5 @@ class MySpider(CrawlSpider):
 
     def parse_page(self, response):
         pass
+
+    parse_start_url = parse_page
