@@ -10,7 +10,7 @@ MIDDLEWARES = [
     'crawlfrontier.contrib.middlewares.fingerprint.UrlFingerprintMiddleware',
     'crawlfrontier.contrib.middlewares.fingerprint.DomainFingerprintMiddleware',
 ]
-BACKEND = 'crawlfrontier.contrib.backends.memory.heapq.FIFO'
+BACKEND = 'crawlfrontier.contrib.backends.memory.FIFO'
 TEST_MODE = False
 MAX_REQUESTS = 0
 MAX_NEXT_REQUESTS = 0
