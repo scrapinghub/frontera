@@ -62,7 +62,8 @@ class OpicHitsBackend(Backend):
 
         self._opic = OpicHits(
             db_graph=self._graph,
-            db_scores=self._hits
+            db_scores=self._hits,
+            time_window=1000.0
         )
 
         self._test = test
@@ -161,7 +162,7 @@ class OpicHitsBackend(Backend):
 
         toc = time.clock()
         self._manager.logger.backend.debug(
-            'ADD_SEEDS time: {0:.2f}'.format(toc - tic))
+            'PROFILE ADD_SEEDS time: {0:.2f}'.format(toc - tic))
 
     # FrontierManager interface
     def page_crawled(self, response, links):
@@ -176,7 +177,7 @@ class OpicHitsBackend(Backend):
         self._graph.start_batch()
         for link in links:
             link_fingerprint = self._add_new_link(
-                link, 0.7*page_h + 0.3*page_a)
+                link, 1.0)
             self._graph.add_edge(page_fingerprint, link_fingerprint)
         self._graph.end_batch()
         self._pages.end_batch()
@@ -189,7 +190,7 @@ class OpicHitsBackend(Backend):
 
         toc = time.clock()
         self._manager.logger.backend.debug(
-            'PAGE_CRAWLED time: {0:.2f}'.format(toc - tic))
+            'PROFILE PAGE_CRAWLED time: {0:.2f}'.format(toc - tic))
 
     # FrontierManager interface
     def request_error(self, page, error):
@@ -224,7 +225,7 @@ class OpicHitsBackend(Backend):
                 score = self._scores.get(link_id)
                 if score != 0:
                     # otherwise it has already been crawled
-                    self._scores.set(link_id, 0.7*h_score + 0.3*a_score)
+                    self._scores.set(link_id, 1.0)
 
         # build requests for the best scores, which must be strictly positive
         best_scores = filter(
@@ -243,7 +244,7 @@ class OpicHitsBackend(Backend):
 
         toc = time.clock()
         self._manager.logger.backend.debug(
-            'GET_NEXT_REQUESTS time: {0:.2f}'.format(toc - tic))
+            'PROFILE GET_NEXT_REQUESTS time: {0:.2f}'.format(toc - tic))
 
         return requests
 
@@ -261,11 +262,4 @@ class OpicHitsBackend(Backend):
             return self._a_scores
         else:
             return {self._pages.get(page_id).url: a_score
-                    for page_id, h_score, a_score in self._opic.iscores()}
-
-    def page_scores(self):
-        if self._pages._closed:
-            return self._page_scores
-        else:
-            return {self._pages.get(page_id).url: 0.7*h_score + 0.3*a_score
                     for page_id, h_score, a_score in self._opic.iscores()}

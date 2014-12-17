@@ -117,9 +117,9 @@ def test_graph_lite_db():
 
 
 def _test_hits_db(db):
-    db.add('a', hitsdb.HitsScore(1, 2, 3, 4))
-    db.add('b', hitsdb.HitsScore(5, 5, 5, 5))
-    db.add('c', hitsdb.HitsScore(9, 8, 7, 6))
+    db.add('a', hitsdb.HitsScore(1, 2, 0, 3, 4, 0))
+    db.add('b', hitsdb.HitsScore(5, 5, 0, 5, 5, 0))
+    db.add('c', hitsdb.HitsScore(9, 8, 0, 7, 6, 0))
 
     a_get = db.get('a')
     b_get = db.get('b')
@@ -145,7 +145,7 @@ def _test_hits_db(db):
     assert 'c' in db
     assert 'x' not in db
 
-    db.set('b', hitsdb.HitsScore(-1, -2, -3, -4))
+    db.set('b', hitsdb.HitsScore(-1, -2, 0, -3, -4, 0))
     b_get = db.get('b')
 
     assert b_get.h_history == -1
@@ -156,19 +156,48 @@ def _test_hits_db(db):
     db.delete('a')
     assert db.get('a') is None
 
-    db.add('0', hitsdb.HitsScore(0, 0.1, 0, 0.2))
-    db.add('1', hitsdb.HitsScore(0, 1.1, 0, 1.2))
-    db.add('2', hitsdb.HitsScore(0, 2.1, 0, 2.2))
+    db.add('0', hitsdb.HitsScore(0, 0.1, 0, 0, 0.2, 0))
+    db.add('1', hitsdb.HitsScore(0, 1.1, 0, 0, 1.2, 0))
+    db.add('2', hitsdb.HitsScore(0, 2.1, 0, 0, 2.2, 0))
 
     db.increase_h_cash(['0', '1', '2'], 0.5)
     db.increase_a_cash(['0', '1', '2'], 0.5)
 
-    assert db.get('0').h_cash == 0.6
-    assert db.get('0').a_cash == 0.7
-    assert db.get('1').h_cash == 1.6
-    assert db.get('1').a_cash == 1.7
-    assert db.get('2').h_cash == 2.6
-    assert db.get('2').a_cash == 2.7
+    assert abs(db.get('0').h_cash - 0.6) < 1e-6
+    assert abs(db.get('0').a_cash - 0.7) < 1e-6
+    assert abs(db.get('1').h_cash - 1.6) < 1e-6
+    assert abs(db.get('1').a_cash - 1.7) < 1e-6
+    assert abs(db.get('2').h_cash - 2.6) < 1e-6
+    assert abs(db.get('2').a_cash - 2.7) < 1e-6
+
+    db.increase_all_cash(1.0, 2.0)
+
+    assert abs(db.get('0').h_cash - 1.6) < 1e-6
+    assert abs(db.get('0').a_cash - 2.7) < 1e-6
+    assert abs(db.get('1').h_cash - 2.6) < 1e-6
+    assert abs(db.get('1').a_cash - 3.7) < 1e-6
+    assert abs(db.get('2').h_cash - 3.6) < 1e-6
+    assert abs(db.get('2').a_cash - 4.7) < 1e-6
+
+    db.set('0', hitsdb.HitsScore(1, 2, 1, 3, 1, 4))
+
+    zero_get = db.get('0')
+    assert zero_get.h_history == 1.0
+    assert zero_get.h_cash == 2.0
+    assert zero_get.h_last == 1.0
+    assert zero_get.a_history == 3.0
+    assert zero_get.a_cash == 1.0
+    assert zero_get.a_last == 4.0
+
+    db.increase_h_cash(['0', '1', '2'], 0.1)
+    db.increase_a_cash(['0', '1', '2'], 0.1)
+
+    assert abs(db.get('0').h_cash - 2.1) < 1e-6
+    assert abs(db.get('0').a_cash - 1.1) < 1e-6
+    assert abs(db.get('1').h_cash - 2.7) < 1e-6
+    assert abs(db.get('1').a_cash - 3.8) < 1e-6
+    assert abs(db.get('2').h_cash - 3.7) < 1e-6
+    assert abs(db.get('2').a_cash - 4.8) < 1e-6
 
     assert db.get_count() == 5
 

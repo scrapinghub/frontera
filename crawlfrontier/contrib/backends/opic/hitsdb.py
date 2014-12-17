@@ -124,14 +124,30 @@ class HitsScore(object):
 
        -h_history -- Accumulated hub cash
        -h_cash    -- Non-spent hub cash
+       -h_last    -- Total hub cash the last time it was updated
        -a_history -- Accumulated authority cash
        -a_cash    -- Non-spent authority cash
+       -a_last    -- Total authority cash the last time it was updated
     """
-    def __init__(self, h_history, h_cash, a_history, a_cash):
+    def __init__(self, h_history, h_cash, h_last, a_history, a_cash, a_last):
         self.h_history = h_history
         self.h_cash = h_cash
+        self.h_last = h_last
         self.a_history = a_history
         self.a_cash = a_cash
+        self.a_last = a_last
+
+    def __repr__(self):
+        return (
+            "<" +
+            "h_history={0:.2e}, ".format(self.h_history) +
+            "h_cash={0:.2e}, ".format(self.h_cash) +
+            "h_last={0:.2e}, ".format(self.h_last) +
+            "a_history={0:.2e}, ".format(self.a_history) +
+            "a_cash={0:.2e}, ".format(self.a_cash) +
+            "a_last={0:.2e}".format(self.a_last) +
+            ">"
+        )
 
 
 class SQLite(sqlite.Connection, HitsDBInterface):
@@ -149,8 +165,10 @@ class SQLite(sqlite.Connection, HitsDBInterface):
                 page_id   TEXT UNIQUE,
                 h_history REAL,
                 h_cash    REAL,
+                h_last    REAL,
                 a_history REAL,
-                a_cash    REAL
+                a_cash    REAL,
+                a_last    REAL
             );
 
             CREATE INDEX IF NOT EXISTS
@@ -213,19 +231,21 @@ class SQLite(sqlite.Connection, HitsDBInterface):
     def add(self, page_id, page_score):
         self._cursor.execute(
             """
-            INSERT OR IGNORE INTO page_score VALUES (?,?,?,?,?)
+            INSERT OR IGNORE INTO page_score VALUES (?,?,?,?,?,?,?)
             """,
             (page_id,
              page_score.h_history,
              page_score.h_cash - self._h_cash_increase,
+             page_score.h_last,
              page_score.a_history,
-             page_score.a_cash - self._a_cash_increase)
+             page_score.a_cash - self._a_cash_increase,
+             page_score.a_last)
         )
 
     def get(self, page_id):
         scores = self._cursor.execute(
             """
-            SELECT h_history, h_cash, a_history, a_cash
+            SELECT h_history, h_cash, h_last, a_history, a_cash, a_last
             FROM page_score
             WHERE page_id=?
             """,
@@ -234,8 +254,8 @@ class SQLite(sqlite.Connection, HitsDBInterface):
 
         if scores:
             return HitsScore(
-                scores[0], scores[1] + self._h_cash_increase,
-                scores[2], scores[3] + self._a_cash_increase)
+                scores[0], scores[1] + self._h_cash_increase, scores[2],
+                scores[3], scores[4] + self._a_cash_increase, scores[5])
         else:
             return None
 
@@ -243,13 +263,15 @@ class SQLite(sqlite.Connection, HitsDBInterface):
         self._cursor.execute(
             """
             UPDATE OR IGNORE page_score
-            SET h_history=?, h_cash=?, a_history=?, a_cash=?
+            SET h_history=?, h_cash=?, h_last=?, a_history=?, a_cash=?, a_last=?
             WHERE page_id=?
             """,
             (page_score.h_history,
              page_score.h_cash - self._h_cash_increase,
+             page_score.h_last,
              page_score.a_history,
              page_score.a_cash - self._a_cash_increase,
+             page_score.a_last,
              page_id)
         )
 
@@ -273,7 +295,9 @@ class SQLite(sqlite.Connection, HitsDBInterface):
 
     def iteritems(self):
         return imap(
-            lambda x: (x[0], HitsScore(*x[1:])),
+            lambda x: (x[0], HitsScore(
+                x[1], x[2] + self._h_cash_increase, x[3],
+                x[4], x[5] + self._h_cash_increase, x[6])),
             self._cursor.execute(
                 """
                 SELECT * FROM page_score
@@ -348,14 +372,14 @@ class SQLite(sqlite.Connection, HitsDBInterface):
             """
             SELECT Sum(h_history) FROM page_score
             """
-        ).fetchone()[0]
+        ).fetchone()[0] or 0.0
 
     def get_a_total(self):
         return self._cursor.execute(
             """
             SELECT Sum(a_history) FROM page_score
             """
-        ).fetchone()[0]
+        ).fetchone()[0] or 0.0
 
     def close(self):
         self._save_a_cash_increase()

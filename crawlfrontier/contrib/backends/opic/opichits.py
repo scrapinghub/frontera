@@ -6,7 +6,7 @@ import graphdb
 
 
 class OpicHits(object):
-    def __init__(self, db_graph=None, db_scores=None):
+    def __init__(self, db_graph=None, db_scores=None, time_window=None):
         """Make a new instance, using db_graph as the graph database and
         db_scores as the HITS scores database. If None provided will create
         SQLite in-memory instances
@@ -20,27 +20,30 @@ class OpicHits(object):
         # Number of scored web pages
         self._n_pages = self._scores.get_count()
 
-        # Total hub history, excluding virtual page
-        # adding a small quantity is easier and faster than checking 0/0
-        self._h_total = max(1e-6, self._scores.get_h_total())
+        # Total hub history
+        self._h_total = self._scores.get_h_total()
 
-        # Total authority history, excluding virtual page
-        # adding a small quantity is easier and faster than checking 0/0
-        self._a_total = max(1e-6, self._scores.get_a_total())
+        # Total authority history
+        self._a_total = self._scores.get_a_total()
 
         # A list of pages to update
         self._to_update = []
+
+        self._closed = False
+
+        self._time_window = time_window
+        self._time = 0.0
 
         # A virtual page connected from and to every
         # other web page
         self._virtual_page = hitsdb.HitsScore(
             h_history=0.0,
             h_cash=1.0,
+            h_last=0.0,
             a_history=0.0,
-            a_cash=1.0
+            a_cash=1.0,
+            a_last=0.0
         )
-
-        self._closed = False
 
         # Initialize scores
         for page_id in self._graph.inodes():
@@ -56,24 +59,24 @@ class OpicHits(object):
             self._n_pages += 1
 
             new_score = hitsdb.HitsScore(
-                h_history=self._h_total/self._n_pages,
-                h_cash=0.0,
-                a_history=self._a_total/self._n_pages,
-                a_cash=0.0
+                h_history=0.0,
+                h_cash=1.0,
+                h_last=self._time,
+                a_history=0.0,
+                a_cash=1.0,
+                a_last=self._time
             )
 
             self._scores.add(page_id, new_score)
-
-            self._h_total += new_score.h_history
-            self._a_total += new_score.a_history
         else:
             new_score = None
 
         return new_score
 
     def _get_page_score(self, page_id):
-        """Return HITS score information. If page has not been
-        associated yet it will create a new association
+        """Return HITS score information.
+
+        If page has not been  associated yet it will create a new association
         """
 
         score = self.add_page(page_id)
@@ -82,92 +85,155 @@ class OpicHits(object):
 
         return score
 
-    def update_page(self, page_id):
+    def _history_interpolator(self, delta, history, cash):
+        """Estimates cash added inside self._time_window"""
+        f = delta/self._time_window
+        if f < 1.0:
+            new_history = history*(1.0 - f) + cash
+        else:
+            new_history = cash/f
+
+        return new_history
+
+    def _updated_page_h(self, page_score):
+        """Return a new HitsScore instance, where cash has been moved to
+        history
+        """
+
+        if not self._time_window:
+            h_history_new = page_score.h_history + page_score.h_cash
+        else:
+            h_history_new = self._history_interpolator(
+                self._time - page_score.h_last,
+                page_score.h_history,
+                page_score.h_cash)
+
+        return hitsdb.HitsScore(
+            h_history=h_history_new,
+            h_cash=0,
+            h_last=self._time,
+            a_history=page_score.a_history,
+            a_cash=page_score.a_cash,
+            a_last=page_score.a_last
+        )
+
+    def _updated_page_a(self, page_score):
+        """Return a new HitsScore instance, where cash has been moved to
+        history
+        """
+
+        if not self._time_window:
+            a_history_new = page_score.a_history + page_score.a_cash
+        else:
+            a_history_new = self._history_interpolator(
+                self._time - page_score.a_last,
+                page_score.a_history,
+                page_score.a_cash)
+
+        return hitsdb.HitsScore(
+            h_history=page_score.h_history,
+            h_cash=page_score.h_cash,
+            h_last=page_score.h_last,
+            a_history=a_history_new,
+            a_cash=0,
+            a_last=self._time
+        )
+
+    def _update_virtual_page(self):
+        """Repeat update_page, but on the virtual page"""
+
+        if self._n_pages > 0:
+            h_dist = self._virtual_page.a_cash/self._n_pages
+            a_dist = self._virtual_page.h_cash/self._n_pages
+
+            self._scores.increase_all_cash(h_dist, a_dist)
+
+            self._virtual_page = self._updated_page_h(
+                self._updated_page_a(
+                    self._virtual_page))
+
+    def _update_page_h(self, page_id):
         """Update HITS score for the given page"""
 
         score = self._get_page_score(page_id)
 
-        # Add cash to total cash count
-        self._h_total += score.h_cash
-        self._a_total += score.a_cash
-
-        # Distribute cash to neighbours and VP
         succ = self._graph.successors(page_id)
-        pred = self._graph.predecessors(page_id)
+        if succ:
+            a_dist = score.h_cash/float(len(succ) + 1.0)
+            self._scores.increase_a_cash(succ, a_dist)
+            self._virtual_page.a_cash += a_dist
+
+            # Update own-score info
+            new_score = self._updated_page_h(score)
+            self._scores.set(page_id, new_score)
+
+            # Add cash to total cash count
+            self._h_total += new_score.h_history - score.h_history
+            self._time += score.h_cash
+
+    def _update_page_a(self, page_id):
+        """Update HITS score for the given page"""
+
+        score = self._get_page_score(page_id)
 
         # Authority cash gets distributed to hubs
-        h_dist = score.a_cash/(len(pred) + 1.0)
-        # Hub cash gets distributed to authorities
-        a_dist = score.h_cash/(len(succ) + 1.0)
+        pred = self._graph.predecessors(page_id)
+        if pred:
+            h_dist = score.a_cash/float(len(pred) + 1.0)
+            self._scores.increase_h_cash(pred, h_dist)
+            self._virtual_page.h_cash += h_dist
 
-        # Give authority to successors
-        self._scores.increase_a_cash(succ, a_dist)
-        # Give hub score to predecessors
-        self._scores.increase_h_cash(pred, h_dist)
+            # Update own-score info
+            new_score = self._updated_page_a(score)
+            self._scores.set(page_id, new_score)
 
-        self._virtual_page.h_cash += h_dist
-        self._virtual_page.a_cash += a_dist
-
-        # Update own-score info
-        score.h_history += score.h_cash
-        score.h_cash = 0
-        score.a_history += score.a_cash
-        score.a_cash = 0
-
-        self._scores.set(page_id, score)
-
-    def update_virtual_page(self):
-        """Repeat update_page, but on the virtual page"""
-
-        h_dist = self._virtual_page.a_cash/self._n_pages
-        a_dist = self._virtual_page.h_cash/self._n_pages
-
-        self._scores.increase_all_cash(h_dist, a_dist)
-
-        self._virtual_page.h_history += self._virtual_page.h_cash
-        self._virtual_page.a_history += self._virtual_page.a_cash
-
-        self._virtual_page.h_cash = 0.0
-        self._virtual_page.a_cash = 0.0
+            # Add cash to total cash count
+            self._a_total += new_score.a_history - score.a_history
+            self._time += score.a_cash
 
     def update(self, n_iter=1):
-        """Run a full iteration of the
-        OPIC-HITS algorithm"""
+        """Run a full iteration of the OPIC-HITS algorithm"""
 
         # update proportional to the rate of graph grow
-        n_updates = max(1, len(self._to_update))
-
+        n_updates = 20*max(1, len(self._to_update))
         for i in xrange(n_iter):
-            best_h, h_cash = zip(*self._scores.get_highest_h_cash(n_updates))
-            best_a, a_cash = zip(*self._scores.get_highest_a_cash(n_updates))
+            highest_h = self._scores.get_highest_h_cash(n_updates)
+            highest_a = self._scores.get_highest_a_cash(n_updates)
 
-            best = set(best_h + best_a + tuple(self._to_update))
+            mixed = sorted(
+                [(cash, page_id, True) for page_id, cash in highest_h] +
+                [(cash, page_id, False) for page_id, cash in highest_a],
+                reverse=True
+            )[:n_updates]
 
-            if self._virtual_page.h_cash > h_cash[-1] or\
-               self._virtual_page.a_cash > a_cash[-1]:
-                self.update_virtual_page()
+            for cash, page_id, is_hub in mixed:
+                if is_hub:
+                    self._update_page_h(page_id)
+                else:
+                    self._update_page_a(page_id)
 
-            for page_id in best:
-                self.update_page(page_id)
+            self._update_virtual_page()
 
         self._to_update = []
 
-        return best
+        return [page_id for cash, page_id, hub in mixed]
+
+    def _relative_score(self, score):
+        return (
+            score.h_history/self._h_total if self._h_total > 0 else 0.0,
+            score.a_history/self._a_total if self._a_total > 0 else 0.0
+        )
 
     def get_scores(self, page_id):
         """Return a tuple (hub score, authority score) for the given
         page_id"""
 
-        score = self._get_page_score(page_id)
-        return (score.h_history/self._h_total,
-                score.a_history/self._a_total)
+        return self._relative_score(self._get_page_score(page_id))
 
     def iscores(self):
         """Iterate over (page_id, hub score, authority score)"""
         for page_id, score in self._scores.iteritems():
-            yield (page_id,
-                   score.h_history/self._h_total,
-                   score.a_history/self._a_total)
+            yield (page_id,) + self._relative_score(score)
 
     def close(self):
         if not self._closed:
