@@ -23,6 +23,12 @@ DOWNLOADER_MIDDLEWARES = {}
 #--------------------------------------------------------------------------
 # Frontier Settings
 #--------------------------------------------------------------------------
+SPIDER_MIDDLEWARES.update(
+    {'crawlfrontier.contrib.scrapy.middlewares.schedulers.SchedulerSpiderMiddleware': 999},
+)
+DOWNLOADER_MIDDLEWARES.update(
+    {'crawlfrontier.contrib.scrapy.middlewares.schedulers.SchedulerDownloaderMiddleware': 999}
+)
 SCHEDULER = 'crawlfrontier.contrib.scrapy.schedulers.frontier.CrawlFrontierScheduler'
 FRONTIER_SETTINGS = 'scrapy_frontier.frontier.settings'
 

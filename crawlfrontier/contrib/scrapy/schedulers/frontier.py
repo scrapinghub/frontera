@@ -70,17 +70,14 @@ class StatsManager(object):
 class CrawlFrontierScheduler(Scheduler):
 
     def __init__(self, crawler):
-
         self.crawler = crawler
         self.stats_manager = StatsManager(crawler.stats)
         self._pending_requests = deque()
-
         self.redirect_enabled = crawler.settings.get('REDIRECT_ENABLED')
 
         frontier_settings = crawler.settings.get('FRONTIER_SETTINGS', None)
         if not frontier_settings:
             log.msg('FRONTIER_SETTINGS not found! Using default frontier settings...', log.WARNING)
-
         self.frontier = ScrapyFrontierManager(frontier_settings)
 
     @classmethod
@@ -104,7 +101,7 @@ class CrawlFrontierScheduler(Scheduler):
             self.stats_manager.add_returned_requests()
         return request
 
-    def process_spider_output(self, result, request, response, spider):
+    def process_spider_output(self, response, result, spider):
         links = []
         for element in result:
             if isinstance(element, Request):
@@ -115,8 +112,8 @@ class CrawlFrontierScheduler(Scheduler):
                                    scrapy_links=links)
         self.stats_manager.add_crawled_page(response.status, len(links))
 
-    def process_download_error(self, spider_failure, download_failure, request, spider):
-        error_code = self._get_failure_code(download_failure or spider_failure)
+    def process_exception(self, request, exception, spider):
+        error_code = self._get_exception_code(exception)
         self.frontier.request_error(scrapy_request=request, error=error_code)
         self.stats_manager.add_request_error(error_code)
 
@@ -150,9 +147,9 @@ class CrawlFrontierScheduler(Scheduler):
     def _get_pending_request(self):
         return self._pending_requests.popleft() if self._pending_requests else None
 
-    def _get_failure_code(self, failure):
+    def _get_exception_code(self, exception):
         try:
-            return failure.type.__name__
+            return exception.__class__.__name__
         except:
             return '?'
 

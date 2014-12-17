@@ -53,8 +53,6 @@ class RecorderScheduler(Scheduler):
     def open(self, spider):
         super(RecorderScheduler, self).open(spider)
 
-        log.msg('Starting recorder', log.INFO)
-
         self.stats_manager = StatsManager(spider.crawler.stats)
 
         settings = spider.crawler.settings
@@ -63,6 +61,8 @@ class RecorderScheduler(Scheduler):
         if not self.recorder_enabled:
             log.msg('Recorder disabled!', log.WARNING)
             return
+
+        log.msg('Starting recorder', log.INFO)
 
         recorder_storage = settings.get('RECORDER_STORAGE_ENGINE', None)
         if not recorder_storage:
@@ -79,38 +79,48 @@ class RecorderScheduler(Scheduler):
 
     def close(self, reason):
         super(RecorderScheduler, self).close(reason)
-        log.msg('Finishing recorder (%s)' % reason, log.INFO)
-        pages = self.graph.session.query(graphs.Page).filter_by(status=None).all()
-        for page in pages:
-            n_deleted_links = self.graph.session.query(graphs.Relation).filter_by(child_id=page.id).delete()
-            if n_deleted_links:
-                self.stats_manager.remove_links(n_deleted_links)
-        n_deleted_pages = self.graph.session.query(graphs.Page).filter_by(status=None).delete()
-        if n_deleted_pages:
-            self.stats_manager.remove_pages(n_deleted_pages)
-        self.graph.save()
+        if self.recorder_enabled:
+            log.msg('Finishing recorder (%s)' % reason, log.INFO)
+            pages = self.graph.session.query(graphs.Page).filter_by(status=None).all()
+            for page in pages:
+                n_deleted_links = self.graph.session.query(graphs.Relation).filter_by(child_id=page.id).delete()
+                if n_deleted_links:
+                    self.stats_manager.remove_links(n_deleted_links)
+            n_deleted_pages = self.graph.session.query(graphs.Page).filter_by(status=None).delete()
+            if n_deleted_pages:
+                self.stats_manager.remove_pages(n_deleted_pages)
+            self.graph.save()
 
     def enqueue_request(self, request):
-        enqueued = super(RecorderScheduler, self).enqueue_request(request)
-        if self.recorder_enabled and enqueued:
+        if not request.dont_filter and self.df.request_seen(request):
+            self.df.log(request, self.spider)
+            return
+        dqok = self._dqpush(request)
+        if dqok:
+            self.stats.inc_value('scheduler/enqueued/disk', spider=self.spider)
+        else:
+            self._mqpush(request)
+            self.stats.inc_value('scheduler/enqueued/memory', spider=self.spider)
+        self.stats.inc_value('scheduler/enqueued', spider=self.spider)
+        if self.recorder_enabled:
             is_seed = 'rule' not in request.meta and \
                       'origin_is_recorder' not in request.meta
             page = self.graph.add_page(url=request.url, is_seed=is_seed)
             self.stats_manager.add_page(is_seed)
             request.meta['is_seed'] = is_seed
             request.meta['page'] = page
-        return enqueued
 
     def next_request(self):
         request = super(RecorderScheduler, self).next_request()
-        if request:
+        if self.recorder_enabled and request:
             request.meta['origin_is_recorder'] = True
         return request
 
-    def process_spider_output(self, result, request, response, spider):
+    def process_spider_output(self, response, result, spider):
         if not self.recorder_enabled:
             for r in result:
                 yield r
+            return
 
         page = response.meta['page']
         page.status = response.status
@@ -123,14 +133,15 @@ class RecorderScheduler(Scheduler):
             self.stats_manager.add_link()
             yield request
 
-    def process_download_error(self, spider_failure, download_failure, request, spider):
-        error_code = self._get_failure_code(download_failure or spider_failure)
-        page = request.meta['page']
-        page.status = error_code
-        self.graph.save()
+    def process_exception(self, request, exception, spider):
+        if self.recorder_enabled:
+            error_code = self._get_exception_code(exception)
+            page = request.meta['page']
+            page.status = error_code
+            self.graph.save()
 
-    def _get_failure_code(self, failure):
+    def _get_exception_code(self, exception):
         try:
-            return failure.type.__name__
+            return exception.__class__.__name__
         except:
             return '?'
