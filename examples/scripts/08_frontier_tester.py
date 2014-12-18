@@ -21,10 +21,6 @@ if __name__ == '__main__':
     # Run test
     tester.run()
 
-    # Show frontier pages
-    for page in frontier.backend.pages.values():
-        print page.url, page.depth, page.state
-
     # Show crawling sequence
     for page in tester.sequence:
         print page.url

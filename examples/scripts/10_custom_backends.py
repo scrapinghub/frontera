@@ -4,7 +4,7 @@ Custom backend example
 import random
 
 from crawlfrontier import FrontierManager, Settings, FrontierTester, graphs
-from crawlfrontier.contrib.backends.memory import heapq
+from crawlfrontier.contrib.backends.memory import MemoryBaseBackend
 
 
 SITE_LIST = [
@@ -16,18 +16,21 @@ SITE_LIST = [
 ]
 
 
-class AlphabeticSortBackend(heapq.BASE):
+class AlphabeticSortBackend(MemoryBaseBackend):
     """
     Custom backend that sort pages alphabetically from url
     """
+    name = 'Alphabetic domain name sort backend'
     def _compare_pages(self, first, second):
         return cmp(first.url, second.url)
 
 
-class RandomSortBackend(heapq.BASE):
+class RandomSortBackend(MemoryBaseBackend):
     """
     Custom backend that sort pages randomly
     """
+    name = 'Random sort backend'
+
     def _compare_pages(self, first, second):
         return random.choice([-1, 0, 1])
 
@@ -45,6 +48,11 @@ def test_backend(backend):
     settings.LOGGING_BACKEND_ENABLED = True
     settings.LOGGING_DEBUGGING_ENABLED = False
     frontier = FrontierManager.from_settings(settings)
+
+    print '-'*80
+    print frontier.backend.name
+    print '-'*80
+
 
     # Tester
     tester = FrontierTester(frontier, graph)
