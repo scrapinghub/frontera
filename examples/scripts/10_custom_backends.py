@@ -21,6 +21,7 @@ class AlphabeticSortBackend(MemoryBaseBackend):
     Custom backend that sort pages alphabetically from url
     """
     name = 'Alphabetic domain name sort backend'
+
     def _compare_pages(self, first, second):
         return cmp(first.url, second.url)
 
@@ -52,7 +53,6 @@ def test_backend(backend):
     print '-'*80
     print frontier.backend.name
     print '-'*80
-
 
     # Tester
     tester = FrontierTester(frontier, graph)

@@ -30,8 +30,6 @@ try:
         },
         log_color_field="event")
 
-
-
     CONSOLE = ColorFormatter(
         format=LOG_COLOR_FORMAT,
         log_colors=COLORS.copy(),
