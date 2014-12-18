@@ -16,3 +16,8 @@ pyparsing==1.5.7
 --allow-unverified pydot
 pydot==1.0.28 
 
+
+#-------------------------------
+# mongodb backend
+#-------------------------------
+pymongo==2.7.2
