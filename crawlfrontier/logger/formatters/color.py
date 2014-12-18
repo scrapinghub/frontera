@@ -50,48 +50,5 @@ class ColorFormatter(ColoredFormatter):
         else:
             return None
 
-COLORED_EVENTS = ColorFormatter(
-    format="%(log_color)s%(asctime)s %(event)-16s %(message)s",
-    log_colors={
-        "FRONTIER_START": "bold_yellow",
-        "FRONTIER_STOP": "bold_yellow",
-        "ADD_SEED": "cyan",
-        "ADD_SEEDS": "cyan",
-        "PAGE_CRAWLED": "blue",
-        "PAGE_CRAWLED_ERROR": "red",
-        "GET_NEXT_PAGES": "purple",
-    },
-    log_color_field="event")
 
 
-CONSOLE_COLORS = {
-    "DEBUG": "white",
-    "INFO": "black",
-    "WARNING": "yellow",
-    "ERROR": "red",
-    "CRITICAL": "bold_purple",
-}
-
-COLORED_CONSOLE = ColorFormatter(
-    format="%(log_color)s[%(name)s] %(message)s",
-    log_colors=CONSOLE_COLORS.copy(),
-    log_color_field="levelname")
-
-COLORED_CONSOLE_MANAGER = ColorFormatter(
-    format="%(log_color)s[%(name)s] %(message)s",
-    log_colors=CONSOLE_COLORS.copy(),
-    log_color_field="levelname")
-
-COLORED_CONSOLE_BACKEND = ColorFormatter(
-    format="%(log_color)s[%(name)s] %(message)s",
-    log_colors=CONSOLE_COLORS.copy(),
-    log_color_field="levelname")
-
-COLORED_CONSOLE_DEBUGGING = ColorFormatter(
-    format="%(log_color)s[%(name)s] %(message)s",
-    log_colors=CONSOLE_COLORS.copy(),
-    log_color_field="levelname")
-
-COLORED_CONSOLE_MANAGER.log_colors['DEBUG'] = 'blue'
-COLORED_CONSOLE_BACKEND.log_colors['DEBUG'] = 'green'
-COLORED_CONSOLE_DEBUGGING.log_colors['DEBUG'] = 'cyan'
