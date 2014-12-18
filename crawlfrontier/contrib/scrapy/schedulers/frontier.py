@@ -108,13 +108,13 @@ class CrawlFrontierScheduler(Scheduler):
                 links.append(element)
             else:
                 yield element
-        self.frontier.page_crawled(scrapy_response=response,
-                                   scrapy_links=links)
+        self.frontier.page_crawled(response=response,
+                                   links=links)
         self.stats_manager.add_crawled_page(response.status, len(links))
 
     def process_exception(self, request, exception, spider):
         error_code = self._get_exception_code(exception)
-        self.frontier.request_error(scrapy_request=request, error=error_code)
+        self.frontier.request_error(request=request, error=error_code)
         self.stats_manager.add_request_error(error_code)
 
     def open(self, spider):
