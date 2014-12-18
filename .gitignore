@@ -52,3 +52,7 @@ docs/_build/
 
 # PyBuilder
 target/
+
+
+# IDE files
+.idea
