@@ -39,7 +39,7 @@ class MemoryBaseBackend(Backend):
         for link in links:
             request, created = self._get_or_create_request(link)
             if created:
-                request.meta['depth'] = response.request.meta['depth']+1
+                request.meta['depth'] = response.request.meta.get('depth',0)+1
                 self.heap.push(request)
 
     def request_error(self, request, error):
