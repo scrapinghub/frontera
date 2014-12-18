@@ -1,5 +1,5 @@
 from crawlfrontier.core.manager import FrontierManager
-from crawlfrontier.contrib.converters.scrapy import RequestConverter, ResponseConverter
+from crawlfrontier.contrib.scrapy.converters import RequestConverter, ResponseConverter
 
 
 class ScrapyFrontierManager(object):

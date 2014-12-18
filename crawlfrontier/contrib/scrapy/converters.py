@@ -1,11 +1,9 @@
-from __future__ import absolute_import
-
 from scrapy.http.request import Request as ScrapyRequest
 from scrapy.http.response import Response as ScrapyResponse
 
 from crawlfrontier.core.models import Request as FrontierRequest
 from crawlfrontier.core.models import Response as FrontierResponse
-from crawlfrontier.contrib.converters.base import BaseRequestConverter, BaseResponseConverter
+from crawlfrontier.utils.converters import BaseRequestConverter, BaseResponseConverter
 
 
 class RequestConverter(BaseRequestConverter):
