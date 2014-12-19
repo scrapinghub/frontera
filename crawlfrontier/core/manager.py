@@ -382,7 +382,7 @@ class FrontierManager(object):
         :return: None.
         """
         self._check_startstop()
-        self.logger.manager.debug(self._msg('PAGE_REQUEST_ERROR url=%s' % request.url))
+        self.logger.manager.error(self._msg('PAGE_REQUEST_ERROR url=%s error=%s' % (request.url, error)))
         processed_page = self._process_components(method_name='request_error',
                                                   obj=request,
                                                   return_classes=self.request_model,
