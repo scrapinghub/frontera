@@ -7,14 +7,10 @@ from crawlfrontier.utils.converters import BaseRequestConverter, BaseResponseCon
 
 
 class RequestConverter(BaseRequestConverter):
-    """
-    Converts between crawlfrontier and Requests request objects
-    """
+    """Converts between crawlfrontier and Requests request objects"""
     @classmethod
     def to_frontier(cls, request):
-        """
-        request: Requests > Frontier
-        """
+        """request: Requests > Frontier"""
         return FrontierRequest(url=request.url,
                                method=request.method,
                                headers=request.headers,
@@ -22,9 +18,7 @@ class RequestConverter(BaseRequestConverter):
 
     @classmethod
     def from_frontier(cls, request):
-        """
-        request: Frontier > Scrapy
-        """
+        """request: Frontier > Scrapy"""
         return RequestsRequest(url=request.url,
                                method=request.method,
                                headers=request.headers,
@@ -32,14 +26,10 @@ class RequestConverter(BaseRequestConverter):
 
 
 class ResponseConverter(BaseResponseConverter):
-    """
-    Converts between crawlfrontier and Scrapy response objects
-    """
+    """Converts between crawlfrontier and Scrapy response objects"""
     @classmethod
     def to_frontier(cls, response):
-        """
-        response: Scrapy > Frontier
-        """
+        """response: Scrapy > Frontier"""
         return FrontierResponse(url=response.url,
                                 status_code=response.status_code,
                                 headers=response.headers,
@@ -48,7 +38,5 @@ class ResponseConverter(BaseResponseConverter):
 
     @classmethod
     def from_frontier(cls, response):
-        """
-        response: Frontier > Scrapy
-        """
+        """response: Frontier > Scrapy"""
         raise NotImplementedError

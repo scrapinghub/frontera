@@ -7,14 +7,10 @@ from crawlfrontier.utils.converters import BaseRequestConverter, BaseResponseCon
 
 
 class RequestConverter(BaseRequestConverter):
-    """
-    Converts between crawlfrontier and Scrapy request objects
-    """
+    """Converts between crawlfrontier and Scrapy request objects"""
     @classmethod
     def to_frontier(cls, request):
-        """
-        request: Scrapy > Frontier
-        """
+        """request: Scrapy > Frontier"""
         if isinstance(request.cookies, dict):
             cookies = request.cookies
         else:
@@ -32,9 +28,7 @@ class RequestConverter(BaseRequestConverter):
 
     @classmethod
     def from_frontier(cls, request):
-        """
-        request: Frontier > Scrapy
-        """
+        """request: Frontier > Scrapy"""
         meta = {
             'frontier_request': request
         }
@@ -49,14 +43,10 @@ class RequestConverter(BaseRequestConverter):
 
 
 class ResponseConverter(BaseResponseConverter):
-    """
-    Converts between crawlfrontier and Scrapy response objects
-    """
+    """Converts between crawlfrontier and Scrapy response objects"""
     @classmethod
     def to_frontier(cls, response):
-        """
-        response: Scrapy > Frontier
-        """
+        """response: Scrapy > Frontier"""
         return FrontierResponse(url=response.url,
                                 status_code=response.status,
                                 headers=response.headers,
@@ -65,9 +55,7 @@ class ResponseConverter(BaseResponseConverter):
 
     @classmethod
     def from_frontier(cls, response):
-        """
-        response: Frontier > Scrapy
-        """
+        """response: Frontier > Scrapy"""
         return ScrapyResponse(url=response.url,
                               status=response.status,
                               headers=response.headers,
