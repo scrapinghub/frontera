@@ -7,7 +7,7 @@ from abc import ABCMeta, abstractmethod
 import sqlite
 
 
-class ScoreDBInterface(object):
+class RelevanceDBInterface(object):
     __metaclass__ = ABCMeta
 
     @abstractmethod
@@ -51,8 +51,8 @@ class ScoreDBInterface(object):
         pass
 
 
-class SQLite(sqlite.Connection, ScoreDBInterface):
-    """A SQLite implementation for the ScoreDBInterface"""
+class SQLite(sqlite.Connection, RelevanceDBInterface):
+    """A SQLite implementation for the RelevanceDBInterface"""
     def __init__(self, db=None):
         super(SQLite, self).__init__(db)
 

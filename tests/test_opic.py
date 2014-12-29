@@ -10,11 +10,12 @@ from crawlfrontier.core.models import Request, Response
 import crawlfrontier.contrib.backends.opic.graphdb as graphdb
 import crawlfrontier.contrib.backends.opic.hitsdb as hitsdb
 import crawlfrontier.contrib.backends.opic.pagedb as pagedb
-import crawlfrontier.contrib.backends.opic.scoredb as scoredb
 import crawlfrontier.contrib.backends.opic.pagechange as pagechange
 import crawlfrontier.contrib.backends.opic.hashdb as hashdb
 import crawlfrontier.contrib.backends.opic.freqdb as freqdb
 import crawlfrontier.contrib.backends.opic.linksdb as linksdb
+import crawlfrontier.contrib.backends.opic.updatesdb as updatesdb
+import crawlfrontier.contrib.backends.opic.freqest as freqest
 
 from crawlfrontier.contrib.backends.opic.opichits import OpicHits
 from crawlfrontier.contrib.backends.opic.backend import OpicHitsBackend
@@ -33,6 +34,13 @@ def freq_counter(iterable):
 
 
 def create_test_graph_1(g):
+    """A very simple graph
+
+    a ----> b ---> d
+     \            ^
+      \           |
+       ---> c-----+
+    """
     g.clear()
 
     g.add_node('a')
@@ -49,6 +57,10 @@ def create_test_graph_1(g):
 
 
 def create_test_graph_2(g):
+    """A simple graph
+
+    Node 0 is a hub
+    """
     g.clear()
 
     g.add_node('0')
@@ -75,6 +87,8 @@ def create_test_graph_2(g):
 
 
 def _test_graph_db(g):
+    """Tests that 'g' follows the graphdb.GraphInterface"""
+
     g = create_test_graph_1(g)
 
     assert g.has_node('a')
@@ -108,6 +122,7 @@ def _test_graph_db(g):
 
 
 def test_graph_lite_db():
+    """Tests graphdb.SQLite against graphdb.GraphInterface"""
     g = graphdb.SQLite()
     g.clear()
 
@@ -117,6 +132,7 @@ def test_graph_lite_db():
 
 
 def _test_hits_db(db):
+    """Tests a given database 'db' against hitsdb.HitsDBInterface"""
     db.add('a', hitsdb.HitsScore(1, 2, 0, 3, 4, 0))
     db.add('b', hitsdb.HitsScore(5, 5, 0, 5, 5, 0))
     db.add('c', hitsdb.HitsScore(9, 8, 0, 7, 6, 0))
@@ -203,6 +219,7 @@ def _test_hits_db(db):
 
 
 def test_hits_lite_db():
+    """Tests hitsdb.SQLite against hitsdb.HitsDBInterface"""
     db = hitsdb.SQLite()
     db.clear()
 
@@ -213,6 +230,8 @@ def test_hits_lite_db():
 
 
 def _test_page_db(db):
+    """Tests that a given database follows the pagedb.PageDBInterface"""
+
     db.add('a', pagedb.PageData(url='foo', domain='bar'))
     db.add('b', pagedb.PageData(url='spam', domain='eggs'))
 
@@ -235,6 +254,8 @@ def _test_page_db(db):
 
 
 def test_page_lite_db():
+    """Tests pagedb.SQLite against the pagedb.PageDBInterface"""
+
     db = pagedb.SQLite()
     db.clear()
 
@@ -244,47 +265,8 @@ def test_page_lite_db():
     db.close()
 
 
-def _test_score_db(db):
-    db.add('a', 1)
-    db.add('b', 2)
-    db.add('c', 3)
-    db.add('d', 4)
-    db.add('e', 3)
-    db.add('f', 2)
-    db.add('g', 1)
-
-    assert 1 == db.get('a')
-    assert 2 == db.get('b')
-    assert 3 == db.get('c')
-    assert 4 == db.get('d')
-    assert 3 == db.get('e')
-    assert 2 == db.get('f')
-    assert 1 == db.get('g')
-
-    db.set('c', 100)
-
-    assert 100 == db.get('c')
-
-    best = db.get_best_scores(2)
-
-    assert best[0] == ('c', 100)
-    assert best[1] == ('d', 4)
-
-    db.delete('c')
-    assert db.get('c') == 0.0
-
-
-def test_score_lite_db():
-    db = scoredb.SQLite()
-    db.clear()
-
-    _test_score_db(db)
-
-    db.clear()
-    db.close()
-
-
 def test_opic():
+    """Tests the OPIC algorithm against a simple graph"""
     g = graphdb.SQLite()
     g.clear()
 
@@ -312,14 +294,18 @@ def test_opic():
 
 
 def _test_pagechange(db):
-    assert db.update('a', '123')
-    assert db.update('b', 'aaa')
-    assert not db.update('b', 'aaa')
-    assert not db.update('a', '123')
-    assert db.update('a', '120')
+    """Tests that a given database follows the
+    pagechange.PageChangeInterface"""
+
+    assert db.update('a', '123') == pagechange.Status.NEW
+    assert db.update('b', 'aaa') == pagechange.Status.NEW
+    assert db.update('b', 'aaa') == pagechange.Status.EQUAL
+    assert db.update('a', '123') == pagechange.Status.EQUAL
+    assert db.update('a', '120') == pagechange.Status.UPDATED
 
 
 def test_pagechange_sha1():
+    """Tests pagechange.BodySHA1 and hashdb"""
     db = hashdb.SQLite()
     db.clear()
 
@@ -330,6 +316,12 @@ def test_pagechange_sha1():
 
 
 def _test_freq(db):
+    """Tests that the given database follows the freqdb.FreqDBInterface
+
+    It not only checks that the information is correcly stored, but also
+    that the repeated call of get_next_pages return pages with the
+    desired frequency distribution
+    """
 
     db.add('0', 1.0)
     db.add('1', 1.0)
@@ -361,6 +353,7 @@ def _test_freq(db):
 
 
 def test_freq_lite_db():
+    """Tests freqdb.SQLite against the freqdb.FreqDBInterface"""
     db = freqdb.SQLite()
     db.clear()
 
@@ -371,6 +364,7 @@ def test_freq_lite_db():
 
 
 def _test_links(db):
+    """Tests that the given database follows the linksdb.LinksDBInterface"""
     db.add('a', 'b', 1, 2)
     db.add('a', 'c', 0, 0)
     db.add('a', 'd', 3, 1)
@@ -391,6 +385,7 @@ def _test_links(db):
 
 
 def test_links_lite_db():
+    """Tests linksdb.SQLite agains linksdb.LinksDBInterface"""
     db = linksdb.SQLite()
     db.clear()
 
@@ -400,7 +395,88 @@ def test_links_lite_db():
     db.close()
 
 
+def _test_updates(db):
+    """Tests that the given database follows the
+    updatesdb.UpdatesDBInterface"""
+    db.add('a', 1.0, 5)
+    db.add('b', 0.0, 4)
+    db.add('c', 3.0, 1)
+    db.add('d', 2.5, 0)
+
+    assert db.get('a') == (1.0, 5)
+    assert db.get('c') == (3.0, 1)
+    assert db.get('d') == (2.5, 0)
+    assert db.get('b') == (0.0, 4)
+
+    db.delete('d')
+    assert db.get('d') is None
+
+    db.increment('a', 3)
+    db.increment('c', 2)
+
+    assert db.get('a') == (1.0, 8)
+    assert db.get('b') == (0.0, 4)
+    assert db.get('c') == (3.0, 3)
+
+
+def test_updates_lite_db():
+    """Tests updatesdb.SQLite agains updatesdb.UpdatesDBInterface"""
+    db = updatesdb.SQLite()
+    db.clear()
+
+    _test_updates(db)
+
+    db.clear()
+    db.close()
+
+
+class TestClock(object):
+    """A clock that can be controlled for testing purposes"""
+    def __init__(self, t0=0):
+        self.t = t0
+
+    def set(self, t):
+        self.t = t
+
+    def __call__(self):
+        return self.t
+
+
+def _test_freqest(fq, test_clock):
+    """Test frequency estimator"""
+    test_clock.set(0.0)
+    fq.add('a', 1.0)
+    fq.add('b', 1.0)
+
+    for i in xrange(1000):
+        test_clock.set(i)
+
+        # Refresh every 2 seconds
+        fq.refresh('a', (i % 2) == 0)
+        # Refresh every 4 seconds
+        fq.refresh('b', (i % 4) == 0)
+
+    assert abs(fq.frequency('a') - 0.5) < 1e-2
+    assert abs(fq.frequency('b') - 0.25) < 1e-2
+
+    fq.delete('a')
+    assert fq.frequency('a') == 0
+
+
+def test_freqest_simple():
+    """Tests the Simple frequency estimator"""
+    test_clock = TestClock()
+    fq = freqest.Simple(clock=test_clock)
+
+    _test_freqest(fq, test_clock)
+
+
 def test_stop_resume():
+    """Test that a graph can be crawled in two different steps.
+
+    The second crawl step involves reading from disk the previous one state.
+    It is tested that all the pages are crawled.
+    """
     def simple_request(url):
         r = Request(url)
         r.meta['fingerprint'] = url
@@ -492,5 +568,3 @@ def test_stop_resume():
 
     assert (crawled1 | crawled2 ==
             set(['A', 'B', '1', '2', '3', '4', '5', '6']))
-
-    assert crawled1 & crawled2 == set([])

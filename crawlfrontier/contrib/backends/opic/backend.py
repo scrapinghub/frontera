@@ -29,9 +29,13 @@ from crawlfrontier.core.models import Request
 from opichits import OpicHits
 
 import graphdb
-import scoredb
+import freqdb
 import pagedb
 import hitsdb
+import hashdb
+import updatesdb
+import freqest
+import pagechange
 
 
 class OpicHitsBackend(Backend):
@@ -39,32 +43,37 @@ class OpicHitsBackend(Backend):
     to HITS scoring
     """
 
+    DEFAULT_FREQ = 1.0/(30.0*24*3600.0)  # once a month
+
     component_name = 'OPIC-HITS Backend'
 
     def __init__(
             self,
             manager,
             db_graph=None,
-            db_scores=None,
+            db_freqs=None,
             db_pages=None,
             db_hits=None,
+            freq_estimator=None,
+            change_detector=None,
             test=False
     ):
 
         # Adjacency between pages and links
         self._graph = db_graph or graphdb.SQLite()
-        # Score database to decide next page to crawl
-        self._scores = db_scores or scoredb.SQLite()
+        # Frequency database to decide next page to crawl
+        self._freqs = db_freqs or freqdb.SQLite()
         # Additional information (URL, domain)
         self._pages = db_pages or pagedb.SQLite()
-        # Implementation of the algorithm
-        self._hits = db_hits or hitsdb.SQLite()
-
+        # Implementation of the OPIC algorithm
         self._opic = OpicHits(
             db_graph=self._graph,
-            db_scores=self._hits,
+            db_scores=db_hits or hitsdb.SQLite(),
             time_window=1000.0
         )
+
+        self._freqest = freq_estimator
+        self._pagechange = change_detector
 
         self._test = test
         self._manager = manager
@@ -96,22 +105,34 @@ class OpicHitsBackend(Backend):
             db_pages = pagedb.SQLite(
                 os.path.join(workdir, 'pages.sqlite')
             )
-            db_scores = scoredb.SQLite(
-                os.path.join(workdir, 'scores.sqlite')
+            db_freqs = freqdb.SQLite(
+                os.path.join(workdir, 'freqs.sqlite')
             )
             db_hits = hitsdb.SQLite(
                 os.path.join(workdir, 'hits.sqlite')
             )
+
+            db_updates = updatesdb.SQLite(
+                os.path.join(workdir, 'updates.sqlite')
+            )
+            db_hash = hashdb.SQLite(
+                os.path.join(workdir, 'hash.sqlite')
+            )
+
             manager.logger.backend.debug(
                 'OPIC backend workdir: {0}'.format(workdir))
         else:
             db_graph = None
             db_pages = None
-            db_scores = None
+            db_freqs = None
             db_hits = None
+            db_updates = None
+            db_hash = None
             manager.logger.backend.debug('OPIC backend workdir: in-memory')
 
-        return cls(manager, db_graph, db_scores, db_pages, db_hits,
+        return cls(manager, db_graph, db_freqs, db_pages, db_hits,
+                   freqest.Simple(db=db_updates),
+                   pagechange.BodySHA1(db=db_hash),
                    test=manager.settings.get('BACKEND_TEST', False))
 
     # FrontierManager interface
@@ -123,16 +144,15 @@ class OpicHitsBackend(Backend):
         if self._test:
             self._h_scores = self.h_scores()
             self._a_scores = self.a_scores()
-            self._page_scores = self.page_scores()
 
         self._graph.close()
-        self._scores.close()
+        self._freqs.close()
         self._pages.close()
         self._opic.close()
 
     # Add pages
     ####################################################################
-    def _add_new_link(self, link, score=1.0):
+    def _add_new_link(self, link, freq):
         """Add a new node to the graph, if not present
 
         Returns the fingerprint used to add the link
@@ -142,7 +162,7 @@ class OpicHitsBackend(Backend):
         self._opic.add_page(fingerprint)
         self._pages.add(fingerprint,
                         pagedb.PageData(link.url, link.meta['domain']['name']))
-        self._scores.add(fingerprint, score)
+        self._freqs.add(fingerprint, freq)
 
         return fingerprint
 
@@ -155,7 +175,7 @@ class OpicHitsBackend(Backend):
         self._pages.start_batch()
 
         for seed in seeds:
-            self._add_new_link(seed)
+            self._add_new_link(seed, OpicHitsBackend.DEFAULT_FREQ)
 
         self._graph.end_batch()
         self._pages.end_batch()
@@ -176,17 +196,32 @@ class OpicHitsBackend(Backend):
         self._pages.start_batch()
         self._graph.start_batch()
         for link in links:
+            # For a new page set its frequency as the hub scores
+            # of the parent
             link_fingerprint = self._add_new_link(
-                link, 1.0)
+                link, page_h)
             self._graph.add_edge(page_fingerprint, link_fingerprint)
         self._graph.end_batch()
         self._pages.end_batch()
 
-        # do not request again
-        self._scores.set(page_fingerprint, 0.0)
+        # Set crawl frequency according to authority score
+        self._freqs.set(page_fingerprint,
+                        page_a/self._opic.a_mean*self.DEFAULT_FREQ)
 
         # mark page to update
         self._opic.mark_update(page_fingerprint)
+
+        # check page changes and frequency estimation
+        if self._freqest and self._pagechange:
+            page_status = self._pagechange.update(
+                page_fingerprint, response.body)
+
+            if page_status == pagechange.Status.NEW:
+                self._freqest.add(page_fingerprint,
+                                  OpicHitsBackend.DEFAULT_FREQ)
+            else:
+                self._freqest.refresh(
+                    page_fingerprint, page_status == pagechange.Status.UPDATED)
 
         toc = time.clock()
         self._manager.logger.backend.debug(
@@ -194,8 +229,8 @@ class OpicHitsBackend(Backend):
 
     # FrontierManager interface
     def request_error(self, page, error):
-        """TODO"""
-        pass
+        """Remove page from frequency db"""
+        self._freqs.delete(page.meta['fingerprint'])
 
     # Retrieve pages
     ####################################################################
@@ -217,36 +252,22 @@ class OpicHitsBackend(Backend):
         """Retrieve the next pages to be crawled"""
         tic = time.clock()
 
-        updated = self._opic.update()
+        h_updated, a_updated = self._opic.update()
 
-        for page_id in updated:
+        for page_id in a_updated:
             h_score, a_score = self._opic.get_scores(page_id)
-            for link_id in self._graph.neighbours(page_id):
-                score = self._scores.get(link_id)
-                if score != 0:
-                    # otherwise it has already been crawled
-                    self._scores.set(link_id, 1.0)
+            self._freqs.set(page_id,
+                            a_score/self._opic.a_mean*self.DEFAULT_FREQ)
 
         # build requests for the best scores, which must be strictly positive
-        best_scores = filter(
-            lambda x: x[1] > 0,
-            self._scores.get_best_scores(max_n_requests)
-        )
-        requests = filter(
-            lambda x: x is not None,
-            [self._get_request_from_id(page_id)
-             for page_id, page_score in best_scores]
-        )
-
-        # do not request again
-        for page_id, page_data in best_scores:
-            self._scores.set(page_id, 0.0)
+        next_pages = self._freqs.get_next_pages(max_n_requests)
+        next_requests = map(self._get_request_from_id, next_pages)
 
         toc = time.clock()
         self._manager.logger.backend.debug(
             'PROFILE GET_NEXT_REQUESTS time: {0:.2f}'.format(toc - tic))
 
-        return requests
+        return next_requests
 
     # Just for testing/debugging
     ####################################################################

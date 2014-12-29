@@ -77,23 +77,45 @@ class SQLite(sqlite.Connection, FreqDBInterface):
             """
         )
 
-    def add(self, page_id, page_frequency):
-        self._cursor.execute(
+    def _get_min_score(self):
+        _min_score = self._cursor.execute(
             """
-            INSERT OR IGNORE INTO page_frequency VALUES (?,?,?)
-            """,
-            (page_id, page_frequency, 0.0)
-        )
+            SELECT score FROM page_frequency ORDER BY score ASC LIMIT 1
+            """
+        ).fetchone()
+
+        return _min_score[0] if _min_score else 0.0
+
+    def add(self, page_id, page_frequency, fresh=True):
+        # If page_frequency is zero, then we do not add it
+        if page_frequency > 0:
+            score = self._get_min_score()
+            if fresh:
+                score += 1.0/page_frequency
+
+            self._cursor.execute(
+                """
+                INSERT OR IGNORE INTO page_frequency VALUES (?,?,?)
+                """,
+                (page_id,
+                 page_frequency,
+                 score)
+            )
 
     def set(self, page_id, page_frequency):
-        self._cursor.execute(
-            """
-            UPDATE OR IGNORE page_frequency
-            SET frequency=?
-            WHERE page_id=?
-            """,
-            (page_frequency, page_id)
-        )
+        if page_frequency == 0:
+            self.delete(page_id)
+        else:
+            self._cursor.execute(
+                """
+                UPDATE OR IGNORE page_frequency
+                SET frequency=?, score=score - 1.0/frequency + 1.0/?
+                WHERE page_id=?
+                """,
+                (page_frequency,
+                 page_frequency,
+                 page_id)
+            )
 
     def delete(self, page_id):
         self._cursor.execute(

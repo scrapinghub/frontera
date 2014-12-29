@@ -3,10 +3,17 @@ An implementation of the OPIC-HITS algorithm
 """
 import hitsdb
 import graphdb
+import relevancedb
 
 
 class OpicHits(object):
-    def __init__(self, db_graph=None, db_scores=None, time_window=None):
+    def __init__(
+            self,
+            db_graph=None,
+            db_scores=None,
+            time_window=None,
+            db_relevance=None
+    ):
         """Make a new instance, using db_graph as the graph database and
         db_scores as the HITS scores database. If None provided will create
         SQLite in-memory instances
@@ -25,6 +32,9 @@ class OpicHits(object):
 
         # Total authority history
         self._a_total = self._scores.get_a_total()
+
+        # Relevance database
+        self._relevance = db_relevance or relevancedb.SQLite()
 
         # A list of pages to update
         self._to_update = []
@@ -158,18 +168,18 @@ class OpicHits(object):
         score = self._get_page_score(page_id)
 
         succ = self._graph.successors(page_id)
-        if succ:
-            a_dist = score.h_cash/float(len(succ) + 1.0)
-            self._scores.increase_a_cash(succ, a_dist)
-            self._virtual_page.a_cash += a_dist
 
-            # Update own-score info
-            new_score = self._updated_page_h(score)
-            self._scores.set(page_id, new_score)
+        a_dist = score.h_cash/float(len(succ) + 1.0)
+        self._scores.increase_a_cash(succ, a_dist)
+        self._virtual_page.a_cash += a_dist
 
-            # Add cash to total cash count
-            self._h_total += new_score.h_history - score.h_history
-            self._time += score.h_cash
+        # Update own-score info
+        new_score = self._updated_page_h(score)
+        self._scores.set(page_id, new_score)
+
+        # Add cash to total cash count
+        self._h_total += new_score.h_history - score.h_history
+        self._time += score.h_cash
 
     def _update_page_a(self, page_id):
         """Update HITS score for the given page"""
@@ -178,21 +188,42 @@ class OpicHits(object):
 
         # Authority cash gets distributed to hubs
         pred = self._graph.predecessors(page_id)
-        if pred:
-            h_dist = score.a_cash/float(len(pred) + 1.0)
-            self._scores.increase_h_cash(pred, h_dist)
-            self._virtual_page.h_cash += h_dist
+        N = len(pred)
 
-            # Update own-score info
-            new_score = self._updated_page_a(score)
-            self._scores.set(page_id, new_score)
+        # Relevance is scored between 0 and 1. 0.5 means we have no
+        # information on it.
+        r = self._relevance.get(page_id) or 0.5
 
-            # Add cash to total cash count
-            self._a_total += new_score.a_history - score.a_history
-            self._time += score.a_cash
+        # Distribute to each hub: a_cash*z(r)
+        # Distribute to VP      : a_cash*(1.0 - N*z(r))
+        #
+        # z(0  ) = 0             If r = 0.0 no cash goes back to hubs
+        # z(1  ) = 1/N           If r = 1.0 all cash go back to hubs
+        # z(0.5) = 1 - N*z(0.5)  If r = 0.5 then the virtual page counts as any
+        #                                   other page
+        # Compute z(r) as a second order polynomial fitting the above points.
+        # If N == 0 then z is undefined, and actually any value is valid
+        z = 2.0*r/N*(2.0*N/(N + 1)*(1 - r) + (r - 0.5)) if N > 0 else 0.0
+
+        self._scores.increase_h_cash(pred, score.a_cash*z)
+        self._virtual_page.h_cash += score.a_cash*(1.0 - z*N)
+
+        # Update own-score info
+        new_score = self._updated_page_a(score)
+        self._scores.set(page_id, new_score)
+
+        # Add cash to total cash count
+        self._a_total += new_score.a_history - score.a_history
+        self._time += score.a_cash
 
     def update(self, n_iter=1):
-        """Run a full iteration of the OPIC-HITS algorithm"""
+        """Run a full iteration of the OPIC-HITS algorithm
+
+        Returns:
+
+            A pair of lists. The first one contains pages with an updated
+        h_score and the second ones with update a_score.
+        """
 
         # update proportional to the rate of graph grow
         n_updates = 20*max(1, len(self._to_update))
@@ -216,7 +247,8 @@ class OpicHits(object):
 
         self._to_update = []
 
-        return [page_id for cash, page_id, hub in mixed]
+        return ([page_id for cash, page_id, hub in mixed if hub],
+                [page_id for cash, page_id, hub in mixed if not hub])
 
     def _relative_score(self, score):
         return (
@@ -241,3 +273,11 @@ class OpicHits(object):
             self._scores.close()
 
         self._closed = True
+
+    @property
+    def h_mean(self):
+        return self._h_total/self._n_pages if self._n_pages > 0 else 1.0
+
+    @property
+    def a_mean(self):
+        return self._a_total/self._n_pages if self._n_pages > 0 else 1.0
