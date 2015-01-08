@@ -77,8 +77,8 @@ class MongodbBackend(Backend):
 
         # Update error fields
         backend_page.state = self.State.ERROR
-        self.collection.update({'_meta.fingerprintfingerprint': backend_page._meta['fingerprint']},
-                               {"$set": self._request_to_mongo(link_page)}, upsert=False)
+        self.collection.update({'_meta.fingerprint': backend_page._meta['fingerprint']},
+                               {"$set": self._request_to_mongo(backend_page)}, upsert=False)
 
         # Return updated page
         return backend_page
