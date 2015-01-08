@@ -63,6 +63,9 @@ class CrawlRecorderSpiderMiddleware(object):
         self.graph.session.query(graphs.Page).filter_by(status=None).delete()
         self.graph.save()
 
+        g = graphs.Manager(engine='sqlite:///my_record.db')
+        g.render(filename='graphs/'+spider.domain.replace(':', '_').replace('.', '_').replace('/', '_')+'.png', label=spider.domain, fontsize=15, node_fontsize=8, node_height=2, node_width=2, node_fixedsize=False)
+
     def _get_url(self, response):
         return response.meta['redirect_urls'][0] if 'redirect_urls' in response.meta else response.request.url
 
