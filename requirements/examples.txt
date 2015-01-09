@@ -1,0 +1,7 @@
+SQLAlchemy>=0.9.8
+Scrapy>=0.24.4
+service-identity>=14.0.0
+requests==2.5.0
+
+-r graphs.txt
+-r logging.txt

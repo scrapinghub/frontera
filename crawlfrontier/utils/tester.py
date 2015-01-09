@@ -30,7 +30,6 @@ class FrontierTester(object):
             if not page.has_errors:
                 for link in page.links:
                     self.frontier.add_seeds([self._make_request(link.url)])
-
     def _make_request(self, url):
         return self.frontier.request_model(url=url)
 

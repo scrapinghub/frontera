@@ -28,6 +28,18 @@ class CrawlSiteData(object):
     def __repr__(self):
         return '<CrawlSite:%s[%s]>' % (self.name, len(self.pages))
 
+    @property
+    def nodes(self):
+        n = set()
+        for page, links in self.pages:
+            n.add(page)
+            for link in links:
+                n.add(link)
+        return n
+
+    def __len__(self):
+        return len(self.nodes)
+
 
 class CrawlSiteListData(object):
     def __init__(self, sites, name='', description='', use_urls=False):
@@ -39,6 +51,8 @@ class CrawlSiteListData(object):
     def __repr__(self):
         return '<CrawlSiteList:%s[%s]>' % (self.name, len(self.sites))
 
+    def __len__(self):
+        return sum([len(site) for site in self.sites])
 
 #-----------------------------------------------------
 # Sites

@@ -38,5 +38,5 @@ if __name__ == '__main__':
                     links = [requests.Request(url=url) for url in extract_page_links(response)]
                     frontier.page_crawled(response=response, links=links)
                 except requests.RequestException, e:
-                    error_code =  type(e).__name__
+                    error_code = type(e).__name__
                     frontier.request_error(request, error_code)
