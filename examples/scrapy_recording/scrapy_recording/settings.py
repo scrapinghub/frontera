@@ -17,24 +17,20 @@ CONCURRENT_REQUESTS_PER_DOMAIN = 2
 
 LOGSTATS_INTERVAL = 10
 
-#DUPEFILTER_CLASS = 'scrapy.dupefilter.BaseDupeFilter'
-
-#CLOSESPIDER_PAGECOUNT = 20
-
 SPIDER_MIDDLEWARES = {}
-DOWNLOADER_MIDDLEWARES = {
-    'scrapy.contrib.downloadermiddleware.httpcache.HttpCacheMiddleware': 599,
-}
+DOWNLOADER_MIDDLEWARES = {}
 
 #--------------------------------------------------------------------------
 # Recorder Settings
 #--------------------------------------------------------------------------
-SPIDER_MIDDLEWARES.update({
-    'crawlfrontier.contrib.scrapy.middlewares.recording.CrawlRecorderSpiderMiddleware': 0,
-})
-DOWNLOADER_MIDDLEWARES.update({
-    'crawlfrontier.contrib.scrapy.middlewares.recording.CrawlRecorderDownloaderMiddleware': 100,  # After retry mw.
-})
+SPIDER_MIDDLEWARES.update(
+    {'crawlfrontier.contrib.scrapy.middlewares.schedulers.SchedulerSpiderMiddleware': 999},
+)
+DOWNLOADER_MIDDLEWARES.update(
+    {'crawlfrontier.contrib.scrapy.middlewares.schedulers.SchedulerDownloaderMiddleware': 999}
+)
+SCHEDULER = 'crawlfrontier.contrib.scrapy.schedulers.recording.RecorderScheduler'
+
 RECORDER_ENABLED = True
 RECORDER_STORAGE_ENGINE = 'sqlite:///scrapy_recording/recordings/record.db'
 RECORDER_STORAGE_DROP_ALL_TABLES = True

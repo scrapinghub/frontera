@@ -17,29 +17,31 @@ CONCURRENT_REQUESTS_PER_DOMAIN = 2
 
 LOGSTATS_INTERVAL = 10
 
-#DUPEFILTER_CLASS = 'scrapy.dupefilter.BaseDupeFilter'
-
-#CLOSESPIDER_PAGECOUNT = 1000
-
 SPIDER_MIDDLEWARES = {}
-DOWNLOADER_MIDDLEWARES = {
-    'scrapy.contrib.downloadermiddleware.httpcache.HttpCacheMiddleware': 599,
-}
+DOWNLOADER_MIDDLEWARES = {}
 
 #--------------------------------------------------------------------------
 # Frontier Settings
 #--------------------------------------------------------------------------
+SPIDER_MIDDLEWARES.update(
+    {'crawlfrontier.contrib.scrapy.middlewares.schedulers.SchedulerSpiderMiddleware': 999},
+)
+DOWNLOADER_MIDDLEWARES.update(
+    {'crawlfrontier.contrib.scrapy.middlewares.schedulers.SchedulerDownloaderMiddleware': 999}
+)
+SCHEDULER = 'crawlfrontier.contrib.scrapy.schedulers.frontier.CrawlFrontierScheduler'
+FRONTIER_SETTINGS = 'scrapy_frontier.frontier.settings'
+
+
+#--------------------------------------------------------------------------
+# Seed loaders
+#--------------------------------------------------------------------------
 SPIDER_MIDDLEWARES.update({
-    'crawlfrontier.contrib.scrapy.middlewares.frontier.CrawlFrontierSpiderMiddleware': 0,
     'crawlfrontier.contrib.scrapy.middlewares.seeds.file.FileSeedLoader': 1,
 })
-DOWNLOADER_MIDDLEWARES.update({
-    'crawlfrontier.contrib.scrapy.middlewares.frontier.CrawlFrontierDownloaderMiddleware': 100,  # After retry mw.
-})
-FRONTIER_ENABLED = True
-FRONTIER_SETTINGS = 'scrapy_frontier.frontier.settings'
-FRONTIER_SCHEDULER_INTERVAL = 0.01
-FRONTIER_SCHEDULER_CONCURRENT_REQUESTS = 256
-
 SEEDS_SOURCE = 'seeds.txt'
 
+#--------------------------------------------------------------------------
+# Testing
+#--------------------------------------------------------------------------
+#CLOSESPIDER_PAGECOUNT = 1

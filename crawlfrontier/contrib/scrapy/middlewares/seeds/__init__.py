@@ -14,7 +14,8 @@ class SeedLoader(object):
         return cls(crawler)
 
     def process_start_requests(self, start_requests, spider):
-        return [spider.make_requests_from_url(url) for url in self.load_seeds()]
+        urls = [url for url in self.load_seeds() if not url.startswith('#')]
+        return [spider.make_requests_from_url(url) for url in urls]
 
     def load_seeds(self):
         raise NotImplementedError

@@ -1,10 +1,10 @@
 """
 Frontier initialization from settings
 """
-from crawlfrontier import FrontierManager, Settings, graphs
+from crawlfrontier import FrontierManager, Settings, graphs, Request, Response
 
 SETTINGS = Settings()
-SETTINGS.BACKEND = 'crawlfrontier.contrib.backends.memory.heapq.FIFO'
+SETTINGS.BACKEND = 'crawlfrontier.contrib.backends.memory.FIFO'
 SETTINGS.LOGGING_MANAGER_ENABLED = True
 SETTINGS.LOGGING_BACKEND_ENABLED = True
 SETTINGS.LOGGING_DEBUGGING_ENABLED = True
@@ -18,24 +18,23 @@ if __name__ == '__main__':
     frontier = FrontierManager.from_settings(SETTINGS)
 
     # Add seeds
-    for seed in graph.seeds:
-        frontier.add_seed(seed.url)
+    frontier.add_seeds([Request(seed.url) for seed in graph.seeds])
 
-    # Get next pages
-    next_pages = frontier.get_next_pages()
+    # Get next requests
+    next_requests = frontier.get_next_requests()
 
     # Crawl pages
-    for page_to_crawl in next_pages:
+    for request in next_requests:
 
         # Fake page crawling
-        crawled_page = graph.get_page(page_to_crawl.url)
+        crawled_page = graph.get_page(request.url)
+
+        # Create response
+        response = Response(url=request.url,
+                            status_code=crawled_page.status,
+                            request=request)
+        # Create page links
+        page_links = [Request(link.url) for link in crawled_page.links]
 
         # Update Page
-        page_to_crawl.status = crawled_page.status
-        page = frontier.page_crawled(page=page_to_crawl,
-                                     links=[link.url for link in crawled_page.links])
-        print repr(page)
-
-    # Show frontier pages
-    for page in frontier.backend.pages.values():
-        print page.url, page.depth, page.state
+        frontier.page_crawled(response=response, links=page_links)

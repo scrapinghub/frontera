@@ -29,7 +29,8 @@ def test_logic(backend):
         print page.url
 
 if __name__ == '__main__':
-    test_logic('crawlfrontier.contrib.backends.memory.heapq.FIFO')
-    test_logic('crawlfrontier.contrib.backends.memory.heapq.LIFO')
-    test_logic('crawlfrontier.contrib.backends.memory.heapq.BFS')
-    test_logic('crawlfrontier.contrib.backends.memory.heapq.DFS')
+    test_logic('crawlfrontier.contrib.backends.memory.FIFO')
+    test_logic('crawlfrontier.contrib.backends.memory.LIFO')
+    test_logic('crawlfrontier.contrib.backends.memory.BFS')
+    test_logic('crawlfrontier.contrib.backends.memory.DFS')
+    test_logic('crawlfrontier.contrib.backends.memory.RANDOM')

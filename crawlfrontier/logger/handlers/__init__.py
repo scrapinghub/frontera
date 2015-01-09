@@ -4,22 +4,19 @@ import logging
 from crawlfrontier.logger import filters, formatters
 
 
+EVENTS = logging.StreamHandler(stream=sys.stdout)
+EVENTS.setFormatter(formatters.EVENTS)
+EVENTS.setLevel(logging.INFO)
+EVENTS.filters.append(filters.PLAINVALUES(excluded_fields=['event']))
+
 CONSOLE = logging.StreamHandler(stream=sys.stdout)
-CONSOLE.setFormatter(formatters.SHORT)
+CONSOLE.setFormatter(formatters.CONSOLE)
 
-COLOR_EVENTS = logging.StreamHandler(stream=sys.stdout)
-#COLOR_EVENTS.setFormatter(formatters.COLORED_EVENTS)
-#COLOR_EVENTS.setLevel(logging.INFO)
-#COLOR_EVENTS.filters.append(filters.PLAINVALUES(excluded_fields=['event']))
+CONSOLE_MANAGER = logging.StreamHandler(stream=sys.stdout)
+CONSOLE_MANAGER.setFormatter(formatters.CONSOLE_MANAGER)
 
-COLOR_CONSOLE = logging.StreamHandler(stream=sys.stdout)
-#COLOR_CONSOLE.setFormatter(formatters.COLORED_CONSOLE)
+CONSOLE_BACKEND = logging.StreamHandler(stream=sys.stdout)
+CONSOLE_BACKEND.setFormatter(formatters.CONSOLE_BACKEND)
 
-COLOR_CONSOLE_MANAGER = logging.StreamHandler(stream=sys.stdout)
-#COLOR_CONSOLE_MANAGER.setFormatter(formatters.COLORED_CONSOLE_MANAGER)
-
-COLOR_CONSOLE_BACKEND = logging.StreamHandler(stream=sys.stdout)
-#COLOR_CONSOLE_BACKEND.setFormatter(formatters.COLORED_CONSOLE_BACKEND)
-
-COLOR_CONSOLE_DEBUGGING = logging.StreamHandler(stream=sys.stdout)
-#COLOR_CONSOLE_DEBUGGING.setFormatter(formatters.COLORED_CONSOLE_DEBUGGING)
+CONSOLE_DEBUGGING = logging.StreamHandler(stream=sys.stdout)
+CONSOLE_DEBUGGING.setFormatter(formatters.CONSOLE_DEBUGGING)
