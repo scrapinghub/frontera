@@ -135,7 +135,7 @@ class Mysql(DBBackendTest):
 
     DB_ENGINE = 'mysql://travis:@localhost/backend_test'
     DB_HOST = 'localhost'
-    DB_USER = 'root'
+    DB_USER = 'travis'
     DB_PASSWORD = ''
 
     def _execute_sql(self, sql):

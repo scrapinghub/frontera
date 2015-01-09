@@ -49,7 +49,7 @@ class Page(Base):
         CRAWLED = 'CRAWLED'
         ERROR = 'ERROR'
 
-    url = Column(String(700), nullable=False)
+    url = Column(String(255), nullable=False)
     fingerprint = Column(String(40), primary_key=True, nullable=False, index=True, unique=True)
     depth = Column(Integer, nullable=False)
     created_at = Column(DatetimeTimestamp(20), nullable=False)
