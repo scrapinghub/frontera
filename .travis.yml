@@ -19,15 +19,3 @@ deploy:
   on:
     branch: master
     condition: $TOXENV == py27
-
-
-
-
-
-
-
-
-
-mysql -u root -e "set global innodb_large_prefix=1;"
-mysql -u root -e "set global innodb_file_format='Barracuda';"
-mysql -u root -e "set global innodb_file_per_table=true;"
