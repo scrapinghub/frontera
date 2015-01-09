@@ -37,7 +37,7 @@ class SQLiteMemory(backends.BackendTest):
         settings.SQLALCHEMYBACKEND_ENGINE = 'sqlite:///:memory:'
         return settings
 
-"""
+
 class TestSQLiteMemoryFIFO(SQLAlchemyFIFO, SQLiteMemory):
     pass
 
@@ -52,7 +52,7 @@ class TestSQLiteMemoryDFS(SQLAlchemyDFS, SQLiteMemory):
 
 class TestSQLiteMemoryBFS(SQLAlchemyBFS, SQLiteMemory):
     pass
-"""
+
 
 #----------------------------------------------------
 # SQLite File
@@ -78,7 +78,7 @@ class SQLiteFile(backends.BackendTest):
         except OSError:
             pass
 
-"""
+
 class TestSQLiteFileFIFO(SQLAlchemyFIFO, SQLiteFile):
     pass
 
@@ -93,7 +93,7 @@ class TestSQLiteFileDFS(SQLAlchemyDFS, SQLiteFile):
 
 class TestSQLiteFileBFS(SQLAlchemyBFS, SQLiteFile):
     pass
-"""
+
 
 #----------------------------------------------------
 # DB Backend test base
@@ -151,7 +151,7 @@ class Mysql(DBBackendTest):
 class TestMysqlFIFO(Mysql, SQLAlchemyFIFO):
     pass
 
-"""
+
 class TestMysqlLIFO(Mysql, SQLAlchemyLIFO):
     pass
 
@@ -162,7 +162,7 @@ class TestMysqlDFS(Mysql, SQLAlchemyDFS):
 
 class TestMysqlBFS(Mysql, SQLAlchemyBFS):
     pass
-"""
+
 
 #----------------------------------------------------
 # Postgres
@@ -184,7 +184,7 @@ class Postgres(DBBackendTest):
         cur.close()
         conn.close()
 
-"""
+
 class TestPostgresFIFO(Postgres, SQLAlchemyFIFO):
     pass
 
@@ -199,4 +199,3 @@ class TestPostgresDFS(Postgres, SQLAlchemyDFS):
 
 class TestPostgresBFS(Postgres, SQLAlchemyBFS):
     pass
-"""
