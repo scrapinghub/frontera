@@ -41,6 +41,10 @@ class Page(Base):
     __tablename__ = 'pages'
     __table_args__ = (
         UniqueConstraint('url'),
+        {
+            'mysql_engine': 'InnoDB',
+            'mysql_row_format': 'DYNAMIC',
+        },
     )
 
     class State:
@@ -49,7 +53,7 @@ class Page(Base):
         CRAWLED = 'CRAWLED'
         ERROR = 'ERROR'
 
-    url = Column(String(255), nullable=False)
+    url = Column(String(2048), nullable=False)
     fingerprint = Column(String(40), primary_key=True, nullable=False, index=True, unique=True)
     depth = Column(Integer, nullable=False)
     created_at = Column(DatetimeTimestamp(20), nullable=False)

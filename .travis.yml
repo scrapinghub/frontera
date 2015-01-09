@@ -1,10 +1,14 @@
 language: python
 python: 2.7
 env:
-- TOXENV=py27
-- TOXENV=flake8
+  - TOXENV=py27
+  - TOXENV=flake8
 install:
-- pip install -U tox wheel
+  - pip install -U tox wheel
+before_script:
+  - mysql -u root -e "set global innodb_large_prefix=1;"
+  - mysql -u root -e "set global innodb_file_format='Barracuda';"
+  - mysql -u root -e "set global innodb_file_per_table=true;"
 script: tox
 deploy:
   provider: pypi
@@ -15,3 +19,15 @@ deploy:
   on:
     branch: master
     condition: $TOXENV == py27
+
+
+
+
+
+
+
+
+
+mysql -u root -e "set global innodb_large_prefix=1;"
+mysql -u root -e "set global innodb_file_format='Barracuda';"
+mysql -u root -e "set global innodb_file_per_table=true;"

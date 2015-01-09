@@ -100,22 +100,6 @@ class FIFOBackendTest(BackendSequenceTest):
         ('site_list', 'max_next_requests', 'expected_sequence'), [
 
             ('SITE_01', 1, 'SEQUENCE_01_A'),
-            ('SITE_01', 2, 'SEQUENCE_01_A'),
-            ('SITE_01', 5, 'SEQUENCE_01_A'),
-            ('SITE_01', 10, 'SEQUENCE_01_A'),
-            ('SITE_01', 100, 'SEQUENCE_01_A'),
-
-            ('SITE_02', 1, 'SEQUENCE_02_A'),
-            ('SITE_02', 2, 'SEQUENCE_02_A'),
-            ('SITE_02', 5, 'SEQUENCE_02_A'),
-            ('SITE_02', 10, 'SEQUENCE_02_A'),
-            ('SITE_02', 100, 'SEQUENCE_02_A'),
-
-            ('SITE_03', 1, 'SEQUENCE_03_A'),
-            ('SITE_03', 2, 'SEQUENCE_03_A'),
-            ('SITE_03', 5, 'SEQUENCE_03_A'),
-            ('SITE_03', 10, 'SEQUENCE_03_A'),
-            ('SITE_03', 100, 'SEQUENCE_03_A'),
         ]
     )
     def test_sequence(self, site_list, max_next_requests, expected_sequence):
