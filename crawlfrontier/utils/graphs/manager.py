@@ -29,7 +29,7 @@ class CrawlGraphManager(object):
     def seeds(self):
         return self.session.query(CrawlPage).filter_by(is_seed=True).all()
 
-    def add_page(self, url, status=None, n_redirects=0, is_seed=False, commit=True):
+    def add_page(self, url, status=200, n_redirects=0, is_seed=False, commit=True):
         page, created = CrawlPage.get_or_create(self.session, url=url)
         if created:
             page.is_seed = is_seed
@@ -39,7 +39,7 @@ class CrawlGraphManager(object):
             self.session.commit()
         return page
 
-    def add_link(self, page, url, commit=True, status=None):
+    def add_link(self, page, url, commit=True, status=200):
         link_page, created = CrawlPage.get_or_create(self.session, url=url)
         if created:
             link_page.status = status
