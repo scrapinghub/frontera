@@ -73,12 +73,17 @@ Built-in services and tools
    :hidden:
 
    topics/scrapy-integration
+   topics/requests-integration
    topics/graph-manager
    topics/frontier-tester
    topics/scrapy-recorder
+   topics/examples
 
 :doc:`topics/scrapy-integration`
     Learn how to use Crawl Frontier with Scrapy.
+
+:doc:`topics/requests-integration`
+    Learn how to use Crawl Frontier with Requests.
 
 :doc:`topics/graph-manager`
     Define fake crawlings for websites to test your frontier.
@@ -88,6 +93,9 @@ Built-in services and tools
 
 :doc:`topics/scrapy-recorder`
     Create Scrapy crawl recordings and reproduce them later.
+
+:doc:`topics/examples`
+    Some example projects and scripts using Crawl Frontier.
 
 All the rest
 ============
