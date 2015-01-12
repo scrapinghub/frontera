@@ -3,7 +3,12 @@ import pytest
 from crawlfrontier import FrontierManager, Settings, FrontierTester, graphs
 
 
-class BackendTest():
+class BackendTest(object):
+    """
+    A simple pytest base class with helper methods for
+    :class:`Backend <crawlfrontier.core.components.Backend>` testing.
+    """
+
     backend_class = None
 
     def setup_method(self, method):
@@ -15,43 +20,66 @@ class BackendTest():
         self.teardown_backend(method)
 
     def setup_backend(self, method):
+        """
+        Setup method called before each test method call
+        """
         pass
 
     def teardown_backend(self, method):
+        """
+        Teardown method called after each test method call
+        """
         pass
 
-
-class BackendSequenceTest(BackendTest):
-
-    SITES = {
-        "SITE_01": graphs.data.SITE_LIST_01,
-        "SITE_02": graphs.data.SITE_LIST_02,
-        "SITE_03": graphs.data.SITE_LIST_03,
-    }
-    EXPECTED_SEQUENCES = {}
+    def get_frontier(self):
+        """
+        Returns frontierManager object
+        """
+        return FrontierManager.from_settings(self.get_settings())
 
     def get_settings(self):
-        return Settings()
+        """
+        Returns backend settings
+        """
+        return Settings(attributes={
+            'BACKEND': self.backend_class
+        })
 
-    def _get_sequence(self, site_list, max_next_requests):
+
+TEST_SITES = {
+    "SITE_01": graphs.data.SITE_LIST_01,
+    "SITE_02": graphs.data.SITE_LIST_02,
+    "SITE_03": graphs.data.SITE_LIST_03,
+}
+
+class BackendSequenceTest(BackendTest):
+    """
+    A pytest base class for testing
+    :class:`Backend <crawlfrontier.core.components.Backend>` crawling sequences.
+    """
+
+    def get_settings(self):
+        settings = super(BackendSequenceTest, self).get_settings()
+        settings.TEST_MODE = True
+        settings.LOGGING_MANAGER_ENABLED = False
+        settings.LOGGING_BACKEND_ENABLED = False
+        settings.LOGGING_DEBUGGING_ENABLED = False
+        return settings
+
+    def get_sequence(self, site_list, max_next_requests):
+        """
+        Returns a crawling sequence from a site list
+
+        :param list site_list: A list of sites to use as frontier seeds.
+        :param int max_next_requests: Max next requests for the frontier.
+        """
 
         # Graph
         graph_manager = graphs.Manager()
         graph_manager.add_site_list(site_list)
 
-        # Settings
-        settings = self.get_settings()
-        settings.TEST_MODE = True
-        settings.BACKEND = self.backend_class
-        settings.LOGGING_MANAGER_ENABLED = False
-        settings.LOGGING_BACKEND_ENABLED = False
-        settings.LOGGING_DEBUGGING_ENABLED = False
-
-        # Frontier
-        frontier = FrontierManager.from_settings(settings)
-
         # Tester
-        tester = FrontierTester(frontier=frontier,
+        tester = FrontierTester(frontier=self.get_frontier(),
                                 graph_manager=graph_manager,
                                 max_next_requests=max_next_requests)
 
@@ -59,10 +87,16 @@ class BackendSequenceTest(BackendTest):
         tester.run()
         return [page.url for page in tester.sequence]
 
-    def _test_sequence(self, site_list, expected_sequence, max_next_requests):
+    def assert_sequence(self, site_list, expected_sequence, max_next_requests):
+        """
+        Asserts that crawling sequence is the one expected
+
+        :param list site_list: A list of sites to use as frontier seeds.
+        :param int max_next_requests: Max next requests for the frontier.
+        """
 
         # Get sequence
-        sequence = self._get_sequence(site_list, max_next_requests)
+        sequence = self.get_sequence(site_list, max_next_requests)
         #print [str(n) for n in sequence]
 
         # Assert sequence equals expected
@@ -119,8 +153,8 @@ class FIFOBackendTest(BackendSequenceTest):
         ]
     )
     def test_sequence(self, site_list, max_next_requests, expected_sequence):
-        self._test_sequence(
-            site_list=self.SITES[site_list],
+        self.assert_sequence(
+            site_list=TEST_SITES[site_list],
             expected_sequence=self.EXPECTED_SEQUENCES[expected_sequence],
             max_next_requests=max_next_requests,
         )
@@ -247,8 +281,8 @@ class LIFOBackendTest(BackendSequenceTest):
         ]
     )
     def test_sequence(self, site_list, max_next_requests, expected_sequence):
-        self._test_sequence(
-            site_list=self.SITES[site_list],
+        self.assert_sequence(
+            site_list=TEST_SITES[site_list],
             expected_sequence=self.EXPECTED_SEQUENCES[expected_sequence],
             max_next_requests=max_next_requests,
         )
@@ -386,8 +420,8 @@ class DFSBackendTest(BackendSequenceTest):
         ]
     )
     def test_sequence(self, site_list, max_next_requests, expected_sequence):
-        self._test_sequence(
-            site_list=self.SITES[site_list],
+        self.assert_sequence(
+            site_list=TEST_SITES[site_list],
             expected_sequence=self.EXPECTED_SEQUENCES[expected_sequence],
             max_next_requests=max_next_requests,
         )
@@ -443,8 +477,8 @@ class BFSBackendTest(BackendSequenceTest):
         ]
     )
     def test_sequence(self, site_list, max_next_requests, expected_sequence):
-        self._test_sequence(
-            site_list=self.SITES[site_list],
+        self.assert_sequence(
+            site_list=TEST_SITES[site_list],
             expected_sequence=self.EXPECTED_SEQUENCES[expected_sequence],
             max_next_requests=max_next_requests,
         )
@@ -475,8 +509,8 @@ class RANDOMBackendTest(BackendSequenceTest):
         ]
     )
     def test_sequence(self, site_list, max_next_requests):
-        sequence = self._get_sequence(
-            site_list=self.SITES[site_list],
+        sequence = self.get_sequence(
+            site_list=TEST_SITES[site_list],
             max_next_requests=max_next_requests,
         )
-        assert len(sequence) == len(self.SITES[site_list])
+        assert len(sequence) == len(TEST_SITES[site_list])
