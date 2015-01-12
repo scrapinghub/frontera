@@ -1,54 +1,61 @@
-============
-Seed Loaders
-============
+===================
+Scrapy Seed Loaders
+===================
 
-Initially the frontier should receive some predefined set of URLs to start the crawl process,
-this set of classes is needed to load seed URLs from different sources at system startup.
+Crawl Frontier has some built-in Scrapy middlewares for seed loading.
 
-Generally each seed loader is just an another middleware layer with own logic.
+Seed loaders use the ``process_start_requests`` method to generate requests from a source that are added later to the
+:class:`FrontierManager <crawlfrontier.core.manager.FrontierManager>`.
 
-In most cases the seed loader behaviour is defined with:
 
-* some initial procedure on start
-* ``process_start_requests()`` method returning an iterable of ``Request`` objects
+Activating a Seed loader
+------------------------
 
-How to use
-----------
-
-To use a seed loader you should add its class to ``SPIDER_MIDDLEWARES`` setting dict::
+Just add the Seed Loader middleware to the ``SPIDER_MIDDLEWARES`` scrapy settings::
 
     SPIDER_MIDDLEWARES.update({
         'crawl_frontier.contrib.scrapy.middlewares.seeds.FileSeedLoader': 650
     })
 
-The value (``650`` here) defines the order for the middleware (check `Scrapy Middleware doc`_).
 
-The description and specific settings for each seed loader class can be found below.
-
+.. _seed_loader_file:
 
 FileSeedLoader
 --------------
 
-The simplest seed loader class that can read seed URLs from a local file.
+Load seed URLs from a file. The file must be formatted contain one URL per line::
 
-Settings:
+    http://www.asite.com
+    http://www.anothersite.com
+    ...
 
-* ``SEEDS_SOURCE`` - local file path
+Yo can disable URLs using the ``#`` character::
+
+    ...
+    #http://www.acommentedsite.com
+    ...
+
+**Settings**:
+
+- ``SEEDS_SOURCE``: Path to the seeds file
+
+
+.. _seed_loader_s3:
 
 S3SeedLoader
 ------------
 
-Seed loader class that can read seed URLs from Amazon S3 bucket files.
+Load seeds from a file stored in an Amazon S3 bucket
+
+File format should the same one used in :ref:`FileSeedLoader <seed_loader_file>`.
 
 Settings:
 
-* ``SEEDS_SOURCE`` - S3 bucket name::
+- ``SEEDS_SOURCE``: Path to S3 bucket file. eg: ``s3://some-project/seed-urls/``
 
-    SEEDS_SOURCE = "s3://some-project/seed-urls/"
+- ``SEEDS_AWS_ACCESS_KEY``: S3 credentials Access Key
 
-* ``SEEDS_AWS_ACCESS_KEY`` - S3 credentials: access key
-
-* ``SEEDS_AWS_SECRET_ACCESS_KEY`` - S3 credentials: secret access key
+- ``SEEDS_AWS_SECRET_ACCESS_KEY``: S3 credentials Secret Access Key
 
 
 .. _`Scrapy Middleware doc`: http://doc.scrapy.org/en/latest/topics/spider-middleware.html

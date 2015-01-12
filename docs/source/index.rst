@@ -77,7 +77,7 @@ Built-in services and tools
    topics/graph-manager
    topics/frontier-tester
    topics/scrapy-recorder
-   topics/examples
+   topics/seed-loaders
 
 :doc:`topics/scrapy-integration`
     Learn how to use Crawl Frontier with Scrapy.
@@ -94,8 +94,8 @@ Built-in services and tools
 :doc:`topics/scrapy-recorder`
     Create Scrapy crawl recordings and reproduce them later.
 
-:doc:`topics/examples`
-    Some example projects and scripts using Crawl Frontier.
+:doc:`topics/seed-loaders`
+    Scrapy middlewares for seed loading
 
 All the rest
 ============
@@ -103,7 +103,15 @@ All the rest
 .. toctree::
    :hidden:
 
+   topics/examples
+   topics/tests
    topics/release-notes
+
+:doc:`topics/examples`
+    Some example projects and scripts using Crawl Frontier.
+
+:doc:`topics/tests`
+    How to run and write Crawl Frontier tests.
 
 :doc:`topics/release-notes`
     See what has changed in recent Crawl Frontier versions.
