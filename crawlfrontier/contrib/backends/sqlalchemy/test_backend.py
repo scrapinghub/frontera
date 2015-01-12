@@ -33,7 +33,7 @@ class SQLAlchemyBFS(backends.BFSBackendTest):
 class SQLiteMemory(backends.BackendTest):
 
     def get_settings(self):
-        settings = Settings()
+        settings = super(SQLiteMemory, self).get_settings()
         settings.SQLALCHEMYBACKEND_ENGINE = 'sqlite:///:memory:'
         return settings
 
@@ -62,7 +62,7 @@ class SQLiteFile(backends.BackendTest):
     SQLITE_DB_NAME = 'backend_test.db'
 
     def get_settings(self):
-        settings = Settings()
+        settings = super(SQLiteFile, self).get_settings()
         settings.SQLALCHEMYBACKEND_ENGINE = 'sqlite:///' + self.SQLITE_DB_NAME
         return settings
 
@@ -107,7 +107,7 @@ class DBBackendTest(object):
     DB_PASSWORD = None
 
     def get_settings(self):
-        settings = Settings()
+        settings = super(DBBackendTest, self).get_settings()
         settings.SQLALCHEMYBACKEND_ENGINE = self.DB_ENGINE
         return settings
 

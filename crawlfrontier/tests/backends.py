@@ -52,6 +52,7 @@ TEST_SITES = {
     "SITE_03": graphs.data.SITE_LIST_03,
 }
 
+
 class BackendSequenceTest(BackendTest):
     """
     A pytest base class for testing
