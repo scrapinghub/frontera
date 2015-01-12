@@ -5,7 +5,8 @@ Release Notes
 0.2.0 (released 2015-01-12)
 ===========================
 
-- Refactored backend tests (:commit:`00910bf`)
+- Added documentation (Scrapy Seed Loaders+Tests+Examples) (:commit:`8e5f60d`)
+- Refactored backend tests (:commit:`00910bf`, :commit:`5702bef`, :commit:`9567566`)
 - Added requests library example (:commit:`8796011`)
 - Added requests library manager and object converters (:commit:`d6590b6`)
 - Added FrontierManagerWrapper (:commit:`4f04a48`)
