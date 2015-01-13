@@ -90,8 +90,8 @@ And let's say too that it uses a database file and you need to clean it before a
 Testing backend sequences
 =========================
 
-To test :class:`BackendSequenceTest <crawlfrontier.core.components.Backend>` crawling sequences you can use the
-:class:`BackendTest <crawlfrontier.tests.backends.BackendSequenceTest>` class.
+To test :class:`Backend <crawlfrontier.core.components.Backend>` crawling sequences you can use the
+:class:`BackendSequenceTest <crawlfrontier.tests.backends.BackendSequenceTest>` class.
 
 .. autoclass:: crawlfrontier.tests.backends.BackendSequenceTest
 
