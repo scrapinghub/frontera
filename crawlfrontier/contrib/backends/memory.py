@@ -33,7 +33,8 @@ class MemoryBaseBackend(Backend):
             self.heap.push(request)
 
     def get_next_requests(self, max_next_requests):
-        return self.heap.pop(max_next_requests)
+        things = self.heap.pop(max_next_requests)
+        return things
 
     def page_crawled(self, response, links):
         for link in links:
@@ -42,17 +43,20 @@ class MemoryBaseBackend(Backend):
                 request.meta['depth'] = response.request.meta['depth']+1
                 self.heap.push(request)
 
+
     def request_error(self, request, error):
         pass
 
     def _get_or_create_request(self, request):
         fingerprint = request.meta['fingerprint']
         if fingerprint not in self.requests:
+
             new_request = request.copy()
             new_request.meta['created_at'] = datetime.datetime.utcnow()
             new_request.meta['depth'] = 0
             self.requests[fingerprint] = new_request
             self.manager.logger.backend.debug('Creating request %s' % new_request)
+
             return new_request, True
         else:
             page = self.requests[fingerprint]

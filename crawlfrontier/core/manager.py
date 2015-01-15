@@ -352,6 +352,7 @@ class FrontierManager(object):
 
         :return: None.
         """
+
         self._check_startstop()
         self.logger.manager.debug(self._msg('PAGE_CRAWLED url=%s status=%s links=%s' %
                                             (response.url, response.status_code, len(links) if links else 0)))

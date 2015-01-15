@@ -1,6 +1,6 @@
 from twisted.internet.error import DNSLookupError, TimeoutError
 from twisted.internet.task import LoopingCall
-from scrapy.exceptions import NotConfigured, DontCloseSpider
+from scrapy.exceptions import NotConfigured, DontCloseSpider, CloseSpider
 from scrapy.http import Request
 from scrapy import signals
 
@@ -18,6 +18,7 @@ DEFAULT_FRONTIER_SCHEDULER_CONCURRENT_REQUESTS = 256
 class CrawlFrontierSpiderMiddleware(object):
 
     def __init__(self, crawler, stats):
+        self.idle_counter = 0
         self.crawler = crawler
         self.stats = stats
 
@@ -43,7 +44,7 @@ class CrawlFrontierSpiderMiddleware(object):
         self.crawler.signals.connect(self.spider_opened, signals.spider_opened)
         self.crawler.signals.connect(self.spider_closed, signals.spider_closed)
         #self.crawler.signals.connect(self.response_received, signals.response_received)
-        # self.crawler.signals.connect(self.spider_idle, signals.spider_idle)
+        self.crawler.signals.connect(self.spider_idle, signals.spider_idle)
         self.crawler.signals.connect(self.download_error, frontier_download_error)
 
     @classmethod
@@ -75,6 +76,7 @@ class CrawlFrontierSpiderMiddleware(object):
         self.frontier.page_crawled(scrapy_response=response,
                                    scrapy_links=links)
         self._remove_queued_request(response.request)
+        self.idle_counter = 0
 
     def download_error(self, request, exception, spider):
         # TODO: Add more errors...
@@ -87,14 +89,19 @@ class CrawlFrontierSpiderMiddleware(object):
         self._remove_queued_request(request)
 
     def spider_idle(self, spider):
-        if not self.frontier.manager.finished:
+        if self.idle_counter > 3:
+            raise CloseSpider()
+        elif not self.frontier.manager.finished:
+            self.idle_counter += 1
             raise DontCloseSpider()
+
 
     def _schedule_next_requests(self, spider):
         n_scheduled = len(self.queued_requests)
         if not self.frontier.manager.finished and n_scheduled < self.scheduler_concurrent_requests:
             n_requests_gap = self.scheduler_concurrent_requests - n_scheduled
             next_pages = self._get_next_requests(n_requests_gap)
+
             for request in next_pages:
                 self.crawler.engine.crawl(request, spider)
 
