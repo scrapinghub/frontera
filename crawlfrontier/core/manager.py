@@ -123,6 +123,7 @@ class FrontierManager(object):
         :class:`Settings <crawlfrontier.settings.Settings>` object instance. If no settings is given,
         :ref:`frontier default settings <frontier-default-settings>` are used.
         """
+
         manager_settings = Settings(settings)
         return FrontierManager(request_model=manager_settings.REQUEST_MODEL,
                                response_model=manager_settings.RESPONSE_MODEL,

@@ -43,7 +43,7 @@ class CrawlFrontierSpiderMiddleware(object):
         self.crawler.signals.connect(self.spider_opened, signals.spider_opened)
         self.crawler.signals.connect(self.spider_closed, signals.spider_closed)
         #self.crawler.signals.connect(self.response_received, signals.response_received)
-        self.crawler.signals.connect(self.spider_idle, signals.spider_idle)
+        # self.crawler.signals.connect(self.spider_idle, signals.spider_idle)
         self.crawler.signals.connect(self.download_error, frontier_download_error)
 
     @classmethod
