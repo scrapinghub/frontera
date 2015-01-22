@@ -30,6 +30,7 @@ class MemoryBaseBackend(Backend):
     def add_seeds(self, seeds):
         for seed in seeds:
             request, _ = self._get_or_create_request(seed)
+            request.isSeed = True
             self.heap.push(request)
 
     def get_next_requests(self, max_next_requests):
