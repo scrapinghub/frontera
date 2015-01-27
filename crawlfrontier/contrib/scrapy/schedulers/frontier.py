@@ -5,6 +5,7 @@ from scrapy import log
 from collections import deque
 
 from crawlfrontier.contrib.scrapy.manager import ScrapyFrontierManager
+from crawlfrontier.settings import Settings
 
 STATS_PREFIX = 'crawlfrontier'
 
@@ -78,6 +79,9 @@ class CrawlFrontierScheduler(Scheduler):
         frontier_settings = crawler.settings.get('FRONTIER_SETTINGS', None)
         if not frontier_settings:
             log.msg('FRONTIER_SETTINGS not found! Using default frontier settings...', log.WARNING)
+
+        frontier_settings = Settings(frontier_settings or None)
+        frontier_settings.AUTO_START = False
 
         scrapy_parameters = {'crawler': crawler}
         self.frontier = ScrapyFrontierManager(frontier_settings, **scrapy_parameters)
