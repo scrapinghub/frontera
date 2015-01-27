@@ -21,10 +21,10 @@ class MemoryBaseBackend(Backend):
     def from_manager(cls, manager):
         return cls(manager)
 
-    def frontier_start(self):
+    def frontier_start(self, **kwargs):
         pass
 
-    def frontier_stop(self):
+    def frontier_stop(self, **kwargs):
         pass
 
     def add_seeds(self, seeds):
@@ -37,13 +37,16 @@ class MemoryBaseBackend(Backend):
 
     def page_crawled(self, response, links):
         for link in links:
-            request, created = self._get_or_create_request(link)
-            if created:
-                request.meta['depth'] = response.request.meta.get('depth', 0)+1
-                self.heap.push(request)
+            self._process_response_link(response, link)
 
     def request_error(self, request, error):
         pass
+
+    def _process_response_link(self, response, link):
+        request, created = self._get_or_create_request(link)
+        if created:
+            request.meta['depth'] = response.request.meta.get('depth', 0)+1
+            self.heap.push(request)
 
     def _get_or_create_request(self, request):
         fingerprint = request.meta['fingerprint']

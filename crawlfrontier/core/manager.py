@@ -15,7 +15,8 @@ class FrontierManager(object):
     components.
     """
     def __init__(self, request_model, response_model, backend, logger, event_log_manager, middlewares=None,
-                 test_mode=False, max_requests=0, max_next_requests=0, auto_start=True, settings=None):
+                 test_mode=False, max_requests=0, max_next_requests=0, auto_start=True, settings=None,
+                 **kwargs):
         """
         :param object/string request_model: The :class:`Request <crawlfrontier.core.models.Request>` object to be \
         used by the frontier.
@@ -46,7 +47,12 @@ class FrontierManager(object):
 
         :param object/string settings: The :class:`Settings <crawlfrontier.settings.Settings>` object used by \
         the frontier.
+
+        :param ** kwargs: Arbitrary number of extra keyword arguments.
         """
+
+        # store extra parameters
+        self.extra = kwargs
 
         # Settings
         self._settings = settings or Settings()
@@ -116,7 +122,7 @@ class FrontierManager(object):
             self.start()
 
     @classmethod
-    def from_settings(cls, settings=None):
+    def from_settings(cls, settings=None, **kwargs):
         """
         Returns a :class:`FrontierManager <crawlfrontier.core.manager.FrontierManager>`  instance initialized with \
         the passed settings argument. Argument value can either be a string path pointing to settings file or a \
@@ -134,7 +140,8 @@ class FrontierManager(object):
                                max_requests=manager_settings.MAX_REQUESTS,
                                max_next_requests=manager_settings.MAX_NEXT_REQUESTS,
                                auto_start=manager_settings.AUTO_START,
-                               settings=manager_settings)
+                               settings=manager_settings,
+                               **kwargs)
 
     @property
     def request_model(self):
@@ -245,29 +252,33 @@ class FrontierManager(object):
         """
         return self._finished
 
-    def start(self):
+    def start(self, **kwargs):
         """
         Notifies all the components of the frontier start. Typically used for initializations (See \
         :ref:`starting/stopping the frontier <frontier-start-stop>`).
+
+        :param ** kwargs: Arbitrary number of extra keyword arguments.
 
         :return: None.
         """
         assert not self._started, 'Frontier already started!'
         #self.event_log_manager.frontier_start()
         self.logger.manager.debug(self._msg('START'))
-        self._process_components(method_name='frontier_start')
+        self._process_components(method_name='frontier_start', **kwargs)
         self._started = True
 
-    def stop(self):
+    def stop(self, **kwargs):
         """
         Notifies all the components of the frontier stop. Typically used for finalizations (See \
         :ref:`starting/stopping the frontier <frontier-start-stop>`).
+
+        :param ** kwargs: Arbitrary number of extra keyword arguments.
 
         :return: None.
         """
         self._check_startstop()
         self.logger.manager.debug(self._msg('STOP'))
-        self._process_components(method_name='frontier_stop')
+        self._process_components(method_name='frontier_stop', **kwargs)
         self._stopped = True
         #self.event_log_manager.frontier_stop()
 
@@ -306,7 +317,7 @@ class FrontierManager(object):
 
         # End condition check
         if self.max_requests and self.n_requests >= self.max_requests:
-            self.logger.manager.warning(self._msg('MAX PAGES REACHED! (%s/%s)' % (self.n_requests, self.max_requests)))
+            self.logger.manager.warning(self._msg('MAX REQUESTS REACHED! (%s/%s)' % (self.n_requests, self.max_requests)))
             self._finished = True
             return []
 
@@ -397,9 +408,9 @@ class FrontierManager(object):
         obj_class = load_object(obj_class_name)
         try:
             return self._load_frontier_object(obj_class)
-        except NotConfigured:
+        except NotConfigured, e:
             if not silent:
-                raise NotConfigured
+                raise e
 
     def _load_frontier_object(self, obj_class):
         if hasattr(obj_class, 'from_manager'):
@@ -408,7 +419,7 @@ class FrontierManager(object):
             return obj_class()
 
     def _load_middlewares(self, middleware_names):
-        # TO-DO: Use dict for middleware ordering
+        # TODO: Use dict for middleware ordering
         mws = []
         for mw_name in middleware_names or []:
             self.logger.manager.debug("Loading middleware '%s'" % mw_name)
@@ -441,7 +452,8 @@ class FrontierManager(object):
     def _process_component(self, component, method_name, component_category, obj, return_classes, **kwargs):
         debug_msg = "processing '%s' '%s.%s' %s" % (method_name, component_category, component.__class__.__name__, obj)
         self.logger.debugging.debug(debug_msg)
-        return_obj = getattr(component, method_name)(*([obj] if obj else []), **kwargs)
+        method = getattr(component, method_name)
+        return_obj = method(*([obj] if obj else []), **kwargs)
         assert return_obj is None or isinstance(return_obj, return_classes), \
             "%s '%s.%s' must return None or %s, Got '%s'" % \
             (component_category, obj.__class__.__name__, method_name,

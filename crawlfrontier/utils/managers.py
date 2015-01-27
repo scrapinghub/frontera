@@ -6,7 +6,7 @@ class FrontierManagerWrapper(object):
     request_converter_class = None
     response_converter_class = None
 
-    def __init__(self, settings):
+    def __init__(self, settings, **kwargs):
         assert self.request_converter_class, 'request_converter_class not defined'
         assert self.response_converter_class, 'response_converter_class not defined'
         assert issubclass(self.request_converter_class, BaseRequestConverter), 'request_converter_class ' \
@@ -15,13 +15,13 @@ class FrontierManagerWrapper(object):
                                                                                  'must subclass RequestConverter'
         self.request_converter = self.request_converter_class
         self.response_converter = self.response_converter_class
-        self.manager = FrontierManager.from_settings(settings)
+        self.manager = FrontierManager.from_settings(settings, **kwargs)
 
-    def start(self):
-        self.manager.start()
+    def start(self, **kwargs):
+        self.manager.start(**kwargs)
 
-    def stop(self):
-        self.manager.stop()
+    def stop(self, **kwargs):
+        self.manager.stop(**kwargs)
 
     def add_seeds(self, seeds):
         frontier_seeds = [self.request_converter.to_frontier(seed) for seed in seeds]

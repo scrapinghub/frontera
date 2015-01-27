@@ -78,7 +78,9 @@ class CrawlFrontierScheduler(Scheduler):
         frontier_settings = crawler.settings.get('FRONTIER_SETTINGS', None)
         if not frontier_settings:
             log.msg('FRONTIER_SETTINGS not found! Using default frontier settings...', log.WARNING)
-        self.frontier = ScrapyFrontierManager(frontier_settings)
+
+        scrapy_parameters = {'crawler': crawler}
+        self.frontier = ScrapyFrontierManager(frontier_settings, **scrapy_parameters)
 
     @classmethod
     def from_crawler(cls, crawler):
@@ -120,11 +122,13 @@ class CrawlFrontierScheduler(Scheduler):
     def open(self, spider):
         log.msg('Starting frontier', log.INFO)
         if not self.frontier.manager.auto_start:
-            self.frontier.start()
+            scrapy_kwargs = {'spider': spider}
+            self.frontier.start(**scrapy_kwargs)
 
     def close(self, reason):
         log.msg('Finishing frontier (%s)' % reason, log.INFO)
-        self.frontier.stop()
+        scrapy_kwargs = {'reason': reason}
+        self.frontier.stop(**scrapy_kwargs)
         self.stats_manager.set_iterations(self.frontier.manager.iteration)
         self.stats_manager.set_pending_requests(len(self))
 
