@@ -79,7 +79,9 @@ class FronteraScheduler(Scheduler):
         frontier_settings = crawler.settings.get('FRONTERA_SETTINGS', None)
         if not frontier_settings:
             log.msg('FRONTERA_SETTINGS not found! Using default Frontera settings...', log.WARNING)
-        self.frontier = ScrapyFrontierManager(frontier_settings)
+
+        scrapy_parameters = {'crawler': crawler}
+        self.frontier = ScrapyFrontierManager(frontier_settings, **scrapy_parameters)
 
         self._delay_on_empty = self.frontier.manager.settings.get('DELAY_ON_EMPTY')
         self._delay_next_call = 0.0
@@ -124,11 +126,13 @@ class FronteraScheduler(Scheduler):
     def open(self, spider):
         log.msg('Starting frontier', log.INFO)
         if not self.frontier.manager.auto_start:
-            self.frontier.start()
+            scrapy_kwargs = {'spider': spider}
+            self.frontier.start(**scrapy_kwargs)
 
     def close(self, reason):
         log.msg('Finishing frontier (%s)' % reason, log.INFO)
-        self.frontier.stop()
+        scrapy_kwargs = {'reason': reason}
+        self.frontier.stop(**scrapy_kwargs)
         self.stats_manager.set_iterations(self.frontier.manager.iteration)
         self.stats_manager.set_pending_requests(len(self))
 
