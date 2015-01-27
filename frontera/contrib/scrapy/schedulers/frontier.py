@@ -6,6 +6,7 @@ from collections import deque
 from time import time
 
 from frontera.contrib.scrapy.manager import ScrapyFrontierManager
+from frontera.settings import Settings
 
 STATS_PREFIX = 'frontera'
 
@@ -78,7 +79,10 @@ class FronteraScheduler(Scheduler):
 
         frontier_settings = crawler.settings.get('FRONTERA_SETTINGS', None)
         if not frontier_settings:
-            log.msg('FRONTERA_SETTINGS not found! Using default Frontera settings...', log.WARNING)
+            log.msg('FRONTIER_SETTINGS not found! Using default frontier settings...', log.WARNING)
+
+        frontier_settings = Settings(frontier_settings or None)
+        frontier_settings.AUTO_START = False
 
         scrapy_parameters = {'crawler': crawler}
         self.frontier = ScrapyFrontierManager(frontier_settings, **scrapy_parameters)
