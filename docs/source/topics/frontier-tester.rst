@@ -13,7 +13,8 @@ Creating a Frontier Tester
 FrontierTester needs a :doc:`Graph Manager <graph-manager>` and a
 :class:`FrontierManager <crawlfrontier.core.manager.FrontierManager>` instances::
 
-    >>> from crawlfrontier import FrontierManager, FrontierTester, graphs
+    >>> from crawlfrontier import FrontierManager, FrontierTester
+    >>> from crawlfrontier.utils import graphs
     >>> graph = graphs.Manager('sqlite:///graph.db')  # Crawl fake data loading
     >>> frontier = FrontierManager.from_settings()  # Create frontier from default settings
     >>> tester = FrontierTester(frontier, graph)
@@ -56,7 +57,8 @@ An example of use
 
 A working example using test data from graphs and :ref:`basic backends <frontier-backends-basic-algorithms>`::
 
-    from crawlfrontier import FrontierManager, Settings, FrontierTester, graphs
+    from crawlfrontier import FrontierManager, Settings, FrontierTester
+    from crawlfrontier.utils import graphs
 
 
     def test_backend(backend):

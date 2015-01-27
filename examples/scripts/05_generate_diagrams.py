@@ -1,7 +1,7 @@
 """
 Graph diagram generation example
 """
-from crawlfrontier import graphs
+from crawlfrontier.utils import graphs
 
 SITE_LIST_A = [
     [

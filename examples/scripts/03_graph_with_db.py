@@ -1,7 +1,7 @@
 """
 Graph manager with database
 """
-from crawlfrontier import graphs
+from crawlfrontier.utils import graphs
 
 SITE_LIST = [
     [

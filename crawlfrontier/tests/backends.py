@@ -1,6 +1,7 @@
 import pytest
 
-from crawlfrontier import FrontierManager, Settings, FrontierTester, graphs
+from crawlfrontier import FrontierManager, Settings, FrontierTester
+from crawlfrontier.utils import graphs
 
 
 class BackendTest(object):

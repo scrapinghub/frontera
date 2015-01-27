@@ -4,7 +4,7 @@ from scrapy.core.scheduler import Scheduler
 from scrapy.http import Request
 from scrapy import log
 
-from crawlfrontier import graphs
+from crawlfrontier.utils import graphs
 
 # Default Values
 DEFAULT_RECORDER_ENABLED = True

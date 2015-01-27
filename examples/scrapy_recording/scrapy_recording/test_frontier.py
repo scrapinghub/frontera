@@ -1,7 +1,8 @@
 """
 Frontier tester using recording data
 """
-from crawlfrontier import FrontierManager, FrontierTester, Settings, graphs
+from crawlfrontier import FrontierManager, FrontierTester, Settings
+from crawlfrontier.utils import graphs
 
 SETTINGS = Settings()
 SETTINGS.BACKEND = 'crawlfrontier.contrib.backends.memory_heapq.FIFO'

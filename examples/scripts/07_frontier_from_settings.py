@@ -1,7 +1,8 @@
 """
 Frontier initialization from settings
 """
-from crawlfrontier import FrontierManager, Settings, graphs, Request, Response
+from crawlfrontier import FrontierManager, Settings, Request, Response
+from crawlfrontier.utils import graphs
 
 SETTINGS = Settings()
 SETTINGS.BACKEND = 'crawlfrontier.contrib.backends.memory.FIFO'
