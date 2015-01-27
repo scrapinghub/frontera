@@ -22,10 +22,10 @@ class MemoryBaseBackend(Backend):
     def from_manager(cls, manager):
         return cls(manager)
 
-    def frontier_start(self):
+    def frontier_start(self, **kwargs):
         pass
 
-    def frontier_stop(self):
+    def frontier_stop(self, **kwargs):
         pass
 
     def add_seeds(self, seeds):
