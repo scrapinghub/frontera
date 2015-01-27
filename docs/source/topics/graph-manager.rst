@@ -92,7 +92,7 @@ Once we have defined our site represented as a graph, we can start using it with
 
 We must first create our graph manager::
 
-    >>> from crawlfrontier import graphs
+    >>> from crawlfrontier.utils import graphs
     >>> g = graphs.Manager()
 
 
@@ -289,7 +289,8 @@ A simple crawl faking example
 Frontier tests can better be done using the :doc:`Frontier Tester tool <frontier-tester>`, but here's an example of
 how fake a crawl with a frontier::
 
-    from crawlfrontier import FrontierManager, graphs, Request, Response
+    from crawlfrontier import FrontierManager, Request, Response
+    from crawlfrontier.utils import graphs
 
     if __name__ == '__main__':
         # Load graph from existing database
