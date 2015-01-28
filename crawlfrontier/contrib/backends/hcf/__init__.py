@@ -98,7 +98,7 @@ class HCFBackend(MemoryFIFOBackend):
     If is consumer:
     * HCF_CONSUMER_FRONTIER - The frontier where URLs are readed.
     * HCF_CONSUMER_SLOT - Slot from where the spider will read new URLs.
-    * HCF_CONSUMER_MAX_BATCHES  - Max batches to read from hubstorage
+    * HCF_CONSUMER_MAX_BATCHES - Max batches to read from hubstorage
     """
 
     scrapy_spider_settings = (
@@ -198,15 +198,17 @@ class HCFBackend(MemoryFIFOBackend):
             batch_id = batch['id']
             requests = batch['requests']
             self.stats.inc_value(self._get_consumer_stats_msg('requests'), len(requests))
-            for fingerprint, qdata in batch['requests']:
+            for fingerprint, qdata in requests:
                 request = self._make_request(qdata.get('url', fingerprint))
                 return_requests.append(request)
             consumed_batches_ids.append(batch_id)
             self.stats.inc_value(self._get_consumer_stats_msg('batches'))
+            _msg('Reading %d request(s) from batch %s ' % (len(requests), batch_id))
 
         if consumed_batches_ids:
             self.consumer.delete(self.hcf_consumer_slot, consumed_batches_ids)
             self.n_consumed_batches += len(consumed_batches_ids)
+
 
         return return_requests
 
