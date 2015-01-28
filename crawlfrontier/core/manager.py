@@ -335,9 +335,7 @@ class FrontierManager(object):
                                             (max_next_requests, self.n_requests, self.max_requests or '-')))
 
         # get next requests
-        next_requests = self.backend.get_next_requests(max_next_requests)
-        if next_requests is None:
-            next_requests = []
+        next_requests = self.backend.get_next_requests(max_next_requests) or []
 
         if next_requests:
             # Increment requests counter
