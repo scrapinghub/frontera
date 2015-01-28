@@ -16,6 +16,7 @@ except ImportError:
 DEFAULT_HCF_PRODUCER_NUMBER_OF_SLOTS = 8
 DEFAULT_HCF_PRODUCER_SLOT_PREFIX = ''
 DEFAULT_HCF_PRODUCER_BATCH_SIZE = 100
+DEFAULT_HCF_PRODUCER_RESET_FRONTIER = False
 DEFAULT_HCF_CONSUMER_SLOT = 0
 DEFAULT_HCF_CONSUMER_MAX_BATCHES = 0
 
@@ -105,6 +106,7 @@ class HCFBackend(MemoryFIFOBackend):
         'hcf_producer_frontier',
         'hcf_producer_number_of_slots',
         'hcf_producer_batch_size',
+        'hcf_producer_reset_frontier',
         'hcf_consumer_slot',
         'hcf_consumer_max_batches',
     )
@@ -125,6 +127,8 @@ class HCFBackend(MemoryFIFOBackend):
                                                                          default=DEFAULT_HCF_PRODUCER_NUMBER_OF_SLOTS)
         self.hcf_producer_batch_size = params.get_from_all_settings('HCF_PRODUCER_BATCH_SIZE',
                                                                     default=DEFAULT_HCF_PRODUCER_BATCH_SIZE)
+        self.hcf_producer_reset_frontier = params.get_from_all_settings('HCF_PRODUCER_RESET_FRONTIER',
+                                                                        default=DEFAULT_HCF_PRODUCER_RESET_FRONTIER)
         self.hcf_consumer_frontier = params.get_from_all_settings('HCF_CONSUMER_FRONTIER')
         self.hcf_consumer_slot = params.get_from_all_settings('HCF_CONSUMER_SLOT',
                                                               default=DEFAULT_HCF_CONSUMER_SLOT)
@@ -151,7 +155,11 @@ class HCFBackend(MemoryFIFOBackend):
                                                       self.producer_get_slot_callback)
         if not (self.consumer or self.producer):
             raise NotConfigured("You must configure backend either as consumer or producer")
+
         self._log_start_message()
+
+        if self.producer and self.hcf_producer_reset_frontier:
+            self._reset_producer_frontier()
 
     def frontier_stop(self, **kwargs):
         super(HCFBackend, self).frontier_stop(**kwargs)
@@ -308,3 +316,13 @@ class HCFBackend(MemoryFIFOBackend):
         if msg:
             stats_msg += '/%s' % msg
         return stats_msg
+
+    def _get_producer_slot_name(self, slot):
+        return self.hcf_producer_slot_prefix + str(slot)
+
+    def _reset_producer_frontier(self):
+        _msg('reseting producer slots...')
+        for slot in range(self.hcf_producer_number_of_slots):
+            slot_name = self._get_producer_slot_name(slot)
+            _msg('deleting producer slot %s' % slot_name)
+            self.producer.delete_slot(slot_name)
