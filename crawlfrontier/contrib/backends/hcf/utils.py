@@ -106,7 +106,7 @@ def get_project_conf():
     try:
         from hworker.bot.hsref import hsref
         conf = {'project_id': hsref.projectid, 'auth': hsref.auth}
-    except Exception, e:
+    except Exception:
         pass
 
     cfg = {}
