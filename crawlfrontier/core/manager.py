@@ -401,6 +401,9 @@ class FrontierManager(object):
         #self.event_log_manager.page_crawled_error(processed_page, error)
         return processed_page
 
+    def make_request(self, url, method='GET', headers=None, cookies=None, meta=None):
+        return self._request_model(url, method, headers, cookies, meta)
+
     def _msg(self, msg):
         return '(%s) %s' % (self.iteration, msg)
 
