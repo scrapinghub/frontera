@@ -336,13 +336,19 @@ class FrontierManager(object):
                                             (max_next_requests, self.n_requests, self.max_requests or '-')))
 
         # get next requests
+<<<<<<< HEAD:frontera/core/manager.py
         next_requests = self.backend.get_next_requests(max_next_requests, **kwargs)
+=======
+        next_requests = self.backend.get_next_requests(max_next_requests)
+        if next_requests is None:
+            next_requests = []
+>>>>>>> Fixed bug for empty next_requests:crawlfrontier/core/manager.py
 
-        # Increment requests counter
-        self._n_requests += len(next_requests)
-
-        # Increment Iteration and log event
         if next_requests:
+            # Increment requests counter
+            self._n_requests += len(next_requests)
+
+            # Increment Iteration and log event
             self._iteration += 1
             self.event_log_manager.get_next_requests(max_next_requests, next_requests)
 
