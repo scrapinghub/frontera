@@ -93,6 +93,7 @@ class HCFBackend(MemoryFIFOBackend):
     * HCF_PRODUCER_SLOT_PREFIX - Prefix to use for slot names.
     * HCF_PRODUCER_NUMBER_OF_SLOTS - Number of write slots to use.
     * HCF_PRODUCER_BATCH_SIZE - How often slot flush should be called. When a slot reaches the number, it is flushed.
+    * HCF_PRODUCER_RESET_FRONTIER - Deletes frontier slots if True. defaults to False.
 
     If is consumer:
     * HCF_CONSUMER_FRONTIER - The frontier where URLs are readed.
