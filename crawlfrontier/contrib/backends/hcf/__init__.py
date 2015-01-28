@@ -265,7 +265,6 @@ class HCFBackend(MemoryFIFOBackend):
             return False
         return self.n_consumed_batches >= self.hcf_consumer_max_batches
 
-
     def _init_roles(self):
         self.producer = None
         self.consumer = None
