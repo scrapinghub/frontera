@@ -91,7 +91,7 @@ class Backend(Component):
     component_name = 'Base Backend'
 
     @abstractmethod
-    def get_next_requests(self, max_n_requests):
+    def get_next_requests(self, max_n_requests, overused_keys):
         """
         Returns a list of next requests to be crawled.
 
