@@ -137,7 +137,7 @@ class CrawlFrontierScheduler(Scheduler):
     def _get_next_request(self):
         if not self.frontier.manager.finished and \
            not self.has_pending_requests():
-            for request in self.frontier.get_next_requests():
+            for request in self.frontier.get_next_requests(overused_keys=self._get_overused_keys()):
                 self._add_pending_request(request)
         return self._get_pending_request()
 
@@ -155,3 +155,11 @@ class CrawlFrontierScheduler(Scheduler):
 
     def _request_is_redirected(self, request):
         return request.meta.get('redirect_times', 0) > 0
+
+    def _get_overused_keys(self):
+        keys = []
+        downloader = self.crawler.engine.downloader
+        for (key, slot) in downloader.slots.iteritems():
+            if len(slot.active) / float(slot.concurrency) > 1.0:
+                keys.append(key)
+        return keys

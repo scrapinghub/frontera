@@ -291,7 +291,7 @@ class FrontierManager(object):
                                  obj=seeds,
                                  return_classes=(list,))  # TODO: Dar vuelta
 
-    def get_next_requests(self, max_next_requests=0):
+    def get_next_requests(self, overused_keys, max_next_requests=0):
         """
         Returns a list of next requests to be crawled. Optionally a maximum number of pages can be passed. If no
         value is passed, \
@@ -324,7 +324,7 @@ class FrontierManager(object):
                                             (max_next_requests, self.n_requests, self.max_requests or '-')))
 
         # get next requests
-        next_requests = self.backend.get_next_requests(max_next_requests)
+        next_requests = self.backend.get_next_requests(max_next_requests, overused_keys=overused_keys)
 
         # Increment requests counter
         self._n_requests += len(next_requests)

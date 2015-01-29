@@ -32,7 +32,7 @@ class MemoryBaseBackend(Backend):
             request, _ = self._get_or_create_request(seed)
             self.heap.push(request)
 
-    def get_next_requests(self, max_next_requests):
+    def get_next_requests(self, max_next_requests, overused_keys):
         return self.heap.pop(max_next_requests)
 
     def page_crawled(self, response, links):
