@@ -126,7 +126,7 @@ class SQLiteBackend(Backend):
                                                      request_or_response=seed)
         self.session.commit()
 
-    def get_next_requests(self, max_next_requests):
+    def get_next_requests(self, max_next_requests, overused_keys):
         query = self.page_model.query(self.session)
         query = query.filter(self.page_model.state == Page.State.NOT_CRAWLED)
         query = self._get_order_by(query)
@@ -145,7 +145,7 @@ class SQLiteBackend(Backend):
                                                  request_or_response=response)
         db_page.state = Page.State.CRAWLED
         db_page.status_code = response.status_code
-        # TODO: a performance bottle-neck on big volumes, operations should be batched here
+        # TODO: a performance bottle-neck on big volumes, opeartions should be batched here
         for link in links:
             db_page_from_link, created = self._get_or_create_db_page(url=link.url, fingerprint=link.meta['fingerprint'],
                                                                      request_or_response=link)
