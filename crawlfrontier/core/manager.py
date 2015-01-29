@@ -291,7 +291,7 @@ class FrontierManager(object):
                                  obj=seeds,
                                  return_classes=(list,))  # TODO: Dar vuelta
 
-    def get_next_requests(self, overused_keys, max_next_requests=0):
+    def get_next_requests(self, max_next_requests=0, overused_keys=[]):
         """
         Returns a list of next requests to be crawled. Optionally a maximum number of pages can be passed. If no
         value is passed, \
@@ -299,6 +299,8 @@ class FrontierManager(object):
         will be used instead. (:setting:`MAX_NEXT_REQUESTS` setting).
 
         :param int max_next_requests: Maximum number of requests to be returned by this method.
+        :param list overused_keys: Hostnames or ip addresses (depends on Spider settings) having already full queues of
+        requests in Downloader.
 
         :return: list of :class:`Request <crawlfrontier.core.models.Request>` objects.
         """
