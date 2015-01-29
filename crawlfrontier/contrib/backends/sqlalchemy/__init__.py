@@ -122,7 +122,8 @@ class SQLiteBackend(Backend):
 
     def add_seeds(self, seeds):
         for seed in seeds:
-            db_page, _ = self._get_or_create_db_page(url=seed.url, fingerprint=seed.meta['fingerprint'])
+            db_page, _ = self._get_or_create_db_page(url=seed.url, fingerprint=seed.meta['fingerprint'],
+                                                     request_or_response=seed)
         self.session.commit()
 
     def get_next_requests(self, max_next_requests, overused_keys):
@@ -140,29 +141,27 @@ class SQLiteBackend(Backend):
         return next_pages
 
     def page_crawled(self, response, links):
-        db_page, _ = self._get_or_create_db_page(url=response.url, fingerprint=response.meta['fingerprint'])
+        db_page, _ = self._get_or_create_db_page(url=response.url, fingerprint=response.meta['fingerprint'],
+                                                 request_or_response=response)
         db_page.state = Page.State.CRAWLED
         db_page.status_code = response.status_code
         for link in links:
-            db_page_from_link, created = self._get_or_create_db_page(url=link.url, fingerprint=link.meta['fingerprint'])
+            db_page_from_link, created = self._get_or_create_db_page(url=link.url, fingerprint=link.meta['fingerprint'],
+                                                                     request_or_response=None)
             if created:
                 db_page_from_link.depth = db_page.depth+1
         self.session.commit()
 
     def request_error(self, request, error):
-        db_page, _ = self._get_or_create_db_page(url=request.url, fingerprint=request.meta['fingerprint'])
+        db_page, _ = self._get_or_create_db_page(url=request.url, fingerprint=request.meta['fingerprint'],
+                                                 request_or_response=request)
         db_page.state = Page.State.ERROR
         db_page.error = error
         self.session.commit()
 
-    def _get_or_create_db_page(self, url, fingerprint):
+    def _get_or_create_db_page(self, url, fingerprint, request_or_response):
         if not self._request_exists(fingerprint):
-            db_request = self.page_model()
-            db_request.fingerprint = fingerprint
-            db_request.state = Page.State.NOT_CRAWLED
-            db_request.url = url
-            db_request.depth = 0
-            db_request.created_at = datetime.datetime.utcnow()
+            db_request = self._create_page(url, fingerprint, request_or_response)
             self.session.add(db_request)
             self.manager.logger.backend.debug('Creating request %s' % db_request)
             return db_request, True
@@ -170,6 +169,15 @@ class SQLiteBackend(Backend):
             db_request = self.page_model.query(self.session).filter_by(fingerprint=fingerprint).first()
             self.manager.logger.backend.debug('Request exists %s' % db_request)
             return db_request, False
+
+    def _create_page(self, url, fingerprint, request_or_response):
+        db_request = self.page_model()
+        db_request.fingerprint = fingerprint
+        db_request.state = Page.State.NOT_CRAWLED
+        db_request.url = url
+        db_request.depth = 0
+        db_request.created_at = datetime.datetime.utcnow()
+        return db_request
 
     def _request_exists(self, fingerprint):
         q = self.page_model.query(self.session).filter_by(fingerprint=fingerprint)
