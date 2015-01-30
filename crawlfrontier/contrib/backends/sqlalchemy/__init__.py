@@ -135,7 +135,7 @@ class SQLiteBackend(Backend):
         next_pages = []
         for db_page in query:
             db_page.state = Page.State.QUEUED
-            request = self.manager.request_model(url=db_page.url)
+            request = self._create_request(db_page) # FIXME: we loose all the Request metadata here: methods, meta...
             next_pages.append(request)
         self.session.commit()
         return next_pages
@@ -147,7 +147,7 @@ class SQLiteBackend(Backend):
         db_page.status_code = response.status_code
         for link in links:
             db_page_from_link, created = self._get_or_create_db_page(url=link.url, fingerprint=link.meta['fingerprint'],
-                                                                     request_or_response=None)
+                                                                     request_or_response=link)
             if created:
                 db_page_from_link.depth = db_page.depth+1
         self.session.commit()
@@ -171,13 +171,16 @@ class SQLiteBackend(Backend):
             return db_request, False
 
     def _create_page(self, url, fingerprint, request_or_response):
-        db_request = self.page_model()
-        db_request.fingerprint = fingerprint
-        db_request.state = Page.State.NOT_CRAWLED
-        db_request.url = url
-        db_request.depth = 0
-        db_request.created_at = datetime.datetime.utcnow()
-        return db_request
+        page = self.page_model()
+        page.fingerprint = fingerprint
+        page.state = Page.State.NOT_CRAWLED
+        page.url = url
+        page.depth = 0
+        page.created_at = datetime.datetime.utcnow()
+        return page
+
+    def _create_request(self, db_page):
+        return self.manager.request_model(url=db_page.url)
 
     def _request_exists(self, fingerprint):
         q = self.page_model.query(self.session).filter_by(fingerprint=fingerprint)
