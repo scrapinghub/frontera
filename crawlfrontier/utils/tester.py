@@ -63,3 +63,54 @@ class FrontierTester(object):
                 self.frontier.request_error(request=page_to_crawl,
                                             error=crawled_page.status)
         return requests
+
+class BaseDownloaderSimulator(object):
+    def __init__(self):
+        self.requests = None
+
+    def update(self, requests):
+        self.requests = requests
+
+    def download(self):
+        return self.requests
+
+    def overused_keys(self):
+        return []
+
+    def idle(self):
+        return True
+
+
+class DownloaderSimulator(BaseDownloaderSimulator):
+    def __init__(self, rate):
+        self._requests_per_slot = rate
+        self.slots = defaultdict(deque)
+        super(DownloaderSimulator, self).__init__()
+
+    def update(self, requests):
+        for request in requests:
+            hostname = urlparse_cached(request).hostname or ''
+            self.slots[hostname].append(request)
+
+    def download(self):
+        output = []
+        _trash_can = []
+        for key, requests in self.slots.iteritems():
+            for i in range(min(len(requests), self._requests_per_slot)):
+                output.append(requests.popleft())
+            if not requests:
+                _trash_can.append(key)
+
+        for key in _trash_can: del self.slots[key]
+        return output
+
+    def overused_keys(self):
+        keys = []
+        for key, requests in self.slots.iteritems():
+            if len(requests) > self._requests_per_slot:
+                keys.append(key)
+
+        return keys
+
+    def idle(self):
+        return bool(self.slots)
