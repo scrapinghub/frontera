@@ -12,7 +12,7 @@ SETTINGS.TEST_MODE = True
 
 if __name__ == '__main__':
     # Create graph
-    graph = graphs.Manager('sqlite:///data/graph.db')
+    graph = graphs.Manager('sqlite:///graph_2014_08_25_wo_pdf2.db')
 
     # Create frontier from settings
     frontier = FrontierManager.from_settings(SETTINGS)

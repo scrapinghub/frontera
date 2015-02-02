@@ -3,6 +3,7 @@ from crawlfrontier.utils.url import urlparse_cached
 
 from collections import defaultdict, deque
 
+
 class FrontierTester(object):
 
     def __init__(self, frontier, graph_manager, downloader_simulator, max_next_requests=0):
@@ -44,7 +45,8 @@ class FrontierTester(object):
         return self.frontier.response_model(url=url, status_code=status_code, request=request)
 
     def _run_iteration(self):
-        kwargs = {'overused_keys': self.downloader_simulator.overused_keys()}
+        kwargs = {'overused_keys':
+                      self.downloader_simulator.overused_keys()}
         if self.max_next_requests: kwargs['max_next_requests'] = self.max_next_requests
 
         requests = self.frontier.get_next_requests(**kwargs)
@@ -63,6 +65,7 @@ class FrontierTester(object):
                 self.frontier.request_error(request=page_to_crawl,
                                             error=crawled_page.status)
         return requests
+
 
 class BaseDownloaderSimulator(object):
     def __init__(self):
@@ -101,7 +104,8 @@ class DownloaderSimulator(BaseDownloaderSimulator):
             if not requests:
                 _trash_can.append(key)
 
-        for key in _trash_can: del self.slots[key]
+        for key in _trash_can:
+            del self.slots[key]
         return output
 
     def overused_keys(self):
