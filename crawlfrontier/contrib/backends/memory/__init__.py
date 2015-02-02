@@ -4,6 +4,7 @@ import random
 
 from crawlfrontier import Backend
 from crawlfrontier.utils.heap import Heap
+from crawlfrontier.contrib.backends import OverusedBuffer
 
 
 class MemoryBaseBackend(Backend):
@@ -98,6 +99,18 @@ class MemoryRandomBackend(MemoryBaseBackend):
 
     def _compare_pages(self, first, second):
         return random.choice([-1, 0, 1])
+
+
+class MemoryDFSOverusedBackend(MemoryDFSBackend):
+    component_name = 'DFS Memory Backend taking into account overused slots'
+
+    def __init__(self, manager):
+        super(MemoryDFSOverusedBackend, self).__init__(manager)
+        self._buffer = OverusedBuffer(super(MemoryDFSOverusedBackend, self).get_next_requests,
+                                               manager.logger.manager.debug)
+
+    def get_next_requests(self, max_n_requests, overused_keys):
+        return self._buffer.get_next_requests(max_n_requests, overused_keys)
 
 
 BASE = MemoryBaseBackend
