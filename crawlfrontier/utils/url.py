@@ -18,9 +18,9 @@ _ALWAYS_SAFE_BYTES = (b'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 _reserved = b';/?:@&=+$|,#'  # RFC 3986 (Generic Syntax)
 _unreserved_marks = b"-_.!~*'()"  # RFC 3986 sec 2.3
 _safe_chars = _ALWAYS_SAFE_BYTES + b'%' + _reserved + _unreserved_marks
-
-
 _urlparse_cache = weakref.WeakKeyDictionary()
+
+
 def urlparse_cached(request_or_response):
     """Return urlparse.urlparse caching the result, where the argument can be a
     Request or Response object
