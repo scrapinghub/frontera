@@ -5,6 +5,7 @@ import hashlib
 from six import moves
 from w3lib.util import unicode_to_str
 import tldextract
+import weakref
 
 
 # Python 2.x urllib.always_safe become private in Python 3.x;
@@ -17,6 +18,16 @@ _ALWAYS_SAFE_BYTES = (b'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 _reserved = b';/?:@&=+$|,#'  # RFC 3986 (Generic Syntax)
 _unreserved_marks = b"-_.!~*'()"  # RFC 3986 sec 2.3
 _safe_chars = _ALWAYS_SAFE_BYTES + b'%' + _reserved + _unreserved_marks
+
+
+_urlparse_cache = weakref.WeakKeyDictionary()
+def urlparse_cached(request_or_response):
+    """Return urlparse.urlparse caching the result, where the argument can be a
+    Request or Response object
+    """
+    if request_or_response not in _urlparse_cache:
+        _urlparse_cache[request_or_response] = urlparse.urlparse(request_or_response.url)
+    return _urlparse_cache[request_or_response]
 
 
 def parse_url(url, encoding=None):

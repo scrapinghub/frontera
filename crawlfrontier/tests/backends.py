@@ -163,6 +163,54 @@ class FIFOBackendTest(BackendSequenceTest):
             max_next_requests=max_next_requests,
         )
 
+class DFSOverusedBackendTest(BackendSequenceTest):
+
+    EXPECTED_SEQUENCES = {
+        "SEQUENCE_01_A": [
+            'https://www.a.com', 'http://b.com', 'http://www.a.com/2', 'http://www.a.com/2/1', 'http://www.a.com/3',
+            'http://www.a.com/2/1/3', 'http://www.a.com/2/4/1', 'http://www.a.net', 'http://b.com/2',
+            'http://test.cloud.c.com', 'http://cloud.c.com', 'http://test.cloud.c.com/2',
+            'http://b.com/entries?page=2', 'http://www.a.com/2/4/2'
+        ],
+        "SEQUENCE_02_A": [
+            'https://www.a.com', 'http://b.com', 'http://www.a.com/2', 'http://www.a.com/2/1', 'http://www.a.com/3',
+            'http://www.a.com/2/1/3', 'http://www.a.com/2/4/1', 'http://www.a.com/2/4/2', 'http://www.a.net',
+            'http://b.com/2', 'http://test.cloud.c.com', 'http://cloud.c.com', 'http://test.cloud.c.com/2',
+            'http://b.com/entries?page=2'
+        ]
+    }
+
+    @pytest.mark.parametrize(
+        ('site_list', 'max_next_requests', 'expected_sequence'), [
+
+            ('SITE_09', 5, 'SEQUENCE_01_A')
+        ]
+    )
+    def test_sequence1(self, site_list, max_next_requests, expected_sequence):
+        sequence = self.get_sequence(TEST_SITES[site_list], max_next_requests,
+                                     downloader_simulator=DownloaderSimulator(rate=1))
+
+        expected_sequence = self.EXPECTED_SEQUENCES[expected_sequence]
+
+        # Assert sequence equals expected
+        assert len(sequence) == len(expected_sequence)
+        assert sequence == expected_sequence
+
+    @pytest.mark.parametrize(
+        ('site_list', 'max_next_requests', 'expected_sequence'), [
+
+            ('SITE_09', 5, 'SEQUENCE_02_A')
+        ]
+    )
+    def test_sequence2(self, site_list, max_next_requests, expected_sequence):
+        sequence = self.get_sequence(TEST_SITES[site_list], max_next_requests,
+                                     downloader_simulator=BaseDownloaderSimulator())
+
+        expected_sequence = self.EXPECTED_SEQUENCES[expected_sequence]
+
+        # Assert sequence equals expected
+        assert len(sequence) == len(expected_sequence)
+        assert sequence == expected_sequence
 
 class DFSOverusedBackendTest(BackendSequenceTest):
 
