@@ -135,7 +135,7 @@ class SQLiteBackend(Backend):
         next_pages = []
         for db_page in query:
             db_page.state = Page.State.QUEUED
-            request = self._create_request(db_page) # FIXME: we loose all the Request metadata here: methods, meta...
+            request = self._create_request(db_page)  # FIXME: we loose all the Request metadata here: methods, meta...
             next_pages.append(request)
         self.session.commit()
         return next_pages
@@ -145,6 +145,7 @@ class SQLiteBackend(Backend):
                                                  request_or_response=response)
         db_page.state = Page.State.CRAWLED
         db_page.status_code = response.status_code
+        # TODO: a performance bottle-neck on big volumes, opeartions should be batched here
         for link in links:
             db_page_from_link, created = self._get_or_create_db_page(url=link.url, fingerprint=link.meta['fingerprint'],
                                                                      request_or_response=link)
