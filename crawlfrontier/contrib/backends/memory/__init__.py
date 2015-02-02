@@ -40,7 +40,7 @@ class MemoryBaseBackend(Backend):
         for link in links:
             request, created = self._get_or_create_request(link)
             if created:
-                request.meta['depth'] = response.request.meta.get('depth', 0)+1
+                request.meta['depth'] = response.request.meta.get('depth', 0) + 1
                 self.heap.push(request)
 
     def request_error(self, request, error):
@@ -107,7 +107,7 @@ class MemoryDFSOverusedBackend(MemoryDFSBackend):
     def __init__(self, manager):
         super(MemoryDFSOverusedBackend, self).__init__(manager)
         self._buffer = OverusedBuffer(super(MemoryDFSOverusedBackend, self).get_next_requests,
-                                               manager.logger.manager.debug)
+                                      manager.logger.manager.debug)
 
     def get_next_requests(self, max_n_requests, overused_keys):
         return self._buffer.get_next_requests(max_n_requests, overused_keys)

@@ -163,6 +163,7 @@ class FIFOBackendTest(BackendSequenceTest):
             max_next_requests=max_next_requests,
         )
 
+
 class DFSOverusedBackendTest(BackendSequenceTest):
 
     EXPECTED_SEQUENCES = {
@@ -211,6 +212,7 @@ class DFSOverusedBackendTest(BackendSequenceTest):
         # Assert sequence equals expected
         assert len(sequence) == len(expected_sequence)
         assert sequence == expected_sequence
+
 
 class LIFOBackendTest(BackendSequenceTest):
 
