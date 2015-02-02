@@ -104,17 +104,22 @@ All the rest
    :hidden:
 
    topics/examples
+   topics/best-practices
    topics/tests
    topics/release-notes
 
 :doc:`topics/examples`
     Some example projects and scripts using Crawl Frontier.
 
+:doc:`topics/best-practices`
+    The best practices of Crawl Frontier usage.
+
 :doc:`topics/tests`
     How to run and write Crawl Frontier tests.
 
 :doc:`topics/release-notes`
     See what has changed in recent Crawl Frontier versions.
+
 
 
 ..   topics/frontier-at-a-glance

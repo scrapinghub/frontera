@@ -1,10 +1,18 @@
+from __future__ import absolute_import
+
+from collections import OrderedDict, deque
+from urlparse import urlparse
+from crawlfrontier.core import DownloaderInfo
+
+
 class FrontierTester(object):
 
-    def __init__(self, frontier, graph_manager, max_next_requests=0):
+    def __init__(self, frontier, graph_manager, downloader_simulator, max_next_requests=0):
         self.frontier = frontier
         self.graph_manager = graph_manager
         self.max_next_requests = max_next_requests
         self.sequence = []
+        self.downloader_simulator = downloader_simulator
 
     def run(self, add_all_pages=False):
         if not self.frontier.auto_start:
@@ -16,7 +24,7 @@ class FrontierTester(object):
         while True:
             requests = self._run_iteration()
             self.sequence += requests
-            if not requests:
+            if not requests and self.downloader_simulator.idle():
                 break
         self.frontier.stop()
 
@@ -38,9 +46,16 @@ class FrontierTester(object):
         return self.frontier.response_model(url=url, status_code=status_code, request=request)
 
     def _run_iteration(self):
-        kwargs = {'max_next_requests': self.max_next_requests} if self.max_next_requests else {}
+        kwargs = {'downloader_info':
+                  self.downloader_simulator.downloader_info()}
+        if self.max_next_requests:
+            kwargs['max_next_requests'] = self.max_next_requests
+
         requests = self.frontier.get_next_requests(**kwargs)
-        for page_to_crawl in requests:
+
+        self.downloader_simulator.update(requests)
+
+        for page_to_crawl in self.downloader_simulator.download():
             crawled_page = self.graph_manager.get_page(url=page_to_crawl.url)
             if not crawled_page.has_errors:
                 response = self._make_response(url=page_to_crawl.url,
@@ -52,3 +67,55 @@ class FrontierTester(object):
                 self.frontier.request_error(request=page_to_crawl,
                                             error=crawled_page.status)
         return requests
+
+
+class BaseDownloaderSimulator(object):
+    def __init__(self):
+        self.requests = None
+
+    def update(self, requests):
+        self.requests = requests
+
+    def download(self):
+        return self.requests
+
+    def downloader_info(self):
+        return DownloaderInfo()
+
+    def idle(self):
+        return True
+
+
+class DownloaderSimulator(BaseDownloaderSimulator):
+    def __init__(self, rate):
+        self._requests_per_slot = rate
+        self.slots = OrderedDict()
+        super(DownloaderSimulator, self).__init__()
+
+    def update(self, requests):
+        for request in requests:
+            hostname = urlparse(request.url).hostname or ''
+            self.slots.setdefault(hostname, deque()).append(request)
+
+    def download(self):
+        output = []
+        _trash_can = []
+        for key, requests in self.slots.iteritems():
+            for i in range(min(len(requests), self._requests_per_slot)):
+                output.append(requests.popleft())
+            if not requests:
+                _trash_can.append(key)
+
+        for key in _trash_can:
+            del self.slots[key]
+        return output
+
+    def downloader_info(self):
+        info = DownloaderInfo()
+        for key, requests in self.slots.iteritems():
+            if len(requests) > self._requests_per_slot:
+                info.overused_keys.append(key)
+        return info
+
+    def idle(self):
+        return len(self.slots) == 0

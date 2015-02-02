@@ -177,5 +177,45 @@ SITE_LIST_08 = CrawlSiteListData(
         ],
     ])
 
+SITE_LIST_09 = CrawlSiteListData(
+    name='GRAPH 09',
+    description='',
+    use_urls=True,
+    sites=[
+        [
+            ('https://www.a.com', [
+                'http://www.a.com/2',
+                'http://www.a.com/2/1',
+                'http://www.a.com/3',
+                'http://www.a.com/2/1/3',
+                'http://www.a.com/2/4/1',
+                'http://www.a.com/2/4/2',
+                'http://www.a.net',
+            ]),
+        ],
+        [
+            ('http://b.com', [
+                'http://b.com/2',
+                'http://www.a.net',
+                'http://test.cloud.c.com',
+                'http://b.com',
+            ]),
+            ('http://b.com/entries?page=2', [
+                'http://b.com/entries?page=2',
+                'http://b.com',
+            ]),
+        ],
+        [
+            ('http://test.cloud.c.com', [
+                'http://cloud.c.com',
+                'http://test.cloud.c.com/2',
+            ]),
+            ('http://test.cloud.c.com/2', [
+                'http://b.com/entries?page=2',
+                'http://test.cloud.c.com',
+            ]),
+        ],
+    ])
+
 GRAPHS = [obj for obj in locals().values() if isinstance(obj, CrawlSiteListData)]
 #GRAPHS = [SITE_LIST_08]

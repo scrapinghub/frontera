@@ -5,7 +5,7 @@ from crawlfrontier.utils.misc import load_object
 from crawlfrontier.settings import Settings
 from crawlfrontier.core.components import Backend, Middleware
 from crawlfrontier.logger import FrontierLogger
-from crawlfrontier.core import models
+from crawlfrontier.core import models, DownloaderInfo
 
 
 class FrontierManager(object):
@@ -291,7 +291,7 @@ class FrontierManager(object):
                                  obj=seeds,
                                  return_classes=(list,))  # TODO: Dar vuelta
 
-    def get_next_requests(self, max_next_requests=0, overused_keys=[]):
+    def get_next_requests(self, downloader_info, max_next_requests=0):
         """
         Returns a list of next requests to be crawled. Optionally a maximum number of pages can be passed. If no
         value is passed, \
@@ -299,8 +299,8 @@ class FrontierManager(object):
         will be used instead. (:setting:`MAX_NEXT_REQUESTS` setting).
 
         :param int max_next_requests: Maximum number of requests to be returned by this method.
-        :param list overused_keys: Hostnames or ip addresses (depends on Spider settings) having already full queues of
-        requests in Downloader.
+        :param list overused_keys: Hostnames or ip addresses (depends on Scrapy CONCURRENT_REQUESTS_PER_DOMAIN or
+        CONCURRENT_REQUESTS_PER_IP settings) having already full queues of requests in Downloader.
 
         :return: list of :class:`Request <crawlfrontier.core.models.Request>` objects.
         """
@@ -326,7 +326,7 @@ class FrontierManager(object):
                                             (max_next_requests, self.n_requests, self.max_requests or '-')))
 
         # get next requests
-        next_requests = self.backend.get_next_requests(max_next_requests, overused_keys=overused_keys)
+        next_requests = self.backend.get_next_requests(max_next_requests, downloader_info=downloader_info)
 
         # Increment requests counter
         self._n_requests += len(next_requests)
