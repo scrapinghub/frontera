@@ -117,4 +117,4 @@ class DownloaderSimulator(BaseDownloaderSimulator):
         return keys
 
     def idle(self):
-        return bool(self.slots)
+        return len(self.slots) == 0
