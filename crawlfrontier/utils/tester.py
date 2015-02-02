@@ -1,10 +1,16 @@
+from __future__ import absolute_import
+from crawlfrontier.utils.url import urlparse_cached
+
+from collections import defaultdict, deque
+
 class FrontierTester(object):
 
-    def __init__(self, frontier, graph_manager, max_next_requests=0):
+    def __init__(self, frontier, graph_manager, downloader_simulator, max_next_requests=0):
         self.frontier = frontier
         self.graph_manager = graph_manager
         self.max_next_requests = max_next_requests
         self.sequence = []
+        self.downloader_simulator = downloader_simulator
 
     def run(self, add_all_pages=False):
         if not self.frontier.auto_start:
@@ -16,7 +22,7 @@ class FrontierTester(object):
         while True:
             requests = self._run_iteration()
             self.sequence += requests
-            if not requests:
+            if not requests and self.downloader_simulator.idle():
                 break
         self.frontier.stop()
 
@@ -38,9 +44,14 @@ class FrontierTester(object):
         return self.frontier.response_model(url=url, status_code=status_code, request=request)
 
     def _run_iteration(self):
-        kwargs = {'max_next_requests': self.max_next_requests} if self.max_next_requests else {}
+        kwargs = {'overused_keys': self.downloader_simulator.overused_keys()}
+        if self.max_next_requests: kwargs['max_next_requests'] = self.max_next_requests
+
         requests = self.frontier.get_next_requests(**kwargs)
-        for page_to_crawl in requests:
+
+        self.downloader_simulator.update(requests)
+
+        for page_to_crawl in self.downloader_simulator.download():
             crawled_page = self.graph_manager.get_page(url=page_to_crawl.url)
             if not crawled_page.has_errors:
                 response = self._make_response(url=page_to_crawl.url,
