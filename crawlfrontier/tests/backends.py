@@ -181,35 +181,19 @@ class DFSOverusedBackendTest(BackendSequenceTest):
         ]
     }
 
-    @pytest.mark.parametrize(
-        ('site_list', 'max_next_requests', 'expected_sequence'), [
-
-            ('SITE_09', 5, 'SEQUENCE_01_A')
-        ]
-    )
-    def test_sequence1(self, site_list, max_next_requests, expected_sequence):
-        sequence = self.get_sequence(TEST_SITES[site_list], max_next_requests,
+    def test_sequence1(self, ):
+        sequence = self.get_sequence(TEST_SITES['SITE_09'], max_next_requests=5,
                                      downloader_simulator=DownloaderSimulator(rate=1))
 
-        expected_sequence = self.EXPECTED_SEQUENCES[expected_sequence]
-
-        # Assert sequence equals expected
+        expected_sequence = self.EXPECTED_SEQUENCES['SEQUENCE_01_A']
         assert len(sequence) == len(expected_sequence)
         assert sequence == expected_sequence
 
-    @pytest.mark.parametrize(
-        ('site_list', 'max_next_requests', 'expected_sequence'), [
-
-            ('SITE_09', 5, 'SEQUENCE_02_A')
-        ]
-    )
     def test_sequence2(self, site_list, max_next_requests, expected_sequence):
-        sequence = self.get_sequence(TEST_SITES[site_list], max_next_requests,
+        sequence = self.get_sequence(TEST_SITES['SITE_09'], max_next_requests=5,
                                      downloader_simulator=BaseDownloaderSimulator())
 
-        expected_sequence = self.EXPECTED_SEQUENCES[expected_sequence]
-
-        # Assert sequence equals expected
+        expected_sequence = self.EXPECTED_SEQUENCES['SEQUENCE_02_A']
         assert len(sequence) == len(expected_sequence)
         assert sequence == expected_sequence
 
