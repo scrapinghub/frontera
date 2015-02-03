@@ -4,7 +4,7 @@ import random
 
 from crawlfrontier import Backend
 from crawlfrontier.utils.heap import Heap
-from crawlfrontier.contrib.scrapy.overusedbuffer import OverusedBuffer
+from crawlfrontier.core import OverusedBuffer
 
 
 class MemoryBaseBackend(Backend):
