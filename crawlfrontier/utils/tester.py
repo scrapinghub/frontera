@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from collections import defaultdict, deque
+from collections import OrderedDict, deque
 from urlparse import urlparse
 from crawlfrontier.core import OverusedKeys
 
@@ -89,13 +89,13 @@ class BaseDownloaderSimulator(object):
 class DownloaderSimulator(BaseDownloaderSimulator):
     def __init__(self, rate):
         self._requests_per_slot = rate
-        self.slots = defaultdict(deque)
+        self.slots = OrderedDict()
         super(DownloaderSimulator, self).__init__()
 
     def update(self, requests):
         for request in requests:
             hostname = urlparse(request.url).hostname or ''
-            self.slots[hostname].append(request)
+            self.slots.setdefault(hostname, deque()).append(request)
 
     def download(self):
         output = []
