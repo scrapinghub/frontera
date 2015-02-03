@@ -1,3 +1,4 @@
+from crawlfrontier.core import OverusedKeys
 from crawlfrontier.core.manager import FrontierManager
 from converters import BaseRequestConverter, BaseResponseConverter
 
@@ -27,7 +28,7 @@ class FrontierManagerWrapper(object):
         frontier_seeds = [self.request_converter.to_frontier(seed) for seed in seeds]
         self.manager.add_seeds(seeds=frontier_seeds)
 
-    def get_next_requests(self, max_next_requests=0, overused_keys=[]):
+    def get_next_requests(self, max_next_requests=0, overused_keys=OverusedKeys()):
         frontier_requests = self.manager.get_next_requests(overused_keys=overused_keys, max_next_requests=max_next_requests)
         return [self.request_converter.from_frontier(frontier_request) for frontier_request in frontier_requests]
 
