@@ -20,14 +20,14 @@ class OverusedBuffer(object):
             raise NotImplementedError
         return key
 
-    def _get_pending(self, max_n_requests, overused_keys):
+    def _get_pending(self, max_n_requests, overused_set):
         requests = []
         trash_can = []
         try:
             while True:
                 left = 0
                 for key, pending in self._pending.iteritems():
-                    if key in overused_keys:
+                    if key in overused_set:
                         continue
 
                     if pending:
@@ -50,14 +50,15 @@ class OverusedBuffer(object):
             self._log("Overused keys: %s" % str(overused_keys))
             self._log("Pending: %i" % (sum([len(pending) for pending in self._pending.itervalues()])))
 
-        requests = self._get_pending(max_n_requests, overused_keys)
+        overused_set = set(overused_keys)
+        requests = self._get_pending(max_n_requests, overused_set)
 
         if len(requests) == max_n_requests:
             return requests
 
         for request in self._get(max_n_requests-len(requests), overused_keys):
             key = self._get_key(request, overused_keys.type)
-            if key in overused_keys:
+            if key in overused_set:
                 self._pending.setdefault(key, deque()).append(request)
             else:
                 requests.append(request)
