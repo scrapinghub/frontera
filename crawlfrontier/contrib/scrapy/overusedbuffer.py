@@ -1,43 +1,13 @@
 from scrapy.utils.httpobj import urlparse_cached
 from scrapy.resolver import dnscache
 
+from crawlfrontier.core import OverusedBuffer
 
-class OverusedBuffer(object):
-    def __init__(self, _get_func, log_func=None):
-        self._pending_requests = set()
-        self._get = _get_func
-        self._log = log_func
+
+class OverusedBufferScrapy(OverusedBuffer):
 
     def _get_key(self, request, type):
         key = urlparse_cached(request).hostname or ''
         if type == 'ip':
             key = dnscache.get(key, key)
         return key
-
-    def get_next_requests(self, max_n_requests, overused_keys):
-        if self._log:
-            self._log("Overused keys: %s" % str(overused_keys))
-            self._log("Pending: %i" % len(self._pending_requests))
-        requests = []
-        _remove = []
-        for request in self._pending_requests:
-            key = self._get_key(request, overused_keys.type)
-            if key not in overused_keys:
-                requests.append(request)
-                _remove.append(request)
-            if len(requests) == max_n_requests:
-                break
-
-        for r in _remove:
-            self._pending_requests.remove(r)
-
-        if len(requests) == max_n_requests:
-            return requests
-
-        for request in self._get(max_n_requests-len(requests), overused_keys):
-            key = self._get_key(request, overused_keys.type)
-            if key in overused_keys:
-                self._pending_requests.add(request)
-            else:
-                requests.append(request)
-        return requests
