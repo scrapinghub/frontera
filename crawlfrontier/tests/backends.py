@@ -180,7 +180,7 @@ class DFSOverusedBackendTest(BackendSequenceTest):
         ]
     }
 
-    def test_sequence1(self, ):
+    def test_sequence1(self):
         sequence = self.get_sequence(TEST_SITES['SITE_09'], max_next_requests=5,
                                      downloader_simulator=DownloaderSimulator(rate=1))
 
@@ -188,7 +188,7 @@ class DFSOverusedBackendTest(BackendSequenceTest):
         assert len(sequence) == len(expected_sequence)
         assert sequence == expected_sequence
 
-    def test_sequence2(self, site_list, max_next_requests, expected_sequence):
+    def test_sequence2(self):
         sequence = self.get_sequence(TEST_SITES['SITE_09'], max_next_requests=5,
                                      downloader_simulator=BaseDownloaderSimulator())
 
