@@ -46,8 +46,9 @@ class FrontierTester(object):
 
     def _run_iteration(self):
         kwargs = {'overused_keys':
-                      self.downloader_simulator.overused_keys()}
-        if self.max_next_requests: kwargs['max_next_requests'] = self.max_next_requests
+                   self.downloader_simulator.overused_keys()}
+        if self.max_next_requests:
+            kwargs['max_next_requests'] = self.max_next_requests
 
         requests = self.frontier.get_next_requests(**kwargs)
 
