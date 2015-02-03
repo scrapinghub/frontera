@@ -5,6 +5,7 @@ from scrapy import log
 from collections import deque
 
 from crawlfrontier.contrib.scrapy.manager import ScrapyFrontierManager
+from crawlfrontier.core import OverusedKeys
 
 STATS_PREFIX = 'crawlfrontier'
 
@@ -157,9 +158,10 @@ class CrawlFrontierScheduler(Scheduler):
         return request.meta.get('redirect_times', 0) > 0
 
     def _get_overused_keys(self):
-        keys = []
         downloader = self.crawler.engine.downloader
-        for (key, slot) in downloader.slots.iteritems():
-            if len(slot.active) / float(slot.concurrency) > 1.0:
+        keys = OverusedKeys(type='ip' if downloader.ip_concurrency else 'domain')
+        for key, slot in downloader.slots.iteritems():
+            overused_factor = len(slot.active) / float(slot.concurrency)
+            if overused_factor > self.frontier.manager.settings.get('OVERUSED_SLOT_FACTOR', 1.0):
                 keys.append(key)
         return keys
