@@ -1,7 +1,8 @@
 from __future__ import absolute_import
-from crawlfrontier.utils.url import urlparse_cached
 
 from collections import defaultdict, deque
+from urlparse import urlparse
+from crawlfrontier.core import OverusedKeys
 
 
 class FrontierTester(object):
@@ -79,7 +80,7 @@ class BaseDownloaderSimulator(object):
         return self.requests
 
     def overused_keys(self):
-        return []
+        return OverusedKeys()
 
     def idle(self):
         return True
@@ -93,7 +94,7 @@ class DownloaderSimulator(BaseDownloaderSimulator):
 
     def update(self, requests):
         for request in requests:
-            hostname = urlparse_cached(request).hostname or ''
+            hostname = urlparse(request.url).hostname or ''
             self.slots[hostname].append(request)
 
     def download(self):
@@ -110,7 +111,7 @@ class DownloaderSimulator(BaseDownloaderSimulator):
         return output
 
     def overused_keys(self):
-        keys = []
+        keys = OverusedKeys()
         for key, requests in self.slots.iteritems():
             if len(requests) > self._requests_per_slot:
                 keys.append(key)
