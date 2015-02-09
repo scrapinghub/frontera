@@ -48,9 +48,7 @@ class MemoryBaseBackend(Backend):
     def _get_or_create_request(self, request):
         fingerprint = request.meta['fingerprint']
         if fingerprint not in self.requests:
-            new_request = request.copy()
-            new_request.meta['created_at'] = datetime.datetime.utcnow()
-            new_request.meta['depth'] = 0
+            new_request = self._create_request(request)
             self.requests[fingerprint] = new_request
             self.manager.logger.backend.debug('Creating request %s' % new_request)
             return new_request, True
@@ -58,6 +56,12 @@ class MemoryBaseBackend(Backend):
             page = self.requests[fingerprint]
             self.manager.logger.backend.debug('Request exists %s' % request)
             return page, False
+
+    def _create_request(self, request):
+        new_request = request.copy()
+        new_request.meta['created_at'] = datetime.datetime.utcnow()
+        new_request.meta['depth'] = 0
+        return new_request
 
     def _compare_pages(self, first, second):
         raise NotImplementedError
