@@ -5,6 +5,9 @@ from crawlfrontier.core import OverusedBuffer
 
 
 class OverusedBufferScrapy(OverusedBuffer):
+    """
+    Scrapy optimized version of OverusedBuffer. Url parsing and dns resolving are made using Scrapy primitives.
+    """
 
     def _get_key(self, request, type):
         key = urlparse_cached(request).hostname or ''

@@ -125,7 +125,7 @@ class SQLiteBackend(Backend):
             db_page, _ = self._get_or_create_db_page(url=seed.url, fingerprint=seed.meta['fingerprint'])
         self.session.commit()
 
-    def get_next_requests(self, max_next_requests, overused_keys):
+    def get_next_requests(self, max_next_requests, downloader_info):
         query = self.page_model.query(self.session)
         query = query.filter(self.page_model.state == Page.State.NOT_CRAWLED)
         query = self._get_order_by(query)

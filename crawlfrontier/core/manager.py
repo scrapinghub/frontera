@@ -5,7 +5,7 @@ from crawlfrontier.utils.misc import load_object
 from crawlfrontier.settings import Settings
 from crawlfrontier.core.components import Backend, Middleware
 from crawlfrontier.logger import FrontierLogger
-from crawlfrontier.core import models, OverusedKeys
+from crawlfrontier.core import models, DownloaderInfo
 
 
 class FrontierManager(object):
@@ -291,7 +291,7 @@ class FrontierManager(object):
                                  obj=seeds,
                                  return_classes=(list,))  # TODO: Dar vuelta
 
-    def get_next_requests(self, max_next_requests=0, overused_keys=None):
+    def get_next_requests(self, downloader_info, max_next_requests=0):
         """
         Returns a list of next requests to be crawled. Optionally a maximum number of pages can be passed. If no
         value is passed, \
@@ -321,15 +321,12 @@ class FrontierManager(object):
                 if self.n_requests+max_next_requests > self.max_requests:
                     max_next_requests = self.max_requests - self.n_requests
 
-        if overused_keys is None:
-            overused_keys = OverusedKeys()
-
         # log (in)
         self.logger.manager.debug(self._msg('GET_NEXT_REQUESTS(in) max_next_requests=%s n_requests=%s/%s' %
                                             (max_next_requests, self.n_requests, self.max_requests or '-')))
 
         # get next requests
-        next_requests = self.backend.get_next_requests(max_next_requests, overused_keys=overused_keys)
+        next_requests = self.backend.get_next_requests(max_next_requests, downloader_info=downloader_info)
 
         # Increment requests counter
         self._n_requests += len(next_requests)
