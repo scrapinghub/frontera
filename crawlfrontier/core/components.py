@@ -91,11 +91,12 @@ class Backend(Component):
     component_name = 'Base Backend'
 
     @abstractmethod
-    def get_next_requests(self, max_n_requests, overused_keys):
+    def get_next_requests(self, max_n_requests, downloader_info):
         """
         Returns a list of next requests to be crawled.
 
         :param int max_next_requests: Maximum number of requests to be returned by this method.
+        :param DownloaderInfo downloader_info: Information from downloader component, serving as hint for backend.
 
         :return: list of :class:`Request <crawlfrontier.core.models.Request>` objects.
         """
