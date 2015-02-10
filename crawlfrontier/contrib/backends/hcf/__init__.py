@@ -3,7 +3,7 @@ import datetime
 
 from hubstorage import HubstorageClient
 
-from crawlfrontier.contrib.backends.memory import MemoryFIFOBackend
+from crawlfrontier.contrib.backends.memory import Backend, MemoryFIFOBackend, MemoryLIFOBackend
 from crawlfrontier.exceptions import NotConfigured
 
 from .utils import ParameterManager, ScrapyStatsCollectorWrapper, get_scrapy_stats
@@ -83,7 +83,7 @@ class HCFManager(object):
             return self._links_to_flush_count[slot]
 
 
-class HCFBackend(MemoryFIFOBackend):
+class HCFBaseBackend(Backend):
     """
     * HCF_AUTH - Hubstorage auth
     * HCF_PROJECT_ID - Hubstorage project id
@@ -113,7 +113,7 @@ class HCFBackend(MemoryFIFOBackend):
     )
 
     def __init__(self, manager):
-        super(HCFBackend, self).__init__(manager)
+        super(HCFBaseBackend, self).__init__(manager)
         self.manager = manager
 
         params = ParameterManager(manager)
@@ -143,7 +143,7 @@ class HCFBackend(MemoryFIFOBackend):
         self._init_roles()
 
     def frontier_start(self, **kwargs):
-        super(HCFBackend, self).frontier_start(**kwargs)
+        super(HCFBaseBackend, self).frontier_start(**kwargs)
         scrapy_spider = kwargs.get('spider', None)
         if scrapy_spider:
             # Override settings from scrapy spider.
@@ -163,7 +163,7 @@ class HCFBackend(MemoryFIFOBackend):
             self._reset_producer_frontier()
 
     def frontier_stop(self, **kwargs):
-        super(HCFBackend, self).frontier_stop(**kwargs)
+        super(HCFBaseBackend, self).frontier_stop(**kwargs)
 
         if self.producer:
             n_flushed_links = self.producer.flush()
@@ -188,7 +188,7 @@ class HCFBackend(MemoryFIFOBackend):
             if n_remaining_requests > 0:
                 for request in self._get_requests_from_hs(n_remaining_requests):
                     self.heap.push(request)
-        return super(HCFBackend, self).get_next_requests(max_next_requests)
+        return super(HCFBaseBackend, self).get_next_requests(max_next_requests)
 
     def _get_requests_from_hs(self, n_min_requests):
         return_requests = []
@@ -328,3 +328,11 @@ class HCFBackend(MemoryFIFOBackend):
             slot_name = self._get_producer_slot_name(slot)
             _msg('deleting producer slot %s' % slot_name)
             self.producer.delete_slot(slot_name)
+
+
+class HCFFIFOBackend(HCFBaseBackend, MemoryFIFOBackend):
+    component_name = 'HCF FIFO Memory Backend'
+
+
+class HCFLIFOBackend(HCFBaseBackend, MemoryLIFOBackend):
+    component_name = 'HCF LIFO Memory Backend'
