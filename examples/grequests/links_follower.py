@@ -1,5 +1,5 @@
 import re
-from time import time, sleep
+from time import time
 
 from grequests import AsyncRequest, get as grequests_get, map as grequests_map
 
@@ -14,7 +14,7 @@ from crawlfrontier.core import get_slot_key, DownloaderInfo
 from crawlfrontier import Settings
 
 SETTINGS = Settings()
-SETTINGS.BACKEND = 'crawlfrontier.contrib.backends.memory.MemoryDFSOverusedBackend'
+SETTINGS.BACKEND = 'crawlfrontier.contrib.backends.memory.MemoryRandomOverusedBackend'
 SETTINGS.LOGGING_MANAGER_ENABLED = True
 SETTINGS.LOGGING_BACKEND_ENABLED = False
 SETTINGS.MAX_REQUESTS = 0
@@ -22,11 +22,13 @@ SETTINGS.MAX_NEXT_REQUESTS = 40
 
 SEEDS = [
     'http://www.imdb.com',
+    'http://www.bbc.com/',
+    'http://www.amazon.com/'
 ]
 
 LINK_RE = re.compile(r'href="(.*?)"')
 
-class GRequestConverter(BaseRequestConverter):
+class GRequestsConverter(BaseRequestConverter):
     """Converts between crawlfrontier and grequests request objects"""
     @classmethod
     def to_frontier(cls, request):
@@ -41,7 +43,7 @@ class GRequestConverter(BaseRequestConverter):
 
 
 class GRequestsFrontierManager(FrontierManagerWrapper):
-    request_converter_class = GRequestConverter
+    request_converter_class = GRequestsConverter
     response_converter_class = ResponseConverter
 
 
@@ -53,8 +55,7 @@ class HostnameStatistics(object):
         key = get_slot_key(request, 'domain')
         self.stats[key] = time()
 
-    def get_overused_keys(self):
-        overused = []
+    def collect_overused_keys(self, overused):
         ts = time()
         for key, timestamp in self.stats.iteritems():
             if ts - timestamp < 5.0:  # querying each hostname with at least 5 seconds delay
@@ -64,6 +65,15 @@ class HostnameStatistics(object):
 
 def extract_page_links(response):
     return [urljoin(response.url, link) for link in LINK_RE.findall(response.text)]
+
+
+"""
+The idea is to send requests to each domain with at least 5 seconds of delay. grequests only allows us to limit the
+number of simultaneous requests. So, we basically performing checks every frontier iteration and limiting the contents
+of new frontier batch by sending overused keys in DownloaderInfo. Therefore, we're getting to 5 seconds delays per
+batch.
+"""
+
 
 if __name__ == '__main__':
 
@@ -80,10 +90,9 @@ if __name__ == '__main__':
             frontier.page_crawled(response=response, links=links)
 
         dl_info = DownloaderInfo()
-        dl_info._overused_keys = stats.get_overused_keys()
+        stats.collect_overused_keys(dl_info.overused_keys)
         next_requests = frontier.get_next_requests(downloader_info=dl_info)
         if not next_requests:
-            sleep(5)
             continue
 
         for r in next_requests:
