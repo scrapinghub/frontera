@@ -39,7 +39,7 @@ def parse_domain_from_url(url):
      https://google.es/mail    google.es           google.es       https     google      es
     -------------------------------------------------------------------------------------------------------
     """
-    extracted = tldextract.extract(url)
+    extracted = no_fetch_extract(url)
     scheme, _, _, _, _, _ = parse_url(url)
 
     sld = extracted.domain
@@ -50,6 +50,12 @@ def parse_domain_from_url(url):
 
     return netloc, name, scheme, sld, tld, subdomain
 
+def no_fetch_extract(url):
+    """
+    Extract that falls back to the included TLD snapshot, no live HTTP fetching
+    """
+    no_fetch_extract = tldextract.TLDExtract(suffix_list_url=False)
+    return no_fetch_extract(url)
 
 def safe_url_string(url, encoding='utf8'):
     """Convert the given url into a legal URL by escaping unsafe characters
