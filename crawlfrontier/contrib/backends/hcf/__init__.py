@@ -105,6 +105,7 @@ class HCFBaseBackend(Backend):
         'hcf_producer_frontier',
         'hcf_consumer_frontier',
         'hcf_producer_number_of_slots',
+        'hcf_producer_slot_prefix',
         'hcf_producer_batch_size',
         'hcf_producer_reset_frontier',
         'hcf_consumer_slot',
