@@ -149,6 +149,10 @@ class HCFBaseBackend(Backend):
             # Override settings from scrapy spider.
             for attr in self.scrapy_spider_settings:
                 if hasattr(scrapy_spider, attr):
+                    if attr in ('hcf_producer_number_of_slots',
+                                'hcf_producer_batch_size',
+                                'hcf_consumer_max_batches'):
+                        attr = int(attr)
                     setattr(self, attr, getattr(scrapy_spider, attr))
             # roles might have changed.
             self._init_roles()
