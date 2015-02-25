@@ -244,7 +244,7 @@ class HCFBaseBackend(Backend):
     def _process_hcf_response_link(self, response, link):
         assert self.producer, 'HCF request received but backend is not defined as producer'
         if link.method != 'GET':
-            _msg("'use_hcf' meta key is not supported for non GET requests (%s)" % link.url, log.ERROR)
+            _msg("HCF does not support non GET requests (%s)" % link.url, log.ERROR)
             return
 
         slot = self.producer_get_slot_callback(link)
@@ -261,7 +261,7 @@ class HCFBaseBackend(Backend):
         self.stats.inc_value(self._get_producer_stats_msg())
 
     def _is_hcf(self, request_or_response):
-        return request_or_response.meta.get('use_hcf', False)
+        return not request_or_response.meta.get('cf_dont_store', False)
 
     def _consumer_max_batches_reached(self):
         if not self.hcf_consumer_max_batches:
