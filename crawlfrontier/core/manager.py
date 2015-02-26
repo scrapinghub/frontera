@@ -62,6 +62,43 @@ class BaseManager(object):
         else:
             return obj_class()
 
+    @property
+    def request_model(self):
+        """
+        The :class:`Request <crawlfrontier.core.models.Request>` object to be used by the frontier. \
+        Can be defined with :setting:`REQUEST_MODEL` setting.
+        """
+        return self._request_model
+
+    @property
+    def response_model(self):
+        """
+        The :class:`Response <crawlfrontier.core.models.Response>` object to be used by the frontier. \
+        Can be defined with :setting:`RESPONSE_MODEL` setting.
+        """
+        return self._response_model
+
+    @property
+    def backend(self):
+        """
+        The :class:`Backend <crawlfrontier.core.components.Backend>` object to be used by the frontier. \
+        Can be defined with :setting:`BACKEND` setting.
+        """
+        return self._backend
+
+    @property
+    def logger(self):
+        """
+        The :class:`Logger` object to be used by the frontier. Can be defined with :setting:`LOGGER` setting.
+        """
+        return self._logger
+
+    @property
+    def settings(self):
+        """
+        The :class:`Settings <crawlfrontier.settings.Settings>` object used by the frontier.
+        """
+        return self._settings
 
 class FrontierManager(BaseManager):
     """
@@ -170,37 +207,6 @@ class FrontierManager(BaseManager):
                                settings=manager_settings)
 
     @property
-    def request_model(self):
-        """
-        The :class:`Request <crawlfrontier.core.models.Request>` object to be used by the frontier. \
-        Can be defined with :setting:`REQUEST_MODEL` setting.
-        """
-        return self._request_model
-
-    @property
-    def response_model(self):
-        """
-        The :class:`Response <crawlfrontier.core.models.Response>` object to be used by the frontier. \
-        Can be defined with :setting:`RESPONSE_MODEL` setting.
-        """
-        return self._response_model
-
-    @property
-    def backend(self):
-        """
-        The :class:`Backend <crawlfrontier.core.components.Backend>` object to be used by the frontier. \
-        Can be defined with :setting:`BACKEND` setting.
-        """
-        return self._backend
-
-    @property
-    def logger(self):
-        """
-        The :class:`Logger` object to be used by the frontier. Can be defined with :setting:`LOGGER` setting.
-        """
-        return self._logger
-
-    @property
     def event_log_manager(self):
         """
         The :class:`EventLogger` object to be used by the frontier. \
@@ -249,13 +255,6 @@ class FrontierManager(BaseManager):
         Can be defined with :setting:`AUTO_START` setting.
         """
         return self._auto_start
-
-    @property
-    def settings(self):
-        """
-        The :class:`Settings <crawlfrontier.settings.Settings>` object used by the frontier.
-        """
-        return self._settings
 
     @property
     def iteration(self):
