@@ -185,7 +185,7 @@ class KafkaBackend(Backend):
             n = min(len(self._seeds), max_n_requests)
             requests, self._seeds = self._seeds[:n], self._seeds[n:]
         else:
-            urls = []
+            requests = []
 
             if not self._connect_consumer():
                 return None
@@ -199,7 +199,11 @@ class KafkaBackend(Backend):
                     try:
                         obj = self._decoder.decode(offmsg.message.value)            
                         try:
-                            urls.append(obj['url'])  # FIXME: other fields should be also passed
+                            requests.append(Request(url=obj['url'],
+                                                    method=obj['method'],
+                                                    headers=obj['headers'],
+                                                    cookies=obj['cookies'],
+                                                    meta=obj['meta']))
                         except (KeyError, TypeError):
                             self._manager.logger.backend.warning(
                                 "Could not get url field in message")
@@ -218,6 +222,5 @@ class KafkaBackend(Backend):
                 self._manager.logger.backend.warning(
                     "Could not connect consumer to " + self._topic_todo)
             
-            requests = map(Request, urls)
-        self._manager.logger.backend.debug("_get_next_requests: {0}".format(time.clock() - start))
+        self._manager.logger.backend.debug("get_next_requests: {0}".format(time.clock() - start))
         return requests
