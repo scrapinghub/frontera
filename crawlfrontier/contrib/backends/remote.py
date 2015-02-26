@@ -5,7 +5,7 @@ from kafka.common import BrokerResponseError
 
 from scrapy.utils.serialize import ScrapyJSONEncoder, ScrapyJSONDecoder
 
-from crawlfrontier import Backend
+from crawlfrontier import Backend, Settings
 from crawlfrontier.core.models import Request
 
 
@@ -18,6 +18,7 @@ class TestManager(object):
             print "Test Manager: ", msg
 
         self.logger = TestManager.Nothing()
+        self.settings = Settings()
         self.logger.backend = TestManager.Nothing()
         for log_level in (
                 'info'
@@ -44,28 +45,16 @@ def prepare_response_message(response):
 
 
 class KafkaBackend(Backend):
-    DEFAULT_SERVER = "localhost:9092"
-    DEFAULT_GROUP = "scrapy-crawler"
-    DEFAULT_TOPIC_TODO = "frontier-todo"
-    DEFAULT_TOPIC_DONE = "frontier-done"
-    DEFAULT_WAIT_TIME = 5.0
-
-    def __init__(self, 
-                 manager=None,
-                 server=None, 
-                 group=None, 
-                 topic_todo=None, 
-                 topic_done=None, 
-                 wait_time=None):
-
-        self._manager = manager or TestManager()
+    def __init__(self, manager):
+        self._manager = manager
+        settings = manager.settings
 
         # Kafka connection parameters
-        self._server = server or KafkaBackend.DEFAULT_SERVER
-        self._topic_todo = topic_todo or KafkaBackend.DEFAULT_TOPIC_TODO
-        self._topic_done = topic_done or KafkaBackend.DEFAULT_TOPIC_DONE
-        self._group = group or KafkaBackend.DEFAULT_GROUP
-        self._wait_time = wait_time or KafkaBackend.DEFAULT_WAIT_TIME
+        self._server = settings.get('KAFKA_SERVER', "localhost:9092")
+        self._topic_todo = settings.get('KAFKA_TOPIC_TODO', "frontier-todo")
+        self._topic_done = settings.get('KAFKA_TOPIC_DONE', "frontier-done")
+        self._group = settings.get('KAFKA_GROUP', "scrapy-crawler")
+        self._get_timeout = float(settings.get('KAFKA_GET_TIMEOUT', 5.0))
 
         # Kafka setup
         self._conn = KafkaClient(self._server)
@@ -114,13 +103,7 @@ class KafkaBackend(Backend):
 
     @classmethod
     def from_manager(clas, manager):
-        return KafkaBackend(
-            manager=manager,
-            server=manager.settings.get('KAFKA_SERVER'),
-            group=manager.settings.get('KAFKA_GROUP'),
-            topic_todo=manager.settings.get('KAFKA_TOPIC_TODO'),
-            topic_done=manager.settings.get('KAFKA_TOPIC_DONE'),
-        )
+        return clas(manager)
 
     def frontier_start(self):
         if self._connect_consumer():
@@ -189,7 +172,7 @@ class KafkaBackend(Backend):
             success = False
             for offmsg in self._cons.get_messages(
                     max_n_requests,
-                    timeout=self._wait_time):
+                    timeout=self._get_timeout):
                 success = True
                 try:
                     obj = self._decoder.decode(offmsg.message.value)
@@ -210,7 +193,7 @@ class KafkaBackend(Backend):
             if not success:
                 self._manager.logger.backend.warning(
                     "Timeout ({0} seconds) while trying to get {1} requests".format(
-                        self._wait_time,
+                        self._get_timeout,
                         max_n_requests)
                 )
         except BrokerResponseError:
