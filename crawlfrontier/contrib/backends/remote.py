@@ -59,7 +59,6 @@ class KafkaBackend(Backend):
                  wait_time=None):
 
         self._manager = manager or TestManager()
-        self._seeds = []
 
         # Kafka connection parameters
         self._server = server or KafkaBackend.DEFAULT_SERVER
@@ -181,46 +180,42 @@ class KafkaBackend(Backend):
 
     def get_next_requests(self, max_n_requests):
         start = time.clock()
-        if self._seeds:
-            n = min(len(self._seeds), max_n_requests)
-            requests, self._seeds = self._seeds[:n], self._seeds[n:]
-        else:
-            requests = []
+        requests = []
 
-            if not self._connect_consumer():
-                return None
-            
-            try:
-                success = False
-                for offmsg in self._cons.get_messages(
-                        max_n_requests, 
-                        timeout=self._wait_time):
-                    success = True
+        if not self._connect_consumer():
+            return None
+
+        try:
+            success = False
+            for offmsg in self._cons.get_messages(
+                    max_n_requests,
+                    timeout=self._wait_time):
+                success = True
+                try:
+                    obj = self._decoder.decode(offmsg.message.value)
                     try:
-                        obj = self._decoder.decode(offmsg.message.value)            
-                        try:
-                            requests.append(Request(url=obj['url'],
-                                                    method=obj['method'],
-                                                    headers=obj['headers'],
-                                                    cookies=obj['cookies'],
-                                                    meta=obj['meta']))
-                        except (KeyError, TypeError):
-                            self._manager.logger.backend.warning(
-                                "Could not get url field in message")
-                    except ValueError:
+                        requests.append(Request(url=obj['url'],
+                                                method=obj['method'],
+                                                headers=obj['headers'],
+                                                cookies=obj['cookies'],
+                                                meta=obj['meta']))
+                    except (KeyError, TypeError):
                         self._manager.logger.backend.warning(
-                            "Could not decode {0} message: {1}".format(
-                                self._topic_todo,
-                                offmsg.message.value))
-                if not success:
+                            "Could not get url field in message")
+                except ValueError:
                     self._manager.logger.backend.warning(
-                        "Timeout ({0} seconds) while trying to get {1} requests".format(
-                            self._wait_time,
-                            max_n_requests)
-                    )
-            except BrokerResponseError:
+                        "Could not decode {0} message: {1}".format(
+                            self._topic_todo,
+                            offmsg.message.value))
+            if not success:
                 self._manager.logger.backend.warning(
-                    "Could not connect consumer to " + self._topic_todo)
+                    "Timeout ({0} seconds) while trying to get {1} requests".format(
+                        self._wait_time,
+                        max_n_requests)
+                )
+        except BrokerResponseError:
+            self._manager.logger.backend.warning(
+                "Could not connect consumer to " + self._topic_todo)
             
         self._manager.logger.backend.debug("get_next_requests: {0}".format(time.clock() - start))
         return requests
