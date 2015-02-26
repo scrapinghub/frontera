@@ -8,7 +8,62 @@ from crawlfrontier.logger import FrontierLogger
 from crawlfrontier.core import models
 
 
-class FrontierManager(object):
+class BaseManager(object):
+    def __init__(self, request_model, response_model, backend, logger, settings=None):
+
+        # Settings
+        self._settings = settings or Settings()
+
+        # Logger
+        self._logger = load_object(logger)(self._settings)
+        assert isinstance(self._logger, FrontierLogger), "logger '%s' must subclass FrontierLogger" % \
+                                                         self._logger.__class__.__name__
+
+        # Log frontier manager starting
+        self.logger.manager.debug('-'*80)
+        self.logger.manager.debug('Starting Frontier Manager...')
+
+        # Load request model
+        self._request_model = load_object(request_model)
+        assert issubclass(self._request_model, models.Request), "Request model '%s' must subclass 'Request'" % \
+                                                                self._request_model.__name__
+
+        # Load response model
+        self._response_model = load_object(response_model)
+        assert issubclass(self._response_model, models.Response), "Response model '%s' must subclass 'Response'" % \
+                                                                  self._response_model.__name__
+
+        # Load backend
+        self.logger.manager.debug("Loading backend '%s'" % backend)
+        self._backend = self._load_object(backend)
+        assert isinstance(self.backend, Backend), "backend '%s' must subclass Backend" % \
+                                                  self.backend.__class__.__name__
+
+    @classmethod
+    def from_settings(cls, settings=None):
+        manager_settings = Settings(settings)
+        return BaseManager(request_model=manager_settings.REQUEST_MODEL,
+                               response_model=manager_settings.RESPONSE_MODEL,
+                               backend=manager_settings.BACKEND,
+                               logger=manager_settings.LOGGER,
+                               settings=manager_settings)
+
+    def _load_object(self, obj_class_name, silent=False):
+        obj_class = load_object(obj_class_name)
+        try:
+            return self._load_frontier_object(obj_class)
+        except NotConfigured:
+            if not silent:
+                raise NotConfigured
+
+    def _load_frontier_object(self, obj_class):
+        if hasattr(obj_class, 'from_manager'):
+            return obj_class.from_manager(self)
+        else:
+            return obj_class()
+
+
+class FrontierManager(BaseManager):
     """
     The :class:`FrontierManager <crawlfrontier.core.manager.FrontierManager>` object encapsulates the whole frontier,
     providing an API to interact with. It's also responsible of loading and communicating all different frontier
@@ -48,13 +103,7 @@ class FrontierManager(object):
         the frontier.
         """
 
-        # Settings
-        self._settings = settings or Settings()
-
-        # Logger
-        self._logger = load_object(logger)(self._settings)
-        assert isinstance(self._logger, FrontierLogger), "logger '%s' must subclass FrontierLogger" % \
-                                                         self._logger.__class__.__name__
+        super(FrontierManager, self).__init__(request_model, response_model, backend, logger, settings=settings)
 
         # Log frontier manager starting
         self.logger.manager.debug('-'*80)
@@ -64,24 +113,8 @@ class FrontierManager(object):
         self._test_mode = test_mode
         self.logger.manager.debug('Test mode %s' % ("ENABLED" if self.test_mode else "DISABLED"))
 
-        # Load request model
-        self._request_model = load_object(request_model)
-        assert issubclass(self._request_model, models.Request), "Request model '%s' must subclass 'Request'" % \
-                                                                self._request_model.__name__
-
-        # Load response model
-        self._response_model = load_object(response_model)
-        assert issubclass(self._response_model, models.Response), "Response model '%s' must subclass 'Response'" % \
-                                                                  self._response_model.__name__
-
         # Load middlewares
         self._middlewares = self._load_middlewares(middlewares)
-
-        # Load backend
-        self.logger.manager.debug("Loading backend '%s'" % backend)
-        self._backend = self._load_object(backend)
-        assert isinstance(self.backend, Backend), "backend '%s' must subclass Backend" % \
-                                                  self.backend.__class__.__name__
 
         # Init frontier components pipeline
         self._components_pipeline = [
@@ -394,19 +427,9 @@ class FrontierManager(object):
     def _msg(self, msg):
         return '(%s) %s' % (self.iteration, msg)
 
-    def _load_object(self, obj_class_name, silent=False):
-        obj_class = load_object(obj_class_name)
-        try:
-            return self._load_frontier_object(obj_class)
-        except NotConfigured:
-            if not silent:
-                raise NotConfigured
 
-    def _load_frontier_object(self, obj_class):
-        if hasattr(obj_class, 'from_manager'):
-            return obj_class.from_manager(self)
-        else:
-            return obj_class()
+
+
 
     def _load_middlewares(self, middleware_names):
         # TO-DO: Use dict for middleware ordering
