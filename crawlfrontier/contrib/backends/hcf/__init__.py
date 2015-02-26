@@ -146,14 +146,7 @@ class HCFBaseBackend(Backend):
         super(HCFBaseBackend, self).frontier_start(**kwargs)
         scrapy_spider = kwargs.get('spider', None)
         if scrapy_spider:
-            # Override settings from scrapy spider.
-            for attr in self.scrapy_spider_settings:
-                if hasattr(scrapy_spider, attr):
-                    if attr in ('hcf_producer_number_of_slots',
-                                'hcf_producer_batch_size',
-                                'hcf_consumer_max_batches'):
-                        attr = int(attr)
-                    setattr(self, attr, getattr(scrapy_spider, attr))
+            self._override_scrapy_settings(scrapy_spider)
             # roles might have changed.
             self._init_roles()
             self.producer_get_slot_callback = getattr(scrapy_spider, 'get_producer_slot',
@@ -193,6 +186,16 @@ class HCFBaseBackend(Backend):
                 for request in self._get_requests_from_hs(n_remaining_requests):
                     self.heap.push(request)
         return super(HCFBaseBackend, self).get_next_requests(max_next_requests)
+
+    def _override_scrapy_settings(self, scrapy_spider):
+        for attr in self.scrapy_spider_settings:
+            if hasattr(scrapy_spider, attr):
+                attrval = getattr(scrapy_spider, attr)
+                if attr in ('hcf_producer_number_of_slots',
+                            'hcf_producer_batch_size',
+                            'hcf_consumer_max_batches'):
+                    attrval = int(attrval)
+                setattr(self, attr, attrval)
 
     def _get_requests_from_hs(self, n_min_requests):
         return_requests = []
