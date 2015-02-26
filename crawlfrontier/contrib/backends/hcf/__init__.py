@@ -146,7 +146,7 @@ class HCFBaseBackend(Backend):
         super(HCFBaseBackend, self).frontier_start(**kwargs)
         scrapy_spider = kwargs.get('spider', None)
         if scrapy_spider:
-            self._override_scrapy_settings(scrapy_spider)
+            self._copy_spider_settings(scrapy_spider)
             # roles might have changed.
             self._init_roles()
             self.producer_get_slot_callback = getattr(scrapy_spider, 'get_producer_slot',
@@ -187,7 +187,7 @@ class HCFBaseBackend(Backend):
                     self.heap.push(request)
         return super(HCFBaseBackend, self).get_next_requests(max_next_requests)
 
-    def _override_scrapy_settings(self, scrapy_spider):
+    def _copy_spider_settings(self, scrapy_spider):
         for attr in self.scrapy_spider_settings:
             if hasattr(scrapy_spider, attr):
                 attrval = getattr(scrapy_spider, attr)
