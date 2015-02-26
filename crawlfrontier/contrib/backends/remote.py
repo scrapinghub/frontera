@@ -25,7 +25,24 @@ class TestManager(object):
                 'warning',
                 'error'):
             setattr(self.logger.backend, log_level, log)
-        
+
+
+def prepare_request_message(request):
+    return {'url': request.url,
+            'method': request.method,
+            'headers': request.headers,
+            'cookies': request.cookies,
+            'meta': request.meta}
+
+def prepare_links_message(links):
+    return [prepare_request_message(link) for link in links]
+
+def prepare_response_message(response):
+    return {'url': response.url,
+            'status_code': response.status_code,
+            'meta': response.meta}
+
+
 class KafkaBackend(Backend):
     DEFAULT_SERVER = "localhost:9092"
     DEFAULT_GROUP = "scrapy-crawler"
@@ -143,16 +160,24 @@ class KafkaBackend(Backend):
         return success
 
     def add_seeds(self, seeds):
-        self._seeds += seeds
+        self._send_message({
+            'type': 'add_seeds',
+            'seeds': [prepare_request_message(seed) for seed in seeds]
+        })
 
     def page_crawled(self, response, links):
         self._send_message({
-            'url': response.url,
-            'links': [link.url for link in links]
+            'type': 'page_crawled',
+            'r': prepare_response_message(response),
+            'links': prepare_links_message(links)
         })
             
     def request_error(self, page, error):
-        pass
+        self._send_message({
+            'type': 'request_error',
+            'r': prepare_request_message(page),
+            'error': error
+        })
 
     def get_next_requests(self, max_n_requests):
         start = time.clock()
@@ -174,7 +199,7 @@ class KafkaBackend(Backend):
                     try:
                         obj = self._decoder.decode(offmsg.message.value)            
                         try:
-                            urls.append(obj['url'])
+                            urls.append(obj['url'])  # FIXME: other fields should be also passed
                         except (KeyError, TypeError):
                             self._manager.logger.backend.warning(
                                 "Could not get url field in message")
