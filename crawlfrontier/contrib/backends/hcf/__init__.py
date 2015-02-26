@@ -268,7 +268,7 @@ class HCFBaseBackend(Backend):
         self.stats.inc_value(self._get_producer_stats_msg())
 
     def _is_hcf(self, request_or_response):
-        return not request_or_response.meta.get('cf_dont_store', False)
+        return request_or_response.meta.get('cf_store', False)
 
     def _consumer_max_batches_reached(self):
         if not self.hcf_consumer_max_batches:
