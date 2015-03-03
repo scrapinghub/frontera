@@ -185,7 +185,11 @@ class SQLiteBackend(Backend):
         return page
 
     def _create_request(self, db_page):
-        return self.manager.request_model(url=db_page.url)
+        return self.manager.request_model(url=db_page.url, meta={'domain':
+                                                                     {'fingerprint':
+                                                                          db_page.domain_fingerprint.encode('utf-8')
+                                                                     }
+                                                                })
 
     def _request_exists(self, fingerprint):
         q = self.page_model.query(self.session).filter_by(fingerprint=fingerprint)
