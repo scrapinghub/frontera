@@ -40,7 +40,6 @@ class DatetimeTimestamp(TypeDecorator):
 class Page(Base):
     __tablename__ = 'pages'
     __table_args__ = (
-        UniqueConstraint('url'),
         {
             'mysql_charset': 'utf8',
             'mysql_engine': 'InnoDB',
@@ -61,6 +60,7 @@ class Page(Base):
     status_code = Column(String(20))
     state = Column(String(12))
     error = Column(String(20))
+    domain_fingerprint = Column(String(40), nullable=True, index=True)
 
     @classmethod
     def query(cls, session):
@@ -178,6 +178,10 @@ class SQLiteBackend(Backend):
         page.url = url
         page.depth = 0
         page.created_at = datetime.datetime.utcnow()
+
+        # FIXME: add support of IP addresses, and make it NOT NULL
+        if 'domain' in request_or_response.meta:
+            page.domain_fingerprint = request_or_response.meta['domain']['fingerprint']
         return page
 
     def _create_request(self, db_page):
