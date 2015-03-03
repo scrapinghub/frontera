@@ -1,9 +1,9 @@
 import time
 
+from codecs import JSONEncoder, JSONDecoder
+
 from kafka import KafkaClient, SimpleConsumer, SimpleProducer
 from kafka.common import BrokerResponseError
-
-from scrapy.utils.serialize import ScrapyJSONEncoder, ScrapyJSONDecoder
 
 from crawlfrontier import Backend, Settings
 from crawlfrontier.core.models import Request
@@ -28,22 +28,6 @@ class TestManager(object):
             setattr(self.logger.backend, log_level, log)
 
 
-def prepare_request_message(request):
-    return {'url': request.url,
-            'method': request.method,
-            'headers': request.headers,
-            'cookies': request.cookies,
-            'meta': request.meta}
-
-def prepare_links_message(links):
-    return [prepare_request_message(link) for link in links]
-
-def prepare_response_message(response):
-    return {'url': response.url,
-            'status_code': response.status_code,
-            'meta': response.meta}
-
-
 class KafkaBackend(Backend):
     def __init__(self, manager):
         self._manager = manager
@@ -65,8 +49,8 @@ class KafkaBackend(Backend):
         self._connect_consumer()
         self._connect_producer()
 
-        self._encoder = ScrapyJSONEncoder()
-        self._decoder = ScrapyJSONDecoder()
+        self._encoder = JSONEncoder()
+        self._decoder = JSONDecoder(manager.request_model, manager.response_model)
                 
     def _connect_producer(self):
         """If producer is not connected try to connect it now.
@@ -119,15 +103,14 @@ class KafkaBackend(Backend):
         # flush everything if a batch is incomplete
         self._prod.stop()
 
-    def _send_message(self, obj, fail_wait_time=1.0, max_tries=5):
+    def _send_message(self, encoded_message, fail_wait_time=1.0, max_tries=5):
         start = time.clock()
         success = False
         if self._connect_producer():
-            msg = self._encoder.encode(obj)
             n_tries = 0
             while not success and n_tries < max_tries:
                 try:
-                    self._prod.send_messages(self._topic_done, msg)
+                    self._prod.send_messages(self._topic_done, encoded_message)
                     success = True
                 except BrokerResponseError:
                     n_tries += 1
@@ -143,24 +126,13 @@ class KafkaBackend(Backend):
         return success
 
     def add_seeds(self, seeds):
-        self._send_message({
-            'type': 'add_seeds',
-            'seeds': [prepare_request_message(seed) for seed in seeds]
-        })
+        self._send_message(self._encoder.encode_add_seeds(seeds))
 
     def page_crawled(self, response, links):
-        self._send_message({
-            'type': 'page_crawled',
-            'r': prepare_response_message(response),
-            'links': prepare_links_message(links)
-        })
+        self._send_message(self._encoder.encode_page_crawled(response, links))
             
     def request_error(self, page, error):
-        self._send_message({
-            'type': 'request_error',
-            'r': prepare_request_message(page),
-            'error': error
-        })
+        self._send_message(self._encoder.encode_request_error(page, error))
 
     def get_next_requests(self, max_n_requests):
         start = time.clock()
@@ -176,16 +148,8 @@ class KafkaBackend(Backend):
                     timeout=self._get_timeout):
                 success = True
                 try:
-                    obj = self._decoder.decode(offmsg.message.value)
-                    try:
-                        requests.append(Request(url=obj['url'],
-                                                method=obj['method'],
-                                                headers=obj['headers'],
-                                                cookies=obj['cookies'],
-                                                meta=obj['meta']))
-                    except (KeyError, TypeError):
-                        self._manager.logger.backend.warning(
-                            "Could not get url field in message")
+                    request = self._decoder.decode_request(offmsg.message.value)
+                    requests.append(request)
                 except ValueError:
                     self._manager.logger.backend.warning(
                         "Could not decode {0} message: {1}".format(
