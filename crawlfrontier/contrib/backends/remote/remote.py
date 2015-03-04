@@ -1,6 +1,6 @@
 import time
 
-from codecs import JSONEncoder, JSONDecoder
+from codecs import KafkaJSONEncoder, KafkaJSONDecoder
 
 from kafka import KafkaClient, SimpleConsumer, SimpleProducer
 from kafka.common import BrokerResponseError
@@ -49,8 +49,8 @@ class KafkaBackend(Backend):
         self._connect_consumer()
         self._connect_producer()
 
-        self._encoder = JSONEncoder()
-        self._decoder = JSONDecoder(manager.request_model, manager.response_model)
+        self._encoder = KafkaJSONEncoder(manager.request_model)
+        self._decoder = KafkaJSONDecoder(manager.request_model, manager.response_model)
                 
     def _connect_producer(self):
         """If producer is not connected try to connect it now.

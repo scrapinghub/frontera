@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from scrapy.utils.serialize import ScrapyJSONEncoder, ScrapyJSONDecoder
+from crawlfrontier.core.models import Request
+import json
 
 def _prepare_request_message(request):
     return {'url': request.url,
@@ -17,7 +18,22 @@ def _prepare_response_message(response):
             'meta': response.meta}
 
 
-class JSONEncoder(ScrapyJSONEncoder):
+class CrawlFrontierJSONEncoder(json.JSONEncoder):
+    def __init__(self, request_model, *a, **kw):
+        self._request_model = request_model
+        super(CrawlFrontierJSONEncoder, self).__init__(*a, **kw)
+
+    def default(self, o):
+        if isinstance(o, self._request_model):
+            return _prepare_request_message(o)
+        else:
+            return super(CrawlFrontierJSONEncoder, self).default(o)
+
+
+class KafkaJSONEncoder(CrawlFrontierJSONEncoder):
+    def __init__(self, request_model, *a, **kw):
+        super(KafkaJSONEncoder, self).__init__(request_model, *a, **kw)
+
     def encode_add_seeds(self, seeds):
         """
         Encodes add_seeds message
@@ -63,10 +79,11 @@ class JSONEncoder(ScrapyJSONEncoder):
         return self.encode(_prepare_request_message(request))
 
 
-class JSONDecoder(ScrapyJSONDecoder):
-    def __init__(self, request_model, response_model):
+class KafkaJSONDecoder(json.JSONDecoder):
+    def __init__(self, request_model, response_model, *a, **kw):
         self._request_model = request_model
         self._response_model = response_model
+        super(KafkaJSONDecoder, self).__init__(*a, **kw)
 
     def _response_from_object(self, obj):
         request = self._request_model(url=obj['url'],
@@ -88,6 +105,7 @@ class JSONDecoder(ScrapyJSONDecoder):
         :param bytes message encoded message
         :return tuple of message type and related objects
         """
+        message = super(KafkaJSONDecoder, self).decode(message)
         if message['type'] == 'add_seeds':
             seeds = []
             for seed in message['seeds']:
@@ -106,7 +124,7 @@ class JSONDecoder(ScrapyJSONDecoder):
         return TypeError('Unknown message type')
 
     def decode_request(self, message):
-        obj = self.decode(message)
+        obj = super(KafkaJSONDecoder, self).decode(message)
         return self._request_model(url=obj['url'],
                                     method=obj['method'],
                                     headers=obj['headers'],
