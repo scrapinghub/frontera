@@ -39,11 +39,6 @@ class FrontierWorker(object):
 
     def start(self):
         produced = self.new_batch()
-
-        if not produced:
-            logger.info("No requests were produced. Exiting.")
-            return
-
         consumed = 0
         while not self.is_finishing:
             for m in self.consumer.get_messages(count=self.consumer_batch_size,
@@ -82,10 +77,18 @@ class FrontierWorker(object):
     def new_batch(self):
         count = 0
         for request in self.backend.get_next_requests(self.settings.MAX_NEXT_REQUESTS):
-            eo = self.encoder.encode_request(request)
+            try:
+                eo = self.encoder.encode_request(request)
+            except Exception, e:
+                logger.error("Encoding error, %s, fingerprint: %s, url: %s" % (e,
+                                                                               request.meta['fingerprint'],
+                                                                               request.url))
+                continue
+            finally:
+                count +=1
+
             # TODO: send in batches
             self.producer.send_messages(self.outgoing_topic, request.meta['domain']['fingerprint'], eo)
-            count += 1
         logger.info("Pushed new batch of %d items", count)
         return count
 
