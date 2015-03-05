@@ -148,7 +148,6 @@ class HBaseBackend(Backend):
     def __init__(self, manager):
         self.manager = manager
 
-        # Get settings
         settings = manager.settings
         port = settings.get('HBASE_THRIFT_PORT', 9090)
         host = settings.get('HBASE_THRIFT_HOST', 'localhost')
@@ -156,11 +155,9 @@ class HBaseBackend(Backend):
         drop_all_tables = settings.get('HBASE_DROP_ALL_TABLES', False)
         self.queue_partitions = settings.get('HBASE_QUEUE_PARTITIONS', 4)
 
-        # Create engine
         self.connection = Connection(host=host, port=int(port), table_prefix=namespace, table_prefix_separator=':')
         self.queue = HBaseQueue(self.connection, self.queue_partitions, drop=drop_all_tables)
 
-        # Drop tables if we have to
         if drop_all_tables:
             tables = self.connection.tables()
             if 'metadata' in tables:
