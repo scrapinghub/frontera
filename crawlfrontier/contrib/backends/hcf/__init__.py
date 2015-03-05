@@ -75,6 +75,7 @@ class HCFManager(object):
         for i in range(self._hcf_retries):
             try:
                 self._hcf.delete(self._frontier, slot, ids)
+                break
             except requests.exceptions.ReadTimeout:
                 _msg("Could not delete ids from {0}/{1} try {2}/{3}".format(self._frontier, slot, i+1,
                                                                             self._hcf_retries), log.ERROR)
