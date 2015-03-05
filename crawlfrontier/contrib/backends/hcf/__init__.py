@@ -1,5 +1,7 @@
 from collections import defaultdict
 import datetime
+import requests
+import time
 
 from hubstorage import HubstorageClient
 
@@ -58,10 +60,21 @@ class HCFManager(object):
         return n_links_to_flush
 
     def read(self, slot, mincount=None):
-        return self._hcf.read(self._frontier, slot, mincount)
+        for i in range(10):
+            try:
+                return self._hcf.read(self._frontier, slot, mincount)
+            except requests.exceptions.ReadTimeout:
+                time.sleep(60)
+                continue
+        return []
 
     def delete(self, slot, ids):
-        self._hcf.delete(self._frontier, slot, ids)
+        for i in range(10):
+            try:
+                self._hcf.delete(self._frontier, slot, ids)
+            except requests.exceptions.ReadTimeout:
+                time.sleep(60)
+                continue
 
     def delete_slot(self, slot):
         self._hcf.delete_slot(self._frontier, slot)
