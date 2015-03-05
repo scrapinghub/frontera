@@ -37,6 +37,7 @@ class HCFManager(object):
         self._links_count = defaultdict(int)
         self._links_to_flush_count = defaultdict(int)
         self._batch_size = batch_size
+        self._hcf_retries = 10
 
     def add_request(self, slot, request):
         self._hcf.add(self._frontier, slot, [request])
@@ -60,19 +61,23 @@ class HCFManager(object):
         return n_links_to_flush
 
     def read(self, slot, mincount=None):
-        for i in range(10):
+        for i in range(self._hcf_retries):
             try:
                 return self._hcf.read(self._frontier, slot, mincount)
             except requests.exceptions.ReadTimeout:
+                _msg("Could not read from {0}/{1} try {2}/{3}".format(self._frontier, slot, i+1,
+                                                                      self._hcf_retries), log.ERROR)
                 time.sleep(60)
                 continue
         return []
 
     def delete(self, slot, ids):
-        for i in range(10):
+        for i in range(self._hcf_retries):
             try:
                 self._hcf.delete(self._frontier, slot, ids)
             except requests.exceptions.ReadTimeout:
+                _msg("Could not delete ids from {0}/{1} try {2}/{3}".format(self._frontier, slot, i+1,
+                                                                            self._hcf_retries), log.ERROR)
                 time.sleep(60)
                 continue
 
