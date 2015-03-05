@@ -1,24 +1,17 @@
 # -*- coding: utf-8 -*-
-from kafka import KafkaClient, KeyedProducer, SimpleConsumer
-from crawlfrontier.contrib.backends.remote.codecs import KafkaJSONDecoder, KafkaJSONEncoder
-from crawlfrontier.core.manager import BaseManager
-from crawlfrontier.settings import Settings
-
-from kafka.partitioner.base import Partitioner
-
-from struct import unpack
 from sys import argv
 import logging
 
+from kafka import KafkaClient, KeyedProducer, SimpleConsumer
+
+from crawlfrontier.contrib.backends.remote.codecs import KafkaJSONDecoder, KafkaJSONEncoder
+from crawlfrontier.core.manager import BaseManager
+from crawlfrontier.settings import Settings
+from crawlfrontier.worker.partitioner import FingerprintPartitioner
+
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-class FingerprintPartitioner(Partitioner):
-    def partition(self, key, partitions):
-        size = len(partitions)
-        value = unpack("<I", key[:4])
-        idx = value[0] % size
-        return partitions[idx]
 
 
 class FrontierWorker(object):
