@@ -104,8 +104,11 @@ class HCFManager(object):
 
 class HCFBaseBackend(Backend):
     """
-    * HCF_AUTH - Hubstorage auth
-    * HCF_PROJECT_ID - Hubstorage project id
+    Spider settings:
+    ----------------
+
+    * HCF_AUTH - Hubstorage auth (not required if job run in scrapinghub or configured in scrapy.cfg)
+    * HCF_PROJECT_ID - Hubstorage project id (not required if job run in scrapinghub or configured scrapy.cfg)
 
     If is producer:
     * HCF_PRODUCER_FRONTIER - The frontier where URLs are written.
@@ -118,6 +121,13 @@ class HCFBaseBackend(Backend):
     * HCF_CONSUMER_FRONTIER - The frontier where URLs are readed.
     * HCF_CONSUMER_SLOT - Slot from where the spider will read new URLs.
     * HCF_CONSUMER_MAX_BATCHES - Max batches to read from hubstorage
+
+    Spider attributes:
+    ------------------
+
+    Spider attributes configures crawl frontier and has precedence over the equivalent scrapy settings. Available
+    attributes can be found in scrapy_spider_settings class attribute below
+
     """
 
     scrapy_spider_settings = (
