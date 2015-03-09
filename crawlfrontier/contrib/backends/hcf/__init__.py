@@ -170,6 +170,7 @@ class HCFBaseBackend(Backend):
             self._init_roles()
             self.producer_get_slot_callback = getattr(scrapy_spider, 'get_producer_slot',
                                                       self.producer_get_slot_callback)
+            self.make_request = getattr(scrapy_spider, 'cf_make_request', self._make_request)
         if not (self.consumer or self.producer):
             raise NotConfigured("You must configure backend either as consumer or producer")
 
@@ -225,7 +226,7 @@ class HCFBaseBackend(Backend):
             requests = batch['requests']
             self.stats.inc_value(self._get_consumer_stats_msg('requests'), len(requests))
             for fingerprint, qdata in requests:
-                request = self._make_request(qdata.get('url', fingerprint))
+                request = self.make_request(fingerprint, qdata)
                 return_requests.append(request)
             consumed_batches_ids.append(batch_id)
             self.stats.inc_value(self._get_consumer_stats_msg('batches'))
@@ -238,7 +239,8 @@ class HCFBaseBackend(Backend):
 
         return return_requests
 
-    def _make_request(self, url):
+    def _make_request(self, fingerprint, qdata):
+        url = qdata.get('url', fingerprint)
         meta = {
             'created_at': datetime.datetime.utcnow(),
             'depth': 0,
