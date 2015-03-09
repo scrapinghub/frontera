@@ -128,6 +128,12 @@ class HCFBaseBackend(Backend):
     Spider attributes configures crawl frontier and has precedence over the equivalent scrapy settings. Available
     attributes can be found in scrapy_spider_settings class attribute below
 
+    Spider callbacks:
+    -----------------
+
+    * cf_make_request(fingerprint, qdata) - Custom build of request from the frontier data. It must return an instance
+            of the class specified in the frontier setting REQUEST_MODEL.
+
     """
 
     scrapy_spider_settings = (
