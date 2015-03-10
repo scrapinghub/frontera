@@ -20,12 +20,12 @@ because of RPS limit and delay. Therefore, picking top URLs from the queue leeds
 connection pool of downloader most of the time underused.
 
 The solution is to supply Crawl Frontier backend with hostname/ip (usually, but not necessary) usage in downloader. We
-have a :class:`DownloaderInfo <crawlfrontier.core.DownloaderInfo>` class for keeping these stats, which can be easily
-subclassed and customized with additional information. The :class:`DownloaderInfo <crawlfrontier.core.DownloaderInfo>`
-instance is created outside of Crawl Frontier, and then passed to CF via \
-:class:`FrontierManagerWrapper <crawlfrontier.utils.FrontierManagerWrapper>` subclass to backend.
+have an `info` argument of method :attr:`get_next_requests <crawlfrontier.core.components.Backend.get_next_requests>`
+pure python dictionary object for passing these stats, to the Crawl Frontier backend. Additional information can be
+easilly added there. This dictionary is created outside of Crawl Frontier, and then passed to CF via
+:class:`FrontierManagerWrapper <crawlfrontier.utils.managers.FrontierManagerWrapper>` subclass to backend.
 
-There are also building blocks to ease the usage of :class:`DownloaderInfo <crawlfrontier.core.DownloaderInfo>`.
+There are also building blocks to ease the usage of `info` argument.
 
 Overused keys
 ^^^^^^^^^^^^^
@@ -53,8 +53,8 @@ Here is the example how to incorporate request buffering in typical backend: ::
             self._buffer = OverusedBuffer(super(MemoryDFSOverusedBackend, self).get_next_requests,
                                           manager.logger.manager.debug)
 
-        def get_next_requests(self, max_n_requests, downloader_info):
-            return self._buffer.get_next_requests(max_n_requests, downloader_info)
+        def get_next_requests(self, max_n_requests, info):
+            return self._buffer.get_next_requests(max_n_requests, info)
 
 .. note:: For Scrapy users there is :class:`OverusedBufferScrapy \
           <crawlfrontier.contrib.scrapy.overusedbuffer.OverusedBufferScrapy>` version optimized with reusing Scrapy

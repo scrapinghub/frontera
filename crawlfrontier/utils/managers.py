@@ -1,4 +1,3 @@
-from crawlfrontier.core import DownloaderInfo
 from crawlfrontier.core.manager import FrontierManager
 from converters import BaseRequestConverter, BaseResponseConverter
 
@@ -28,10 +27,10 @@ class FrontierManagerWrapper(object):
         frontier_seeds = [self.request_converter.to_frontier(seed) for seed in seeds]
         self.manager.add_seeds(seeds=frontier_seeds)
 
-    def get_next_requests(self, max_next_requests=0, downloader_info=None):
-        if downloader_info is None:
-            downloader_info = DownloaderInfo()
-        frontier_requests = self.manager.get_next_requests(downloader_info=downloader_info,
+    def get_next_requests(self, max_next_requests=0, info=None):
+        if info is None:
+            info = {}
+        frontier_requests = self.manager.get_next_requests(info=info,
                                                            max_next_requests=max_next_requests)
         return [self.request_converter.from_frontier(frontier_request) for frontier_request in frontier_requests]
 

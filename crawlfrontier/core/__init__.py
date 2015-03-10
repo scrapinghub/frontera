@@ -3,35 +3,6 @@ from socket import getaddrinfo
 from collections import deque
 
 
-class DownloaderInfo(object):
-    """
-    Data class, used for carrying various information from downloading component of crawler to Crawl Frontier backend.
-    It's main purpose is to make backend aware of downloader fetching activities.
-
-    See :ref:`efficient parallel downloading <efficient-parallel-downloading>` best practices for more information.
-    """
-    def __init__(self, type='domain'):
-        self._overused_keys = []
-        self._type = type
-
-    @property
-    def overused_keys(self):
-        """
-        Key here could be anything: domain, ip or custom object. It is defined in downloader and should be expected by
-        backend.
-
-        :return: A list of keys
-        """
-        return self._overused_keys
-
-    @property
-    def key_type(self):
-        """
-        :return: string
-        """
-        return self._type
-
-
 def get_slot_key(request, type):  # TODO: Probably use caching here
     """
     Get string representing a downloader slot key, which will be used in downloader as id for domain/ip load
@@ -92,19 +63,19 @@ class OverusedBuffer(object):
             for k in trash_can:
                 del self._pending[k]
 
-    def get_next_requests(self, max_n_requests, downloader_info):
+    def get_next_requests(self, max_n_requests, info):
         if self._log:
-            self._log("Overused keys: %s" % str(downloader_info.overused_keys))
+            self._log("Overused keys: %s" % str(info['overused_keys']))
             self._log("Pending: %i" % (sum([len(pending) for pending in self._pending.itervalues()])))
 
-        overused_set = set(downloader_info.overused_keys)
+        overused_set = set(info['overused_keys'])
         requests = self._get_pending(max_n_requests, overused_set)
 
         if len(requests) == max_n_requests:
             return requests
 
-        for request in self._get(max_n_requests-len(requests), downloader_info=downloader_info):
-            key = self._get_key(request, downloader_info.key_type)
+        for request in self._get(max_n_requests-len(requests), info=info):
+            key = self._get_key(request, info['type'])
             if key in overused_set:
                 self._pending.setdefault(key, deque()).append(request)
             else:
