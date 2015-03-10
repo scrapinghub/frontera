@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from collections import OrderedDict, deque
 from urlparse import urlparse
-from crawlfrontier.core import DownloaderInfo
 
 
 class FrontierTester(object):
@@ -46,8 +45,7 @@ class FrontierTester(object):
         return self.frontier.response_model(url=url, status_code=status_code, request=request)
 
     def _run_iteration(self):
-        kwargs = {'downloader_info':
-                  self.downloader_simulator.downloader_info()}
+        kwargs = self.downloader_simulator.downloader_info()
         if self.max_next_requests:
             kwargs['max_next_requests'] = self.max_next_requests
 
@@ -80,7 +78,10 @@ class BaseDownloaderSimulator(object):
         return self.requests
 
     def downloader_info(self):
-        return DownloaderInfo()
+        return {
+            'key_type': 'domain',
+            'overused_keys': []
+        }
 
     def idle(self):
         return True
@@ -111,10 +112,13 @@ class DownloaderSimulator(BaseDownloaderSimulator):
         return output
 
     def downloader_info(self):
-        info = DownloaderInfo()
+        info = {
+            'key_type': 'domain',
+            'overused_keys': []
+        }
         for key, requests in self.slots.iteritems():
             if len(requests) > self._requests_per_slot:
-                info.overused_keys.append(key)
+                info['overused_keys'].append(key)
         return info
 
     def idle(self):

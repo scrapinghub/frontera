@@ -12,6 +12,11 @@ class TestLIFO(backends.LIFOBackendTest):
 class TestDFS(backends.DFSBackendTest):
     backend_class = 'crawlfrontier.contrib.backends.memory.DFS'
 
+class TestDFSOverused(backends.DFSBackendTest):
+    backend_class = 'crawlfrontier.contrib.backends.memory.MemoryDFSOverusedBackend'
+
+class TestDFSOverusedSimulation(backends.DFSOverusedBackendTest):
+    backend_class = 'crawlfrontier.contrib.backends.memory.MemoryDFSOverusedBackend'
 
 class TestDFSOverused(backends.DFSBackendTest):
     backend_class = 'crawlfrontier.contrib.backends.memory.MemoryDFSOverusedBackend'

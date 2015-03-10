@@ -10,7 +10,7 @@ from crawlfrontier.utils.converters import BaseRequestConverter
 from crawlfrontier.contrib.requests.converters import ResponseConverter
 
 from crawlfrontier.utils.managers import FrontierManagerWrapper
-from crawlfrontier.core import get_slot_key, DownloaderInfo
+from crawlfrontier.core import get_slot_key
 from crawlfrontier import Settings
 
 SETTINGS = Settings()
@@ -27,6 +27,7 @@ SEEDS = [
 ]
 
 LINK_RE = re.compile(r'href="(.*?)"')
+
 
 class GRequestsConverter(BaseRequestConverter):
     """Converts between crawlfrontier and grequests request objects"""
@@ -70,8 +71,8 @@ def extract_page_links(response):
 """
 The idea is to send requests to each domain with at least 5 seconds of delay. grequests only allows us to limit the
 number of simultaneous requests. So, we basically performing checks every frontier iteration and limiting the contents
-of new frontier batch by sending overused keys in DownloaderInfo. Therefore, we're getting to 5 seconds delays per
-batch.
+of new frontier batch by sending overused keys in `info` argument to get_next_requests. Therefore, we're getting to 5
+seconds delays per batch.
 """
 
 
@@ -89,9 +90,9 @@ if __name__ == '__main__':
             links = [grequests_get(url=url) for url in extract_page_links(response)]
             frontier.page_crawled(response=response, links=links)
 
-        dl_info = DownloaderInfo()
-        stats.collect_overused_keys(dl_info.overused_keys)
-        next_requests = frontier.get_next_requests(downloader_info=dl_info)
+        dl_info = {'type': 'domain'}
+        stats.collect_overused_keys(dl_info['overused_keys'])
+        next_requests = frontier.get_next_requests(key_type=dl_info['type'], overused_keys=dl_info['overused_keys'])
         if not next_requests:
             continue
 
