@@ -5,7 +5,6 @@ from scrapy import log
 from collections import deque
 
 from crawlfrontier.contrib.scrapy.manager import ScrapyFrontierManager
-from crawlfrontier.core import DownloaderInfo
 
 STATS_PREFIX = 'crawlfrontier'
 
@@ -138,7 +137,7 @@ class CrawlFrontierScheduler(Scheduler):
     def _get_next_request(self):
         if not self.frontier.manager.finished and \
            not self.has_pending_requests():
-            for request in self.frontier.get_next_requests(downloader_info=self._get_downloader_info()):
+            for request in self.frontier.get_next_requests(info=self._get_downloader_info()):
                 self._add_pending_request(request)
         return self._get_pending_request()
 
@@ -159,9 +158,12 @@ class CrawlFrontierScheduler(Scheduler):
 
     def _get_downloader_info(self):
         downloader = self.crawler.engine.downloader
-        info = DownloaderInfo(type='ip' if downloader.ip_concurrency else 'domain')
+        info = {
+            'type':'ip' if downloader.ip_concurrency else 'domain',
+            'overused_keys': []
+        }
         for key, slot in downloader.slots.iteritems():
             overused_factor = len(slot.active) / float(slot.concurrency)
             if overused_factor > self.frontier.manager.settings.get('OVERUSED_SLOT_FACTOR', 1.0):
-                info.overused_keys.append(key)
+                info['overused_keys'].append(key)
         return info
