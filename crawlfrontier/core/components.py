@@ -96,7 +96,7 @@ class Backend(Component):
         Returns a list of next requests to be crawled.
 
         :param int max_next_requests: Maximum number of requests to be returned by this method.
-        :param dict info: Information from downloader component, serving as hint for backend. 
+        :param dict info: Information from downloader component, serving as hint for backend.
 
         :return: list of :class:`Request <crawlfrontier.core.models.Request>` objects.
         """
