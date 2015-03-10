@@ -250,6 +250,10 @@ class HCFBaseBackend(Backend):
                 for fingerprint, qdata in requests:
                     request = self.make_request(fingerprint, qdata, self.manager.request_model)
                     if request is not None:
+                        request.meta.update({
+                            'created_at': datetime.datetime.utcnow(),
+                            'depth': 0,
+                        })
                         return_requests.append(request)
                 consumed_batches_ids.append(batch_id)
                 self.stats.inc_value(self._get_consumer_stats_msg('batches'))
@@ -264,11 +268,7 @@ class HCFBaseBackend(Backend):
 
     def _make_request(self, fingerprint, qdata, request_cls):
         url = qdata.get('url', fingerprint)
-        meta = {
-            'created_at': datetime.datetime.utcnow(),
-            'depth': 0,
-        }
-        return self.manager.make_request(url, meta=meta)
+        return self.manager.make_request(url)
 
     def _get_stats(self):
         scrapy_stats = get_scrapy_stats(self.manager.extra)
