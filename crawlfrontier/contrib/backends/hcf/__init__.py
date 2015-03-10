@@ -235,23 +235,27 @@ class HCFBaseBackend(Backend):
 
     def _get_requests_from_hs(self, n_min_requests):
         return_requests = []
-        consumed_batches_ids = []
+        data = True
 
-        for batch in self.consumer.read(self.hcf_consumer_slot, n_min_requests):
-            batch_id = batch['id']
-            requests = batch['requests']
-            self.stats.inc_value(self._get_consumer_stats_msg('requests'), len(requests))
-            for fingerprint, qdata in requests:
-                request = self.make_request(fingerprint, qdata, self.manager.request_model)
-                if request is not None:
-                    return_requests.append(request)
-            consumed_batches_ids.append(batch_id)
-            self.stats.inc_value(self._get_consumer_stats_msg('batches'))
-            _msg('Reading %d request(s) from batch %s ' % (len(requests), batch_id))
+        while data and len(return_requests) < n_min_requests and not self._consumer_max_batches_reached():
+            consumed_batches_ids = []
+            data = False
+            for batch in self.consumer.read(self.hcf_consumer_slot, n_min_requests):
+                data = True
+                batch_id = batch['id']
+                requests = batch['requests']
+                self.stats.inc_value(self._get_consumer_stats_msg('requests'), len(requests))
+                for fingerprint, qdata in requests:
+                    request = self.make_request(fingerprint, qdata, self.manager.request_model)
+                    if request is not None:
+                        return_requests.append(request)
+                consumed_batches_ids.append(batch_id)
+                self.stats.inc_value(self._get_consumer_stats_msg('batches'))
+                _msg('Reading %d request(s) from batch %s ' % (len(requests), batch_id))
 
-        if consumed_batches_ids:
-            self.consumer.delete(self.hcf_consumer_slot, consumed_batches_ids)
-            self.n_consumed_batches += len(consumed_batches_ids)
+            if consumed_batches_ids:
+                self.consumer.delete(self.hcf_consumer_slot, consumed_batches_ids)
+                self.n_consumed_batches += len(consumed_batches_ids)
 
 
         return return_requests
