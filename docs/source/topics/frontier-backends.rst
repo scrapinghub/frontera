@@ -74,12 +74,6 @@ single Python class inherited from :class:`Component <crawlfrontier.core.compone
 
     .. automethod:: crawlfrontier.core.components.Backend.from_manager
 
-.. autoclass:: crawlfrontier.core.DownloaderInfo
-
-    .. automethod:: crawlfrontier.core.DownloaderInfo.overused_keys
-
-    .. automethod:: crawlfrontier.core.DownloaderInfo.key_type
-
 
 .. _frontier-built-in-backend:
 
