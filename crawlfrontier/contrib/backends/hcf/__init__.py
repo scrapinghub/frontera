@@ -132,7 +132,9 @@ class HCFBaseBackend(Backend):
     -----------------
 
     * cf_make_request(fingerprint, qdata, request_cls) - Custom build of request from the frontier data. It must return None or an
-            instance of the class specified in request_cls. If returns None, the request is ignored.
+            instance of the class specified in request_cls. If returns None, the request is ignored. Used in consumer spider.
+    * get_producer_slot(request) - Custom mapping from a request to a slot name where request must be stored. It receives an instance
+            of the class given by REQUEST_MODEL frontier setting. Used in producer spider.
 
     """
 
