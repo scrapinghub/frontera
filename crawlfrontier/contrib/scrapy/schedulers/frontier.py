@@ -159,7 +159,7 @@ class CrawlFrontierScheduler(Scheduler):
     def _get_downloader_info(self):
         downloader = self.crawler.engine.downloader
         info = {
-            'type':'ip' if downloader.ip_concurrency else 'domain',
+            'type': 'ip' if downloader.ip_concurrency else 'domain',
             'overused_keys': []
         }
         for key, slot in downloader.slots.iteritems():
