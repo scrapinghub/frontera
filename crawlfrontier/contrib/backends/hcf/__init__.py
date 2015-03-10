@@ -131,8 +131,8 @@ class HCFBaseBackend(Backend):
     Spider callbacks:
     -----------------
 
-    * cf_make_request(fingerprint, qdata) - Custom build of request from the frontier data. It must return None or an
-            instance of the class specified in the frontier setting REQUEST_MODEL. If returns None, the request is ignored. 
+    * cf_make_request(fingerprint, qdata, request_cls) - Custom build of request from the frontier data. It must return None or an
+            instance of the class specified in request_cls. If returns None, the request is ignored.
 
     """
 
@@ -242,7 +242,7 @@ class HCFBaseBackend(Backend):
             requests = batch['requests']
             self.stats.inc_value(self._get_consumer_stats_msg('requests'), len(requests))
             for fingerprint, qdata in requests:
-                request = self.make_request(fingerprint, qdata)
+                request = self.make_request(fingerprint, qdata, self.manager.request_model)
                 if request is not None:
                     return_requests.append(request)
             consumed_batches_ids.append(batch_id)
@@ -256,7 +256,7 @@ class HCFBaseBackend(Backend):
 
         return return_requests
 
-    def _make_request(self, fingerprint, qdata):
+    def _make_request(self, fingerprint, qdata, request_cls):
         url = qdata.get('url', fingerprint)
         meta = {
             'created_at': datetime.datetime.utcnow(),
