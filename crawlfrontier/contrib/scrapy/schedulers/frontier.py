@@ -1,12 +1,17 @@
+from collections import deque
+
 from scrapy.core.scheduler import Scheduler
 from scrapy.http import Request
 from scrapy import log
-
-from collections import deque
+from scrapy.utils.misc import load_object
 
 from crawlfrontier.contrib.scrapy.manager import ScrapyFrontierManager
+from crawlfrontier.settings import Settings
 
 STATS_PREFIX = 'crawlfrontier'
+
+DOWNLOADER_MIDDLEWARE = 'crawlfrontier.contrib.scrapy.middlewares.schedulers.SchedulerDownloaderMiddleware'
+SPIDER_MIDDLEWARE = 'crawlfrontier.contrib.scrapy.middlewares.schedulers.SchedulerSpiderMiddleware'
 
 
 class StatsManager(object):
@@ -70,6 +75,10 @@ class StatsManager(object):
 class CrawlFrontierScheduler(Scheduler):
 
     def __init__(self, crawler):
+
+        # Add scrapy integration middlewares for scheduler
+        self._add_middlewares(crawler)
+
         self.crawler = crawler
         self.stats_manager = StatsManager(crawler.stats)
         self._pending_requests = deque()
@@ -78,7 +87,12 @@ class CrawlFrontierScheduler(Scheduler):
         frontier_settings = crawler.settings.get('FRONTIER_SETTINGS', None)
         if not frontier_settings:
             log.msg('FRONTIER_SETTINGS not found! Using default frontier settings...', log.WARNING)
-        self.frontier = ScrapyFrontierManager(frontier_settings)
+
+        frontier_settings = Settings(frontier_settings or None)
+        frontier_settings.AUTO_START = False
+
+        scrapy_parameters = {'crawler': crawler}
+        self.frontier = ScrapyFrontierManager(frontier_settings, **scrapy_parameters)
 
     @classmethod
     def from_crawler(cls, crawler):
@@ -120,11 +134,13 @@ class CrawlFrontierScheduler(Scheduler):
     def open(self, spider):
         log.msg('Starting frontier', log.INFO)
         if not self.frontier.manager.auto_start:
-            self.frontier.start()
+            scrapy_kwargs = {'spider': spider}
+            self.frontier.start(**scrapy_kwargs)
 
     def close(self, reason):
         log.msg('Finishing frontier (%s)' % reason, log.INFO)
-        self.frontier.stop()
+        scrapy_kwargs = {'reason': reason}
+        self.frontier.stop(**scrapy_kwargs)
         self.stats_manager.set_iterations(self.frontier.manager.iteration)
         self.stats_manager.set_pending_requests(len(self))
 
@@ -135,8 +151,7 @@ class CrawlFrontierScheduler(Scheduler):
         return len(self) > 0
 
     def _get_next_request(self):
-        if not self.frontier.manager.finished and \
-           not self.has_pending_requests():
+        if not self.frontier.manager.finished:
             for request in self.frontier.get_next_requests():
                 self._add_pending_request(request)
         return self._get_pending_request()
@@ -155,3 +170,23 @@ class CrawlFrontierScheduler(Scheduler):
 
     def _request_is_redirected(self, request):
         return request.meta.get('redirect_times', 0) > 0
+
+    def _add_middlewares(self, crawler):
+        """
+        Adds crawl-frontier scrapy scheduler downloader and spider middlewares.
+        Hack to avoid defining crawl-frontier scrapy middlewares in settings.
+        Middleware managers (downloader+spider) has already been initialized at this moment.
+        """
+        self._add_middleware_to_manager(manager=crawler.engine.downloader.middleware,
+                                        mw=load_object(DOWNLOADER_MIDDLEWARE).from_crawler(crawler))
+        self._add_middleware_to_manager(manager=crawler.engine.scraper.spidermw,
+                                        mw=load_object(SPIDER_MIDDLEWARE).from_crawler(crawler))
+
+    def _add_middleware_to_manager(self, manager, mw):
+        """
+        Adds mw to already initialized middleware manager.
+        Reproduces the mw add process at the end of the middleware manager mws list.
+        """
+        manager.middlewares = manager.middlewares + (mw,)
+        manager._add_middleware(mw)
+

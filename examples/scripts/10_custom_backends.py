@@ -3,7 +3,8 @@ Custom backend example
 """
 import random
 
-from crawlfrontier import FrontierManager, Settings, FrontierTester, graphs
+from crawlfrontier import FrontierManager, Settings, FrontierTester
+from crawlfrontier.utils import graphs
 from crawlfrontier.contrib.backends.memory import MemoryBaseBackend
 
 

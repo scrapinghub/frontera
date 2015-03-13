@@ -1,7 +1,8 @@
 """
 Frontier from parameters example
 """
-from crawlfrontier import FrontierManager, graphs, Request, Response
+from crawlfrontier import FrontierManager, Request, Response
+from crawlfrontier.utils import graphs
 
 if __name__ == '__main__':
     # Create graph

@@ -65,3 +65,6 @@ class Heap(object):
             return wrapper.obj
         except IndexError:
             return None
+
+    def __len__(self):
+        return len(self.heap)

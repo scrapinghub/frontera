@@ -1,7 +1,7 @@
 """
 Graph manager example with single site
 """
-from crawlfrontier import graphs
+from crawlfrontier.utils import graphs
 
 SITE = [
     ("A", ["B", "C"]),

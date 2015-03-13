@@ -113,10 +113,10 @@ class SQLiteBackend(Backend):
     def page_model(self):
         return self.models['Page']
 
-    def frontier_start(self):
+    def frontier_start(self, **kwargs):
         pass
 
-    def frontier_stop(self):
+    def frontier_stop(self, **kwargs):
         self.session.close()
         self.engine.dispose()
 

@@ -20,16 +20,20 @@ class Component(object):
     component_name = 'Base Component'
 
     @abstractmethod
-    def frontier_start(self):
+    def frontier_start(self, **kwargs):
         """
         Called when the frontier starts, see :ref:`starting/stopping the frontier <frontier-start-stop>`.
+
+        :param ** kwargs: Arbitrary number of extra keyword arguments.
         """
         pass
 
     @abstractmethod
-    def frontier_stop(self):
+    def frontier_stop(self, **kwargs):
         """
         Called when the frontier stops, see :ref:`starting/stopping the frontier <frontier-start-stop>`.
+
+        :param ** kwargs: Arbitrary number of extra keyword arguments.
         """
         pass
 

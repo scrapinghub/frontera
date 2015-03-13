@@ -1,7 +1,8 @@
 """
 Test different frontier backends
 """
-from crawlfrontier import FrontierManager, Settings, FrontierTester, graphs
+from crawlfrontier import FrontierManager, Settings, FrontierTester
+from crawlfrontier.utils import graphs
 
 
 def test_logic(backend):
