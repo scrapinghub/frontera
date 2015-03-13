@@ -151,8 +151,7 @@ class CrawlFrontierScheduler(Scheduler):
         return len(self) > 0
 
     def _get_next_request(self):
-        if not self.frontier.manager.finished and \
-           not self.has_pending_requests():
+        if not self.frontier.manager.finished:
             for request in self.frontier.get_next_requests():
                 self._add_pending_request(request)
         return self._get_pending_request()
