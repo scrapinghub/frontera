@@ -1,3 +1,6 @@
 six>=1.8.0
 w3lib>=1.10.0
 tldextract>=1.5.1
+sqlalchemy
+happy-base
+kafka-python
