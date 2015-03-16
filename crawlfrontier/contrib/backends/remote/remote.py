@@ -35,8 +35,8 @@ class KafkaBackend(Backend):
 
         # Kafka connection parameters
         self._server = settings.get('KAFKA_SERVER', "localhost:9092")
-        self._topic_todo = settings.get('KAFKA_TOPIC_TODO', "frontier-todo2")
-        self._topic_done = settings.get('KAFKA_TOPIC_DONE', "frontier-done2")
+        self._topic_todo = settings.get('KAFKA_TOPIC_TODO', "frontier-todo")
+        self._topic_done = settings.get('KAFKA_TOPIC_DONE', "frontier-done")
         self._group = settings.get('KAFKA_GROUP', "scrapy-crawler")
         self._get_timeout = float(settings.get('KAFKA_GET_TIMEOUT', 5.0))
         self._partition_id = settings.get('KAFKA_PARTITION_ID')
