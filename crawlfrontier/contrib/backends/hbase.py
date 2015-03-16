@@ -162,9 +162,9 @@ class HBaseBackend(Backend):
             tables = self.connection.tables()
             if 'metadata' in tables:
                 self.connection.delete_table('metadata', disable=True)
-                self.connection.create_table('metadata', {'m': {'max_versions': 1},
-                                                          's': {'max_versions': 1}
-                                                         })
+            self.connection.create_table('metadata', {'m': {'max_versions': 1},
+                                                      's': {'max_versions': 1}
+                                                     })
 
     @classmethod
     def from_manager(cls, manager):
