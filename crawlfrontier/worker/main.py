@@ -3,6 +3,7 @@ from sys import argv
 import logging
 
 from kafka import KafkaClient, KeyedProducer, SimpleConsumer
+from kafka.common import OffsetOutOfRangeError
 
 from crawlfrontier.contrib.backends.remote.codecs import KafkaJSONDecoder, KafkaJSONEncoder
 from crawlfrontier.core.manager import BaseManager
@@ -41,33 +42,38 @@ class FrontierWorker(object):
         produced = self.new_batch()
         consumed = 0
         while not self.is_finishing:
-            for m in self.consumer.get_messages(count=self.consumer_batch_size,
-                                                block=True,
-                                                timeout=30.0):
-                try:
-                    msg = self.decoder.decode(m.message.value)
-                except (KeyError, TypeError), e:
-                    logger.error("Decoding error: %s", e)
-                    continue
-                else:
-                    type = msg[0]
-                    if type == 'add_seeds':
-                        _, seeds = msg
-                        logger.info('Adding %i seeds', len(seeds))
-                        map(lambda seed: logger.debug('URL: ', seed.url), seeds)
-                        self.backend.add_seeds(seeds)
+            try:
+                for m in self.consumer.get_messages(count=self.consumer_batch_size,
+                                                    block=True,
+                                                    timeout=30.0):
+                    try:
+                        msg = self.decoder.decode(m.message.value)
+                    except (KeyError, TypeError), e:
+                        logger.error("Decoding error: %s", e)
+                        continue
+                    else:
+                        type = msg[0]
+                        if type == 'add_seeds':
+                            _, seeds = msg
+                            logger.info('Adding %i seeds', len(seeds))
+                            map(lambda seed: logger.debug('URL: ', seed.url), seeds)
+                            self.backend.add_seeds(seeds)
 
-                    if type == 'page_crawled':
-                        _, response, links = msg
-                        logger.debug("Page crawled %s", response.url)
-                        self.backend.page_crawled(response, links)
+                        if type == 'page_crawled':
+                            _, response, links = msg
+                            logger.debug("Page crawled %s", response.url)
+                            self.backend.page_crawled(response, links)
 
-                    if type == 'request_error':
-                        _, request, error = msg
-                        logger.info("Request error %s", request.url)
-                        self.backend.request_error(request, error)
-                finally:
-                    consumed += 1
+                        if type == 'request_error':
+                            _, request, error = msg
+                            logger.info("Request error %s", request.url)
+                            self.backend.request_error(request, error)
+                    finally:
+                        consumed += 1
+            except OffsetOutOfRangeError, e:
+                # https://github.com/mumrah/kafka-python/issues/263
+                self.consumer.seek(0, 2)  # moving to the tail of the log
+                continue
 
             logger.info("Consumed %d items.", consumed)
             if consumed > produced * 0.7:
