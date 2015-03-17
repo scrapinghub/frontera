@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from sys import argv
 import logging
+from time import time
 
 from kafka import KafkaClient, KeyedProducer, SimpleConsumer
 from kafka.common import OffsetOutOfRangeError
@@ -41,6 +42,7 @@ class FrontierWorker(object):
     def start(self):
         produced = self.new_batch()
         consumed = 0
+        last_batch_timestamp = time()
         while not self.is_finishing:
             try:
                 for m in self.consumer.get_messages(count=self.consumer_batch_size,
@@ -76,9 +78,11 @@ class FrontierWorker(object):
                 continue
 
             logger.info("Consumed %d items.", consumed)
-            if consumed > produced * 0.7:
+            now = time()
+            if consumed > produced * 0.7 or now - last_batch_timestamp > 60.0:
                 produced = self.new_batch()
                 consumed = 0
+                last_batch_timestamp = now
 
     def new_batch(self):
         count = 0
