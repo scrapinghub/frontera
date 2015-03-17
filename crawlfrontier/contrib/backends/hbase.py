@@ -142,6 +142,11 @@ class HBaseQueue(object):
         pass
 
 
+def chunks(l, n):
+    for i in xrange(0, len(l), n):
+        yield l[i:i+n]
+
+
 class HBaseBackend(Backend):
     component_name = 'HBase Backend'
 
@@ -248,13 +253,15 @@ class HBaseBackend(Backend):
         next_pages = []
         table = self.connection.table('metadata')
         self.manager.logger.backend.debug("Querying metadata table.")
-        for rk, data in table.rows(fingerprints, columns=['m:url', 'm:domain_fingerprint', 's:score']):
-            r = self.manager.request_model(url=data['m:url'])
-            r.meta['domain'] = {
-                'fingerprint': data['m:domain_fingerprint']
-            }
-            r.meta['fingerprint'] = rk
-            r.meta['score'] = unpack(">Q", data['s:score'])[0]
-            next_pages.append(r)
+        for chunk in chunks(fingerprints, 3000):
+            for rk, data in table.rows(chunk, columns=['m:url', 'm:domain_fingerprint', 's:score']):
+                self.manager.logger.backend.debug("Iterating over %d size chunk." % len(chunk))
+                r = self.manager.request_model(url=data['m:url'])
+                r.meta['domain'] = {
+                    'fingerprint': data['m:domain_fingerprint']
+                }
+                r.meta['fingerprint'] = rk
+                r.meta['score'] = unpack(">Q", data['s:score'])[0]
+                next_pages.append(r)
         self.manager.logger.backend.debug("Got %d requests." % (len(next_pages)))
         return next_pages
