@@ -254,8 +254,8 @@ class HBaseBackend(Backend):
         table = self.connection.table('metadata')
         self.manager.logger.backend.debug("Querying metadata table.")
         for chunk in chunks(fingerprints, 3000):
+            self.manager.logger.backend.debug("Iterating over %d size chunk." % len(chunk))
             for rk, data in table.rows(chunk, columns=['m:url', 'm:domain_fingerprint', 's:score']):
-                self.manager.logger.backend.debug("Iterating over %d size chunk." % len(chunk))
                 r = self.manager.request_model(url=data['m:url'])
                 r.meta['domain'] = {
                     'fingerprint': data['m:domain_fingerprint']
