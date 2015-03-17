@@ -1,14 +1,20 @@
-from scrapy.core.scheduler import Scheduler
-from scrapy.http import Request
-from scrapy import log
+from collections import deque
 
 from collections import deque
 from time import time
+
+from scrapy.core.scheduler import Scheduler
+from scrapy.http import Request
+from scrapy import log
+from scrapy.utils.misc import load_object
 
 from frontera.contrib.scrapy.manager import ScrapyFrontierManager
 from frontera.settings import Settings
 
 STATS_PREFIX = 'frontera'
+
+DOWNLOADER_MIDDLEWARE = 'crawlfrontier.contrib.scrapy.middlewares.schedulers.SchedulerDownloaderMiddleware'
+SPIDER_MIDDLEWARE = 'crawlfrontier.contrib.scrapy.middlewares.schedulers.SchedulerSpiderMiddleware'
 
 
 class StatsManager(object):
@@ -72,6 +78,10 @@ class StatsManager(object):
 class FronteraScheduler(Scheduler):
 
     def __init__(self, crawler):
+
+        # Add scrapy integration middlewares for scheduler
+        self._add_middlewares(crawler)
+
         self.crawler = crawler
         self.stats_manager = StatsManager(crawler.stats)
         self._pending_requests = deque()
@@ -184,3 +194,22 @@ class FronteraScheduler(Scheduler):
             if overused_factor > self.frontier.manager.settings.get('OVERUSED_SLOT_FACTOR'):
                 info['overused_keys'].append(key)
         return info
+
+    def _add_middlewares(self, crawler):
+        """
+        Adds crawl-frontier scrapy scheduler downloader and spider middlewares.
+        Hack to avoid defining crawl-frontier scrapy middlewares in settings.
+        Middleware managers (downloader+spider) has already been initialized at this moment.
+        """
+        self._add_middleware_to_manager(manager=crawler.engine.downloader.middleware,
+                                        mw=load_object(DOWNLOADER_MIDDLEWARE).from_crawler(crawler))
+        self._add_middleware_to_manager(manager=crawler.engine.scraper.spidermw,
+                                        mw=load_object(SPIDER_MIDDLEWARE).from_crawler(crawler))
+
+    def _add_middleware_to_manager(self, manager, mw):
+        """
+        Adds mw to already initialized middleware manager.
+        Reproduces the mw add process at the end of the middleware manager mws list.
+        """
+        manager.middlewares = manager.middlewares + (mw,)
+        manager._add_middleware(mw)
