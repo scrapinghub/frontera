@@ -50,12 +50,14 @@ def parse_domain_from_url(url):
 
     return netloc, name, scheme, sld, tld, subdomain
 
+
 def no_fetch_extract(url):
     """
     Extract that falls back to the included TLD snapshot, no live HTTP fetching
     """
     no_fetch_extract = tldextract.TLDExtract(suffix_list_url=False)
     return no_fetch_extract(url)
+
 
 def safe_url_string(url, encoding='utf8'):
     """Convert the given url into a legal URL by escaping unsafe characters
@@ -105,5 +107,3 @@ def canonicalize_url(url, keep_blank_values=True, keep_fragments=False):
     path = safe_url_string(_unquotepath(path)) or '/'
     fragment = '' if not keep_fragments else fragment
     return urlparse.urlunparse((scheme, netloc.lower(), path, params, query, fragment))
-
-
