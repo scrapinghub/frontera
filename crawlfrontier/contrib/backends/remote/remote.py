@@ -3,10 +3,11 @@ import time
 from codecs import KafkaJSONEncoder, KafkaJSONDecoder
 
 from kafka import KafkaClient, SimpleConsumer, SimpleProducer
-from kafka.common import BrokerResponseError
+from kafka.common import BrokerResponseError, OffsetOutOfRangeError
 
 from crawlfrontier import Backend, Settings
 from crawlfrontier.core.models import Request
+import pdb
 
 
 class TestManager(object):
@@ -141,29 +142,41 @@ class KafkaBackend(Backend):
         if not self._connect_consumer():
             return []
 
-        try:
-            success = False
-            for offmsg in self._cons.get_messages(
-                    max_n_requests,
-                    timeout=self._get_timeout):
-                success = True
-                try:
-                    request = self._decoder.decode_request(offmsg.message.value)
-                    requests.append(request)
-                except ValueError:
+        while True:
+            try:
+                success = False
+                for offmsg in self._cons.get_messages(
+                        max_n_requests,
+                        timeout=self._get_timeout):
+                    success = True
+                    try:
+                        request = self._decoder.decode_request(offmsg.message.value)
+                        requests.append(request)
+                    except ValueError:
+                        self._manager.logger.backend.warning(
+                            "Could not decode {0} message: {1}".format(
+                                self._topic_todo,
+                                offmsg.message.value))
+
+                if not success:
                     self._manager.logger.backend.warning(
-                        "Could not decode {0} message: {1}".format(
-                            self._topic_todo,
-                            offmsg.message.value))
-            if not success:
+                        "Timeout ({0} seconds) while trying to get {1} requests".format(
+                            self._get_timeout,
+                            max_n_requests)
+                    )
+                break
+            except OffsetOutOfRangeError, err:
                 self._manager.logger.backend.warning(
-                    "Timeout ({0} seconds) while trying to get {1} requests".format(
-                        self._get_timeout,
-                        max_n_requests)
-                )
-        except BrokerResponseError:
-            self._manager.logger.backend.warning(
-                "Could not connect consumer to " + self._topic_todo)
-            
+                    "%s" % (err))
+
+                # https://github.com/mumrah/kafka-python/issues/263
+                self._cons.seek(0, 2)  # moving to the tail of the log
+                continue     
+
+            except Exception, err:
+                self._manager.logger.backend.warning(
+                    "Error %s" % (err))
+                break
+
         self._manager.logger.backend.debug("get_next_requests: {0}".format(time.clock() - start))
         return requests
