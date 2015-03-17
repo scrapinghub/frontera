@@ -239,11 +239,15 @@ class HBaseBackend(Backend):
 
     def get_next_requests(self, max_next_requests):
         fingerprints = []
+        self.manager.logger.backend.debug("Querying queue table.")
         for partition_id in range(0, self.queue_partitions):
-            fingerprints.extend(self.queue.get(partition_id, max_next_requests / 4))
+            partition_fingerprints = self.queue.get(partition_id, max_next_requests / 4)
+            fingerprints.extend(partition_fingerprints)
+            self.manager.logger.backend.debug("Got %d items for partition id %d" % (len(partition_fingerprints), partition_id))
 
         next_pages = []
         table = self.connection.table('metadata')
+        self.manager.logger.backend.debug("Querying metadata table.")
         for rk, data in table.rows(fingerprints, columns=['m:url', 'm:domain_fingerprint', 's:score']):
             r = self.manager.request_model(url=data['m:url'])
             r.meta['domain'] = {
@@ -252,4 +256,5 @@ class HBaseBackend(Backend):
             r.meta['fingerprint'] = rk
             r.meta['score'] = unpack(">Q", data['s:score'])[0]
             next_pages.append(r)
+        self.manager.logger.backend.debug("Got %d requests." % (len(next_pages)))
         return next_pages
