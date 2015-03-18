@@ -207,11 +207,10 @@ The function used to calculate the ``domain`` fingerprint.
 OVERUSED_SLOT_FACTOR
 ------------------------
 
-Default: ``1.0``
+Default: ``5.0``
 
-This is an amount of overall active connections to concurrent connections allowed in slot (per-domain/ip) after which slot
-is considered overused.
-
+(in progress + queued requests in that slot) / max allowed concurrent downloads per slot before slot is considered
+overused. This affects only Scrapy scheduler."
 
 
 Default settings
