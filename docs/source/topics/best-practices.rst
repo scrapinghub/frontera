@@ -20,42 +20,7 @@ because of RPS limit and delay. Therefore, picking top URLs from the queue leeds
 connection pool of downloader most of the time underused.
 
 The solution is to supply Crawl Frontier backend with hostname/ip (usually, but not necessary) usage in downloader. We
-have an `info` argument of method :attr:`get_next_requests <crawlfrontier.core.components.Backend.get_next_requests>`
-pure python dictionary object for passing these stats, to the Crawl Frontier backend. Additional information can be
-easilly added there. This dictionary is created outside of Crawl Frontier, and then passed to CF via
+have a keyword arguments in method :attr:`get_next_requests <crawlfrontier.core.components.Backend.get_next_requests>`
+ for passing these stats, to the Crawl Frontier backend. Information of any kind can be passed there. This arguments are
+ usually set outside of Crawl Frontier, and then passed to CF via
 :class:`FrontierManagerWrapper <crawlfrontier.utils.managers.FrontierManagerWrapper>` subclass to backend.
-
-There are also building blocks to ease the usage of `info` argument.
-
-Overused keys
-^^^^^^^^^^^^^
-
-In Crawl Frontier they are stored in :func:`overused_keys <crawlfrontier.core.DownloaderInfo.overused_keys>` property
-and used in backend for distinguishing overused entities.
-
-.. automethod:: crawlfrontier.core.get_slot_key
-
-
-Incorporating buffering
-^^^^^^^^^^^^^^^^^^^^^^^
-
-It's quite typical to buffer the requests for overused hostnames for later use. :class:`OverusedBuffer \
-<crawlfrontier.core.OverusedBuffer>` class allows to add such functionality quickly.
-
-.. autoclass:: crawlfrontier.core.OverusedBuffer
-Here is the example how to incorporate request buffering in typical backend: ::
-
-    class MemoryDFSOverusedBackend(MemoryDFSBackend):
-        component_name = 'DFS Memory Backend taking into account overused slots'
-
-        def __init__(self, manager):
-            super(MemoryDFSOverusedBackend, self).__init__(manager)
-            self._buffer = OverusedBuffer(super(MemoryDFSOverusedBackend, self).get_next_requests,
-                                          manager.logger.manager.debug)
-
-        def get_next_requests(self, max_n_requests, info):
-            return self._buffer.get_next_requests(max_n_requests, info)
-
-.. note:: For Scrapy users there is :class:`OverusedBufferScrapy \
-          <crawlfrontier.contrib.scrapy.overusedbuffer.OverusedBufferScrapy>` version optimized with reusing Scrapy
-          internal caches.
