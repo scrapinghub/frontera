@@ -134,7 +134,7 @@ class KafkaBackend(Backend):
     def request_error(self, page, error):
         self._send_message(self._encoder.encode_request_error(page, error))
 
-    def get_next_requests(self, max_n_requests):
+    def get_next_requests(self, max_n_requests, **kwargs):
         start = time.clock()
         requests = []
 
