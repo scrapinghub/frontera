@@ -6,9 +6,7 @@ import logging
 REQUEST_MODEL = 'crawlfrontier.core.models.Request'
 RESPONSE_MODEL = 'crawlfrontier.core.models.Response'
 MIDDLEWARES = [
-    'crawlfrontier.contrib.middlewares.domain.DomainMiddleware',
     'crawlfrontier.contrib.middlewares.fingerprint.UrlFingerprintMiddleware',
-    'crawlfrontier.contrib.middlewares.fingerprint.DomainFingerprintMiddleware',
 ]
 BACKEND = 'crawlfrontier.contrib.backends.memory.FIFO'
 TEST_MODE = False
