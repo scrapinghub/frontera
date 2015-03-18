@@ -45,8 +45,7 @@ class FrontierTester(object):
         return self.frontier.response_model(url=url, status_code=status_code, request=request)
 
     def _run_iteration(self):
-        kwargs = {'info':
-                  self.downloader_simulator.downloader_info()}
+        kwargs = self.downloader_simulator.downloader_info()
         if self.max_next_requests:
             kwargs['max_next_requests'] = self.max_next_requests
 
@@ -80,7 +79,7 @@ class BaseDownloaderSimulator(object):
 
     def downloader_info(self):
         return {
-            'type': 'domain',
+            'key_type': 'domain',
             'overused_keys': []
         }
 
@@ -114,7 +113,7 @@ class DownloaderSimulator(BaseDownloaderSimulator):
 
     def downloader_info(self):
         info = {
-            'type': 'domain',
+            'key_type': 'domain',
             'overused_keys': []
         }
         for key, requests in self.slots.iteritems():
