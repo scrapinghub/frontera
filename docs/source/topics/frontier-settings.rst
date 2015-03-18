@@ -202,7 +202,15 @@ Default: ``crawlfrontier.utils.fingerprint.sha1``
 
 The function used to calculate the ``domain`` fingerprint.
 
+.. setting:: OVERUSED_SLOT_FACTOR
 
+OVERUSED_SLOT_FACTOR
+------------------------
+
+Default: ``5.0``
+
+(in progress + queued requests in that slot) / max allowed concurrent downloads per slot before slot is considered
+overused. This affects only Scrapy scheduler."
 
 
 Default settings

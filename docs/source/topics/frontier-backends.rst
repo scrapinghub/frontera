@@ -75,9 +75,6 @@ single Python class inherited from :class:`Component <crawlfrontier.core.compone
     .. automethod:: crawlfrontier.core.components.Backend.from_manager
 
 
-
-
-
 .. _frontier-built-in-backend:
 
 Built-in backend reference
