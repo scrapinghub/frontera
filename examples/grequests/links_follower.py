@@ -28,6 +28,7 @@ SEEDS = [
 
 LINK_RE = re.compile(r'href="(.*?)"')
 
+
 class GRequestsConverter(BaseRequestConverter):
     """Converts between crawlfrontier and grequests request objects"""
     @classmethod
@@ -89,9 +90,9 @@ if __name__ == '__main__':
             links = [grequests_get(url=url) for url in extract_page_links(response)]
             frontier.page_crawled(response=response, links=links)
 
-        dl_info = {'type':'domain'}
+        dl_info = {'type': 'domain'}
         stats.collect_overused_keys(dl_info['overused_keys'])
-        next_requests = frontier.get_next_requests(info=dl_info)
+        next_requests = frontier.get_next_requests(key_type=dl_info['type'], overused_keys=dl_info['overused_keys'])
         if not next_requests:
             continue
 
