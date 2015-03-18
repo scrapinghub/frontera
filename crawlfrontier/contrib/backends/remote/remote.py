@@ -6,8 +6,7 @@ from kafka import KafkaClient, SimpleConsumer, SimpleProducer
 from kafka.common import BrokerResponseError, OffsetOutOfRangeError
 
 from crawlfrontier import Backend, Settings
-from crawlfrontier.core.models import Request
-import pdb
+from crawlfrontier.core import OverusedBuffer
 
 
 class TestManager(object):
@@ -180,3 +179,15 @@ class KafkaBackend(Backend):
 
         self._manager.logger.backend.debug("get_next_requests: {0}".format(time.clock() - start))
         return requests
+
+
+class KafkaOverusedBackend(KafkaBackend):
+    component_name = 'Kafka Backend taking into account overused slots'
+
+    def __init__(self, manager):
+        super(KafkaOverusedBackend, self).__init__(manager)
+        self._buffer = OverusedBuffer(super(KafkaOverusedBackend, self).get_next_requests,
+                                      manager.logger.manager.debug)
+
+    def get_next_requests(self, max_n_requests, **kwargs):
+        return self._buffer.get_next_requests(max_n_requests, **kwargs)
