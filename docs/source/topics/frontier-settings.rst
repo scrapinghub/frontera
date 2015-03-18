@@ -140,9 +140,7 @@ A list containing the middlewares enabled in the frontier. For more info see
 Default::
 
     [
-        'crawlfrontier.contrib.middlewares.domain.DomainMiddleware',
         'crawlfrontier.contrib.middlewares.fingerprint.UrlFingerprintMiddleware',
-        'crawlfrontier.contrib.middlewares.fingerprint.DomainFingerprintMiddleware',
     ]
 
 .. setting:: REQUEST_MODEL
@@ -228,9 +226,7 @@ Values::
     LINK_MODEL = 'crawlfrontier.core.models.Link'
     FRONTIER = 'crawlfrontier.core.frontier.Frontier'
     MIDDLEWARES = [
-        'crawlfrontier.contrib.middlewares.domain.DomainMiddleware',
         'crawlfrontier.contrib.middlewares.fingerprint.UrlFingerprintMiddleware',
-        'crawlfrontier.contrib.middlewares.fingerprint.DomainFingerprintMiddleware',
     ]
     BACKEND = 'crawlfrontier.contrib.backends.memory.FIFO'
     TEST_MODE = False
