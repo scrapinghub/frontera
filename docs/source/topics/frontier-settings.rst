@@ -202,6 +202,15 @@ Default: ``crawlfrontier.utils.fingerprint.sha1``
 
 The function used to calculate the ``domain`` fingerprint.
 
+.. setting:: OVERUSED_SLOT_FACTOR
+
+OVERUSED_SLOT_FACTOR
+------------------------
+
+Default: ``1.0``
+
+This is an amount of overall active connections to concurrent connections allowed in slot (per-domain/ip) after which slot
+is considered overused.
 
 
 
