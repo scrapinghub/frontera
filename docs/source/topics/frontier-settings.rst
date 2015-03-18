@@ -209,8 +209,8 @@ OVERUSED_SLOT_FACTOR
 
 Default: ``1.0``
 
-This is an amount of overall active connections to concurrent connections allowed in slot(per-domain/ip) after which slot
- is considered overused.
+This is an amount of overall active connections to concurrent connections allowed in slot (per-domain/ip) after which slot
+is considered overused.
 
 
 
