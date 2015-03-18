@@ -35,7 +35,7 @@ class FrontierWorker(object):
         self.decoder = KafkaJSONDecoder(self.manager.request_model, self.manager.response_model)
 
 
-        self.consumer_batch_size = self.settings.get('CONSUMER_BATCH_SIZE', 24)
+        self.consumer_batch_size = self.settings.get('CONSUMER_BATCH_SIZE', 128)
         self.outgoing_topic = self.settings.get('OUTGOING_TOPIC')
 
     def start(self):
@@ -73,7 +73,7 @@ class FrontierWorker(object):
 
             logger.info("Consumed %d items.", consumed)
             now = time()
-            if consumed > produced * 0.7 or now - last_batch_timestamp > 60.0:
+            if consumed > produced * 0.4 or now - last_batch_timestamp > 60.0:
                 produced = self.new_batch()
                 consumed = 0
                 last_batch_timestamp = now
