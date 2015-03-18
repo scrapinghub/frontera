@@ -138,7 +138,7 @@ class CrawlFrontierScheduler(Scheduler):
         if not self.frontier.manager.finished and \
                 len(self) < self.crawler.engine.downloader.total_concurrency:
             info = self._get_downloader_info()
-            for request in self.frontier.get_next_requests(key_type=info['key_type'], overused_keys=info['overused_keys']):                        
+            for request in self.frontier.get_next_requests(key_type=info['key_type'], overused_keys=info['overused_keys']):
                 self._add_pending_request(request)
         return self._get_pending_request()
 
