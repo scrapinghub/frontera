@@ -100,7 +100,7 @@ class HBaseQueue(object):
             domain_fingerprint = link.meta['domain']['fingerprint'] if 'domain' in link.meta else str()  # FIXME IP's will break partitioner
             partition_id = self.partitioner.partition(domain_fingerprint, self.partitions)
             score = 1 - link.meta['score']  # because of lexicographical sort in HBase
-            rk = "%d_%s_%d" %(partition_id, get_interval(score, 0.1), timestamp)
+            rk = "%d_%s_%d" %(partition_id, get_interval(score, 0.01), timestamp)
             data.setdefault(rk, []).append((score, unhexlify(link.meta['fingerprint'])))
 
         table = self.connection.table('queue')
@@ -108,7 +108,7 @@ class HBaseQueue(object):
             for rk, tuples in data.iteritems():
                 obj = dict()
                 for score, fingerprint in tuples:
-                    column = 'f:%s' % get_interval(score, 0.01)
+                    column = 'f:%s' % get_interval(score, 0.001)
                     obj.setdefault(column, []).append(fingerprint)
 
                 final = dict()
@@ -122,7 +122,7 @@ class HBaseQueue(object):
         table = self.connection.table('queue')
         trash_can = []
         results = []
-        for rk, data in table.scan(row_prefix='%d_' % partition_id, limit=min_requests):
+        for rk, data in table.scan(row_prefix='%d_' % partition_id, limit=min_requests / 5):
             trash_can.append(rk)
 
             for cq, buf in data.iteritems():
@@ -261,7 +261,7 @@ class HBaseBackend(Backend):
                     'fingerprint': data['m:domain_fingerprint']
                 }
                 r.meta['fingerprint'] = rk
-                r.meta['score'] = unpack(">Q", data['s:score'])[0]
+                r.meta['score'] = unpack(">d", data['s:score'])[0]
                 next_pages.append(r)
         self.manager.logger.backend.debug("Got %d requests." % (len(next_pages)))
         return next_pages
