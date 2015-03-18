@@ -63,19 +63,19 @@ class OverusedBuffer(object):
             for k in trash_can:
                 del self._pending[k]
 
-    def get_next_requests(self, max_n_requests, info):
+    def get_next_requests(self, max_n_requests, **kwargs):
         if self._log:
-            self._log("Overused keys: %s" % str(info['overused_keys']))
+            self._log("Overused keys: %s" % str(kwargs['overused_keys']))
             self._log("Pending: %i" % (sum([len(pending) for pending in self._pending.itervalues()])))
 
-        overused_set = set(info['overused_keys'])
+        overused_set = set(kwargs['overused_keys'])
         requests = self._get_pending(max_n_requests, overused_set)
 
         if len(requests) == max_n_requests:
             return requests
 
-        for request in self._get(max_n_requests-len(requests), info=info):
-            key = self._get_key(request, info['type'])
+        for request in self._get(max_n_requests-len(requests), **kwargs):
+            key = self._get_key(request, kwargs['key_type'])
             if key in overused_set:
                 self._pending.setdefault(key, deque()).append(request)
             else:

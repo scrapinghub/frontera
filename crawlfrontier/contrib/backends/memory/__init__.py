@@ -33,7 +33,7 @@ class MemoryBaseBackend(Backend):
             request, _ = self._get_or_create_request(seed)
             self.heap.push(request)
 
-    def get_next_requests(self, max_next_requests, info):
+    def get_next_requests(self, max_next_requests, **kwargs):
         return self.heap.pop(max_next_requests)
 
     def page_crawled(self, response, links):
@@ -109,8 +109,8 @@ class MemoryDFSOverusedBackend(MemoryDFSBackend):
         self._buffer = OverusedBuffer(super(MemoryDFSOverusedBackend, self).get_next_requests,
                                       manager.logger.manager.debug)
 
-    def get_next_requests(self, max_n_requests, info):
-        return self._buffer.get_next_requests(max_n_requests, info)
+    def get_next_requests(self, max_n_requests, **kwargs):
+        return self._buffer.get_next_requests(max_n_requests, **kwargs)
 
 
 class MemoryRandomOverusedBackend(MemoryRandomBackend):
@@ -121,8 +121,8 @@ class MemoryRandomOverusedBackend(MemoryRandomBackend):
         self._buffer = OverusedBuffer(super(MemoryRandomOverusedBackend, self).get_next_requests,
                                       manager.logger.manager.debug)
 
-    def get_next_requests(self, max_n_requests, info):
-        return self._buffer.get_next_requests(max_n_requests, info)
+    def get_next_requests(self, max_n_requests, **kwargs):
+        return self._buffer.get_next_requests(max_n_requests, **kwargs)
 
 
 BASE = MemoryBaseBackend
