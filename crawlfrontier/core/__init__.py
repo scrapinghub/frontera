@@ -74,10 +74,15 @@ class OverusedBuffer(object):
         if len(requests) == max_n_requests:
             return requests
 
-        for request in self._get(max_n_requests-len(requests), **kwargs):
-            key = self._get_key(request, kwargs['key_type'])
-            if key in overused_set:
-                self._pending.setdefault(key, deque()).append(request)
-            else:
-                requests.append(request)
+        tries = 0
+        while tries < 10 and len(requests) < max_n_requests:
+            for request in self._get(max_n_requests-len(requests), **kwargs):
+                key = self._get_key(request, kwargs['key_type'])
+                if key in overused_set:
+                    self._pending.setdefault(key, deque()).append(request)
+                else:
+                    requests.append(request)
+            if self._log:
+                self._log("OVB: Got %d requests, try %d")
+            tries += 1
         return requests
