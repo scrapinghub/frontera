@@ -4,6 +4,7 @@ import random
 
 from crawlfrontier import Backend
 from crawlfrontier.utils.heap import Heap
+from crawlfrontier.core import OverusedBuffer
 
 
 class MemoryBaseBackend(Backend):
@@ -32,14 +33,14 @@ class MemoryBaseBackend(Backend):
             request, _ = self._get_or_create_request(seed)
             self.heap.push(request)
 
-    def get_next_requests(self, max_next_requests):
+    def get_next_requests(self, max_next_requests, **kwargs):
         return self.heap.pop(max_next_requests)
 
     def page_crawled(self, response, links):
         for link in links:
             request, created = self._get_or_create_request(link)
             if created:
-                request.meta['depth'] = response.request.meta.get('depth', 0)+1
+                request.meta['depth'] = response.request.meta.get('depth', 0) + 1
                 self.heap.push(request)
 
     def request_error(self, request, error):
@@ -98,6 +99,30 @@ class MemoryRandomBackend(MemoryBaseBackend):
 
     def _compare_pages(self, first, second):
         return random.choice([-1, 0, 1])
+
+
+class MemoryDFSOverusedBackend(MemoryDFSBackend):
+    component_name = 'DFS Memory Backend taking into account overused slots'
+
+    def __init__(self, manager):
+        super(MemoryDFSOverusedBackend, self).__init__(manager)
+        self._buffer = OverusedBuffer(super(MemoryDFSOverusedBackend, self).get_next_requests,
+                                      manager.logger.manager.debug)
+
+    def get_next_requests(self, max_n_requests, **kwargs):
+        return self._buffer.get_next_requests(max_n_requests, **kwargs)
+
+
+class MemoryRandomOverusedBackend(MemoryRandomBackend):
+    component_name = 'Random Memory Backend taking into account overused slots'
+
+    def __init__(self, manager):
+        super(MemoryRandomOverusedBackend, self).__init__(manager)
+        self._buffer = OverusedBuffer(super(MemoryRandomOverusedBackend, self).get_next_requests,
+                                      manager.logger.manager.debug)
+
+    def get_next_requests(self, max_n_requests, **kwargs):
+        return self._buffer.get_next_requests(max_n_requests, **kwargs)
 
 
 BASE = MemoryBaseBackend
