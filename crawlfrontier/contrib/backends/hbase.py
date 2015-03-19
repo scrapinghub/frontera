@@ -60,10 +60,12 @@ class HBaseQueue(object):
         self.partitions = [i for i in range(0, partitions)]
         self.partitioner = FingerprintPartitioner(self.partitions)
 
-        if drop:
-            tables = self.connection.tables()
-            if 'queue' in tables:
-                self.connection.delete_table('queue', disable=True)
+        tables = set(self.connection.tables())
+        if drop and 'queue' in tables:
+            self.connection.delete_table('queue', disable=True)
+            tables.remove('queue')
+
+        if 'queue' not in tables:
             self.connection.create_table('queue', {'f': {'max_versions': 1}})
 
     def schedule(self, links):
