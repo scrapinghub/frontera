@@ -165,10 +165,12 @@ class HBaseBackend(Backend):
         self.connection = Connection(host=host, port=int(port), table_prefix=namespace, table_prefix_separator=':')
         self.queue = HBaseQueue(self.connection, self.queue_partitions, drop=drop_all_tables)
 
-        if drop_all_tables:
-            tables = self.connection.tables()
-            if 'metadata' in tables:
-                self.connection.delete_table('metadata', disable=True)
+        tables = set(self.connection.tables())
+        if drop_all_tables and 'metadata' in tables:
+            self.connection.delete_table('metadata', disable=True)
+            tables.remove('metadata')
+
+        if 'metadata' not in tables:
             self.connection.create_table('metadata', {'m': {'max_versions': 1},
                                                       's': {'max_versions': 1}
                                                      })
