@@ -246,7 +246,7 @@ class HBaseBackend(Backend):
 
         table.put(request.meta['fingerprint'], obj)
 
-    def get_next_requests(self, max_next_requests):
+    def get_next_requests(self, max_next_requests, **kwargs):
         fingerprints = []
         self.manager.logger.backend.debug("Querying queue table.")
         for partition_id in range(0, self.queue_partitions):
