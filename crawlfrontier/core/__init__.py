@@ -2,7 +2,6 @@ from urlparse import urlparse
 from socket import getaddrinfo
 from collections import deque
 
-
 def get_slot_key(request, type):  # TODO: Probably use caching here
     """
     Get string representing a downloader slot key, which will be used in downloader as id for domain/ip load
@@ -75,7 +74,7 @@ class OverusedBuffer(object):
             return requests
 
         tries = 0
-        while tries < 10 and len(requests) < max_n_requests:
+        while tries < 1 and len(requests) < max_n_requests:
             for request in self._get(max_n_requests-len(requests), **kwargs):
                 key = self._get_key(request, kwargs['key_type'])
                 if key in overused_set:
@@ -83,6 +82,6 @@ class OverusedBuffer(object):
                 else:
                     requests.append(request)
             if self._log:
-                self._log("OVB: Got %d requests, try %d")
+                self._log("OVB: Got %d requests, try %d" % (len(requests), tries))
             tries += 1
         return requests
