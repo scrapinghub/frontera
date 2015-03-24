@@ -94,7 +94,7 @@ class HBaseQueue(object):
             i = int(score / resolution)
             if i % 10 == 0 and i > 0:
                 i = i-1  # last interval is inclusive from right
-            return "%0.2f_%0.2f" % (i * resolution, (i+1) * resolution)  # could be a gotcha for low resolutions
+            return (i * resolution, (i+1) * resolution)
 
         timestamp = int(time() * 1E+6)
         data = dict()
@@ -102,7 +102,7 @@ class HBaseQueue(object):
             domain_fingerprint = link.meta['domain']['fingerprint'] if 'domain' in link.meta else str()  # FIXME IP's will break partitioner
             partition_id = self.partitioner.partition(domain_fingerprint, self.partitions)
             score = 1 - link.meta['score']  # because of lexicographical sort in HBase
-            rk = "%d_%s_%d" %(partition_id, get_interval(score, 0.01), timestamp)
+            rk = "%d_%s_%d" %(partition_id, "%0.2f_%0.2f" % get_interval(score, 0.01), timestamp)
             data.setdefault(rk, []).append((score, unhexlify(link.meta['fingerprint'])))
 
         table = self.connection.table('queue')
@@ -110,7 +110,7 @@ class HBaseQueue(object):
             for rk, tuples in data.iteritems():
                 obj = dict()
                 for score, fingerprint in tuples:
-                    column = 'f:%s' % get_interval(score, 0.001)
+                    column = 'f:%0.3f_%0.3f' % get_interval(score, 0.001)
                     obj.setdefault(column, []).append(fingerprint)
 
                 final = dict()
@@ -121,24 +121,42 @@ class HBaseQueue(object):
                 b.put(rk, final)
 
     def get(self, partition_id, min_requests):
-        table = self.connection.table('queue')
-        trash_can = []
-        results = []
-        for rk, data in table.scan(row_prefix='%d_' % partition_id, limit=min_requests / 5):
-            trash_can.append(rk)
+        def parse_interval_left(cq):
+            begin = cq.find(':')
+            end = cq.find('.', begin+1)
+            if begin == -1 or end == -1:
+                raise TypeError('Can\'t parse \'queue\' table column qualifier.')
+            return float(cq[begin+1:end+4])
 
+        table = self.connection.table('queue')
+
+        results = []
+        for rk, data in table.scan(row_prefix='%d_' % partition_id, limit=min_requests):
             for cq, buf in data.iteritems():
                 count = unpack(">I", buf[:4])[0]
+                interval = parse_interval_left(cq)
                 for pos in range(0, count):
                     begin = pos*20 + 4
                     end = (pos+1) * 20 + 4
                     fingerprint = hexlify(buf[begin:end])
-                    results.append(fingerprint)
+                    results.append((interval, fingerprint, rk))
+
+        trash_can = set()
+        sorted_results = []
+        last_rk = None
+        for _, fingerprint, rk in sorted(results, key=lambda x:x[0]):
+            if len(sorted_results) < min_requests or (last_rk is not None and rk == last_rk):
+                sorted_results.append(fingerprint)
+                if len(sorted_results) == min_requests:
+                    last_rk = rk
+                trash_can.add(rk)
+                continue
+            break
 
         with table.batch(transaction=True) as b:
             for rk in trash_can:
                 b.delete(rk)
-        return results
+        return sorted_results
 
     def rebuild(self, table_name):
         pass
@@ -250,7 +268,7 @@ class HBaseBackend(Backend):
         fingerprints = []
         self.manager.logger.backend.debug("Querying queue table.")
         for partition_id in range(0, self.queue_partitions):
-            partition_fingerprints = self.queue.get(partition_id, max_next_requests / 4)
+            partition_fingerprints = self.queue.get(partition_id, max_next_requests / self.queue_partitions)
             fingerprints.extend(partition_fingerprints)
             self.manager.logger.backend.debug("Got %d items for partition id %d" % (len(partition_fingerprints), partition_id))
 
