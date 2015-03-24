@@ -73,7 +73,7 @@ class HBaseQueue(object):
         Row - portion of the queue for each partition id created at some point in time
         Row Key - partition id + score interval + timestamp
         Column Qualifier - discrete score (first two digits after dot, e.g. 0.01_0.02, 0.02_0.03, ...)
-        Value - first for bytes uint with count of items, then 20-byte sha1 fingerprints without delimiters
+        Value - first four bytes uint containing count of items, then 20-byte sha1 fingerprints without delimiters
 
         Where score is mapped from 0.0 to 1.0
         score intervals are
