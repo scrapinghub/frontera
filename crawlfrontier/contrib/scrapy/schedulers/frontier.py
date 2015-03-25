@@ -75,7 +75,7 @@ class CrawlFrontierScheduler(Scheduler):
         self.stats_manager = StatsManager(crawler.stats)
         self._pending_requests = deque()
         self.redirect_enabled = crawler.settings.get('REDIRECT_ENABLED')
-        self._delay_next_call = clock()
+        self._delay_next_call = 0.0
 
         frontier_settings = crawler.settings.get('FRONTIER_SETTINGS', None)
         if not frontier_settings:
