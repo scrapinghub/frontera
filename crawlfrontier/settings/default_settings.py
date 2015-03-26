@@ -9,6 +9,7 @@ MIDDLEWARES = [
     'crawlfrontier.contrib.middlewares.fingerprint.UrlFingerprintMiddleware',
 ]
 BACKEND = 'crawlfrontier.contrib.backends.memory.FIFO'
+CANONICAL_SOLVER = 'crawlfrontier.contrib.canonicalsolvers.Basic'
 TEST_MODE = False
 MAX_REQUESTS = 0
 MAX_NEXT_REQUESTS = 0

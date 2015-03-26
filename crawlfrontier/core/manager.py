@@ -3,7 +3,7 @@ from collections import OrderedDict
 from crawlfrontier.exceptions import NotConfigured
 from crawlfrontier.utils.misc import load_object
 from crawlfrontier.settings import Settings
-from crawlfrontier.core.components import Backend, Middleware
+from crawlfrontier.core.components import Backend, Middleware, CanonicalSolver
 from crawlfrontier.logger import FrontierLogger
 from crawlfrontier.core import models
 
@@ -15,7 +15,8 @@ class FrontierManager(object):
     components.
     """
     def __init__(self, request_model, response_model, backend, logger, event_log_manager, middlewares=None,
-                 test_mode=False, max_requests=0, max_next_requests=0, auto_start=True, settings=None):
+                 test_mode=False, max_requests=0, max_next_requests=0, auto_start=True, settings=None,
+                 canonicalsolver=None):
         """
         :param object/string request_model: The :class:`Request <crawlfrontier.core.models.Request>` object to be \
         used by the frontier.
@@ -46,6 +47,9 @@ class FrontierManager(object):
 
         :param object/string settings: The :class:`Settings <crawlfrontier.settings.Settings>` object used by \
         the frontier.
+
+        :param object/string canonicalsolver: The :class:`CanonicalSolver <crawlfrontier.core.components.CanonicalSolver>`
+        object to be used by frontier.
         """
 
         # Settings
@@ -83,10 +87,16 @@ class FrontierManager(object):
         assert isinstance(self.backend, Backend), "backend '%s' must subclass Backend" % \
                                                   self.backend.__class__.__name__
 
+        self.logger.manager.debug("Loading canonical url solver '%s'" % canonicalsolver)
+        self._canonicalsolver = self._load_object(canonicalsolver)
+        assert isinstance(self.canonicalsolver, CanonicalSolver), \
+            "canonical solver '%s' must subclass CanonicalSolver" % self.canonicalsolver.__class__.__name__
+
         # Init frontier components pipeline
         self._components_pipeline = [
             ('Middleware', self.middlewares, True),
             ('Backend', self.backend, False),
+            ('CanonicalSolver', self.canonicalsolver, False)
         ]
 
         # Page counters
@@ -134,7 +144,8 @@ class FrontierManager(object):
                                max_requests=manager_settings.MAX_REQUESTS,
                                max_next_requests=manager_settings.MAX_NEXT_REQUESTS,
                                auto_start=manager_settings.AUTO_START,
-                               settings=manager_settings)
+                               settings=manager_settings,
+                               canonicalsolver=manager_settings.CANONICAL_SOLVER)
 
     @property
     def request_model(self):
@@ -244,6 +255,13 @@ class FrontierManager(object):
         Boolean value indicating if the frontier has finished. See :ref:`Finish conditions <frontier-finish>`.
         """
         return self._finished
+
+    @property
+    def canonicalsolver(self):
+        """
+        Instance of CanonicalSolver used for getting canonical urls in frontier components.
+        """
+        return self._canonicalsolver
 
     def start(self):
         """
@@ -428,10 +446,12 @@ class FrontierManager(object):
         for component_category, component, check_response in self._components_pipeline:
             components = component if isinstance(component, list) else [component]
             for component in components:
-                return_obj = self._process_component(component=component, method_name=method_name,
+                result = self._process_component(component=component, method_name=method_name,
                                                      component_category=component_category, obj=return_obj,
                                                      return_classes=return_classes,
                                                      **kwargs)
+                if check_response:
+                    return_obj = result
                 if check_response and obj and not return_obj:
                     self.logger.manager.warning("Object '%s' filtered in '%s' by '%s'" % (
                         obj.__class__.__name__, method_name, component.__class__.__name__
