@@ -107,3 +107,19 @@ class Middleware(Component):
     """Interface definition for a Frontier Middlewares"""
     __metaclass__ = ABCMeta
     component_name = 'Base Middleware'
+
+
+class CanonicalSolver(Component):
+    """Interface definition for a Frontier Canonical Solver"""
+    __metaclass__ = ABCMeta
+    component_name = 'Base CacnonicalSolver'
+
+    @abstractmethod
+    def get_canonical_url(self, response):
+        """
+        Returns canonical URL string for response.
+
+        :param object response: The :class:`Response <crawlfrontier.core.models.Response>` object for the crawled page.
+        :return: str
+        """
+        raise NotImplementedError
