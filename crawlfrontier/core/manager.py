@@ -217,8 +217,8 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
         object to be used by frontier.
         """
 
-        BaseManager.__init__(request_model, response_model, backend, logger, settings=settings)
-        ComponentsPipelineMixin.__init__(self, middlewares=middlewares, canonicalsolver=canonicalsolver)
+        BaseManager.__init__(self, request_model, response_model, backend, logger, settings=settings)
+        ComponentsPipelineMixin.__init__(self, backend=backend, middlewares=middlewares, canonicalsolver=canonicalsolver)
 
         # Init frontier components pipeline
         self._components_pipeline = [
