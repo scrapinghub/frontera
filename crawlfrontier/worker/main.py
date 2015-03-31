@@ -7,7 +7,7 @@ from kafka import KafkaClient, KeyedProducer, SimpleConsumer
 from kafka.common import OffsetOutOfRangeError
 
 from crawlfrontier.contrib.backends.remote.codecs import KafkaJSONDecoder, KafkaJSONEncoder
-from crawlfrontier.core.manager import BaseManager
+from crawlfrontier.core.manager import FrontierManager
 from crawlfrontier.settings import Settings
 from crawlfrontier.worker.partitioner import FingerprintPartitioner
 
@@ -30,7 +30,7 @@ class FrontierWorker(object):
         self.is_finishing = False
 
 
-        self.manager = BaseManager.from_settings(self.settings)
+        self.manager = FrontierManager.from_settings(self.settings)
         self.backend = self.manager.backend
         self.encoder = KafkaJSONEncoder(self.manager.request_model)
         self.decoder = KafkaJSONDecoder(self.manager.request_model, self.manager.response_model)

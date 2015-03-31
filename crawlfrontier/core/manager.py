@@ -8,6 +8,92 @@ from crawlfrontier.logger import FrontierLogger
 from crawlfrontier.core import models
 
 
+class ComponentsPipelineMixin(object):
+    def __init__(self, backend, middlewares=None, canonicalsolver=None):
+        # Load middlewares
+        self._middlewares = self._load_middlewares(middlewares)
+
+        # Load canonical solver
+        self.logger.manager.debug("Loading canonical url solver '%s'" % canonicalsolver)
+        self._canonicalsolver = self._load_object(canonicalsolver)
+        assert isinstance(self.canonicalsolver, CanonicalSolver), \
+            "canonical solver '%s' must subclass CanonicalSolver" % self.canonicalsolver.__class__.__name__
+
+        # Load backend
+        self.logger.manager.debug("Loading backend '%s'" % backend)
+        self._backend = self._load_object(backend)
+        assert isinstance(self.backend, Backend), "backend '%s' must subclass Backend" % \
+                                                  self.backend.__class__.__name__
+    @property
+    def canonicalsolver(self):
+        """
+        Instance of CanonicalSolver used for getting canonical urls in frontier components.
+        """
+        return self._canonicalsolver
+
+    @property
+    def middlewares(self):
+        """
+        A list of :class:`Middleware <crawlfrontier.core.components.Middleware>` objects to be used by the frontier. \
+        Can be defined with :setting:`MIDDLEWARES` setting.
+        """
+        return self._middlewares
+
+    @property
+    def backend(self):
+        """
+        The :class:`Backend <crawlfrontier.core.components.Backend>` object to be used by the frontier. \
+        Can be defined with :setting:`BACKEND` setting.
+        """
+        return self._backend
+
+    def _load_middlewares(self, middleware_names):
+        # TO-DO: Use dict for middleware ordering
+        mws = []
+        for mw_name in middleware_names or []:
+            self.logger.manager.debug("Loading middleware '%s'" % mw_name)
+            try:
+                mw = self._load_object(mw_name, silent=False)
+                assert isinstance(mw, Middleware), "middleware '%s' must subclass Middleware" % mw.__class__.__name__
+                if mw:
+                    mws.append(mw)
+            except NotConfigured:
+                self.logger.manager.warning("middleware '%s' disabled!" % mw_name)
+
+        return mws
+
+    def _process_components(self, method_name, obj=None, return_classes=None, **kwargs):
+        return_obj = obj
+        for component_category, component, check_response in self._components_pipeline:
+            components = component if isinstance(component, list) else [component]
+            for component in components:
+                result = self._process_component(component=component, method_name=method_name,
+                                                     component_category=component_category, obj=return_obj,
+                                                     return_classes=return_classes,
+                                                     **kwargs)
+                if check_response:
+                    return_obj = result
+                if check_response and obj and not return_obj:
+                    self.logger.manager.warning("Object '%s' filtered in '%s' by '%s'" % (
+                        obj.__class__.__name__, method_name, component.__class__.__name__
+                    ))
+                    return
+        return return_obj
+
+    def _process_component(self, component, method_name, component_category, obj, return_classes, **kwargs):
+        debug_msg = "processing '%s' '%s.%s' %s" % (method_name, component_category, component.__class__.__name__, obj)
+        self.logger.debugging.debug(debug_msg)
+        return_obj = getattr(component, method_name)(*([obj] if obj else []), **kwargs)
+        assert return_obj is None or isinstance(return_obj, return_classes), \
+            "%s '%s.%s' must return None or %s, Got '%s'" % \
+            (component_category, obj.__class__.__name__, method_name,
+             ' or '.join(c.__name__ for c in return_classes)
+             if isinstance(return_classes, tuple) else
+             return_classes.__name__,
+             return_obj.__class__.__name__)
+        return return_obj
+
+
 class BaseManager(object):
     def __init__(self, request_model, response_model, backend, logger, settings=None):
 
@@ -32,12 +118,6 @@ class BaseManager(object):
         self._response_model = load_object(response_model)
         assert issubclass(self._response_model, models.Response), "Response model '%s' must subclass 'Response'" % \
                                                                   self._response_model.__name__
-
-        # Load backend
-        self.logger.manager.debug("Loading backend '%s'" % backend)
-        self._backend = self._load_object(backend)
-        assert isinstance(self.backend, Backend), "backend '%s' must subclass Backend" % \
-                                                  self.backend.__class__.__name__
 
     @classmethod
     def from_settings(cls, settings=None):
@@ -79,14 +159,6 @@ class BaseManager(object):
         return self._response_model
 
     @property
-    def backend(self):
-        """
-        The :class:`Backend <crawlfrontier.core.components.Backend>` object to be used by the frontier. \
-        Can be defined with :setting:`BACKEND` setting.
-        """
-        return self._backend
-
-    @property
     def logger(self):
         """
         The :class:`Logger` object to be used by the frontier. Can be defined with :setting:`LOGGER` setting.
@@ -100,7 +172,8 @@ class BaseManager(object):
         """
         return self._settings
 
-class FrontierManager(BaseManager):
+
+class FrontierManager(BaseManager, ComponentsPipelineMixin):
     """
     The :class:`FrontierManager <crawlfrontier.core.manager.FrontierManager>` object encapsulates the whole frontier,
     providing an API to interact with. It's also responsible of loading and communicating all different frontier
@@ -144,7 +217,15 @@ class FrontierManager(BaseManager):
         object to be used by frontier.
         """
 
-        super(FrontierManager, self).__init__(request_model, response_model, backend, logger, settings=settings)
+        BaseManager.__init__(request_model, response_model, backend, logger, settings=settings)
+        ComponentsPipelineMixin.__init__(self, middlewares=middlewares, canonicalsolver=canonicalsolver)
+
+        # Init frontier components pipeline
+        self._components_pipeline = [
+            ('Middleware', self.middlewares, True),
+            ('Backend', self.backend, False),
+            ('CanonicalSolver', self.canonicalsolver, False)
+        ]
 
         # Log frontier manager starting
         self.logger.manager.debug('-'*80)
@@ -153,30 +234,6 @@ class FrontierManager(BaseManager):
         # Test mode
         self._test_mode = test_mode
         self.logger.manager.debug('Test mode %s' % ("ENABLED" if self.test_mode else "DISABLED"))
-
-        # Load middlewares
-        self._middlewares = self._load_middlewares(middlewares)
-
-        # !!! This duplicates BaseManager
-        # Load backend
-        self.logger.manager.debug("Loading backend '%s'" % backend)
-        self._backend = self._load_object(backend)
-        assert isinstance(self.backend, Backend), "backend '%s' must subclass Backend" % \
-                                                  self.backend.__class__.__name__
-
-        self.logger.manager.debug("Loading canonical url solver '%s'" % canonicalsolver)
-        self._canonicalsolver = self._load_object(canonicalsolver)
-        assert isinstance(self.canonicalsolver, CanonicalSolver), \
-            "canonical solver '%s' must subclass CanonicalSolver" % self.canonicalsolver.__class__.__name__
-        # !!! 
-        
-        
-        # Init frontier components pipeline
-        self._components_pipeline = [
-            ('Middleware', self.middlewares, True),
-            ('Backend', self.backend, False),
-            ('CanonicalSolver', self.canonicalsolver, False)
-        ]
 
         # Page counters
         self._max_requests = max_requests
@@ -235,14 +292,6 @@ class FrontierManager(BaseManager):
         return self._event_log_manager
 
     @property
-    def middlewares(self):
-        """
-        A list of :class:`Middleware <crawlfrontier.core.components.Middleware>` objects to be used by the frontier. \
-        Can be defined with :setting:`MIDDLEWARES` setting.
-        """
-        return self._middlewares
-
-    @property
     def test_mode(self):
         """
         Boolean value indicating if the frontier is using :ref:`frontier test mode <frontier-test-mode>`. \
@@ -296,13 +345,6 @@ class FrontierManager(BaseManager):
         Boolean value indicating if the frontier has finished. See :ref:`Finish conditions <frontier-finish>`.
         """
         return self._finished
-
-    @property
-    def canonicalsolver(self):
-        """
-        Instance of CanonicalSolver used for getting canonical urls in frontier components.
-        """
-        return self._canonicalsolver
 
     def start(self):
         """
@@ -452,56 +494,6 @@ class FrontierManager(BaseManager):
 
     def _msg(self, msg):
         return '(%s) %s' % (self.iteration, msg)
-
-
-
-
-
-    def _load_middlewares(self, middleware_names):
-        # TO-DO: Use dict for middleware ordering
-        mws = []
-        for mw_name in middleware_names or []:
-            self.logger.manager.debug("Loading middleware '%s'" % mw_name)
-            try:
-                mw = self._load_object(mw_name, silent=False)
-                assert isinstance(mw, Middleware), "middleware '%s' must subclass Middleware" % mw.__class__.__name__
-                if mw:
-                    mws.append(mw)
-            except NotConfigured:
-                self.logger.manager.warning("middleware '%s' disabled!" % mw_name)
-
-        return mws
-
-    def _process_components(self, method_name, obj=None, return_classes=None, **kwargs):
-        return_obj = obj
-        for component_category, component, check_response in self._components_pipeline:
-            components = component if isinstance(component, list) else [component]
-            for component in components:
-                result = self._process_component(component=component, method_name=method_name,
-                                                     component_category=component_category, obj=return_obj,
-                                                     return_classes=return_classes,
-                                                     **kwargs)
-                if check_response:
-                    return_obj = result
-                if check_response and obj and not return_obj:
-                    self.logger.manager.warning("Object '%s' filtered in '%s' by '%s'" % (
-                        obj.__class__.__name__, method_name, component.__class__.__name__
-                    ))
-                    return
-        return return_obj
-
-    def _process_component(self, component, method_name, component_category, obj, return_classes, **kwargs):
-        debug_msg = "processing '%s' '%s.%s' %s" % (method_name, component_category, component.__class__.__name__, obj)
-        self.logger.debugging.debug(debug_msg)
-        return_obj = getattr(component, method_name)(*([obj] if obj else []), **kwargs)
-        assert return_obj is None or isinstance(return_obj, return_classes), \
-            "%s '%s.%s' must return None or %s, Got '%s'" % \
-            (component_category, obj.__class__.__name__, method_name,
-             ' or '.join(c.__name__ for c in return_classes)
-             if isinstance(return_classes, tuple) else
-             return_classes.__name__,
-             return_obj.__class__.__name__)
-        return return_obj
 
     def _check_startstop(self):
         assert self._started, "Frontier not started!"
