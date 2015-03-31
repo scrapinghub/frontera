@@ -103,4 +103,7 @@ class DomainFingerprintMiddleware(BaseFingerprintMiddleware):
     def _add_fingerprint(self, obj):
         if 'domain' in obj.meta:
             obj.meta['domain']['fingerprint'] = self.fingerprint_function(obj.meta['domain']['name'])
+        if 'redirect_domains' in obj.meta:
+            for domain in obj.meta['redirect_domains']:
+                domain['fingerprint'] = self.fingerprint_function(domain['name'])
         return obj
