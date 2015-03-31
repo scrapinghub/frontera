@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from crawlfrontier.core.components import CanonicalSolver
-from pdb import set_trace
+
 
 class BasicCanonicalSolver(CanonicalSolver):
     """
@@ -28,12 +28,17 @@ class BasicCanonicalSolver(CanonicalSolver):
     def get_canonical_url(self, obj):
         canonical_url = obj.url
         canonical_fingerprint = obj.meta['fingerprint']
+        canonical_domain_fingerprint = obj.meta['domain']['fingerprint'] if 'domain' in obj.meta else str()
         if 'redirect_urls' in obj.meta:
             redirect_urls = obj.meta['redirect_urls']
             redirect_fingerprints = obj.meta['redirect_fingerprints']
+            redirect_domains = obj.meta['redirect_domains']
             redirect_urls.append(obj.url)
             redirect_fingerprints.append(obj.meta['fingerprint'])
+            redirect_domains.append(canonical_domain_fingerprint)
 
             canonical_url = redirect_urls[0]
             canonical_fingerprint = redirect_fingerprints[0]
-        return (canonical_url, canonical_fingerprint)
+            canonical_domain_fingerprint = redirect_domains[0]
+
+        return (canonical_url, canonical_fingerprint, canonical_domain_fingerprint)
