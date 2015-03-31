@@ -3,7 +3,7 @@ from scrapy.http import Request
 from scrapy import log
 
 from collections import deque
-from time import clock
+from time import time
 
 from crawlfrontier.contrib.scrapy.manager import ScrapyFrontierManager
 
@@ -141,7 +141,7 @@ class CrawlFrontierScheduler(Scheduler):
     def _get_next_request(self):
         if not self.frontier.manager.finished and \
                         len(self) < self.crawler.engine.downloader.total_concurrency and \
-                        self._delay_next_call < clock():
+                        self._delay_next_call < time():
 
             info = self._get_downloader_info()
             requests = self.frontier.get_next_requests(key_type=info['key_type'], overused_keys=info['overused_keys'])
@@ -153,7 +153,7 @@ class CrawlFrontierScheduler(Scheduler):
             the rest of the buffer and inform the code upper on the stack, that current buffer is empty, without
             hitting backend on every request.
             '''
-            self._delay_next_call = clock() + self._delay_on_empty if not requests else 0.0
+            self._delay_next_call = time() + self._delay_on_empty if not requests else 0.0
         return self._get_pending_request()
 
     def _add_pending_request(self, request):
