@@ -122,7 +122,7 @@ class SQLiteBackend(Backend):
 
     def add_seeds(self, seeds):
         for seed in seeds:
-            url, fingerprint = self.manager.canonicalsolver.get_canonical_url(seed)
+            url, fingerprint, _ = self.manager.canonicalsolver.get_canonical_url(seed)
             db_page, _ = self._get_or_create_db_page(url=url, fingerprint=fingerprint,
                                                      request_or_response=seed)
         self.session.commit()
@@ -142,7 +142,7 @@ class SQLiteBackend(Backend):
         return next_pages
 
     def page_crawled(self, response, links):
-        url, fingerprint = self.manager.canonicalsolver.get_canonical_url(response)
+        url, fingerprint, _ = self.manager.canonicalsolver.get_canonical_url(response)
         db_page, created = self._get_or_create_db_page(url=url, fingerprint=fingerprint,
                                                  request_or_response=response)
         if created:
@@ -152,7 +152,7 @@ class SQLiteBackend(Backend):
         db_page.status_code = response.status_code
         # TODO: a performance bottle-neck on big volumes, operations should be batched here
         for link in links:
-            link_url, link_fingerprint = self.manager.canonicalsolver.get_canonical_url(link)
+            link_url, link_fingerprint, _ = self.manager.canonicalsolver.get_canonical_url(link)
             db_page_from_link, created = self._get_or_create_db_page(url=link_url,
                                                                      fingerprint=link_fingerprint,
                                                                      request_or_response=link)
@@ -161,7 +161,7 @@ class SQLiteBackend(Backend):
         self.session.commit()
 
     def request_error(self, request, error):
-        url, fingerprint = self.manager.canonicalsolver.get_canonical_url(request)
+        url, fingerprint, _ = self.manager.canonicalsolver.get_canonical_url(request)
         db_page, _ = self._get_or_create_db_page(url=url, fingerprint=fingerprint,
                                                  request_or_response=request)
         db_page.state = Page.State.ERROR
