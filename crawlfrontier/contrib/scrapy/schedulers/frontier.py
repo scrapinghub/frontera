@@ -75,12 +75,14 @@ class CrawlFrontierScheduler(Scheduler):
         self.stats_manager = StatsManager(crawler.stats)
         self._pending_requests = deque()
         self.redirect_enabled = crawler.settings.get('REDIRECT_ENABLED')
-        self._delay_next_call = 0.0
 
         frontier_settings = crawler.settings.get('FRONTIER_SETTINGS', None)
         if not frontier_settings:
             log.msg('FRONTIER_SETTINGS not found! Using default frontier settings...', log.WARNING)
         self.frontier = ScrapyFrontierManager(frontier_settings)
+
+        self._delay_on_empty = self.frontier.manager.settings.get('DELAY_ON_EMPTY')
+        self._delay_next_call = 0.0
 
     @classmethod
     def from_crawler(cls, crawler):
@@ -138,18 +140,14 @@ class CrawlFrontierScheduler(Scheduler):
 
     def _get_next_request(self):
         if not self.frontier.manager.finished and \
-                len(self) < self.crawler.engine.downloader.total_concurrency and \
-                self._delay_next_call < time():
+                        len(self) < self.crawler.engine.downloader.total_concurrency and \
+                        self._delay_next_call < time():
 
             info = self._get_downloader_info()
             requests = self.frontier.get_next_requests(key_type=info['key_type'], overused_keys=info['overused_keys'])
             for request in requests:
                 self._add_pending_request(request)
-
-            # If we got empty requests list, it means backend has nothing to return. Delay will help us to exhaust 
-            # the rest of the buffer and inform the code upper on the stack, that current buffer is empty, without 
-            # hitting backend on every request.
-            self._delay_next_call = time() + 30.0 if not requests else 0.0
+            self._delay_next_call = time() + self._delay_on_empty if not requests else 0.0
         return self._get_pending_request()
 
     def _add_pending_request(self, request):
