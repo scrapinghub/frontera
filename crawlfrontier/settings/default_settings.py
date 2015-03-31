@@ -14,6 +14,7 @@ MAX_REQUESTS = 0
 MAX_NEXT_REQUESTS = 0
 AUTO_START = True
 OVERUSED_SLOT_FACTOR = 5.0
+DELAY_ON_EMPTY = 30.0
 
 #--------------------------------------------------------
 # Fingerprints mw
