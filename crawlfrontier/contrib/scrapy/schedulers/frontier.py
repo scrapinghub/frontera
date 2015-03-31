@@ -138,19 +138,17 @@ class CrawlFrontierScheduler(Scheduler):
 
     def _get_next_request(self):
         if not self.frontier.manager.finished and \
-                        len(self) < self.crawler.engine.downloader.total_concurrency and \
-                        self._delay_next_call < clock():
+                len(self) < self.crawler.engine.downloader.total_concurrency and \
+                self._delay_next_call < clock():
 
             info = self._get_downloader_info()
             requests = self.frontier.get_next_requests(key_type=info['key_type'], overused_keys=info['overused_keys'])
             for request in requests:
                 self._add_pending_request(request)
 
-            '''
-            If we got empty requests list, it means backend has nothing to return. Delay will help us to exhaust
-            the rest of the buffer and inform the code upper on the stack, that current buffer is empty, without
-            hitting backend on every request.
-            '''
+            # If we got empty requests list, it means backend has nothing to return. Delay will help us to exhaust 
+            # the rest of the buffer and inform the code upper on the stack, that current buffer is empty, without 
+            # hitting backend on every request.
             self._delay_next_call = clock() + 30.0 if not requests else 0.0
         return self._get_pending_request()
 
