@@ -50,7 +50,7 @@ class MemoryBaseBackend(Backend):
         pass
 
     def _get_or_create_request(self, request):
-        url, fingerprint = self.manager.canonicalsolver.get_canonical_url(request)
+        url, fingerprint, _ = self.manager.canonicalsolver.get_canonical_url(request)
         if fingerprint not in self.requests:
             new_request = self._create_request(request)
             self.requests[fingerprint] = new_request
