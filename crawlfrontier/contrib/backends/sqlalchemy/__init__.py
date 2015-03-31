@@ -122,7 +122,8 @@ class SQLiteBackend(Backend):
 
     def add_seeds(self, seeds):
         for seed in seeds:
-            db_page, _ = self._get_or_create_db_page(url=seed.url, fingerprint=seed.meta['fingerprint'],
+            url, fingerprint = self.manager.canonicalsolver.get_canonical_url(seed)
+            db_page, _ = self._get_or_create_db_page(url=url, fingerprint=fingerprint,
                                                      request_or_response=seed)
         self.session.commit()
 
@@ -141,20 +142,27 @@ class SQLiteBackend(Backend):
         return next_pages
 
     def page_crawled(self, response, links):
-        db_page, _ = self._get_or_create_db_page(url=response.url, fingerprint=response.meta['fingerprint'],
+        url, fingerprint = self.manager.canonicalsolver.get_canonical_url(response)
+        db_page, created = self._get_or_create_db_page(url=url, fingerprint=fingerprint,
                                                  request_or_response=response)
+        if created:
+            self.manager.logger.backend.warning("Unseen response %s in page_crawled(), canonical %s" % (response.url, url))
+
         db_page.state = Page.State.CRAWLED
         db_page.status_code = response.status_code
         # TODO: a performance bottle-neck on big volumes, operations should be batched here
         for link in links:
-            db_page_from_link, created = self._get_or_create_db_page(url=link.url, fingerprint=link.meta['fingerprint'],
+            link_url, link_fingerprint = self.manager.canonicalsolver.get_canonical_url(link)
+            db_page_from_link, created = self._get_or_create_db_page(url=link_url,
+                                                                     fingerprint=link_fingerprint,
                                                                      request_or_response=link)
             if created:
                 db_page_from_link.depth = db_page.depth+1
         self.session.commit()
 
     def request_error(self, request, error):
-        db_page, _ = self._get_or_create_db_page(url=request.url, fingerprint=request.meta['fingerprint'],
+        url, fingerprint = self.manager.canonicalsolver.get_canonical_url(request)
+        db_page, _ = self._get_or_create_db_page(url=url, fingerprint=fingerprint,
                                                  request_or_response=request)
         db_page.state = Page.State.ERROR
         db_page.error = error
