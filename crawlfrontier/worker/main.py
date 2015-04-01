@@ -10,6 +10,7 @@ from crawlfrontier.contrib.backends.remote.codecs import KafkaJSONDecoder, Kafka
 from crawlfrontier.core.manager import FrontierManager
 from crawlfrontier.settings import Settings
 from crawlfrontier.worker.partitioner import Crc32NamePartitioner
+from crawlfrontier.utils.url import parse_domain_from_url
 
 
 logging.basicConfig(level=logging.INFO)
@@ -97,8 +98,9 @@ class FrontierWorker(object):
             finally:
                 count +=1
 
+            netloc, name, scheme, sld, tld, subdomain = parse_domain_from_url(request.url)
             # TODO: send in batches
-            self.producer.send_messages(self.outgoing_topic, request.meta['domain']['name'], eo)
+            self.producer.send_messages(self.outgoing_topic, name, eo)
         logger.info("Pushed new batch of %d items", count)
         return count
 
