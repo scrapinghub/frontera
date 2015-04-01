@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from happybase import Connection
 from crawlfrontier import Backend
-from crawlfrontier.worker.partitioner import FingerprintPartitioner
+from crawlfrontier.worker.partitioner import Crc32NamePartitioner
 
 from struct import pack, unpack
 from datetime import datetime
@@ -58,7 +58,7 @@ class HBaseQueue(object):
     def __init__(self, connection, partitions, drop=False):
         self.connection = connection
         self.partitions = [i for i in range(0, partitions)]
-        self.partitioner = FingerprintPartitioner(self.partitions)
+        self.partitioner = Crc32NamePartitioner(self.partitions)
 
         tables = set(self.connection.tables())
         if drop and 'queue' in tables:
@@ -98,8 +98,8 @@ class HBaseQueue(object):
 
         timestamp = int(time() * 1E+6)
         data = dict()
-        for link, fingerprint, domain_fingerprint in links:
-            partition_id = self.partitioner.partition(domain_fingerprint, self.partitions)
+        for link, fingerprint, domain in links:
+            partition_id = self.partitioner.partition(domain['name'], self.partitions)
             score = 1 - link.meta['score']  # because of lexicographical sort in HBase
             rk = "%d_%s_%d" %(partition_id, "%0.2f_%0.2f" % get_interval(score, 0.01), timestamp)
             data.setdefault(rk, []).append((score, unhexlify(fingerprint)))
@@ -206,12 +206,12 @@ class HBaseBackend(Backend):
         table = self.connection.table('metadata')
         with table.batch(transaction=True) as b:
             for seed in seeds:
-                url, fingerprint, domain_fingerprint = self.manager.canonicalsolver.get_canonical_url(seed)
+                url, fingerprint, domain = self.manager.canonicalsolver.get_canonical_url(seed)
                 obj = prepare_hbase_object(url=url,
                                            depth=0,
                                            created_at=utcnow_timestamp(),
                                            state='NOT_CRAWLED',
-                                           domain_fingerprint=domain_fingerprint,
+                                           domain_fingerprint=domain['fingerprint'],
                                            score=seed.meta['score'])
 
                 b.put(fingerprint, obj)
@@ -219,12 +219,13 @@ class HBaseBackend(Backend):
 
     def page_crawled(self, response, links):
         table = self.connection.table('metadata')
-        url, fingerprint, domain_fingerprint = self.manager.canonicalsolver.get_canonical_url(response)
+        url, fingerprint, domain = self.manager.canonicalsolver.get_canonical_url(response)
         record = table.row(fingerprint, columns=['m:depth'])
         if not record:
             self.manager.logger.backend.error('Unseen record in page_crawled(), url=%s, fingerprint=%s' % (url,
                                               fingerprint))
             depth = 0
+            # FIXME put the rest of metadata in obj
         else:
             depth, = unpack('>I', record['m:depth'])
 
@@ -233,28 +234,28 @@ class HBaseBackend(Backend):
 
         links_dict = dict()
         for link in links:
-            link_url, link_fingerprint, link_domain_fingerprint = self.manager.canonicalsolver.get_canonical_url(link)
-            links_dict[link_fingerprint] = (link, link_url, link_domain_fingerprint)
+            link_url, link_fingerprint, link_domain = self.manager.canonicalsolver.get_canonical_url(link)
+            links_dict[link_fingerprint] = (link, link_url, link_domain)
 
         links_metadata = dict(table.rows(links_dict.keys(), columns=['m:state']))
         created = []
         with table.batch(transaction=True) as b:
             b.put(fingerprint, obj)
-            for link_fingerprint, (link, link_url, link_domain_fingerprint) in links_dict.iteritems():
+            for link_fingerprint, (link, link_url, link_domain) in links_dict.iteritems():
                 if link_fingerprint not in links_metadata:
                     obj = prepare_hbase_object(url=link_url,
                                                depth=depth+1,
                                                created_at=utcnow_timestamp(),
                                                state='NOT_CRAWLED',
-                                               domain_fingerprint=link_domain_fingerprint,
+                                               domain_fingerprint=link_domain['fingerprint'],
                                                score=link.meta['score'])
                     b.put(link_fingerprint, obj)
-                    created.append((link, link_fingerprint, link_domain_fingerprint))
+                    created.append((link, link_fingerprint, link_domain))
         self.queue.schedule(created)
 
     def request_error(self, request, error):
         table = self.connection.table('metadata')
-        url, fingerprint, domain_fingerprint = self.manager.canonicalsolver.get_canonical_url(request)
+        url, fingerprint, domain = self.manager.canonicalsolver.get_canonical_url(request)
         record = table.row(fingerprint, columns=['m:state'])
         obj = prepare_hbase_object(state='ERROR',
                                    error=error)
@@ -262,7 +263,7 @@ class HBaseBackend(Backend):
             prepare_hbase_object(obj, url=request.url,
                                       depth=0,
                                       created_at=utcnow_timestamp(),
-                                      domain_fingerprint=domain_fingerprint)
+                                      domain_fingerprint=domain['fingerprint'])
 
         table.put(request.meta['fingerprint'], obj)
 
