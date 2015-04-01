@@ -9,7 +9,7 @@ from kafka.common import OffsetOutOfRangeError
 from crawlfrontier.contrib.backends.remote.codecs import KafkaJSONDecoder, KafkaJSONEncoder
 from crawlfrontier.core.manager import FrontierManager
 from crawlfrontier.settings import Settings
-from crawlfrontier.worker.partitioner import FingerprintPartitioner
+from crawlfrontier.worker.partitioner import Crc32NamePartitioner
 
 
 logging.basicConfig(level=logging.INFO)
@@ -20,7 +20,7 @@ class FrontierWorker(object):
     def __init__(self, module_name):
         self.settings = Settings(module=module_name)
         self.kafka = KafkaClient(self.settings.get('KAFKA_LOCATION'))
-        self.producer = KeyedProducer(self.kafka, partitioner=FingerprintPartitioner)
+        self.producer = KeyedProducer(self.kafka, partitioner=Crc32NamePartitioner)
 
         self.consumer = SimpleConsumer(self.kafka,
                                        self.settings.get('FRONTIER_GROUP'),
@@ -98,7 +98,7 @@ class FrontierWorker(object):
                 count +=1
 
             # TODO: send in batches
-            self.producer.send_messages(self.outgoing_topic, request.meta['domain']['fingerprint'], eo)
+            self.producer.send_messages(self.outgoing_topic, request.meta['domain']['name'], eo)
         logger.info("Pushed new batch of %d items", count)
         return count
 
