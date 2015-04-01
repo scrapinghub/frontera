@@ -140,8 +140,8 @@ class CrawlFrontierScheduler(Scheduler):
 
     def _get_next_request(self):
         if not self.frontier.manager.finished and \
-                        len(self) < self.crawler.engine.downloader.total_concurrency and \
-                        self._delay_next_call < time():
+                len(self) < self.crawler.engine.downloader.total_concurrency and \
+                self._delay_next_call < time():
 
             info = self._get_downloader_info()
             requests = self.frontier.get_next_requests(key_type=info['key_type'], overused_keys=info['overused_keys'])
