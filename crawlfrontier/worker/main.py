@@ -99,8 +99,9 @@ class FrontierWorker(object):
                 count +=1
 
             netloc, name, scheme, sld, tld, subdomain = parse_domain_from_url(request.url)
+            encoded_name = name.encode('utf-8', 'ignore')
             # TODO: send in batches
-            self.producer.send_messages(self.outgoing_topic, name, eo)
+            self.producer.send_messages(self.outgoing_topic, encoded_name, eo)
         logger.info("Pushed new batch of %d items", count)
         return count
 
