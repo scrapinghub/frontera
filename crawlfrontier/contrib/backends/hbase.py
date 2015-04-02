@@ -235,6 +235,7 @@ class HBaseBackend(Backend):
     def add_seeds(self, seeds):
         table = self.connection.table('metadata')
         with table.batch(transaction=True) as b:
+            to_schedule = []
             for seed in seeds:
                 url, fingerprint, domain = self.manager.canonicalsolver.get_canonical_url(seed)
                 obj = prepare_hbase_object(url=url,
@@ -245,7 +246,8 @@ class HBaseBackend(Backend):
                                            score=seed.meta['score'])
 
                 b.put(fingerprint, obj)
-        self.queue.schedule(seeds)
+                to_schedule.append((seed, fingerprint, domain))
+        self.queue.schedule(to_schedule)
 
     def page_crawled(self, response, links):
         table = self.connection.table('metadata')
