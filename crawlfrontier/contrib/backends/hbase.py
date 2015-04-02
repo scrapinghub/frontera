@@ -108,7 +108,7 @@ class HBaseQueue(object):
             score = 1 - link.meta['score']  # because of lexicographical sort in HBase
             host_crc32 = get_crc32(domain['name'])
             rk = "%d_%s_%d" %(partition_id, "%0.2f_%0.2f" % get_interval(score, 0.01), timestamp)
-            blob = unhexlify(fingerprint) + pack(">I", host_crc32)
+            blob = unhexlify(fingerprint) + pack(">i", host_crc32)
             data.setdefault(rk, []).append((score, blob))
 
         table = self.connection.table('queue')
@@ -154,7 +154,7 @@ class HBaseQueue(object):
                         begin = pos*24 + 4
                         end = (pos+1)*24 + 4
                         fingerprint = buf[begin:begin+20]
-                        host_crc32 = unpack('>I', buf[begin+20:end])
+                        host_crc32 = unpack('>i', buf[begin+20:end])
                         queue.setdefault(host_crc32, []).append(fingerprint)
                         trash_can.add(rk)
 
@@ -165,7 +165,7 @@ class HBaseQueue(object):
                     to_merge[domain] = domain_requests[:max_requests_per_host]
                     count += len(to_merge[domain])
                     continue
-                count += len(domain_requests[domain])
+                count += len(domain_requests)
             queue.update(to_merge)
 
             if min_hosts is not None and len(queue.keys()) < min_hosts:
@@ -183,9 +183,8 @@ class HBaseQueue(object):
         results = []
         for host_crc32, fingerprints in queue.iteritems():
             print "%d" % len(fingerprints)
-            results.extend(fingerprints)
+            results.extend(map(hexlify, fingerprints))
         return results
-
 
     def rebuild(self, table_name):
         pass
