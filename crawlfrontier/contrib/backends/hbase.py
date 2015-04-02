@@ -8,6 +8,7 @@ from datetime import datetime
 from calendar import timegm
 from time import time
 from binascii import hexlify, unhexlify
+from zlib import crc32
 
 
 class State:
@@ -73,7 +74,8 @@ class HBaseQueue(object):
         Row - portion of the queue for each partition id created at some point in time
         Row Key - partition id + score interval + timestamp
         Column Qualifier - discrete score (first two digits after dot, e.g. 0.01_0.02, 0.02_0.03, ...)
-        Value - first four bytes uint containing count of items, then 20-byte sha1 fingerprints without delimiters
+        Value - first four bytes uint containing count of items,
+        then 24-byte sha1 fingerprint+crc32(domain name) blocks without delimiters
 
         Where score is mapped from 0.0 to 1.0
         score intervals are
@@ -87,6 +89,9 @@ class HBaseQueue(object):
         :param links:
         :return:
         """
+        def get_crc32(name):
+            return crc32(name) if type(name) is str else crc32(name.encode('utf-8', 'ignore'))
+
         def get_interval(score, resolution):
             if score < 0.0 or score > 1.0:
                 raise OverflowError
@@ -101,25 +106,27 @@ class HBaseQueue(object):
         for link, fingerprint, domain in links:
             partition_id = self.partitioner.partition(domain['name'], self.partitions)
             score = 1 - link.meta['score']  # because of lexicographical sort in HBase
+            host_crc32 = get_crc32(domain['name'])
             rk = "%d_%s_%d" %(partition_id, "%0.2f_%0.2f" % get_interval(score, 0.01), timestamp)
-            data.setdefault(rk, []).append((score, unhexlify(fingerprint)))
+            blob = unhexlify(fingerprint) + pack(">I", host_crc32)
+            data.setdefault(rk, []).append((score, blob))
 
         table = self.connection.table('queue')
         with table.batch(transaction=True) as b:
             for rk, tuples in data.iteritems():
                 obj = dict()
-                for score, fingerprint in tuples:
+                for score, blob in tuples:
                     column = 'f:%0.3f_%0.3f' % get_interval(score, 0.001)
-                    obj.setdefault(column, []).append(fingerprint)
+                    obj.setdefault(column, []).append(blob)
 
                 final = dict()
-                for column, fingerprints in obj.iteritems():
-                    buf = pack(">I", len(fingerprints))
-                    buf += str().join(fingerprints)
+                for column, blobs in obj.iteritems():
+                    buf = pack(">I", len(blobs))
+                    buf += str().join(blobs)
                     final[column] = buf
                 b.put(rk, final)
 
-    def get(self, partition_id, min_requests):
+    def get(self, partition_id, min_requests, min_hosts=None, max_requests_per_host=None):
         def parse_interval_left(cq):
             begin = cq.find(':')
             end = cq.find('.', begin+1)
@@ -129,33 +136,56 @@ class HBaseQueue(object):
 
         table = self.connection.table('queue')
 
-        results = []
-        for rk, data in table.scan(row_prefix='%d_' % partition_id, limit=min_requests):
-            for cq, buf in data.iteritems():
-                count = unpack(">I", buf[:4])[0]
-                interval = parse_interval_left(cq)
-                for pos in range(0, count):
-                    begin = pos*20 + 4
-                    end = (pos+1) * 20 + 4
-                    fingerprint = hexlify(buf[begin:end])
-                    results.append((interval, fingerprint, rk))
-
         trash_can = set()
-        sorted_results = []
-        last_rk = None
-        for _, fingerprint, rk in sorted(results, key=lambda x:x[0]):
-            if len(sorted_results) < min_requests or (last_rk is not None and rk == last_rk):
-                sorted_results.append(fingerprint)
-                if len(sorted_results) == min_requests:
-                    last_rk = rk
-                trash_can.add(rk)
+        queue = {}
+        limit = 0
+        tries = 0
+        count = 0
+        while tries < 10:
+            tries += 1
+            limit += min_requests
+            trash_can.clear()
+            queue.clear()
+            for rk, data in table.scan(row_prefix='%d_' % partition_id, limit=limit):
+                for cq, buf in data.iteritems():
+                    count = unpack(">I", buf[:4])[0]
+                    # interval = parse_interval_left(cq)
+                    for pos in range(0, count):
+                        begin = pos*24 + 4
+                        end = (pos+1)*24 + 4
+                        fingerprint = buf[begin:begin+20]
+                        host_crc32 = unpack('>I', buf[begin+20:end])
+                        queue.setdefault(host_crc32, []).append(fingerprint)
+                        trash_can.add(rk)
+
+            count = 0
+            to_merge = {}
+            for domain, domain_requests in queue.iteritems():
+                if max_requests_per_host is not None and len(domain_requests) > max_requests_per_host:
+                    to_merge[domain] = domain_requests[:max_requests_per_host]
+                    count += len(to_merge[domain])
+                    continue
+                count += len(domain_requests[domain])
+            queue.update(to_merge)
+
+            if min_hosts is not None and len(queue.keys()) < min_hosts:
+                continue
+
+            if count < min_requests:
                 continue
             break
 
         with table.batch(transaction=True) as b:
             for rk in trash_can:
                 b.delete(rk)
-        return sorted_results
+
+        print "Tries %d, hosts %d, requests %d" % (tries, len(queue.keys()), count)
+        results = []
+        for host_crc32, fingerprints in queue.iteritems():
+            print "%d" % len(fingerprints)
+            results.extend(fingerprints)
+        return results
+
 
     def rebuild(self, table_name):
         pass
@@ -271,7 +301,8 @@ class HBaseBackend(Backend):
         fingerprints = []
         self.manager.logger.backend.debug("Querying queue table.")
         for partition_id in range(0, self.queue_partitions):
-            partition_fingerprints = self.queue.get(partition_id, max_next_requests / self.queue_partitions)
+            partition_fingerprints = self.queue.get(partition_id, max_next_requests / self.queue_partitions,
+                                                    min_hosts=256, max_requests_per_host=20)
             fingerprints.extend(partition_fingerprints)
             self.manager.logger.backend.debug("Got %d items for partition id %d" % (len(partition_fingerprints), partition_id))
 
