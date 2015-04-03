@@ -205,6 +205,7 @@ class HBaseQueue(object):
         with table.batch(transaction=True) as b:
             for rk in trash_can:
                 b.delete(rk)
+        self.logger.debug("%d row keys removed." % len(trash_can))
         return results
 
     def rebuild(self, table_name):
