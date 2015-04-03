@@ -56,6 +56,9 @@ def utcnow_timestamp():
 
 
 class HBaseQueue(object):
+
+    GET_RETRIES = 10
+
     def __init__(self, connection, partitions, drop=False):
         self.connection = connection
         self.partitions = [i for i in range(0, partitions)]
@@ -134,40 +137,51 @@ class HBaseQueue(object):
                 raise TypeError('Can\'t parse \'queue\' table column qualifier.')
             return float(cq[begin+1:end+4])
 
+        def decode_buffer(buf):
+            count = unpack(">I", buf[:4])[0]
+            # interval = parse_interval_left(cq)
+            for pos in range(0, count):
+                begin = pos*24 + 4
+                end = (pos+1)*24 + 4
+                fingerprint = buf[begin:begin+20]
+                host_crc32 = unpack('>i', buf[begin+20:end])
+                yield (fingerprint, host_crc32)
+
         table = self.connection.table('queue')
 
-        trash_can = set()
+        rk_map = {}
+        fprint_map = {}
         queue = {}
         limit = 0
         tries = 0
         count = 0
-        while tries < 10:
+        last_try_count = 0
+        while tries < self.GET_RETRIES:
             tries += 1
             limit += min_requests
-            trash_can.clear()
+            rk_map.clear()
+            fprint_map.clear()
             queue.clear()
             for rk, data in table.scan(row_prefix='%d_' % partition_id, limit=limit):
                 for cq, buf in data.iteritems():
-                    count = unpack(">I", buf[:4])[0]
-                    # interval = parse_interval_left(cq)
-                    for pos in range(0, count):
-                        begin = pos*24 + 4
-                        end = (pos+1)*24 + 4
-                        fingerprint = buf[begin:begin+20]
-                        host_crc32 = unpack('>i', buf[begin+20:end])
-                        queue.setdefault(host_crc32, []).append(fingerprint)
-                        trash_can.add(rk)
-
+                    for fprint, host_id in decode_buffer(buf):
+                        queue.setdefault(host_id, []).append(fprint)
+                        rk_map.setdefault(fprint, []).append(rk)
+                        fprint_map.setdefault(rk, []).append(fprint)
             count = 0
             to_merge = {}
-            for domain, domain_requests in queue.iteritems():
-                if max_requests_per_host is not None and len(domain_requests) > max_requests_per_host:
-                    to_merge[domain] = domain_requests[:max_requests_per_host]
-                    count += len(to_merge[domain])
+            for host_id, fprints in queue.iteritems():
+                if max_requests_per_host is not None and len(fprints) > max_requests_per_host:
+                    to_merge[host_id] = fprints[:max_requests_per_host]
+                    count += len(to_merge[host_id])
                     continue
-                count += len(domain_requests)
+                count += len(fprints)
             queue.update(to_merge)
 
+            if count == last_try_count:
+                break
+
+            last_try_count = count
             if min_hosts is not None and len(queue.keys()) < min_hosts:
                 continue
 
@@ -175,15 +189,21 @@ class HBaseQueue(object):
                 continue
             break
 
+        print "Tries %d, hosts %d, requests %d" % (tries, len(queue.keys()), count)
+
+        # For every fingerprint collect it's row keys and return all fingerprints from them
+        results = set()
+        trash_can = set()
+        for _, fprints in queue.iteritems():
+            for fprint in fprints:
+                for rk in rk_map[fprint]:
+                    trash_can.add(rk)
+                    for rk_fprint in fprint_map[rk]:
+                        results.add(hexlify(rk_fprint))
+
         with table.batch(transaction=True) as b:
             for rk in trash_can:
                 b.delete(rk)
-
-        print "Tries %d, hosts %d, requests %d" % (tries, len(queue.keys()), count)
-        results = []
-        for host_crc32, fingerprints in queue.iteritems():
-            print "%d" % len(fingerprints)
-            results.extend(map(hexlify, fingerprints))
         return results
 
     def rebuild(self, table_name):
