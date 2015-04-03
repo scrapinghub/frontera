@@ -1,7 +1,7 @@
 import re
 
 from crawlfrontier.core.components import Middleware
-from crawlfrontier.utils.url import parse_domain_from_url
+from crawlfrontier.utils.url import parse_domain_from_url_fast
 
 
 def parse_domain_info(url, test_mode=False):
@@ -10,7 +10,7 @@ def parse_domain_info(url, test_mode=False):
         netloc = name = match.groups()[0] if match else '?'
         scheme = sld = tld = subdomain = '-'
     else:
-        netloc, name, scheme, sld, tld, subdomain = parse_domain_from_url(url)
+        netloc, name, scheme, sld, tld, subdomain = parse_domain_from_url_fast(url)
     return {
         'netloc': netloc,
         'name': name,
