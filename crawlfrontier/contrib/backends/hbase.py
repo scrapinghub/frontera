@@ -59,10 +59,11 @@ class HBaseQueue(object):
 
     GET_RETRIES = 10
 
-    def __init__(self, connection, partitions, drop=False):
+    def __init__(self, connection, partitions, logger, drop=False):
         self.connection = connection
         self.partitions = [i for i in range(0, partitions)]
         self.partitioner = Crc32NamePartitioner(self.partitions)
+        self.logger = logger
 
         tables = set(self.connection.tables())
         if drop and 'queue' in tables:
@@ -189,7 +190,7 @@ class HBaseQueue(object):
                 continue
             break
 
-        print "Tries %d, hosts %d, requests %d" % (tries, len(queue.keys()), count)
+        self.logger.debug("Tries %d, hosts %d, requests %d" % (tries, len(queue.keys()), count))
 
         # For every fingerprint collect it's row keys and return all fingerprints from them
         results = set()
@@ -229,7 +230,8 @@ class HBaseBackend(Backend):
         self.queue_partitions = settings.get('HBASE_QUEUE_PARTITIONS', 4)
 
         self.connection = Connection(host=host, port=int(port), table_prefix=namespace, table_prefix_separator=':')
-        self.queue = HBaseQueue(self.connection, self.queue_partitions, drop=drop_all_tables)
+        self.queue = HBaseQueue(self.connection, self.queue_partitions, self.manager.logger.backend,
+                                drop=drop_all_tables)
 
         tables = set(self.connection.tables())
         if drop_all_tables and 'metadata' in tables:
