@@ -10,7 +10,7 @@ from crawlfrontier.contrib.backends.remote.codecs import KafkaJSONDecoder, Kafka
 from crawlfrontier.core.manager import FrontierManager
 from crawlfrontier.settings import Settings
 from crawlfrontier.worker.partitioner import Crc32NamePartitioner
-from crawlfrontier.utils.url import parse_domain_from_url
+from crawlfrontier.utils.url import parse_domain_from_url_fast
 
 
 logging.basicConfig(level=logging.INFO)
@@ -27,7 +27,7 @@ class FrontierWorker(object):
                                        self.settings.get('FRONTIER_GROUP'),
                                        self.settings.get('INCOMING_TOPIC'),
                                        buffer_size=1048576,
-                                       max_buffer_size=1048576)
+                                       max_buffer_size=10485760)
         self.is_finishing = False
 
 
@@ -99,7 +99,7 @@ class FrontierWorker(object):
                 count +=1
 
             try:
-                netloc, name, scheme, sld, tld, subdomain = parse_domain_from_url(request.url)
+                netloc, name, scheme, sld, tld, subdomain = parse_domain_from_url_fast(request.url)
             except Exception, e:
                 logger.error("URL parsing error %s, fingerprint %s, url %s" % (e, 
                                                                                 request.meta['fingerprint'], 
