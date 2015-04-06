@@ -112,7 +112,7 @@ class Middleware(Component):
 class CanonicalSolver(Component):
     """Interface definition for a Frontier Canonical Solver"""
     __metaclass__ = ABCMeta
-    component_name = 'Base CacnonicalSolver'
+    component_name = 'Base CanonicalSolver'
 
     @abstractmethod
     def get_canonical_url(self, response):
