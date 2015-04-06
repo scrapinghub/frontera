@@ -10,7 +10,7 @@ from crawlfrontier.contrib.backends.remote.codecs import KafkaJSONDecoder, Kafka
 from crawlfrontier.core.manager import FrontierManager
 from crawlfrontier.settings import Settings
 from crawlfrontier.worker.partitioner import Crc32NamePartitioner
-from crawlfrontier.utils.url import parse_domain_from_url
+from crawlfrontier.utils.url import parse_domain_from_url_fast
 
 
 logging.basicConfig(level=logging.INFO)
@@ -98,7 +98,7 @@ class FrontierWorker(object):
             finally:
                 count +=1
 
-            netloc, name, scheme, sld, tld, subdomain = parse_domain_from_url(request.url)
+            netloc, name, scheme, sld, tld, subdomain = parse_domain_from_url_fast(request.url)
             encoded_name = name.encode('utf-8', 'ignore')
             # TODO: send in batches
             self.producer.send_messages(self.outgoing_topic, encoded_name, eo)
