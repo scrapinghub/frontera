@@ -98,7 +98,12 @@ class FrontierWorker(object):
             finally:
                 count +=1
 
-            netloc, name, scheme, sld, tld, subdomain = parse_domain_from_url(request.url)
+            try:
+                netloc, name, scheme, sld, tld, subdomain = parse_domain_from_url(request.url)
+            except Exception, e:
+                logger.error("URL parsing error %s, fingerprint %s, url %s" % (e, 
+                                                                                request.meta['fingerprint'], 
+                                                                                request.url))
             encoded_name = name.encode('utf-8', 'ignore')
             # TODO: send in batches
             self.producer.send_messages(self.outgoing_topic, encoded_name, eo)
