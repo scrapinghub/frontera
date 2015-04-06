@@ -64,8 +64,13 @@ class UrlFingerprintMiddleware(BaseFingerprintMiddleware):
     component_name = 'URL Fingerprint Middleware'
     fingerprint_function_name = 'URL_FINGERPRINT_FUNCTION'
 
+    def _get_fingerprint(self, url):
+        return self.fingerprint_function(canonicalize_url(url))
+
     def _add_fingerprint(self, obj):
-        obj.meta['fingerprint'] = self.fingerprint_function(canonicalize_url(obj.url))
+        obj.meta['fingerprint'] = self._get_fingerprint(obj.url)
+        if 'redirect_urls' in obj.meta:
+            obj.meta['redirect_fingerprints'] = [self._get_fingerprint(url) for url in obj.meta['redirect_urls']]
         return obj
 
 
@@ -103,4 +108,7 @@ class DomainFingerprintMiddleware(BaseFingerprintMiddleware):
     def _add_fingerprint(self, obj):
         if 'domain' in obj.meta:
             obj.meta['domain']['fingerprint'] = self.fingerprint_function(obj.meta['domain']['name'])
+        if 'redirect_domains' in obj.meta:
+            for domain in obj.meta['redirect_domains']:
+                domain['fingerprint'] = self.fingerprint_function(domain['name'])
         return obj

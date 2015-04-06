@@ -3,7 +3,6 @@ from scrapy.http import Request
 from scrapy import log
 
 from collections import deque
-from time import time
 
 from crawlfrontier.contrib.scrapy.manager import ScrapyFrontierManager
 
@@ -81,9 +80,6 @@ class CrawlFrontierScheduler(Scheduler):
             log.msg('FRONTIER_SETTINGS not found! Using default frontier settings...', log.WARNING)
         self.frontier = ScrapyFrontierManager(frontier_settings)
 
-        self._delay_on_empty = self.frontier.manager.settings.get('DELAY_ON_EMPTY')
-        self._delay_next_call = 0.0
-
     @classmethod
     def from_crawler(cls, crawler):
         return cls(crawler)
@@ -140,14 +136,10 @@ class CrawlFrontierScheduler(Scheduler):
 
     def _get_next_request(self):
         if not self.frontier.manager.finished and \
-                len(self) < self.crawler.engine.downloader.total_concurrency and \
-                self._delay_next_call < time():
-
+                len(self) < self.crawler.engine.downloader.total_concurrency:
             info = self._get_downloader_info()
-            requests = self.frontier.get_next_requests(key_type=info['key_type'], overused_keys=info['overused_keys'])
-            for request in requests:
+            for request in self.frontier.get_next_requests(key_type=info['key_type'], overused_keys=info['overused_keys']):
                 self._add_pending_request(request)
-            self._delay_next_call = time() + self._delay_on_empty if not requests else 0.0
         return self._get_pending_request()
 
     def _add_pending_request(self, request):

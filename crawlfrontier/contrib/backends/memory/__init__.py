@@ -37,6 +37,9 @@ class MemoryBaseBackend(Backend):
         return self.heap.pop(max_next_requests)
 
     def page_crawled(self, response, links):
+        request, created = self._get_or_create_request(response.request)
+        if created:
+            self.manager.logger.backend.warning("Unseen response %s in page_crawled()" % (response.url))
         for link in links:
             request, created = self._get_or_create_request(link)
             if created:
@@ -47,7 +50,7 @@ class MemoryBaseBackend(Backend):
         pass
 
     def _get_or_create_request(self, request):
-        fingerprint = request.meta['fingerprint']
+        url, fingerprint, _ = self.manager.canonicalsolver.get_canonical_url(request)
         if fingerprint not in self.requests:
             new_request = self._create_request(request)
             self.requests[fingerprint] = new_request

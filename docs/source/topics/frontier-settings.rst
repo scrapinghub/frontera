@@ -173,18 +173,6 @@ Default: ``False``
 Whether to enable frontier test mode. See :ref:`Frontier test mode <frontier-test-mode>`
 
 
-.. setting:: DELAY_ON_EMPTY
-
-DELAY_ON_EMPTY
---------------
-
-Default: ``30.0``
-
-When backend has no requests to fetch, this delay helps to exhaust the rest of the buffer without hitting
-backend on every request. Increase it if calls to your backend is taking a lot of time, and decrease if you need a fast
-spider bootstrap from seeds.
-
-
 Built-in fingerprint middleware settings
 ========================================
 
