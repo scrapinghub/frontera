@@ -27,7 +27,7 @@ class FrontierWorker(object):
                                        self.settings.get('FRONTIER_GROUP'),
                                        self.settings.get('INCOMING_TOPIC'),
                                        buffer_size=1048576,
-                                       max_buffer_size=1048576)
+                                       max_buffer_size=10485760)
         self.is_finishing = False
 
 
