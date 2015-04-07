@@ -81,7 +81,13 @@ class KafkaBackend(Backend):
         """
         if self._cons is None:
             try:
-                self._cons = SimpleConsumer(self._conn, self._group, self._topic_todo, partitions=[self._partition_id])
+                self._cons = SimpleConsumer(
+                    self._conn,
+                    self._group,
+                    self._topic_todo,
+                    partitions=[self._partition_id],
+                    buffer_size=131072,
+                    max_buffer_size=1048576)
             except BrokerResponseError:
                 self._cons = None
                 if self._manager is not None:
