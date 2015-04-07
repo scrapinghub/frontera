@@ -87,7 +87,8 @@ class FrontierWorker(object):
 
             logger.info("Consumed %d items.", consumed)
             now = time()
-            if not self.disable_new_batches and (consumed > produced * 0.4 or now - last_batch_timestamp > 180.0):
+            if not self.disable_new_batches and (consumed > produced * 0.4 or
+                                             now - last_batch_timestamp > self.settings.get('NEW_BATCH_DELAY', 60.0)):
                 produced = self.new_batch()
                 consumed = 0
                 last_batch_timestamp = now
