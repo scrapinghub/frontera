@@ -4,6 +4,7 @@ from codecs import KafkaJSONEncoder, KafkaJSONDecoder
 
 from kafka import KafkaClient, SimpleConsumer, SimpleProducer
 from kafka.common import BrokerResponseError, OffsetOutOfRangeError
+from logging import getLogger, StreamHandler
 
 from crawlfrontier import Backend, Settings
 from crawlfrontier.core import OverusedBuffer
@@ -45,6 +46,10 @@ class KafkaBackend(Backend):
         self._conn = KafkaClient(self._server)
         self._prod = None
         self._cons = None
+
+        logger = getLogger("kafka")
+        handler = StreamHandler()
+        logger.addHandler(handler)
 
         self._connect_consumer()
         self._connect_producer()
