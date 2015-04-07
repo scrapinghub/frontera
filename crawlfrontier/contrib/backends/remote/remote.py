@@ -3,7 +3,7 @@ import time
 from codecs import KafkaJSONEncoder, KafkaJSONDecoder
 
 from kafka import KafkaClient, SimpleConsumer, SimpleProducer
-from kafka.common import BrokerResponseError, OffsetOutOfRangeError
+from kafka.common import BrokerResponseError, OffsetOutOfRangeError, MessageSizeTooLargeError
 from logging import getLogger, StreamHandler
 
 from crawlfrontier import Backend, Settings
@@ -123,6 +123,10 @@ class KafkaBackend(Backend):
                 try:
                     self._prod.send_messages(self._topic_done, encoded_message)
                     success = True
+                except MessageSizeTooLargeError, e:
+                    self._manager.logger.backend.error(str(e))
+                    self._manager.logger.backend.debug("Message: %s" % encoded_message)
+                    break
                 except BrokerResponseError:
                     n_tries += 1
                     if self._manager is not None:
