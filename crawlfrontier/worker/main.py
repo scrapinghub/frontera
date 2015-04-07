@@ -65,7 +65,13 @@ class FrontierWorker(object):
                         if type == 'page_crawled':
                             _, response, links = msg
                             logger.debug("Page crawled %s", response.url)
-                            self.backend.page_crawled(response, links)
+
+                            filtered = []
+                            for link in links:
+                                if link.url.find('locanto') != -1:
+                                    continue
+                                filtered.append(link)
+                            self.backend.page_crawled(response, filtered)
 
                         if type == 'request_error':
                             _, request, error = msg
