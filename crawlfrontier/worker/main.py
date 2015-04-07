@@ -2,6 +2,7 @@
 from sys import argv
 import logging
 from time import time
+from argparse import ArgumentParser
 
 from kafka import KafkaClient, KeyedProducer, SimpleConsumer
 from kafka.common import OffsetOutOfRangeError
@@ -14,11 +15,11 @@ from crawlfrontier.utils.url import parse_domain_from_url_fast
 
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("cf")
 
 
 class FrontierWorker(object):
-    def __init__(self, module_name):
+    def __init__(self, module_name, no_batches):
         self.settings = Settings(module=module_name)
         self.kafka = KafkaClient(self.settings.get('KAFKA_LOCATION'))
         self.producer = KeyedProducer(self.kafka, partitioner=Crc32NamePartitioner)
@@ -36,12 +37,12 @@ class FrontierWorker(object):
         self.encoder = KafkaJSONEncoder(self.manager.request_model)
         self.decoder = KafkaJSONDecoder(self.manager.request_model, self.manager.response_model)
 
-
+        self.disable_new_batches = no_batches
         self.consumer_batch_size = self.settings.get('CONSUMER_BATCH_SIZE', 128)
         self.outgoing_topic = self.settings.get('OUTGOING_TOPIC')
 
     def start(self):
-        produced = self.new_batch()
+        produced = self.new_batch() if not self.disable_new_batches else 0
         consumed = 0
         last_batch_timestamp = time()
         while not self.is_finishing:
@@ -80,7 +81,7 @@ class FrontierWorker(object):
 
             logger.info("Consumed %d items.", consumed)
             now = time()
-            if consumed > produced * 0.4 or now - last_batch_timestamp > 60.0:
+            if not self.disable_new_batches and (consumed > produced * 0.4 or now - last_batch_timestamp > 60.0):
                 produced = self.new_batch()
                 consumed = 0
                 last_batch_timestamp = now
@@ -112,5 +113,10 @@ class FrontierWorker(object):
 
 
 if __name__ == '__main__':
-    worker = FrontierWorker(argv[1])
+    parser = ArgumentParser(description="Crawl frontier worker.")
+    parser.add_argument('--no-batches', action='store_true',
+                        help='Disables periodical generation of new batches')
+    parser.add_argument('--config', type=str, required=True, help='Settings module name, should be accessible by import')
+    args = parser.parse_args()
+    worker = FrontierWorker(args.config, args.no_batches)
     worker.start()
