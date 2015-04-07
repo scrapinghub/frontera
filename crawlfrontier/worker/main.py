@@ -48,7 +48,7 @@ class FrontierWorker(object):
             try:
                 for m in self.consumer.get_messages(count=self.consumer_batch_size,
                                                     block=True,
-                                                    timeout=30.0):
+                                                    timeout=5.0):
                     try:
                         msg = self.decoder.decode(m.message.value)
                     except (KeyError, TypeError), e:
@@ -80,7 +80,7 @@ class FrontierWorker(object):
 
             logger.info("Consumed %d items.", consumed)
             now = time()
-            if consumed > produced * 0.4 or now - last_batch_timestamp > 60.0:
+            if consumed > produced * 0.4 or now - last_batch_timestamp > 180.0:
                 produced = self.new_batch()
                 consumed = 0
                 last_batch_timestamp = now
