@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
-
 import logging
 from argparse import ArgumentParser
+from time import asctime
+
+from twisted.internet import reactor
+from twisted.internet.defer import Deferred
 
 from kafka import KafkaClient, KeyedProducer, SimpleConsumer
 from kafka.common import OffsetOutOfRangeError
@@ -12,8 +15,7 @@ from crawlfrontier.settings import Settings
 from crawlfrontier.worker.partitioner import Crc32NamePartitioner
 from crawlfrontier.utils.url import parse_domain_from_url_fast
 
-from twisted.internet import reactor
-from twisted.internet.defer import Deferred
+from server import JsonRpcService
 
 
 logging.basicConfig(level=logging.INFO)
@@ -92,25 +94,26 @@ class Slot(object):
 
 
 class FrontierWorker(object):
-    def __init__(self, module_name, no_batches):
-        self.settings = Settings(module=module_name)
-        self.kafka = KafkaClient(self.settings.get('KAFKA_LOCATION'))
+    def __init__(self, settings, no_batches):
+        self.kafka = KafkaClient(settings.get('KAFKA_LOCATION'))
         self.producer = KeyedProducer(self.kafka, partitioner=Crc32NamePartitioner)
 
         self.consumer = SimpleConsumer(self.kafka,
-                                       self.settings.get('FRONTIER_GROUP'),
-                                       self.settings.get('INCOMING_TOPIC'),
+                                       settings.get('FRONTIER_GROUP'),
+                                       settings.get('INCOMING_TOPIC'),
                                        buffer_size=1048576,
                                        max_buffer_size=10485760)
 
-        self.manager = FrontierManager.from_settings(self.settings)
+        self.manager = FrontierManager.from_settings(settings)
         self.backend = self.manager.backend
         self.encoder = KafkaJSONEncoder(self.manager.request_model)
         self.decoder = KafkaJSONDecoder(self.manager.request_model, self.manager.response_model)
 
-        self.consumer_batch_size = self.settings.get('CONSUMER_BATCH_SIZE', 128)
-        self.outgoing_topic = self.settings.get('OUTGOING_TOPIC')
-        self.slot = Slot(self.new_batch, self.consume, no_batches, self.settings.get('NEW_BATCH_DELAY', 60.0))
+        self.consumer_batch_size = settings.get('CONSUMER_BATCH_SIZE', 128)
+        self.outgoing_topic = settings.get('OUTGOING_TOPIC')
+        self.max_next_requests = settings.MAX_NEXT_REQUESTS
+        self.slot = Slot(self.new_batch, self.consume, no_batches, settings.get('NEW_BATCH_DELAY', 60.0))
+        self.stats = {}
 
     def run(self):
         self.slot.schedule(on_start=True)
@@ -157,11 +160,13 @@ class FrontierWorker(object):
             logger.info("Caught OffsetOutOfRangeError, moving to the tail of the log.")
 
         logger.info("Consumed %d items.", consumed)
+        self.stats['last_consumed'] = consumed
+        self.stats['last_consumption_run'] = asctime()
         return consumed
 
     def new_batch(self, *args, **kwargs):
         count = 0
-        for request in self.backend.get_next_requests(self.settings.MAX_NEXT_REQUESTS):
+        for request in self.backend.get_next_requests(self.max_next_requests):
             try:
                 eo = self.encoder.encode_request(request)
             except Exception, e:
@@ -181,6 +186,9 @@ class FrontierWorker(object):
             encoded_name = name.encode('utf-8', 'ignore')
             self.producer.send_messages(self.outgoing_topic, encoded_name, eo)
         logger.info("Pushed new batch of %d items", count)
+        self.stats['last_batch_size'] = count
+        self.stats.setdefault('batches_after_start', 0)
+        self.stats['batches_after_start'] += 1
         return count
 
 
@@ -188,8 +196,12 @@ if __name__ == '__main__':
     parser = ArgumentParser(description="Crawl frontier worker.")
     parser.add_argument('--no-batches', action='store_true',
                         help='Disables periodical generation of new batches')
-    parser.add_argument('--config', type=str, required=True, help='Settings module name, should be accessible by import')
+    parser.add_argument('--config', type=str, required=True,
+                        help='Settings module name, should be accessible by import')
     args = parser.parse_args()
-    worker = FrontierWorker(args.config, args.no_batches)
+    settings = Settings(module=args.config)
+    worker = FrontierWorker(settings, args.no_batches)
+    server = JsonRpcService(worker, settings)
+    server.start_listening()
     worker.run()
 
