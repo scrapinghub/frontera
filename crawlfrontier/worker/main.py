@@ -19,7 +19,7 @@ from crawlfrontier.utils.url import parse_domain_from_url_fast
 from server import JsonRpcService
 
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig()
 logger = logging.getLogger("cf")
 
 
@@ -207,7 +207,10 @@ if __name__ == '__main__':
                         help='Disables periodical generation of new batches')
     parser.add_argument('--config', type=str, required=True,
                         help='Settings module name, should be accessible by import')
+    parser.add_argument('--log-level', '-L', type=str, default='INFO',
+                        help="Log level, for ex. DEBUG, INFO, WARN, ERROR, FATAL")
     args = parser.parse_args()
+    logger.setLevel(args.log_level)
     settings = Settings(module=args.config)
     worker = FrontierWorker(settings, args.no_batches)
     server = JsonRpcService(worker, settings)
