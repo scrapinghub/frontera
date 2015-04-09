@@ -157,7 +157,7 @@ class FrontierWorker(object):
                     if type == 'request_error':
                         _, request, error = msg
                         logger.info("Request error %s", request.url)
-                        reqeust.meta['score'] = self._scorer.page_error(request, error)
+                        request.meta['score'] = self._scorer.page_error(request, error)
                         self._backend.request_error(request, error)
                 finally:
                     consumed += 1
