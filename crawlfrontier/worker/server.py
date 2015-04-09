@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 from twisted.web import server, resource
 from twisted.internet import reactor
-import logging
-import json
 
-logger = logging.getLogger("cf-server")
+from logging import getLogger
+from json import JSONDecoder, JSONEncoder
+from sys import exc_info
+from traceback import format_exception
 
+logger = getLogger("cf-server")
 
 def jsonrpc_error(id, code, message, data=None):
     """Create JSON-RPC error response"""
@@ -19,7 +21,6 @@ def jsonrpc_error(id, code, message, data=None):
         'id': id,
     }
 
-
 def jsonrpc_result(id, result):
     """Create JSON-RPC result response"""
     return {
@@ -29,9 +30,20 @@ def jsonrpc_result(id, result):
     }
 
 
+class JsonRpcError(Exception):
+
+    def __init__(self, code, message):
+        self.code = code
+        self.message = message
+
+    def __call__(self, id):
+        return jsonrpc_error(id, self.code, self.message)
+
+
 class JsonResource(resource.Resource):
 
-    json_encoder = json.JSONEncoder()
+    json_encoder = JSONEncoder()
+    json_decoder = JSONDecoder()
 
     def render(self, txrequest):
         r = resource.Resource.render(self, txrequest)
@@ -45,6 +57,9 @@ class JsonResource(resource.Resource):
         txrequest.setHeader('Access-Control-Allow-Headers',' X-Requested-With')
         txrequest.setHeader('Content-Length', len(r))
         return r
+
+    def parse_jsonrpc(self, txrequest):
+        return self.json_decoder.decode(txrequest.content.getvalue())
 
 
 class StatusResource(JsonResource):
@@ -60,6 +75,36 @@ class StatusResource(JsonResource):
             'is_finishing': self.worker.slot.is_finishing,
             'stats': self.worker.stats
         }
+
+
+class JsonRpcResource(JsonResource):
+
+    ws_name = 'jsonrpc'
+
+    def __init__(self, worker):
+        self.worker = worker
+        JsonResource.__init__(self)
+
+    def add_seeds(self, urls):
+        if not isinstance(urls, list):
+            raise JsonRpcError(400, "Seeds expected to be a list.")
+
+        try:
+            self.worker.add_seeds(urls)
+        except Exception, err:
+            trace_lines = format_exception(*exc_info())
+            raise JsonRpcError(500, "Error adding seeds: %s" % (str("").join(trace_lines)))
+        return "success"
+
+    def render_POST(self, txrequest):
+        jrequest = self.parse_jsonrpc(txrequest)
+        method = jrequest['method']
+        try:
+            if method == 'add_seeds':
+                return jsonrpc_result(jrequest['id'], self.add_seeds(jrequest['params']))
+            raise JsonRpcError(400, "Unknown method")
+        except JsonRpcError, err:
+            return err(jrequest['id'])
 
 
 class RootResource(JsonResource):
@@ -81,6 +126,7 @@ class JsonRpcService(server.Site):
 
         root = RootResource()
         root.putChild('status', StatusResource(worker))
+        root.putChild('jsonrpc', JsonRpcResource(worker))
 
         server.Site.__init__(self, root, logPath=logfile)
         self.noisy = False

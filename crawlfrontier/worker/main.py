@@ -11,6 +11,7 @@ from kafka.common import OffsetOutOfRangeError
 
 from crawlfrontier.contrib.backends.remote.codecs import KafkaJSONDecoder, KafkaJSONEncoder
 from crawlfrontier.core.manager import FrontierManager
+from crawlfrontier.core.models import Request
 from crawlfrontier.settings import Settings
 from crawlfrontier.worker.partitioner import Crc32NamePartitioner
 from crawlfrontier.utils.url import parse_domain_from_url_fast
@@ -95,19 +96,19 @@ class Slot(object):
 
 class FrontierWorker(object):
     def __init__(self, settings, no_batches):
-        self.kafka = KafkaClient(settings.get('KAFKA_LOCATION'))
-        self.producer = KeyedProducer(self.kafka, partitioner=Crc32NamePartitioner)
+        self._kafka = KafkaClient(settings.get('KAFKA_LOCATION'))
+        self._producer = KeyedProducer(self._kafka, partitioner=Crc32NamePartitioner)
 
-        self.consumer = SimpleConsumer(self.kafka,
+        self._consumer = SimpleConsumer(self._kafka,
                                        settings.get('FRONTIER_GROUP'),
                                        settings.get('INCOMING_TOPIC'),
                                        buffer_size=1048576,
                                        max_buffer_size=10485760)
 
-        self.manager = FrontierManager.from_settings(settings)
-        self.backend = self.manager.backend
-        self.encoder = KafkaJSONEncoder(self.manager.request_model)
-        self.decoder = KafkaJSONDecoder(self.manager.request_model, self.manager.response_model)
+        self._manager = FrontierManager.from_settings(settings)
+        self._backend = self._manager.backend
+        self._encoder = KafkaJSONEncoder(self._manager.request_model)
+        self._decoder = KafkaJSONDecoder(self._manager.request_model, self._manager.response_model)
 
         self.consumer_batch_size = settings.get('CONSUMER_BATCH_SIZE', 128)
         self.outgoing_topic = settings.get('OUTGOING_TOPIC')
@@ -122,9 +123,9 @@ class FrontierWorker(object):
     def consume(self, *args, **kwargs):
         consumed = 0
         try:
-            for m in self.consumer.get_messages(count=self.consumer_batch_size):
+            for m in self._consumer.get_messages(count=self.consumer_batch_size):
                 try:
-                    msg = self.decoder.decode(m.message.value)
+                    msg = self._decoder.decode(m.message.value)
                 except (KeyError, TypeError), e:
                     logger.error("Decoding error: %s", e)
                     continue
@@ -134,7 +135,7 @@ class FrontierWorker(object):
                         _, seeds = msg
                         logger.info('Adding %i seeds', len(seeds))
                         map(lambda seed: logger.debug('URL: ', seed.url), seeds)
-                        self.backend.add_seeds(seeds)
+                        self._backend.add_seeds(seeds)
 
                     if type == 'page_crawled':
                         _, response, links = msg
@@ -146,17 +147,17 @@ class FrontierWorker(object):
                             if link.url.find('locanto') != -1:
                                 continue
                             filtered.append(link)
-                        self.backend.page_crawled(response, filtered)
+                        self._backend.page_crawled(response, filtered)
 
                     if type == 'request_error':
                         _, request, error = msg
                         logger.info("Request error %s", request.url)
-                        self.backend.request_error(request, error)
+                        self._backend.request_error(request, error)
                 finally:
                     consumed += 1
         except OffsetOutOfRangeError, e:
             # https://github.com/mumrah/kafka-python/issues/263
-            self.consumer.seek(0, 2)  # moving to the tail of the log
+            self._consumer.seek(0, 2)  # moving to the tail of the log
             logger.info("Caught OffsetOutOfRangeError, moving to the tail of the log.")
 
         logger.info("Consumed %d items.", consumed)
@@ -166,9 +167,9 @@ class FrontierWorker(object):
 
     def new_batch(self, *args, **kwargs):
         count = 0
-        for request in self.backend.get_next_requests(self.max_next_requests):
+        for request in self._backend.get_next_requests(self.max_next_requests):
             try:
-                eo = self.encoder.encode_request(request)
+                eo = self._encoder.encode_request(request)
             except Exception, e:
                 logger.error("Encoding error, %s, fingerprint: %s, url: %s" % (e,
                                                                                request.meta['fingerprint'],
@@ -184,12 +185,20 @@ class FrontierWorker(object):
                                                                                 request.meta['fingerprint'], 
                                                                                 request.url))
             encoded_name = name.encode('utf-8', 'ignore')
-            self.producer.send_messages(self.outgoing_topic, encoded_name, eo)
+            self._producer.send_messages(self.outgoing_topic, encoded_name, eo)
         logger.info("Pushed new batch of %d items", count)
         self.stats['last_batch_size'] = count
         self.stats.setdefault('batches_after_start', 0)
         self.stats['batches_after_start'] += 1
         return count
+
+    def add_seeds(self, urls):
+        seeds = []
+        for url in urls:
+            r = Request(url=url)
+            r.meta['score'] = 1.0
+            seeds.append(r)
+        self._manager.add_seeds(seeds)
 
 
 if __name__ == '__main__':
