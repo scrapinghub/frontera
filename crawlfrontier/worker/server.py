@@ -73,6 +73,7 @@ class StatusResource(JsonResource):
     def render_GET(self, txrequest):
         return {
             'is_finishing': self.worker.slot.is_finishing,
+            'disable_new_batches': self.worker.slot.disable_new_batches,
             'stats': self.worker.stats
         }
 
@@ -88,20 +89,29 @@ class JsonRpcResource(JsonResource):
     def add_seeds(self, urls):
         if not isinstance(urls, list):
             raise JsonRpcError(400, "Seeds expected to be a list.")
-
-        try:
-            self.worker.add_seeds(urls)
-        except Exception, err:
-            trace_lines = format_exception(*exc_info())
-            raise JsonRpcError(500, "Error adding seeds: %s" % (str("").join(trace_lines)))
+        self.worker.add_seeds(urls)
         return "success"
 
     def render_POST(self, txrequest):
         jrequest = self.parse_jsonrpc(txrequest)
         method = jrequest['method']
         try:
-            if method == 'add_seeds':
-                return jsonrpc_result(jrequest['id'], self.add_seeds(jrequest['params']))
+            try:
+                if method == 'add_seeds':
+                    return jsonrpc_result(jrequest['id'], self.add_seeds(jrequest['params']))
+
+                if method == 'disable_new_batches':
+                    self.worker.disable_new_batches()
+                    return jsonrpc_result(jrequest['id'], "success")
+
+                if method == 'enable_new_batches':
+                    self.worker.enable_new_batches()
+                    return jsonrpc_result(jrequest['id'], "success")
+            except Exception, err:
+                if isinstance(err, JsonRpcError):
+                    raise err
+                trace_lines = format_exception(*exc_info())
+                raise JsonRpcError(500, "Error adding seeds: %s" % (str("").join(trace_lines)))
             raise JsonRpcError(400, "Unknown method")
         except JsonRpcError, err:
             return err(jrequest['id'])

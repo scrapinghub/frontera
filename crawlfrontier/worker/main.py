@@ -17,6 +17,7 @@ from crawlfrontier.worker.partitioner import Crc32NamePartitioner
 from crawlfrontier.utils.url import parse_domain_from_url_fast
 
 from server import JsonRpcService
+from scorer import DiscoveryScorer
 
 
 logging.basicConfig()
@@ -107,6 +108,7 @@ class FrontierWorker(object):
 
         self._manager = FrontierManager.from_settings(settings)
         self._backend = self._manager.backend
+        self._scorer = DiscoveryScorer()
         self._encoder = KafkaJSONEncoder(self._manager.request_model)
         self._decoder = KafkaJSONDecoder(self._manager.request_model, self._manager.response_model)
 
@@ -134,7 +136,9 @@ class FrontierWorker(object):
                     if type == 'add_seeds':
                         _, seeds = msg
                         logger.info('Adding %i seeds', len(seeds))
-                        map(lambda seed: logger.debug('URL: ', seed.url), seeds)
+                        for seed in seeds:
+                            seed.meta['score'] = self._scorer.add_seed(seed)
+                            logger.debug('URL: ', seed.url)
                         self._backend.add_seeds(seeds)
 
                     if type == 'page_crawled':
@@ -146,12 +150,14 @@ class FrontierWorker(object):
                         for link in links:
                             if link.url.find('locanto') != -1:
                                 continue
+                            link.meta['score'] = self._scorer.page_crawled(response, link)
                             filtered.append(link)
                         self._backend.page_crawled(response, filtered)
 
                     if type == 'request_error':
                         _, request, error = msg
                         logger.info("Request error %s", request.url)
+                        reqeust.meta['score'] = self._scorer.page_error(request, error)
                         self._backend.request_error(request, error)
                 finally:
                     consumed += 1
@@ -190,16 +196,23 @@ class FrontierWorker(object):
         self.stats['last_batch_size'] = count
         self.stats.setdefault('batches_after_start', 0)
         self.stats['batches_after_start'] += 1
+        self.stats['last_batch_generated'] = asctime()
         return count
 
     def add_seeds(self, urls):
         seeds = []
         for url in urls:
             r = Request(url=url)
-            r.meta['score'] = 1.0
+            r.meta['score'] = self._scorer.add_seed(r)
+            logger.debug('Adding seed URL: ', r.url)
             seeds.append(r)
         self._manager.add_seeds(seeds)
 
+    def disable_new_batches(self):
+        self.slot.disable_new_batches = True
+
+    def enable_new_batches(self):
+        self.slot.disable_new_batches = False
 
 if __name__ == '__main__':
     parser = ArgumentParser(description="Crawl frontier worker.")
