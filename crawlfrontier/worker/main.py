@@ -6,7 +6,7 @@ from time import asctime
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred
 
-from kafka import KafkaClient, KeyedProducer, SimpleConsumer
+from kafka import KafkaClient, KeyedProducer, SimpleConsumer, KafkaConsumer
 from kafka.common import OffsetOutOfRangeError
 
 from crawlfrontier.contrib.backends.remote.codecs import KafkaJSONDecoder, KafkaJSONEncoder
@@ -18,6 +18,7 @@ from crawlfrontier.utils.url import parse_domain_from_url_fast
 
 from server import JsonRpcService
 from scorer import DiscoveryScorer
+from offsets import Fetcher
 
 
 logging.basicConfig()
@@ -105,6 +106,7 @@ class FrontierWorker(object):
                                        settings.get('INCOMING_TOPIC'),
                                        buffer_size=1048576,
                                        max_buffer_size=10485760)
+        self._offset_fetcher = Fetcher(self._kafka, settings.get('OUTGOING_TOPIC'), settings.get('FRONTIER_GROUP'))
 
         self._manager = FrontierManager.from_settings(settings)
         self._backend = self._manager.backend
@@ -172,6 +174,14 @@ class FrontierWorker(object):
         return consumed
 
     def new_batch(self, *args, **kwargs):
+        lags = self._offset_fetcher.get()
+        sum_lags = sum(lags.values())
+        lower_limit = self.max_next_requests * 5
+        logger.info("Got sum of lags %d" % sum_lags)
+        if sum_lags > lower_limit:
+            logger.info("The sum of lags is above the lower limit %d, exiting." % lower_limit)
+            return 0
+
         count = 0
         for request in self._backend.get_next_requests(self.max_next_requests):
             try:
