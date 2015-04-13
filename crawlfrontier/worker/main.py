@@ -232,9 +232,13 @@ if __name__ == '__main__':
                         help='Settings module name, should be accessible by import')
     parser.add_argument('--log-level', '-L', type=str, default='INFO',
                         help="Log level, for ex. DEBUG, INFO, WARN, ERROR, FATAL")
+    parser.add_argument('--port', type=int, help="Json Rpc service port to listen")
     args = parser.parse_args()
     logger.setLevel(args.log_level)
     settings = Settings(module=args.config)
+    if 'port' in args:
+        settings.set("JSONRPC_PORT", args.port)
+
     worker = FrontierWorker(settings, args.no_batches)
     server = JsonRpcService(worker, settings)
     server.start_listening()
