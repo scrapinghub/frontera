@@ -236,7 +236,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     logger.setLevel(args.log_level)
     settings = Settings(module=args.config)
-    if 'port' in args:
+    if args.port:
         settings.set("JSONRPC_PORT", args.port)
 
     worker = FrontierWorker(settings, args.no_batches)
