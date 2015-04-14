@@ -2,8 +2,9 @@
 What is a Frontera?
 =========================
 
-A crawl frontier is the part of a crawling system that decides the logic and policies to follow when a crawler is
-visiting websites (what pages should be crawled next, priorities and ordering, how often pages are revisited, etc).
+Frontera is a crawl frontier, the part of a crawling system that decides the logic and policies to follow when a
+crawler is visiting websites (what pages should be crawled next, priorities and ordering, how often pages are
+revisited, etc).
 
 A usual crawler-frontier scheme is:
 
@@ -19,7 +20,6 @@ page. These links are added by the frontier as new requests to visit according t
 
 This process (ask for new requests/notify results) is repeated until the end condition for the crawl is reached. Some
 crawlers may never stop, that's what we call continuous crawls.
-
 
 Frontier policies can be based in almost any logic. Common use cases are usually based in score/priority systems,
 computed from one or many page attributes (freshness, update times, content relevance for certain terms, etc).
