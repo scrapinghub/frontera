@@ -2,7 +2,7 @@
 Using the Frontier with Scrapy
 ==============================
 
-Using Crawl Frontier is quite easy, it includes a set of `Scrapy middlewares`_  that encapsulates frontier usage and
+Using Frontera is quite easy, it includes a set of `Scrapy middlewares`_  that encapsulates frontier usage and
 can be easily configured using `Scrapy settings`_.
 
 
@@ -15,14 +15,14 @@ To activate the frontier in your Scrapy project, just add them to the `SPIDER_MI
 `DOWNLOADER_MIDDLEWARES`_ settings::
 
     SPIDER_MIDDLEWARES.update({
-        'crawlfrontier.contrib.scrapy.middlewares.frontier.CrawlFrontierSpiderMiddleware': 1000,
+        'frontera.contrib.scrapy.middlewares.frontier.CrawlFrontierSpiderMiddleware': 1000,
     })
 
     DOWNLOADER_MIDDLEWARES.update({
-        'crawlfrontier.contrib.scrapy.middlewares.frontier.CrawlFrontierDownloaderMiddleware': 1000,
+        'frontera.contrib.scrapy.middlewares.frontier.CrawlFrontierDownloaderMiddleware': 1000,
     })
 
-Create a Crawl Frontier ``settings.py`` file and add it to your Scrapy settings::
+Create a Frontera ``settings.py`` file and add it to your Scrapy settings::
 
     FRONTIER_SETTINGS = 'tutorial/frontier/settings.py'
 
@@ -71,7 +71,7 @@ setting::
 Frontier Scrapy settings
 ========================
 
-Here’s a list of all available Crawl Frontier Scrapy settings, in alphabetical order, along with their default values
+Here’s a list of all available Frontera Scrapy settings, in alphabetical order, along with their default values
 and the scope where they apply:
 
 .. setting:: FRONTIER_ENABLED
@@ -109,7 +109,7 @@ FRONTIER_SETTINGS
 
 Default: ``None``
 
-A file path pointing to Crawl Frontier settings.
+A file path pointing to Frontera settings.
 
 .. _Scrapy middlewares: http://doc.scrapy.org/en/latest/topics/downloader-middleware.html
 .. _Scrapy settings: http://doc.scrapy.org/en/latest/topics/settings.html

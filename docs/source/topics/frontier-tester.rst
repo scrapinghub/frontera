@@ -11,9 +11,9 @@ Creating a Frontier Tester
 ==========================
 
 FrontierTester needs a :doc:`Graph Manager <graph-manager>` and a
-:class:`FrontierManager <crawlfrontier.core.manager.FrontierManager>` instances::
+:class:`FrontierManager <frontera.core.manager.FrontierManager>` instances::
 
-    >>> from crawlfrontier import FrontierManager, FrontierTester, graphs
+    >>> from frontera import FrontierManager, FrontierTester, graphs
     >>> graph = graphs.Manager('sqlite:///graph.db')  # Crawl fake data loading
     >>> frontier = FrontierManager.from_settings()  # Create frontier from default settings
     >>> tester = FrontierTester(frontier, graph)
@@ -34,7 +34,7 @@ When run method is called the tester will:
 Steps 1 and 2 are repeated until crawl or frontier ends.
 
 Once the test is finished, the crawling page ``sequence`` is available as a list of frontier
-:class:`Request <crawlfrontier.core.models.Request>` objects::
+:class:`Request <frontera.core.models.Request>` objects::
 
 
 Test Parameters
@@ -45,7 +45,7 @@ In some test cases you may want to add all graph pages as seeds, this can be don
     >>> tester.run(add_all_pages=True)
 
 Maximum number of returned pages per
-:attr:`get_next_requests <crawlfrontier.core.manager.FrontierManager.get_next_requests>` call can be set using frontier
+:attr:`get_next_requests <frontera.core.manager.FrontierManager.get_next_requests>` call can be set using frontier
 settings, but also can be modified when creating the FrontierTester with the ``max_next_pages`` argument::
 
     >>> tester = FrontierTester(frontier, graph, max_next_pages=10)
@@ -56,7 +56,7 @@ An example of use
 
 A working example using test data from graphs and :ref:`basic backends <frontier-backends-basic-algorithms>`::
 
-    from crawlfrontier import FrontierManager, Settings, FrontierTester, graphs
+    from frontera import FrontierManager, Settings, FrontierTester, graphs
 
 
     def test_backend(backend):
@@ -82,7 +82,7 @@ A working example using test data from graphs and :ref:`basic backends <frontier
             print page.url
 
     if __name__ == '__main__':
-        test_backend('crawlfrontier.contrib.backends.memory.heapq.FIFO')
-        test_backend('crawlfrontier.contrib.backends.memory.heapq.LIFO')
-        test_backend('crawlfrontier.contrib.backends.memory.heapq.BFS')
-        test_backend('crawlfrontier.contrib.backends.memory.heapq.DFS')
+        test_backend('frontera.contrib.backends.memory.heapq.FIFO')
+        test_backend('frontera.contrib.backends.memory.heapq.LIFO')
+        test_backend('frontera.contrib.backends.memory.heapq.BFS')
+        test_backend('frontera.contrib.backends.memory.heapq.DFS')

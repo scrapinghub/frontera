@@ -1,10 +1,10 @@
 .. _topics-index:
 
 ======================================
-Crawl Frontier |version| documentation
+Frontera |version| documentation
 ======================================
 
-This documentation contains everything you need to know about Crawl Frontier.
+This documentation contains everything you need to know about Frontera.
 
 First steps
 ===========
@@ -16,10 +16,10 @@ First steps
    topics/installation
 
 :doc:`topics/frontier-at-a-glance`
-    Understand what Crawl Frontier is and how it can help you.
+    Understand what Frontera is and how it can help you.
 
 :doc:`topics/installation`
-    Get Crawl Frontier installed on your computer.
+    Get Frontera installed on your computer.
 
 
 Basic concepts
@@ -38,7 +38,7 @@ Basic concepts
     Learn what a crawl frontier is and how to use it.
 
 :doc:`topics/architecture`
-    See how Crawl Frontier works and its different components.
+    See how Frontera works and its different components.
 
 :doc:`topics/frontier-objects`
     Understand the classes used to represent links and pages.
@@ -47,10 +47,10 @@ Basic concepts
     Learn how to use the frontier.
 
 :doc:`topics/frontier-settings`
-    See how to configure Crawl Frontier.
+    See how to configure Frontera.
 
 
-Extending Crawl Frontier
+Extending Frontera
 ========================
 
 .. toctree::
@@ -80,10 +80,10 @@ Built-in services and tools
    topics/seed-loaders
 
 :doc:`topics/scrapy-integration`
-    Learn how to use Crawl Frontier with Scrapy.
+    Learn how to use Frontera with Scrapy.
 
 :doc:`topics/requests-integration`
-    Learn how to use Crawl Frontier with Requests.
+    Learn how to use Frontera with Requests.
 
 :doc:`topics/graph-manager`
     Define fake crawlings for websites to test your frontier.
@@ -109,16 +109,16 @@ All the rest
    topics/release-notes
 
 :doc:`topics/examples`
-    Some example projects and scripts using Crawl Frontier.
+    Some example projects and scripts using Frontera.
 
 :doc:`topics/best-practices`
-    The best practices of Crawl Frontier usage.
+    The best practices of Frontera usage.
 
 :doc:`topics/tests`
-    How to run and write Crawl Frontier tests.
+    How to run and write Frontera tests.
 
 :doc:`topics/release-notes`
-    See what has changed in recent Crawl Frontier versions.
+    See what has changed in recent Frontera versions.
 
 
 

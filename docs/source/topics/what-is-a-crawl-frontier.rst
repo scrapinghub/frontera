@@ -1,5 +1,5 @@
 =========================
-What is a Crawl Frontier?
+What is a Frontera?
 =========================
 
 A crawl frontier is the part of a crawling system that decides the logic and policies to follow when a crawler is

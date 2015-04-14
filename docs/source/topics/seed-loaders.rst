@@ -2,10 +2,10 @@
 Scrapy Seed Loaders
 ===================
 
-Crawl Frontier has some built-in Scrapy middlewares for seed loading.
+Frontera has some built-in Scrapy middlewares for seed loading.
 
 Seed loaders use the ``process_start_requests`` method to generate requests from a source that are added later to the
-:class:`FrontierManager <crawlfrontier.core.manager.FrontierManager>`.
+:class:`FrontierManager <frontera.core.manager.FrontierManager>`.
 
 
 Activating a Seed loader
