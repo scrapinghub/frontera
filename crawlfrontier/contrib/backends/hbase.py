@@ -153,17 +153,17 @@ class HBaseQueue(object):
         rk_map = {}
         fprint_map = {}
         queue = {}
-        limit = 0
+        limit = min_requests
         tries = 0
         count = 0
         last_try_count = 0
         while tries < self.GET_RETRIES:
             tries += 1
-            limit += min_requests
+            limit *= 2.0 if tries > 1 else 1.0
             rk_map.clear()
             fprint_map.clear()
             queue.clear()
-            for rk, data in table.scan(row_prefix='%d_' % partition_id, limit=limit):
+            for rk, data in table.scan(row_prefix='%d_' % partition_id, limit=int(limit)):
                 for cq, buf in data.iteritems():
                     for fprint, host_id in decode_buffer(buf):
                         queue.setdefault(host_id, []).append(fprint)
@@ -178,9 +178,6 @@ class HBaseQueue(object):
                     continue
                 count += len(fprints)
             queue.update(to_merge)
-
-            if count == last_try_count:
-                break
 
             last_try_count = count
             if min_hosts is not None and len(queue.keys()) < min_hosts:
@@ -328,7 +325,7 @@ class HBaseBackend(Backend):
         for partition_id in range(0, self.queue_partitions):
             if partition_id not in partitions:
                 continue
-            partition_fingerprints = self.queue.get(partition_id, max_next_requests / self.queue_partitions,
+            partition_fingerprints = self.queue.get(partition_id, max_next_requests,
                                                     min_hosts=256, max_requests_per_host=20)
             fingerprints.extend(partition_fingerprints)
             self.manager.logger.backend.debug("Got %d items for partition id %d" % (len(partition_fingerprints), partition_id))
