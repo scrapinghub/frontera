@@ -324,7 +324,10 @@ class HBaseBackend(Backend):
     def get_next_requests(self, max_next_requests, **kwargs):
         fingerprints = []
         self.manager.logger.backend.debug("Querying queue table.")
+        partitions = set(kwargs.pop('partitions', []))
         for partition_id in range(0, self.queue_partitions):
+            if partition_id not in partitions:
+                continue
             partition_fingerprints = self.queue.get(partition_id, max_next_requests / self.queue_partitions,
                                                     min_hosts=256, max_requests_per_host=20)
             fingerprints.extend(partition_fingerprints)

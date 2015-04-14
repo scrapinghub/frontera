@@ -175,15 +175,19 @@ class FrontierWorker(object):
 
     def new_batch(self, *args, **kwargs):
         lags = self._offset_fetcher.get()
-        sum_lags = sum(lags.values())
-        lower_limit = self.max_next_requests * 5
-        logger.info("Got sum of lags %d" % sum_lags)
-        if sum_lags > lower_limit:
-            logger.info("The sum of lags is above the lower limit %d, exiting." % lower_limit)
+        logger.info("Got lags %s" % str(lags))
+
+        partitions = []
+        for partition, lag in lags.iteritems():
+            if lag < self.max_next_requests:
+                partitions.append(partition)
+
+        logger.info("Getting new batches for partitions %s" % str(",").join(map(str, partitions)))
+        if not partitions:
             return 0
 
         count = 0
-        for request in self._backend.get_next_requests(self.max_next_requests):
+        for request in self._backend.get_next_requests(self.max_next_requests, partitions=partitions):
             try:
                 eo = self._encoder.encode_request(request)
             except Exception, e:
