@@ -140,9 +140,7 @@ A list containing the middlewares enabled in the frontier. For more info see
 Default::
 
     [
-        'crawlfrontier.contrib.middlewares.domain.DomainMiddleware',
         'crawlfrontier.contrib.middlewares.fingerprint.UrlFingerprintMiddleware',
-        'crawlfrontier.contrib.middlewares.fingerprint.DomainFingerprintMiddleware',
     ]
 
 .. setting:: REQUEST_MODEL
@@ -175,6 +173,18 @@ Default: ``False``
 Whether to enable frontier test mode. See :ref:`Frontier test mode <frontier-test-mode>`
 
 
+.. setting:: DELAY_ON_EMPTY
+
+DELAY_ON_EMPTY
+--------------
+
+Default: ``30.0``
+
+When backend has no requests to fetch, this delay helps to exhaust the rest of the buffer without hitting
+backend on every request. Increase it if calls to your backend is taking a lot of time, and decrease if you need a fast
+spider bootstrap from seeds.
+
+
 Built-in fingerprint middleware settings
 ========================================
 
@@ -202,7 +212,15 @@ Default: ``crawlfrontier.utils.fingerprint.sha1``
 
 The function used to calculate the ``domain`` fingerprint.
 
+.. setting:: OVERUSED_SLOT_FACTOR
 
+OVERUSED_SLOT_FACTOR
+------------------------
+
+Default: ``5.0``
+
+(in progress + queued requests in that slot) / max allowed concurrent downloads per slot before slot is considered
+overused. This affects only Scrapy scheduler."
 
 
 Default settings
@@ -220,9 +238,7 @@ Values::
     LINK_MODEL = 'crawlfrontier.core.models.Link'
     FRONTIER = 'crawlfrontier.core.frontier.Frontier'
     MIDDLEWARES = [
-        'crawlfrontier.contrib.middlewares.domain.DomainMiddleware',
         'crawlfrontier.contrib.middlewares.fingerprint.UrlFingerprintMiddleware',
-        'crawlfrontier.contrib.middlewares.fingerprint.DomainFingerprintMiddleware',
     ]
     BACKEND = 'crawlfrontier.contrib.backends.memory.FIFO'
     TEST_MODE = False
