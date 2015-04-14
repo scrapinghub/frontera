@@ -129,18 +129,6 @@ class MemoryRandomOverusedBackend(MemoryRandomBackend):
         return self._buffer.get_next_requests(max_n_requests, **kwargs)
 
 
-class MemoryRandomOverusedBackend(MemoryRandomBackend):
-    component_name = 'Random Memory Backend taking into account overused slots'
-
-    def __init__(self, manager):
-        super(MemoryRandomOverusedBackend, self).__init__(manager)
-        self._buffer = OverusedBuffer(super(MemoryRandomOverusedBackend, self).get_next_requests,
-                                      manager.logger.manager.debug)
-
-    def get_next_requests(self, max_n_requests, **kwargs):
-        return self._buffer.get_next_requests(max_n_requests, **kwargs)
-
-
 BASE = MemoryBaseBackend
 FIFO = MemoryFIFOBackend
 LIFO = MemoryLIFOBackend
