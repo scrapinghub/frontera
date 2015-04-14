@@ -2,7 +2,6 @@
 from kafka.common import OffsetRequest, OffsetFetchRequest, check_error, UnknownTopicOrPartitionError
 from logging import getLogger
 from collections import namedtuple
-from time import time
 
 logger = getLogger("offset-fetcher")
 
@@ -17,8 +16,8 @@ class Fetcher(object):
         self._client.load_metadata_for_topics()
         self._offsets = OffsetsStruct(commit=dict(),
                                       produced=dict())
-        self._last_update = time()
-        self._time_subsequent_calls = 60.0
+        self._update_group_offsets()
+        self._update_produced_offsets()
 
     def _update_produced_offsets(self):
         """
@@ -60,11 +59,8 @@ class Fetcher(object):
         """
         :return: dict Lags per partition
         """
-        now = time()
-        if now > self._last_update + self._time_subsequent_calls:
-            self._update_produced_offsets()
-            self._update_group_offsets()
-            self._last_update = now
+        self._update_produced_offsets()
+        self._update_group_offsets()
 
         lags = {}
         for partition in self._client.get_partition_ids_for_topic(self._topic):
