@@ -1,10 +1,10 @@
 """
 Frontier initialization from settings
 """
-from crawlfrontier import FrontierManager, Settings, graphs, Request, Response
+from frontera import FrontierManager, Settings, graphs, Request, Response
 
 SETTINGS = Settings()
-SETTINGS.BACKEND = 'crawlfrontier.contrib.backends.memory.FIFO'
+SETTINGS.BACKEND = 'frontera.contrib.backends.memory.FIFO'
 SETTINGS.LOGGING_MANAGER_ENABLED = True
 SETTINGS.LOGGING_BACKEND_ENABLED = True
 SETTINGS.LOGGING_DEBUGGING_ENABLED = True

@@ -1,10 +1,10 @@
 """
 Frontier tester using recording data
 """
-from crawlfrontier import FrontierManager, FrontierTester, Settings, graphs
+from frontera import FrontierManager, FrontierTester, Settings, graphs
 
 SETTINGS = Settings()
-SETTINGS.BACKEND = 'crawlfrontier.contrib.backends.memory_heapq.FIFO'
+SETTINGS.BACKEND = 'frontera.contrib.backends.memory_heapq.FIFO'
 SETTINGS.LOGGING_MANAGER_ENABLED = True
 SETTINGS.LOGGING_BACKEND_ENABLED = True
 SETTINGS.LOGGING_DEBUGGING_ENABLED = False

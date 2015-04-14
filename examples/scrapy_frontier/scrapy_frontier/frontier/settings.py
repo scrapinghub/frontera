@@ -1,7 +1,7 @@
 #--------------------------------------------------------
 # Frontier
 #--------------------------------------------------------
-BACKEND = 'crawlfrontier.contrib.backends.memory.FIFO'
+BACKEND = 'frontera.contrib.backends.memory.FIFO'
 MAX_REQUESTS = 200
 MAX_NEXT_REQUESTS = 10
 

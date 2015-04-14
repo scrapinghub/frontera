@@ -24,12 +24,12 @@ DOWNLOADER_MIDDLEWARES = {}
 # Frontier Settings
 #--------------------------------------------------------------------------
 SPIDER_MIDDLEWARES.update(
-    {'crawlfrontier.contrib.scrapy.middlewares.schedulers.SchedulerSpiderMiddleware': 999},
+    {'frontera.contrib.scrapy.middlewares.schedulers.SchedulerSpiderMiddleware': 999},
 )
 DOWNLOADER_MIDDLEWARES.update(
-    {'crawlfrontier.contrib.scrapy.middlewares.schedulers.SchedulerDownloaderMiddleware': 999}
+    {'frontera.contrib.scrapy.middlewares.schedulers.SchedulerDownloaderMiddleware': 999}
 )
-SCHEDULER = 'crawlfrontier.contrib.scrapy.schedulers.frontier.CrawlFrontierScheduler'
+SCHEDULER = 'frontera.contrib.scrapy.schedulers.frontier.FronteraScheduler'
 FRONTIER_SETTINGS = 'scrapy_frontier.frontier.settings'
 
 
@@ -37,7 +37,7 @@ FRONTIER_SETTINGS = 'scrapy_frontier.frontier.settings'
 # Seed loaders
 #--------------------------------------------------------------------------
 SPIDER_MIDDLEWARES.update({
-    'crawlfrontier.contrib.scrapy.middlewares.seeds.file.FileSeedLoader': 1,
+    'frontera.contrib.scrapy.middlewares.seeds.file.FileSeedLoader': 1,
 })
 SEEDS_SOURCE = 'seeds.txt'
 
