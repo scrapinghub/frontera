@@ -76,9 +76,9 @@ class FronteraScheduler(Scheduler):
         self._pending_requests = deque()
         self.redirect_enabled = crawler.settings.get('REDIRECT_ENABLED')
 
-        frontier_settings = crawler.settings.get('FRONTIER_SETTINGS', None)
+        frontier_settings = crawler.settings.get('FRONTERA_SETTINGS', None)
         if not frontier_settings:
-            log.msg('FRONTIER_SETTINGS not found! Using default frontier settings...', log.WARNING)
+            log.msg('FRONTERA_SETTINGS not found! Using default Frontera settings...', log.WARNING)
         self.frontier = ScrapyFrontierManager(frontier_settings)
 
         self._delay_on_empty = self.frontier.manager.settings.get('DELAY_ON_EMPTY')

@@ -57,7 +57,7 @@ Add the Scrapy Frontera middlewares to your settings::
 
 Create a Frontera settings.py file and add it to your Scrapy settings::
 
-    FRONTIER_SETTINGS = 'tutorial/frontier/settings.py'
+    FRONTERA_SETTINGS = 'tutorial/frontera/settings.py'
 
 3. Choose your backend
 ======================

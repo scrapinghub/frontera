@@ -30,7 +30,7 @@ DOWNLOADER_MIDDLEWARES.update(
     {'frontera.contrib.scrapy.middlewares.schedulers.SchedulerDownloaderMiddleware': 999}
 )
 SCHEDULER = 'frontera.contrib.scrapy.schedulers.frontier.FronteraScheduler'
-FRONTIER_SETTINGS = 'scrapy_frontier.frontier.settings'
+FRONTERA_SETTINGS = 'scrapy_frontier.frontera.settings'
 
 
 #--------------------------------------------------------------------------
