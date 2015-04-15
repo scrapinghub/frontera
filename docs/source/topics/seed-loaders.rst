@@ -14,7 +14,7 @@ Activating a Seed loader
 Just add the Seed Loader middleware to the ``SPIDER_MIDDLEWARES`` scrapy settings::
 
     SPIDER_MIDDLEWARES.update({
-        'crawl_frontier.contrib.scrapy.middlewares.seeds.FileSeedLoader': 650
+        'frontera.contrib.scrapy.middlewares.seeds.FileSeedLoader': 650
     })
 
 
