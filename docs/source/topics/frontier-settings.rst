@@ -156,7 +156,7 @@ The :class:`Request <frontera.core.models.Request>` model to be used by the fron
 .. setting:: RESPONSE_MODEL
 
 RESPONSE_MODEL
--------------
+--------------
 
 Default: ``'frontera.core.models.Response'``
 
@@ -206,7 +206,7 @@ The function used to calculate the ``url`` fingerprint.
 .. setting:: DOMAIN_FINGERPRINT_FUNCTION
 
 DOMAIN_FINGERPRINT_FUNCTION
-------------------------
+---------------------------
 
 Default: ``frontera.utils.fingerprint.sha1``
 
@@ -215,7 +215,7 @@ The function used to calculate the ``domain`` fingerprint.
 .. setting:: OVERUSED_SLOT_FACTOR
 
 OVERUSED_SLOT_FACTOR
-------------------------
+--------------------
 
 Default: ``5.0``
 

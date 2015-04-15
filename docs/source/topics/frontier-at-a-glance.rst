@@ -3,7 +3,7 @@ Frontera at a glance
 ==========================
 
 Frontera is an application framework that is meant to be used as part of a `Crawling System`_, allowing you to
-easily manage and define tasks related to a :doc:`Crawling Frontier <what-is-a-crawl-frontier>`.
+easily manage and define tasks related to a :doc:`crawl frontier <what-is-frontera>`.
 
 Even though it was originally designed for `Scrapy`_, it can also be used with any other Crawling Framework/System as
 the framework offers a generic frontier functionality.

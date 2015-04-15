@@ -2,8 +2,8 @@
 What is a Frontera?
 =========================
 
-Frontera is a crawl frontier, the part of a crawling system that decides the logic and policies to follow when a
-crawler is visiting websites (what pages should be crawled next, priorities and ordering, how often pages are
+Frontera is a crawl frontier framework, the part of a crawling system that decides the logic and policies to follow
+when a crawler is visiting websites (what pages should be crawled next, priorities and ordering, how often pages are
 revisited, etc).
 
 A usual crawler-frontier scheme is:

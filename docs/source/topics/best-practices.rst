@@ -21,6 +21,6 @@ connection pool of downloader most of the time underused.
 
 The solution is to supply Frontera backend with hostname/ip (usually, but not necessary) usage in downloader. We
 have a keyword arguments in method :attr:`get_next_requests <frontera.core.components.Backend.get_next_requests>`
- for passing these stats, to the Frontera backend. Information of any kind can be passed there. This arguments are
- usually set outside of Frontera, and then passed to CF via
+for passing these stats, to the Frontera backend. Information of any kind can be passed there. This arguments are
+usually set outside of Frontera, and then passed to CF via
 :class:`FrontierManagerWrapper <frontera.utils.managers.FrontierManagerWrapper>` subclass to backend.

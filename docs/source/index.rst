@@ -28,13 +28,13 @@ Basic concepts
 .. toctree::
    :hidden:
 
-   topics/what-is-a-crawl-frontier
+   topics/what-is-frontera
    topics/architecture
    topics/frontier-objects
    topics/frontier-api
    topics/frontier-settings
 
-:doc:`topics/what-is-a-crawl-frontier`
+:doc:`topics/what-is-frontera`
     Learn what a crawl frontier is and how to use it.
 
 :doc:`topics/architecture`

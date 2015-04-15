@@ -34,7 +34,7 @@ When run method is called the tester will:
 Steps 1 and 2 are repeated until crawl or frontier ends.
 
 Once the test is finished, the crawling page ``sequence`` is available as a list of frontier
-:class:`Request <frontera.core.models.Request>` objects::
+:class:`Request <frontera.core.models.Request>` objects.
 
 
 Test Parameters
