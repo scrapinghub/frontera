@@ -2,7 +2,7 @@
 Examples
 ========
 
-The project repo includes an ``examples`` folder with some scripts and projects using CrawlFrontier::
+The project repo includes an ``examples`` folder with some scripts and projects using Frontera::
 
     examples/
         requests/

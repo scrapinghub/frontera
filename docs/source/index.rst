@@ -32,7 +32,7 @@ Basic concepts
    topics/architecture
    topics/frontier-objects
    topics/frontier-api
-   topics/frontier-settings
+   topics/frontera-settings
 
 :doc:`topics/what-is-frontera`
     Learn what a crawl frontier is and how to use it.
@@ -46,7 +46,7 @@ Basic concepts
 :doc:`topics/frontier-api`
     Learn how to use the frontier.
 
-:doc:`topics/frontier-settings`
+:doc:`topics/frontera-settings`
     See how to configure Frontera.
 
 
@@ -130,7 +130,7 @@ All the rest
    topics/frontier-api
    topics/frontier-middlewares
    topics/frontier-backends
-   topics/frontier-settings
+   topics/frontera-settings
    topics/scrapy-integration
    topics/graph-manager
    topics/frontier-tester

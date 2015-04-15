@@ -1,5 +1,5 @@
 ============
-Frontier API
+Frontera API
 ============
 
 This section documents the Frontera core API, and is intended for developers of middlewares and backends.
@@ -21,7 +21,7 @@ Loading from settings
 =====================
 
 Although :class:`FrontierManager <frontera.core.manager.FrontierManager>` can be initialized using parameters the most common way of doing this is using
-:doc:`Frontier Settings <frontier-settings>`.
+:doc:`Frontera Settings <frontera-settings>`.
 
 
 This can be done through the :attr:`from_settings <frontera.core.manager.FrontierManager.from_settings>`

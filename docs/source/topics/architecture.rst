@@ -12,8 +12,8 @@ and an outline of the data flow that takes place inside the system. A brief desc
 below with links for more detailed information about them. The data flow is also described below.
 
 .. image:: _images/frontier_02.png
-   :width: 650px
-   :height: 356px
+   :width: 735px
+   :height: 420px
 
 Components
 ==========
@@ -27,7 +27,7 @@ what pages should be crawled next.
 Crawler can be implemented using `Scrapy`_ or any other crawling framework/system as the framework offers a generic
 frontier functionality.
 
-Frontier API / Manager
+Frontera API / Manager
 ----------------------
 
 The main entry point to Frontera API (3) is the FrontierManager object. Frontier users, in our case the Crawler (2),

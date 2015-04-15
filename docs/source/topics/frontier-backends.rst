@@ -183,7 +183,7 @@ If you want for instance to create a model to represent domains::
 
 Models can be accessed from the Backend dictionary attribute ``models``.
 
-For a complete list of all settings used for sqlalchemy backends check the :doc:`settings <frontier-settings>` section.
+For a complete list of all settings used for sqlalchemy backends check the :doc:`settings <frontera-settings>` section.
 
 .. class:: frontera.contrib.backends.sqlalchemy.BASE
 
