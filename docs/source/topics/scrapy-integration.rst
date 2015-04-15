@@ -2,25 +2,28 @@
 Using the Frontier with Scrapy
 ==============================
 
-Using Frontera is quite easy, it includes a set of `Scrapy middlewares`_  that encapsulates Frontera usage and
-can be easily configured using `Scrapy settings`_.
+Using Frontera is quite easy, it includes a set of `Scrapy middlewares`_ and Scrapy scheduler that encapsulates
+Frontera usage and can be easily configured using `Scrapy settings`_.
 
 
 Activating the frontier
 =======================
 
-The Frontera uses 2 different middlewares: ``CrawlFrontierSpiderMiddleware`` and ``CrawlFrontierDownloaderMiddleware``.
+The Frontera uses 2 different middlewares: ``SchedulerSpiderMiddleware`` and ``SchedulerDownloaderMiddleware``, and it's
+own scheduler ``FronteraScheduler``
 
-To activate the Frontera in your Scrapy project, just add them to the `SPIDER_MIDDLEWARES`_  and
-`DOWNLOADER_MIDDLEWARES`_ settings::
+To activate the Frontera in your Scrapy project, just add them to the `SPIDER_MIDDLEWARES`_,
+`DOWNLOADER_MIDDLEWARES`_ and `SCHEDULER`_ settings::
 
     SPIDER_MIDDLEWARES.update({
-        'frontera.contrib.scrapy.middlewares.frontier.CrawlFrontierSpiderMiddleware': 1000,
+        'frontera.contrib.scrapy.middlewares.schedulers.SchedulerSpiderMiddleware': 1000,
     })
 
     DOWNLOADER_MIDDLEWARES.update({
-        'frontera.contrib.scrapy.middlewares.frontier.CrawlFrontierDownloaderMiddleware': 1000,
+        'frontera.contrib.scrapy.middlewares.schedulers.SchedulerDownloaderMiddleware': 1000,
     })
+
+    SCHEDULER = 'frontera.contrib.scrapy.schedulers.frontier.FronteraScheduler'
 
 Create a Frontera ``settings.py`` file and add it to your Scrapy settings::
 
@@ -82,3 +85,4 @@ A file path pointing to Frontera settings.
 .. _Scrapy settings: http://doc.scrapy.org/en/latest/topics/settings.html
 .. _DOWNLOADER_MIDDLEWARES: http://doc.scrapy.org/en/latest/topics/settings.html#std:setting-DOWNLOADER_MIDDLEWARES
 .. _SPIDER_MIDDLEWARES: http://doc.scrapy.org/en/latest/topics/settings.html#std:setting-SPIDER_MIDDLEWARES
+.. _SCHEDULER: http://doc.scrapy.org/en/latest/topics/settings.html#std:setting-SCHEDULER

@@ -45,19 +45,7 @@ These are basically:
 2. Integrate your crawler with the frontier
 ===========================================
 
-Add the Scrapy Frontera middlewares to your settings::
-
-    SPIDER_MIDDLEWARES.update({
-        'frontera.contrib.scrapy.middlewares.frontier.CrawlFrontierSpiderMiddleware': 1000,
-    })
-
-    DOWNLOADER_MIDDLEWARES.update({
-        'frontera.contrib.scrapy.middlewares.frontier.CrawlFrontierDownloaderMiddleware': 1000,
-    })
-
-Create a Frontera settings.py file and add it to your Scrapy settings::
-
-    FRONTERA_SETTINGS = 'tutorial/frontera/settings.py'
+This article about :doc:`integration with Scrapy <scrapy-integration>` explains this step in detail.
 
 3. Choose your backend
 ======================
