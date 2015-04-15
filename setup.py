@@ -2,18 +2,18 @@ from setuptools import setup, find_packages
 
 import versioneer
 versioneer.VCS = 'git'
-versioneer.versionfile_source = 'crawlfrontier/_version.py'
-versioneer.versionfile_build = 'crawlfrontier/_version.py'
+versioneer.versionfile_source = 'frontera/_version.py'
+versioneer.versionfile_build = 'frontera/_version.py'
 versioneer.tag_prefix = 'v'  # tags are like v1.2.0
-versioneer.parentdir_prefix = 'crawlfrontier-'
+versioneer.parentdir_prefix = 'frontera-'
 
 
 setup(
-    name='crawl-frontier',
+    name='frontera',
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
     packages=find_packages(exclude=('tests', 'tests.*', 'examples', 'examples.*')),
-    url='https://github.com/scrapinghub/crawl-frontier',
+    url='https://github.com/scrapinghub/frontera',
     description='A flexible frontier for web crawlers',
     author='Scrapy developers',
     maintainer='Javier Casas',
@@ -21,9 +21,9 @@ setup(
     license='BSD',
     include_package_data=True,
     zip_safe=False,
-    keywords=['crawler', 'frontier', 'scrapy', 'web', 'requests'],
+    keywords=['crawler', 'frontier', 'scrapy', 'web', 'requests', 'frontera'],
     classifiers=[
-        #'Framework :: Crawl Frontier',
+        #'Framework :: Frontera',
         'Development Status :: 4 - Beta',
         'Environment :: Console',
         'Intended Audience :: Developers',

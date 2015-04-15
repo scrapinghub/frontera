@@ -1,14 +1,14 @@
 ==========================
-Crawl Frontier at a glance
+Frontera at a glance
 ==========================
 
-Crawl Frontier is an application framework that is meant to be used as part of a `Crawling System`_, allowing you to
-easily manage and define tasks related to a :doc:`Crawling Frontier <what-is-a-crawl-frontier>`.
+Frontera is an application framework that is meant to be used as part of a `Crawling System`_, allowing you to
+easily manage and define tasks related to a :doc:`crawl frontier <what-is-frontera>`.
 
 Even though it was originally designed for `Scrapy`_, it can also be used with any other Crawling Framework/System as
 the framework offers a generic frontier functionality.
 
-The purpose of this document is to introduce you to the concepts behind Crawl Frontier so that you can get an idea of
+The purpose of this document is to introduce you to the concepts behind Frontera so that you can get an idea of
 how it works and to decide if it is suited to your needs.
 
 
@@ -45,26 +45,14 @@ These are basically:
 2. Integrate your crawler with the frontier
 ===========================================
 
-Add the Scrapy Crawl Frontier middlewares to your settings::
-
-    SPIDER_MIDDLEWARES.update({
-        'crawlfrontier.contrib.scrapy.middlewares.frontier.CrawlFrontierSpiderMiddleware': 1000,
-    })
-
-    DOWNLOADER_MIDDLEWARES.update({
-        'crawlfrontier.contrib.scrapy.middlewares.frontier.CrawlFrontierDownloaderMiddleware': 1000,
-    })
-
-Create a Crawl Frontier settings.py file and add it to your Scrapy settings::
-
-    FRONTIER_SETTINGS = 'tutorial/frontier/settings.py'
+This article about :doc:`integration with Scrapy <scrapy-integration>` explains this step in detail.
 
 3. Choose your backend
 ======================
 
 Configure frontier settings to use a built-in backend like in-memory BFS::
 
-    BACKEND = 'crawlfrontier.contrib.backends.memory.heapq.BFS'
+    BACKEND = 'frontera.contrib.backends.memory.heapq.BFS'
 
 4. Run the spider
 =================
@@ -73,13 +61,13 @@ Run your Scrapy spider as usual from the command line::
 
     scrapy crawl myspider
 
-And that's it! You got your spider running integrated with Crawl Frontier.
+And that's it! You got your spider running integrated with Frontera.
 
 What else?
 ==========
 
-You’ve seen a simple example of how to use Crawl Frontier with Scrapy, but this is just the surface.
-Crawl Frontier provides many powerful features for making Frontier management easy and efficient, such as:
+You’ve seen a simple example of how to use Frontera with Scrapy, but this is just the surface.
+Frontera provides many powerful features for making Frontier management easy and efficient, such as:
 
 * Easy :doc:`built-in integration with Scrapy <scrapy-integration>` and :doc:`any other crawler <frontier-api>`
   through its API.
@@ -88,7 +76,7 @@ Crawl Frontier provides many powerful features for making Frontier management ea
 
 * Built-in support for :ref:`database storage <frontier-backends-sqlalchemy>` for crawled pages.
 
-* Support for extending Crawl Frontier by plugging your own functionality using :doc:`middlewares <frontier-middlewares>`.
+* Support for extending Frontera by plugging your own functionality using :doc:`middlewares <frontier-middlewares>`.
 
 * Built-in middlewares for:
 
@@ -107,7 +95,7 @@ Crawl Frontier provides many powerful features for making Frontier management ea
 What's next?
 ============
 
-The next obvious steps are for you to :doc:`install Crawl Frontier <installation>`, and read the
+The next obvious steps are for you to :doc:`install Frontera <installation>`, and read the
 :doc:`architecture overview <architecture>` and :doc:`API docs <frontier-api>`. Thanks for your interest!
 
 

@@ -19,8 +19,8 @@ fetch, it will be getting hundreds of URLs from the same host. The downloader wi
 because of RPS limit and delay. Therefore, picking top URLs from the queue leeds us to the time waste, because
 connection pool of downloader most of the time underused.
 
-The solution is to supply Crawl Frontier backend with hostname/ip (usually, but not necessary) usage in downloader. We
-have a keyword arguments in method :attr:`get_next_requests <crawlfrontier.core.components.Backend.get_next_requests>`
- for passing these stats, to the Crawl Frontier backend. Information of any kind can be passed there. This arguments are
- usually set outside of Crawl Frontier, and then passed to CF via
-:class:`FrontierManagerWrapper <crawlfrontier.utils.managers.FrontierManagerWrapper>` subclass to backend.
+The solution is to supply Frontera backend with hostname/ip (usually, but not necessary) usage in downloader. We
+have a keyword arguments in method :attr:`get_next_requests <frontera.core.components.Backend.get_next_requests>`
+for passing these stats, to the Frontera backend. Information of any kind can be passed there. This arguments are
+usually set outside of Frontera, and then passed to CF via
+:class:`FrontierManagerWrapper <frontera.utils.managers.FrontierManagerWrapper>` subclass to backend.

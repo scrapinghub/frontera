@@ -1,7 +1,7 @@
 """
 Graph manager example with site list
 """
-from crawlfrontier import graphs
+from frontera import graphs
 
 SITE_LIST = [
     [

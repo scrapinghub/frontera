@@ -5,16 +5,16 @@ from grequests import AsyncRequest, get as grequests_get, map as grequests_map
 
 from urlparse import urljoin
 
-from crawlfrontier.core.models import Request as FrontierRequest
-from crawlfrontier.utils.converters import BaseRequestConverter
-from crawlfrontier.contrib.requests.converters import ResponseConverter
+from frontera.core.models import Request as FrontierRequest
+from frontera.utils.converters import BaseRequestConverter
+from frontera.contrib.requests.converters import ResponseConverter
 
-from crawlfrontier.utils.managers import FrontierManagerWrapper
-from crawlfrontier.core import get_slot_key
-from crawlfrontier import Settings
+from frontera.utils.managers import FrontierManagerWrapper
+from frontera.core import get_slot_key
+from frontera import Settings
 
 SETTINGS = Settings()
-SETTINGS.BACKEND = 'crawlfrontier.contrib.backends.memory.MemoryRandomOverusedBackend'
+SETTINGS.BACKEND = 'frontera.contrib.backends.memory.MemoryRandomOverusedBackend'
 SETTINGS.LOGGING_MANAGER_ENABLED = True
 SETTINGS.LOGGING_BACKEND_ENABLED = False
 SETTINGS.MAX_REQUESTS = 0
@@ -30,7 +30,7 @@ LINK_RE = re.compile(r'href="(.*?)"')
 
 
 class GRequestsConverter(BaseRequestConverter):
-    """Converts between crawlfrontier and grequests request objects"""
+    """Converts between frontera and grequests request objects"""
     @classmethod
     def to_frontier(cls, request):
         """request: AsyncRequest > Frontier"""

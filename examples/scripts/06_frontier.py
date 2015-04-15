@@ -1,7 +1,7 @@
 """
 Frontier from parameters example
 """
-from crawlfrontier import FrontierManager, graphs, Request, Response
+from frontera import FrontierManager, graphs, Request, Response
 
 if __name__ == '__main__':
     # Create graph
@@ -9,15 +9,15 @@ if __name__ == '__main__':
 
     # Create frontier
     frontier = FrontierManager(
-        request_model='crawlfrontier.core.models.Request',
-        response_model='crawlfrontier.core.models.Response',
-        backend='crawlfrontier.contrib.backends.memory.FIFO',
-        logger='crawlfrontier.logger.FrontierLogger',
-        event_log_manager='crawlfrontier.logger.events.EventLogManager',
+        request_model='frontera.core.models.Request',
+        response_model='frontera.core.models.Response',
+        backend='frontera.contrib.backends.memory.FIFO',
+        logger='frontera.logger.FrontierLogger',
+        event_log_manager='frontera.logger.events.EventLogManager',
         middlewares=[
-            'crawlfrontier.contrib.middlewares.domain.DomainMiddleware',
-            'crawlfrontier.contrib.middlewares.fingerprint.UrlFingerprintMiddleware',
-            'crawlfrontier.contrib.middlewares.fingerprint.DomainFingerprintMiddleware',
+            'frontera.contrib.middlewares.domain.DomainMiddleware',
+            'frontera.contrib.middlewares.fingerprint.UrlFingerprintMiddleware',
+            'frontera.contrib.middlewares.fingerprint.DomainFingerprintMiddleware',
         ],
         test_mode=True)
 
