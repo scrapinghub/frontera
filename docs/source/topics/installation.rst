@@ -14,7 +14,7 @@ packages).
 
 To install using pip::
 
-   pip install crawl-frontier
+   pip install frontera
 
 .. _Python: http://www.python.org
 .. _pip: http://www.pip-installer.org/en/latest/installing.html

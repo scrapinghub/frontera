@@ -2,7 +2,7 @@ from docutils.parsers.rst.roles import set_classes
 from docutils import nodes
 
 
-REPO = 'https://github.com/scrapinghub/crawl-frontier/'
+REPO = 'https://github.com/scrapinghub/frontera/'
 
 
 def setup(app):

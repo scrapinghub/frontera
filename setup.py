@@ -13,7 +13,7 @@ setup(
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
     packages=find_packages(exclude=('tests', 'tests.*', 'examples', 'examples.*')),
-    url='https://github.com/scrapinghub/crawl-frontier',
+    url='https://github.com/scrapinghub/frontera',
     description='A flexible frontier for web crawlers',
     author='Scrapy developers',
     maintainer='Javier Casas',

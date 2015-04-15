@@ -35,7 +35,7 @@ Basic concepts
    topics/frontera-settings
 
 :doc:`topics/what-is-frontera`
-    Learn what a crawl frontier is and how to use it.
+    Learn what Frontera is and how to use it.
 
 :doc:`topics/architecture`
     See how Frontera works and its different components.
