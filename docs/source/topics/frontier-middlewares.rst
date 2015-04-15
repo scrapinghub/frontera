@@ -39,7 +39,7 @@ Writing your own middleware
 ===========================
 
 
-Writing your own frontier backend is easy. Each :class:`Middleware <frontera.core.components.Middleware>`
+Writing your own frontier middleware is easy. Each :class:`Middleware <frontera.core.components.Middleware>`
 component is a single Python class inherited from :class:`Component <frontera.core.components.Component>`.
 
 
@@ -112,8 +112,8 @@ through the methods described below.
 Built-in middleware reference
 =============================
 
-This page describes all :class:`Middleware <frontera.core.components.Middleware>` components that come with Crawl
-Frontier. For information on how to use them and how to write your own middleware, see the
+This page describes all :class:`Middleware <frontera.core.components.Middleware>` components that come with Frontera.
+For information on how to use them and how to write your own middleware, see the
 :ref:`middleware usage guide. <frontier-writing-middleware>`.
 
 For a list of the components enabled by default (and their orders) see the :setting:`MIDDLEWARES` setting.
