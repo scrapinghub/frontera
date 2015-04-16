@@ -4,11 +4,11 @@ import requests
 
 from urlparse import urljoin
 
-from crawlfrontier.contrib.requests.manager import RequestsFrontierManager
-from crawlfrontier import Settings
+from frontera.contrib.requests.manager import RequestsFrontierManager
+from frontera import Settings
 
 SETTINGS = Settings()
-SETTINGS.BACKEND = 'crawlfrontier.contrib.backends.memory.FIFO'
+SETTINGS.BACKEND = 'frontera.contrib.backends.memory.FIFO'
 SETTINGS.LOGGING_MANAGER_ENABLED = True
 SETTINGS.LOGGING_BACKEND_ENABLED = True
 SETTINGS.MAX_REQUESTS = 100

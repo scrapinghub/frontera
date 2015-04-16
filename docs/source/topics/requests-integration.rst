@@ -4,11 +4,11 @@ Using the Frontier with Requests
 
 To integrate frontier with `Requests`_ library, there is a ``RequestsFrontierManager`` class available.
 
-This class is just a simple :class:`FrontierManager <crawlfrontier.core.manager.FrontierManager>` wrapper that uses
+This class is just a simple :class:`FrontierManager <frontera.core.manager.FrontierManager>` wrapper that uses
 `Requests`_ objects (``Request``/``Response``) and converts them from and to frontier ones for you.
 
 
-Use it in the same way that :class:`FrontierManager <crawlfrontier.core.manager.FrontierManager>`, initialize it with
+Use it in the same way that :class:`FrontierManager <frontera.core.manager.FrontierManager>`, initialize it with
 your settings and use `Requests`_ ``Request`` and ``Response`` objects.
 ``get_next_requests`` method will return a `Requests`_ ``Request`` object.
 
@@ -20,11 +20,11 @@ An example::
 
     from urlparse import urljoin
 
-    from crawlfrontier.contrib.requests.manager import RequestsFrontierManager
-    from crawlfrontier import Settings
+    from frontera.contrib.requests.manager import RequestsFrontierManager
+    from frontera import Settings
 
     SETTINGS = Settings()
-    SETTINGS.BACKEND = 'crawlfrontier.contrib.backends.memory.FIFO'
+    SETTINGS.BACKEND = 'frontera.contrib.backends.memory.FIFO'
     SETTINGS.LOGGING_MANAGER_ENABLED = True
     SETTINGS.LOGGING_BACKEND_ENABLED = True
     SETTINGS.MAX_REQUESTS = 100

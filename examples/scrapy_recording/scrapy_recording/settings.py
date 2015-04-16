@@ -24,12 +24,12 @@ DOWNLOADER_MIDDLEWARES = {}
 # Recorder Settings
 #--------------------------------------------------------------------------
 SPIDER_MIDDLEWARES.update(
-    {'crawlfrontier.contrib.scrapy.middlewares.schedulers.SchedulerSpiderMiddleware': 999},
+    {'frontera.contrib.scrapy.middlewares.schedulers.SchedulerSpiderMiddleware': 999},
 )
 DOWNLOADER_MIDDLEWARES.update(
-    {'crawlfrontier.contrib.scrapy.middlewares.schedulers.SchedulerDownloaderMiddleware': 999}
+    {'frontera.contrib.scrapy.middlewares.schedulers.SchedulerDownloaderMiddleware': 999}
 )
-SCHEDULER = 'crawlfrontier.contrib.scrapy.schedulers.recording.RecorderScheduler'
+SCHEDULER = 'frontera.contrib.scrapy.schedulers.recording.RecorderScheduler'
 
 RECORDER_ENABLED = True
 RECORDER_STORAGE_ENGINE = 'sqlite:///scrapy_recording/recordings/record.db'

@@ -2,7 +2,7 @@
 Tests
 =====
 
-Crawl Frontier tests are implemented using the `pytest`_ tool.
+Frontera tests are implemented using the `pytest`_ tool.
 
 You can install `pytest`_ and the additional required libraries used in the tests using pip::
 
@@ -27,15 +27,15 @@ so please include tests for your patches if you want them to get accepted sooner
 Backend testing
 ===============
 
-A base `pytest`_ class for :class:`Backend <crawlfrontier.core.components.Backend>` testing is provided:
-:class:`BackendTest <crawlfrontier.tests.backends.BackendTest>`
+A base `pytest`_ class for :class:`Backend <frontera.core.components.Backend>` testing is provided:
+:class:`BackendTest <frontera.tests.backends.BackendTest>`
 
-.. autoclass:: crawlfrontier.tests.backends.BackendTest
+.. autoclass:: frontera.tests.backends.BackendTest
 
-    .. automethod:: crawlfrontier.tests.backends.BackendTest.get_settings
-    .. automethod:: crawlfrontier.tests.backends.BackendTest.get_frontier
-    .. automethod:: crawlfrontier.tests.backends.BackendTest.setup_backend
-    .. automethod:: crawlfrontier.tests.backends.BackendTest.teardown_backend
+    .. automethod:: frontera.tests.backends.BackendTest.get_settings
+    .. automethod:: frontera.tests.backends.BackendTest.get_frontier
+    .. automethod:: frontera.tests.backends.BackendTest.setup_backend
+    .. automethod:: frontera.tests.backends.BackendTest.teardown_backend
 
 
 Let's say for instance that you want to test to your backend ``MyBackend`` and create a new frontier instance for each
@@ -44,7 +44,7 @@ test method call, you can define a test class like this::
 
     class TestMyBackend(backends.BackendTest):
 
-        backend_class = 'crawlfrontier.contrib.backend.abackend.MyBackend'
+        backend_class = 'frontera.contrib.backend.abackend.MyBackend'
 
         def test_one(self):
             frontier = self.get_frontier()
@@ -62,7 +62,7 @@ And let's say too that it uses a database file and you need to clean it before a
 
     class TestMyBackend(backends.BackendTest):
 
-        backend_class = 'crawlfrontier.contrib.backend.abackend.MyBackend'
+        backend_class = 'frontera.contrib.backend.abackend.MyBackend'
 
         def setup_backend(self, method):
             self._delete_test_db()
@@ -90,16 +90,16 @@ And let's say too that it uses a database file and you need to clean it before a
 Testing backend sequences
 =========================
 
-To test :class:`Backend <crawlfrontier.core.components.Backend>` crawling sequences you can use the
-:class:`BackendSequenceTest <crawlfrontier.tests.backends.BackendSequenceTest>` class.
+To test :class:`Backend <frontera.core.components.Backend>` crawling sequences you can use the
+:class:`BackendSequenceTest <frontera.tests.backends.BackendSequenceTest>` class.
 
-.. autoclass:: crawlfrontier.tests.backends.BackendSequenceTest
+.. autoclass:: frontera.tests.backends.BackendSequenceTest
 
-    .. automethod:: crawlfrontier.tests.backends.BackendSequenceTest.get_sequence
-    .. automethod:: crawlfrontier.tests.backends.BackendSequenceTest.assert_sequence
+    .. automethod:: frontera.tests.backends.BackendSequenceTest.get_sequence
+    .. automethod:: frontera.tests.backends.BackendSequenceTest.assert_sequence
 
 
-:class:`BackendSequenceTest <crawlfrontier.tests.backends.BackendSequenceTest>` class will run a complete crawl of the passed
+:class:`BackendSequenceTest <frontera.tests.backends.BackendSequenceTest>` class will run a complete crawl of the passed
 site graphs and return the sequence used by the backend for visiting the different pages.
 
 Let's say you want to test to a backend that sort pages using alphabetic order.
@@ -108,7 +108,7 @@ You can define the following test::
 
     class TestAlphabeticSortBackend(backends.BackendSequenceTest):
 
-        backend_class = 'crawlfrontier.contrib.backend.abackend.AlphabeticSortBackend'
+        backend_class = 'frontera.contrib.backend.abackend.AlphabeticSortBackend'
 
         SITE_LIST = [
             [
@@ -139,27 +139,27 @@ Testing basic algorithms
 If your backend uses any of the :ref:`basic algorithms logics <frontier-backends-basic-algorithms>`, you can just
 inherit the correponding test base class for each logic and sequences will be automatically tested for it::
 
-    from crawlfrontier.tests import backends
+    from frontera.tests import backends
 
 
     class TestMyBackendFIFO(backends.FIFOBackendTest):
-        backend_class = 'crawlfrontier.contrib.backends.abackend.MyBackendFIFO'
+        backend_class = 'frontera.contrib.backends.abackend.MyBackendFIFO'
 
 
     class TestMyBackendLIFO(backends.LIFOBackendTest):
-        backend_class = 'crawlfrontier.contrib.backends.abackend.MyBackendLIFO'
+        backend_class = 'frontera.contrib.backends.abackend.MyBackendLIFO'
 
 
     class TestMyBackendDFS(backends.DFSBackendTest):
-        backend_class = 'crawlfrontier.contrib.backends.abackend.MyBackendDFS'
+        backend_class = 'frontera.contrib.backends.abackend.MyBackendDFS'
 
 
     class TestMyBackendBFS(backends.BFSBackendTest):
-        backend_class = 'crawlfrontier.contrib.backends.abackend.MyBackendBFS'
+        backend_class = 'frontera.contrib.backends.abackend.MyBackendBFS'
 
 
     class TestMyBackendRANDOM(backends.RANDOMBackendTest):
-        backend_class = 'crawlfrontier.contrib.backends.abackend.MyBackendRANDOM'
+        backend_class = 'frontera.contrib.backends.abackend.MyBackendRANDOM'
 
 
 

@@ -2,18 +2,18 @@
 Architecture overview
 =====================
 
-This document describes the architecture of Crawl Frontier and how its components interact.
+This document describes the architecture of Frontera and how its components interact.
 
 Overview
 ========
 
-The following diagram shows an overview of the Crawl Frontier architecture with its components (referenced by numbers)
+The following diagram shows an overview of the Frontera architecture with its components (referenced by numbers)
 and an outline of the data flow that takes place inside the system. A brief description of the components is included
 below with links for more detailed information about them. The data flow is also described below.
 
 .. image:: _images/frontier_02.png
-   :width: 650px
-   :height: 356px
+   :width: 735px
+   :height: 420px
 
 Components
 ==========
@@ -27,10 +27,10 @@ what pages should be crawled next.
 Crawler can be implemented using `Scrapy`_ or any other crawling framework/system as the framework offers a generic
 frontier functionality.
 
-Frontier API / Manager
+Frontera API / Manager
 ----------------------
 
-The main entry point to Crawl Frontier API (3) is the FrontierManager object. Frontier users, in our case the Crawler (2),
+The main entry point to Frontera API (3) is the FrontierManager object. Frontier users, in our case the Crawler (2),
 will communicate with the frontier through it.
 
 Communication with the frontier can also be done through other mechanisms such as an HTTP API or a queue system. These
@@ -44,7 +44,7 @@ Middlewares
 -----------
 
 Frontier middlewares (4) are specific hooks that sit between the Manager (3) and the Backend (5). These middlewares
-process :class:`Request <crawlfrontier.core.models.Request>` and :class:`Response <crawlfrontier.core.models.Response>`
+process :class:`Request <frontera.core.models.Request>` and :class:`Response <frontera.core.models.Response>`
 objects when they pass to and from the Frontier and the Backend. They provide a convenient mechanism for extending
 functionality by plugging custom code.
 
@@ -58,7 +58,7 @@ The frontier backend (5) is where the crawling logic/policies lies. It's respons
 and selecting the next pages to be crawled.
 
 May require, depending on the logic implemented, a persistent storage (6) to manage
-:class:`Request <crawlfrontier.core.models.Request>` and :class:`Response <crawlfrontier.core.models.Response>`
+:class:`Request <frontera.core.models.Request>` and :class:`Response <frontera.core.models.Response>`
 objects info.
 
 For more information see :doc:`frontier-backends`.
@@ -68,7 +68,7 @@ For more information see :doc:`frontier-backends`.
 Data Flow
 =========
 
-The data flow in Crawl Frontier is controlled by the Frontier Manager, all data passes through the
+The data flow in Frontera is controlled by the Frontier Manager, all data passes through the
 manager-middlewares-backend scheme and goes like this:
 
 1. The frontier is initialized with a list of seed requests (seed URLs) as entry point for the crawl.

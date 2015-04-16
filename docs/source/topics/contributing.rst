@@ -1,5 +1,5 @@
 ==============================
-Contributing to Crawl Frontier
+Contributing to Frontera
 ==============================
 
 .. note:: TO-DO!

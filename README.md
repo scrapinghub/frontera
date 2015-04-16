@@ -7,4 +7,4 @@ python setup.py install
 
 # Documentation #
 
-See http://crawl-frontier.readthedocs.org/
+See http://frontera.readthedocs.org/
