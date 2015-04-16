@@ -57,7 +57,7 @@ def utcnow_timestamp():
 
 class HBaseQueue(object):
 
-    GET_RETRIES = 10
+    GET_RETRIES = 3
 
     def __init__(self, connection, partitions, logger, drop=False):
         self.connection = connection
@@ -158,8 +158,9 @@ class HBaseQueue(object):
         count = 0
         last_try_count = 0
         while tries < self.GET_RETRIES:
+            self.logger.debug("Try %d, limit %d, requests %d, hosts %d" % (tries, limit, count, len(queue.keys())))
             tries += 1
-            limit *= 2.0 if tries > 1 else 1.0
+            limit *= 5.5 if tries > 1 else 1.0
             rk_map.clear()
             fprint_map.clear()
             queue.clear()
