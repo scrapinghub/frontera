@@ -151,25 +151,26 @@ class HBaseQueue(object):
         table = self.connection.table('queue')
 
         rk_map = {}
-        fprint_map = {}
         queue = {}
         limit = min_requests
         tries = 0
         count = 0
-        last_try_count = 0
         while tries < self.GET_RETRIES:
-            self.logger.debug("Try %d, limit %d, requests %d, hosts %d" % (tries, limit, count, len(queue.keys())))
             tries += 1
             limit *= 5.5 if tries > 1 else 1.0
+            self.logger.debug("Try %d, limit %d, requests %d, hosts %d" % (tries, limit, count, len(queue.keys())))
             rk_map.clear()
-            fprint_map.clear()
             queue.clear()
             for rk, data in table.scan(row_prefix='%d_' % partition_id, limit=int(limit)):
                 for cq, buf in data.iteritems():
                     for fprint, host_id in decode_buffer(buf):
-                        queue.setdefault(host_id, []).append(fprint)
-                        rk_map.setdefault(fprint, []).append(rk)
-                        fprint_map.setdefault(rk, []).append(fprint)
+                        if host_id not in queue:
+                            queue[host_id] = []
+                        if fprint not in rk_map:
+                            rk_map[fprint] = []
+                        queue[host_id].append(fprint)
+                        rk_map[fprint].append(rk)
+
             count = 0
             to_merge = {}
             for host_id, fprints in queue.iteritems():
@@ -180,7 +181,6 @@ class HBaseQueue(object):
                 count += len(fprints)
             queue.update(to_merge)
 
-            last_try_count = count
             if min_hosts is not None and len(queue.keys()) < min_hosts:
                 continue
 
@@ -191,6 +191,11 @@ class HBaseQueue(object):
         self.logger.debug("Tries %d, hosts %d, requests %d" % (tries, len(queue.keys()), count))
 
         # For every fingerprint collect it's row keys and return all fingerprints from them
+        fprint_map = {}
+        for fprint, rk_list in rk_map.iteritems():
+            for rk in rk_list:
+                fprint_map.setdefault(rk, []).append(fprint)
+
         results = set()
         trash_can = set()
         for _, fprints in queue.iteritems():
