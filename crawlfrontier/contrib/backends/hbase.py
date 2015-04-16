@@ -144,16 +144,6 @@ class HBaseQueue(object):
 
         def decode_buffer(buf):
             count = unpack(">I", buf[:4])[0]
-            # interval = parse_interval_left(cq)
-            for pos in range(0, count):
-                begin = pos*24 + 4
-                end = (pos+1)*24 + 4
-                fingerprint = buf[begin:begin+20]
-                host_crc32 = unpack('>i', buf[begin+20:end])
-                yield (fingerprint, host_crc32)
-
-        def decode_buffer2(buf):
-            count = unpack(">I", buf[:4])[0]
             fmt = ">" + count*"20si"
             for chunk in chunks(unpack_from(fmt, buf, 4), 2):
                 yield tuple(chunk)
