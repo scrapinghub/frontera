@@ -168,16 +168,14 @@ class HBaseQueue(object):
                             queue[host_id] = []
                         if fprint not in rk_map:
                             rk_map[fprint] = []
+                        if max_requests_per_host is not None and len(queue[host_id]) > max_requests_per_host:
+                            continue
                         queue[host_id].append(fprint)
                         rk_map[fprint].append(rk)
 
             count = 0
             to_merge = {}
             for host_id, fprints in queue.iteritems():
-                if max_requests_per_host is not None and len(fprints) > max_requests_per_host:
-                    to_merge[host_id] = fprints[:max_requests_per_host]
-                    count += len(to_merge[host_id])
-                    continue
                 count += len(fprints)
             queue.update(to_merge)
 
