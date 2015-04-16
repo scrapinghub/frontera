@@ -3,7 +3,7 @@ from happybase import Connection
 from crawlfrontier import Backend
 from crawlfrontier.worker.partitioner import Crc32NamePartitioner
 
-from struct import pack, unpack
+from struct import pack, unpack, unpack_from
 from datetime import datetime
 from calendar import timegm
 from time import time
@@ -53,6 +53,10 @@ def prepare_hbase_object(obj=None, **kwargs):
 def utcnow_timestamp():
     d = datetime.utcnow()
     return timegm(d.timetuple())
+
+def chunks(l, n):
+    for i in xrange(0, len(l), n):
+        yield l[i:i+n]
 
 
 class HBaseQueue(object):
@@ -148,6 +152,12 @@ class HBaseQueue(object):
                 host_crc32 = unpack('>i', buf[begin+20:end])
                 yield (fingerprint, host_crc32)
 
+        def decode_buffer2(buf):
+            count = unpack(">I", buf[:4])[0]
+            fmt = ">" + count*"20si"
+            for chunk in chunks(unpack_from(fmt, buf, 4), 2):
+                yield tuple(chunk)
+
         table = self.connection.table('queue')
 
         rk_map = {}
@@ -208,11 +218,6 @@ class HBaseQueue(object):
 
     def rebuild(self, table_name):
         pass
-
-
-def chunks(l, n):
-    for i in xrange(0, len(l), n):
-        yield l[i:i+n]
 
 
 class HBaseBackend(Backend):
