@@ -135,19 +135,6 @@ class HBaseQueue(object):
                 b.put(rk, final)
 
     def get(self, partition_id, min_requests, min_hosts=None, max_requests_per_host=None):
-        def parse_interval_left(cq):
-            begin = cq.find(':')
-            end = cq.find('.', begin+1)
-            if begin == -1 or end == -1:
-                raise TypeError('Can\'t parse \'queue\' table column qualifier.')
-            return float(cq[begin+1:end+4])
-
-        def decode_buffer(buf):
-            count = unpack(">I", buf[:4])[0]
-            fmt = ">" + count*"20si"
-            for chunk in chunks(unpack_from(fmt, buf, 4), 2):
-                yield tuple(chunk)
-
         table = self.connection.table('queue')
 
         rk_map = {}
