@@ -163,14 +163,17 @@ class HBaseQueue(object):
             queue.clear()
             for rk, data in table.scan(row_prefix='%d_' % partition_id, limit=int(limit)):
                 for cq, buf in data.iteritems():
-                    for fprint, host_id in decode_buffer(buf):
+                    fprnts_count, = unpack(">I", buf[:4])
+                    fmt = ">" + fprnts_count*"20si"
+                    for fprint, host_id in chunks(unpack_from(fmt, buf, 4), 2):
                         if host_id not in queue:
                             queue[host_id] = []
-                        if fprint not in rk_map:
-                            rk_map[fprint] = []
                         if max_requests_per_host is not None and len(queue[host_id]) > max_requests_per_host:
                             continue
                         queue[host_id].append(fprint)
+
+                        if fprint not in rk_map:
+                            rk_map[fprint] = []
                         rk_map[fprint].append(rk)
 
             count = 0
