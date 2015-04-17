@@ -59,7 +59,11 @@ class JsonResource(resource.Resource):
         return r
 
     def parse_jsonrpc(self, txrequest):
-        return self.json_decoder.decode(txrequest.content.getvalue())
+        if isinstance(txrequest.content, file):
+            data = txrequest.content.read()
+        else:
+            data = txrequest.content.getvalue()
+        return self.json_decoder.decode(data)
 
 
 class StatusResource(JsonResource):
