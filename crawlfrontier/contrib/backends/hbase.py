@@ -2,6 +2,7 @@
 from happybase import Connection
 from crawlfrontier import Backend
 from crawlfrontier.worker.partitioner import Crc32NamePartitioner
+from crawlfrontier.utils.misc import chunks
 
 from struct import pack, unpack, unpack_from
 from datetime import datetime
@@ -53,10 +54,6 @@ def prepare_hbase_object(obj=None, **kwargs):
 def utcnow_timestamp():
     d = datetime.utcnow()
     return timegm(d.timetuple())
-
-def chunks(l, n):
-    for i in xrange(0, len(l), n):
-        yield l[i:i+n]
 
 
 class HBaseQueue(object):
