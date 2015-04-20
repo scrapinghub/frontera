@@ -325,7 +325,7 @@ class HBaseBackend(Backend):
             if partition_id not in partitions:
                 continue
             partition_fingerprints = self.queue.get(partition_id, max_next_requests,
-                                                    min_hosts=256, max_requests_per_host=20)
+                                                    min_hosts=24, max_requests_per_host=128)
             fingerprints.extend(partition_fingerprints)
             self.manager.logger.backend.debug("Got %d items for partition id %d" % (len(partition_fingerprints), partition_id))
 
