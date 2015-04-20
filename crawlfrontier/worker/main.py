@@ -108,7 +108,6 @@ class FrontierWorker(object):
                         _, seeds = msg
                         logger.info('Adding %i seeds', len(seeds))
                         for seed in seeds:
-                            seed.meta['score'] = self._scorer.add_seed(seed)
                             logger.debug('URL: ', seed.url)
                         self._backend.add_seeds(seeds)
 
@@ -209,7 +208,6 @@ class FrontierWorker(object):
         seeds = []
         for url in urls:
             r = Request(url=url)
-            r.meta['score'] = self._scorer.add_seed(r)
             logger.debug('Adding seed URL: ', r.url)
             seeds.append(r)
         self._manager.add_seeds(seeds)
