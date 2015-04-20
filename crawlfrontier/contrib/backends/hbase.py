@@ -3,6 +3,7 @@ from happybase import Connection
 from crawlfrontier import Backend
 from crawlfrontier.worker.partitioner import Crc32NamePartitioner
 from crawlfrontier.utils.misc import chunks
+from crawlfrontier.utils.url import parse_domain_from_url_fast
 
 from struct import pack, unpack, unpack_from
 from datetime import datetime
@@ -10,6 +11,7 @@ from calendar import timegm
 from time import time
 from binascii import hexlify, unhexlify
 from zlib import crc32
+
 
 
 class State:
@@ -109,9 +111,9 @@ class HBaseQueue(object):
 
         timestamp = int(time() * 1E+6)
         data = dict()
-        for link, fingerprint, domain in links:
+        for score, fingerprint, domain in links:
             partition_id = self.partitioner.partition(domain['name'], self.partitions)
-            score = 1 - link.meta['score']  # because of lexicographical sort in HBase
+            score = 1 - score  # because of lexicographical sort in HBase
             host_crc32 = get_crc32(domain['name'])
             rk = "%d_%s_%d" %(partition_id, "%0.2f_%0.2f" % get_interval(score, 0.01), timestamp)
             blob = unhexlify(fingerprint) + pack(">i", host_crc32)
@@ -253,7 +255,7 @@ class HBaseBackend(Backend):
                                            score=seed.meta['score'])
 
                 b.put(fingerprint, obj)
-                to_schedule.append((seed, fingerprint, domain))
+                to_schedule.append((seed.meta['score'], fingerprint, domain))
         self.queue.schedule(to_schedule)
 
     def page_crawled(self, response, links):
@@ -289,7 +291,7 @@ class HBaseBackend(Backend):
                                                domain_fingerprint=link_domain['fingerprint'],
                                                score=link.meta['score'])
                     b.put(link_fingerprint, obj)
-                    created.append((link, link_fingerprint, link_domain))
+                    created.append((link.meta['score'], link_fingerprint, link_domain))
         self.queue.schedule(created)
 
     def request_error(self, request, error):
@@ -333,3 +335,22 @@ class HBaseBackend(Backend):
                 next_pages.append(r)
         self.manager.logger.backend.debug("Got %d requests." % (len(next_pages)))
         return next_pages
+
+    def update_score(self, batch):
+        if not isinstance(batch, dict):
+            raise TypeError('batch should be dict with fingerprint as key, and float score as value')
+
+        table = self.connection.table('metadata')
+        domains = {}
+        for fprint, data in table.rows(batch.keys(), columns=['m:url']):
+            netloc, hostname, scheme, _, _, _ = parse_domain_from_url_fast(data['m:url'])
+            domains[fprint] = hostname
+
+        to_schedule = []
+        with table.batch(transaction=True) as b:
+            for fprint, score in batch.iteritems():
+                obj = prepare_hbase_object(score=score)
+                b.put(fprint, obj)
+                to_schedule.append((score, fprint, domains[fprint]))
+        self.queue.schedule(to_schedule)
+
