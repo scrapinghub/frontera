@@ -72,7 +72,8 @@ class HBaseQueue(object):
             tables.remove('queue')
 
         if 'queue' not in tables:
-            self.connection.create_table('queue', {'f': {'max_versions': 1}})
+            self.connection.create_table('queue', {'f': {'max_versions': 1, 'bloom_filter_type': 'ROW',
+                                                         'block_cache_enabled': 1}})
 
     def schedule(self, links):
         """
@@ -223,7 +224,8 @@ class HBaseBackend(Backend):
             tables.remove('metadata')
 
         if 'metadata' not in tables:
-            self.connection.create_table('metadata', {'m': {'max_versions': 1},
+            self.connection.create_table('metadata', {'m': {'max_versions': 1, 'block_cache_enabled': 1,
+                                                            'bloom_filter_type': 'ROW'},
                                                       's': {'max_versions': 1}
                                                      })
 
