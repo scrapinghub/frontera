@@ -25,3 +25,8 @@ def load_object(path):
         raise NameError("Module '%s' doesn't define any object named '%s'" % (module, name))
 
     return obj
+
+
+def chunks(l, n):
+    for i in xrange(0, len(l), n):
+        yield l[i:i+n]
