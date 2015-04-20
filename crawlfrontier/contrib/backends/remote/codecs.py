@@ -111,24 +111,21 @@ class KafkaJSONDecoder(json.JSONDecoder):
         :return tuple of message type and related objects
         """
         message = super(KafkaJSONDecoder, self).decode(message)
+        if message['type'] == 'page_crawled':
+            response = self._response_from_object(message['r'])
+            links = [self._request_from_object(link) for link in message['links']]
+            return ('page_crawled', response, links)
+        if message['type'] == 'request_error':
+            request = self._request_from_object(message['r'])
+            return ('request_error', request, message['error'])
+        if message['type'] == 'update_score':
+            return ('update_score', message['fprint'], message['score'])
         if message['type'] == 'add_seeds':
             seeds = []
             for seed in message['seeds']:
                 request = self._request_from_object(seed)
                 seeds.append(request)
             return ('add_seeds', seeds)
-
-        if message['type'] == 'page_crawled':
-            response = self._response_from_object(message['r'])
-            links = [self._request_from_object(link) for link in message['links']]
-            return ('page_crawled', response, links)
-
-        if message['type'] == 'request_error':
-            request = self._request_from_object(message['r'])
-            return ('request_error', request, message['error'])
-
-        if message['type'] == 'update_score':
-            return ('update_score', message['fprint'], message['score'])
         return TypeError('Unknown message type')
 
     def decode_request(self, message):
