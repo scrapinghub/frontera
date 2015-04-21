@@ -3,8 +3,11 @@ import pprint
 from scrapy.core.scheduler import Scheduler
 from scrapy.http import Request
 from scrapy import log
+from scrapy.utils.misc import load_object
+from scrapy.utils.job import job_dir
 
 from frontera import graphs
+from frontera.contrib.scrapy.schedulers import BaseFronteraScheduler
 
 # Default Values
 DEFAULT_RECORDER_ENABLED = True
@@ -48,7 +51,21 @@ class StatsManager(object):
         self.stats.set_value(self._get_stats_name(variable), value)
 
 
-class RecorderScheduler(Scheduler):
+class RecorderScheduler(BaseFronteraScheduler):
+
+    def __init__(self, crawler, *args, **kwargs):
+        super(RecorderScheduler, self).__init__(*args, **kwargs)
+        self._add_middlewares(crawler)
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        settings = crawler.settings
+        dupefilter_cls = load_object(settings['DUPEFILTER_CLASS'])
+        dupefilter = dupefilter_cls.from_settings(settings)
+        dqclass = load_object(settings['SCHEDULER_DISK_QUEUE'])
+        mqclass = load_object(settings['SCHEDULER_MEMORY_QUEUE'])
+        logunser = settings.getbool('LOG_UNSERIALIZABLE_REQUESTS')
+        return cls(crawler, dupefilter, job_dir(settings), dqclass, mqclass, logunser, crawler.stats)
 
     def open(self, spider):
         super(RecorderScheduler, self).open(spider)

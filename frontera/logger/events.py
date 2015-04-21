@@ -15,10 +15,10 @@ class EventLogManager(object):
     def from_manager(cls, manager):
         return cls(manager)
 
-    def frontier_start(self):
+    def frontier_start(self, **kwargs):
         self._log(event='FRONTIER_START')
 
-    def frontier_stop(self):
+    def frontier_stop(self, **kwargs):
         self._log(event='FRONTIER_STOP')
 
     def add_seeds(self, links):
