@@ -13,8 +13,8 @@ from frontera.settings import Settings
 
 STATS_PREFIX = 'frontera'
 
-DOWNLOADER_MIDDLEWARE = 'crawlfrontier.contrib.scrapy.middlewares.schedulers.SchedulerDownloaderMiddleware'
-SPIDER_MIDDLEWARE = 'crawlfrontier.contrib.scrapy.middlewares.schedulers.SchedulerSpiderMiddleware'
+DOWNLOADER_MIDDLEWARE = 'frontera.contrib.scrapy.middlewares.schedulers.SchedulerDownloaderMiddleware'
+SPIDER_MIDDLEWARE = 'frontera.contrib.scrapy.middlewares.schedulers.SchedulerSpiderMiddleware'
 
 
 class StatsManager(object):
