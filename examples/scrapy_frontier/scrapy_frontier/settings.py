@@ -23,12 +23,6 @@ DOWNLOADER_MIDDLEWARES = {}
 #--------------------------------------------------------------------------
 # Frontier Settings
 #--------------------------------------------------------------------------
-SPIDER_MIDDLEWARES.update(
-    {'frontera.contrib.scrapy.middlewares.schedulers.SchedulerSpiderMiddleware': 999},
-)
-DOWNLOADER_MIDDLEWARES.update(
-    {'frontera.contrib.scrapy.middlewares.schedulers.SchedulerDownloaderMiddleware': 999}
-)
 SCHEDULER = 'frontera.contrib.scrapy.schedulers.frontier.FronteraScheduler'
 FRONTERA_SETTINGS = 'scrapy_frontier.frontera.settings'
 
