@@ -10,8 +10,9 @@ from urlparse import urlparse
 import logging
 from argparse import ArgumentParser
 
+
 logging.basicConfig()
-logger = logging.getLogger("cf")
+logger = logging.getLogger("score")
 
 class ScoringWorker(object):
     def __init__(self, settings):
@@ -43,54 +44,55 @@ class ScoringWorker(object):
         return 1.0 / len(path_parts)
 
     def run(self):
-        consumed = 0
-        try:
-            for m in self._in_consumer.get_messages(count=self.consumer_batch_size):
-                batch = []
-                try:
-                    msg = self._decoder.decode(m.message.value)
-                except (KeyError, TypeError), e:
-                    logger.error("Decoding error: %s", e)
-                    continue
-                else:
-                    type = msg[0]
-                    if type == 'add_seeds':
-                        _, seeds = msg
-                        logger.info('Adding %i seeds', len(seeds))
-                        for seed in seeds:
-                            logger.debug('URL: ', seed.url)
-                            score = self.get_score(seed.url)
+        while True:
+            consumed = 0
+            try:
+                for m in self._in_consumer.get_messages(count=self.consumer_batch_size, timeout=5.0):
+                    batch = []
+                    try:
+                        msg = self._decoder.decode(m.message.value)
+                    except (KeyError, TypeError), e:
+                        logger.error("Decoding error: %s", e)
+                        continue
+                    else:
+                        type = msg[0]
+                        if type == 'add_seeds':
+                            _, seeds = msg
+                            logger.info('Adding %i seeds', len(seeds))
+                            for seed in seeds:
+                                logger.debug('URL: ', seed.url)
+                                score = self.get_score(seed.url)
+                                if score is not None:
+                                    batch.append(self._encoder.encode_update_score(seed.meta['fingerprint'], score))
+
+
+                        if type == 'page_crawled':
+                            _, response, links = msg
+                            logger.debug("Page crawled %s", response.url)
+                            score = self.get_score(response.url)
                             if score is not None:
-                                batch.append(self._encoder.encode_update_score(seed.meta['fingerprint'], score))
+                                batch.append(self._encoder.encode_update_score(response.meta['fingerprint'], score))
+                            for link in links:
+                                score = self.get_score(link.url)
+                                if score is not None:
+                                    batch.append(self._encoder.encode_update_score(link.meta['fingerprint'], score))
 
+                        if type == 'request_error':
+                            # TODO: reduce score on specific types of errors
+                            pass
+                    finally:
+                        consumed += 1
+                        if batch:
+                            self._producer.send_messages(self.outgoing_topic, *batch)
 
-                    if type == 'page_crawled':
-                        _, response, links = msg
-                        logger.debug("Page crawled %s", response.url)
-                        score = self.get_score(response.url)
-                        if score is not None:
-                            batch.append(self._encoder.encode_update_score(response.meta['fingerprint'], score))
-                        for link in links:
-                            score = self.get_score(link.url)
-                            if score is not None:
-                                batch.append(self._encoder.encode_update_score(link.meta['fingerprint'], score))
+            except OffsetOutOfRangeError, e:
+                # https://github.com/mumrah/kafka-python/issues/263
+                self._in_consumer.seek(0, 2)  # moving to the tail of the log
+                logger.info("Caught OffsetOutOfRangeError, moving to the tail of the log.")
 
-                    if type == 'request_error':
-                        # TODO: reduce score on specific types of errors
-                        pass
-                finally:
-                    consumed += 1
-                    if batch:
-                        self._producer.send_messages(self.outgoing_topic, batch)
-        except OffsetOutOfRangeError, e:
-            # https://github.com/mumrah/kafka-python/issues/263
-            self._in_consumer.seek(0, 2)  # moving to the tail of the log
-            logger.info("Caught OffsetOutOfRangeError, moving to the tail of the log.")
-
-        logger.info("Consumed %d items.", consumed)
-        self.stats['last_consumed'] = consumed
-        self.stats['last_consumption_run'] = asctime()
-        return consumed
+            logger.info("Consumed %d items.", consumed)
+            self.stats['last_consumed'] = consumed
+            self.stats['last_consumption_run'] = asctime()
 
 if __name__ == '__main__':
     parser = ArgumentParser(description="Crawl frontier scoring worker.")
