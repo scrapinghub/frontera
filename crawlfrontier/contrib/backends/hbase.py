@@ -251,11 +251,10 @@ class HBaseBackend(Backend):
                                            depth=0,
                                            created_at=utcnow_timestamp(),
                                            state='NOT_CRAWLED',
-                                           domain_fingerprint=domain['fingerprint'],
-                                           score=seed.meta['score'])
+                                           domain_fingerprint=domain['fingerprint'])
 
                 b.put(fingerprint, obj)
-                to_schedule.append((seed.meta['score'], fingerprint, domain))
+                # to_schedule.append((seed.meta['score'], fingerprint, domain))
         self.queue.schedule(to_schedule)
 
     def page_crawled(self, response, links):
@@ -288,10 +287,9 @@ class HBaseBackend(Backend):
                                                depth=depth+1,
                                                created_at=utcnow_timestamp(),
                                                state='NOT_CRAWLED',
-                                               domain_fingerprint=link_domain['fingerprint'],
-                                               score=link.meta['score'])
+                                               domain_fingerprint=link_domain['fingerprint'])
                     b.put(link_fingerprint, obj)
-                    created.append((link.meta['score'], link_fingerprint, link_domain))
+                    # created.append((link.meta['score'], link_fingerprint, link_domain))
         self.queue.schedule(created)
 
     def request_error(self, request, error):
@@ -344,13 +342,16 @@ class HBaseBackend(Backend):
         domains = {}
         for fprint, data in table.rows(batch.keys(), columns=['m:url']):
             netloc, hostname, scheme, _, _, _ = parse_domain_from_url_fast(data['m:url'])
-            domains[fprint] = hostname
+            domains[fprint] = {'name': hostname}
 
         to_schedule = []
         with table.batch(transaction=True) as b:
             for fprint, score in batch.iteritems():
                 obj = prepare_hbase_object(score=score)
                 b.put(fprint, obj)
+                if fprint not in domains:
+                    self.manager.logger.backend.error("Absent URL for %s" % fprint)
+                    continue
                 to_schedule.append((score, fprint, domains[fprint]))
         self.queue.schedule(to_schedule)
 
