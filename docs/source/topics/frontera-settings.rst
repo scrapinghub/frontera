@@ -187,11 +187,14 @@ overused. This affects only Scrapy scheduler."
 DELAY_ON_EMPTY
 --------------
 
-Default: ``30.0``
+Default: ``0.0``
 
 When backend has no requests to fetch, this delay helps to exhaust the rest of the buffer without hitting
 backend on every request. Increase it if calls to your backend is taking a lot of time, and decrease if you need a fast
-spider bootstrap from seeds.
+spider bootstrap from seeds. Keep in mind, this setting prevents Frontera from fetching new requests from backend,
+therefore causing Scrapy spider to close prematurely. To prevent spider from closing you can either use DontCloseSpider
+exception raising from `spider_idle <http://doc.scrapy.org/en/latest/topics/signals.html#spider-idle>`_ signal, or
+keeping spider queue always full.
 
 
 Built-in fingerprint middleware settings
