@@ -83,7 +83,7 @@ class FronteraScheduler(BaseFronteraScheduler):
 
         frontier_settings = crawler.settings.get('FRONTERA_SETTINGS', None)
         if not frontier_settings:
-            log.msg('FRONTIER_SETTINGS not found! Using default frontier settings...', log.WARNING)
+            log.msg('FRONTERA_SETTINGS not found! Using default frontier settings...', log.WARNING)
 
         frontier_settings = Settings(frontier_settings or None)
         frontier_settings.AUTO_START = False
