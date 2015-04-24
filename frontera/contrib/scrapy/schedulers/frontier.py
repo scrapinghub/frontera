@@ -136,6 +136,8 @@ class FronteraScheduler(BaseFronteraScheduler):
         if not self.frontier.manager.auto_start:
             scrapy_kwargs = {'spider': spider}
             self.frontier.start(**scrapy_kwargs)
+            if hasattr(self.frontier.manager.backend, 'delay_on_empty'):
+                self._delay_on_empty = self.frontier.manager.backend.delay_on_empty
 
     def close(self, reason):
         log.msg('Finishing frontier (%s)' % reason, log.INFO)
