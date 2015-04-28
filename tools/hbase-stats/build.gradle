@@ -1,0 +1,29 @@
+subprojects {
+    apply plugin: "java"
+
+    // we dont want maven project layout (src/main/java) - just src and test
+    sourceSets {
+        main {
+            java.srcDirs = ["src"]
+        }
+
+        test {
+            java.srcDirs = ["tests"]
+        }
+    }
+
+    // dependencies and repositories for all cloudrep subprojects
+    repositories {
+        mavenCentral()
+        maven { url "https://repository.cloudera.com/artifactory/cloudera-repos/" }
+        maven { url "https://repository.apache.org/content/groups/snapshots/" }
+    }
+
+    sourceCompatibility = 1.6
+    targetCompatibility = 1.6
+}
+
+// global options for dependencies:
+// for example, all cloudrep java projects must use ${hadoopVersion} as hadoop dependency versions
+ext.hadoopVersion = "2.5.0-cdh5.3.2"
+

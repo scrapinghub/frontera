@@ -1,0 +1,13 @@
+dependencies {
+    compile group: "org.apache.hadoop", name: "hadoop-client", version: "${hadoopVersion}"
+    compile group: "org.apache.hbase", name: "hbase-server", version: "0.98.6-cdh5.3.2"
+}
+
+jar {
+    into('lib') {
+        from configurations.runtime {
+            exclude group: "org.apache.hadoop", name: "hadoop-client"
+            exclude group: "org.apache.hbase", name: "hadoop-server"
+        }
+    }
+}
