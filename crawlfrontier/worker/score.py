@@ -6,16 +6,17 @@ from kafka import KafkaClient, SimpleProducer, SimpleConsumer
 from kafka.common import OffsetOutOfRangeError
 
 from time import asctime
-from urlparse import urlparse
 import logging
 from argparse import ArgumentParser
+from importlib import import_module
 
 
 logging.basicConfig()
 logger = logging.getLogger("score")
 
+
 class ScoringWorker(object):
-    def __init__(self, settings):
+    def __init__(self, settings, strategy_module):
         kafka = KafkaClient(settings.get('KAFKA_LOCATION'))
         self._producer = SimpleProducer(kafka)
 
@@ -31,17 +32,8 @@ class ScoringWorker(object):
 
         self.consumer_batch_size = settings.get('CONSUMER_BATCH_SIZE', 128)
         self.outgoing_topic = settings.get('SCORING_TOPIC')
-        self.domain_white_list = ["es.wikipedia.org", "www.dmoz.org"]
+        self.strategy = strategy_module.CrawlStrategy()
         self.stats = {}
-
-    def get_score(self, url):
-        url_parts = urlparse(url)
-
-        if not url_parts.hostname.endswith(".es") and not url_parts.hostname in self.domain_white_list:
-            return None
-
-        path_parts = url_parts.path.split('/')
-        return 1.0 / len(path_parts)
 
     def run(self):
         while True:
@@ -59,27 +51,29 @@ class ScoringWorker(object):
                         if type == 'add_seeds':
                             _, seeds = msg
                             logger.info('Adding %i seeds', len(seeds))
+                            self.strategy.add_seeds(seeds)
                             for seed in seeds:
                                 logger.debug('URL: ', seed.url)
-                                score = self.get_score(seed.url)
+                                score = self.strategy.get_score(seed.url)
                                 if score is not None:
                                     batch.append(self._encoder.encode_update_score(seed.meta['fingerprint'], score))
-
 
                         if type == 'page_crawled':
                             _, response, links = msg
                             logger.debug("Page crawled %s", response.url)
-                            score = self.get_score(response.url)
+                            self.strategy.page_crawled(response, links)
+                            score = self.strategy.get_score(response.url)
                             if score is not None:
                                 batch.append(self._encoder.encode_update_score(response.meta['fingerprint'], score))
                             for link in links:
-                                score = self.get_score(link.url)
+                                score = self.strategy.get_score(link.url)
                                 if score is not None:
                                     batch.append(self._encoder.encode_update_score(link.meta['fingerprint'], score))
 
                         if type == 'request_error':
+                            _, request, error = msg
+                            self.strategy.page_error(request, error)
                             # TODO: reduce score on specific types of errors
-                            pass
                     finally:
                         consumed += 1
                         if batch:
@@ -100,9 +94,12 @@ if __name__ == '__main__':
                         help='Settings module name, should be accessible by import')
     parser.add_argument('--log-level', '-L', type=str, default='INFO',
                         help="Log level, for ex. DEBUG, INFO, WARN, ERROR, FATAL")
+    parser.add_argument('--strategy', type=str, required=True,
+                        help='Crawling strategy module name')
 
     args = parser.parse_args()
     logger.setLevel(args.log_level)
     settings = Settings(module=args.config)
-    worker = ScoringWorker(settings)
+    strategy_module = import_module(args.strategy)
+    worker = ScoringWorker(settings, strategy_module)
     worker.run()
