@@ -1,11 +1,13 @@
-from scrapy.core.scheduler import Scheduler
+from collections import deque
+
+from time import time
+
 from scrapy.http import Request
 from scrapy import log
 
-from collections import deque
-from time import time
-
+from frontera.contrib.scrapy.schedulers import BaseFronteraScheduler
 from frontera.contrib.scrapy.manager import ScrapyFrontierManager
+from frontera.settings import Settings
 
 STATS_PREFIX = 'frontera'
 
@@ -68,9 +70,12 @@ class StatsManager(object):
         self.stats.set_value(self._get_stats_name(variable), value)
 
 
-class FronteraScheduler(Scheduler):
+class FronteraScheduler(BaseFronteraScheduler):
 
     def __init__(self, crawler):
+        # Add scrapy integration middlewares for scheduler
+        self._add_middlewares(crawler)
+
         self.crawler = crawler
         self.stats_manager = StatsManager(crawler.stats)
         self._pending_requests = deque()
@@ -78,8 +83,13 @@ class FronteraScheduler(Scheduler):
 
         frontier_settings = crawler.settings.get('FRONTERA_SETTINGS', None)
         if not frontier_settings:
-            log.msg('FRONTERA_SETTINGS not found! Using default Frontera settings...', log.WARNING)
-        self.frontier = ScrapyFrontierManager(frontier_settings)
+            log.msg('FRONTERA_SETTINGS not found! Using default frontier settings...', log.WARNING)
+
+        frontier_settings = Settings(frontier_settings or None)
+        frontier_settings.AUTO_START = False
+
+        scrapy_parameters = {'crawler': crawler}
+        self.frontier = ScrapyFrontierManager(frontier_settings, **scrapy_parameters)
 
         self._delay_on_empty = self.frontier.manager.settings.get('DELAY_ON_EMPTY')
         self._delay_next_call = 0.0
@@ -124,11 +134,15 @@ class FronteraScheduler(Scheduler):
     def open(self, spider):
         log.msg('Starting frontier', log.INFO)
         if not self.frontier.manager.auto_start:
-            self.frontier.start()
+            settings_override = getattr(spider, 'frontier_settings', {})
+            self.frontier.start(settings_override)
+            if hasattr(self.frontier.manager.backend, 'delay_on_empty'):
+                self._delay_on_empty = self.frontier.manager.backend.delay_on_empty
 
     def close(self, reason):
         log.msg('Finishing frontier (%s)' % reason, log.INFO)
-        self.frontier.stop()
+        scrapy_kwargs = {'reason': reason}
+        self.frontier.stop(**scrapy_kwargs)
         self.stats_manager.set_iterations(self.frontier.manager.iteration)
         self.stats_manager.set_pending_requests(len(self))
 
