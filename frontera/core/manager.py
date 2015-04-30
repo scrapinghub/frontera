@@ -252,19 +252,20 @@ class FrontierManager(object):
         """
         return self._finished
 
-    def start(self, **kwargs):
+    def start(self, settings_override=None):
         """
         Notifies all the components of the frontier start. Typically used for initializations (See \
         :ref:`starting/stopping the frontier <frontier-start-stop>`).
 
-        :param ** kwargs: Arbitrary number of extra keyword arguments.
+        :param ** settings_override: A dict for override current frontier settings.
 
         :return: None.
         """
         assert not self._started, 'Frontier already started!'
         #self.event_log_manager.frontier_start()
         self.logger.manager.debug(self._msg('START'))
-        self._process_components(method_name='frontier_start', **kwargs)
+        self._settings.set_from_dict(settings_override or {})
+        self._process_components(method_name='frontier_start')
         self._started = True
 
     def stop(self, **kwargs):

@@ -134,8 +134,8 @@ class FronteraScheduler(BaseFronteraScheduler):
     def open(self, spider):
         log.msg('Starting frontier', log.INFO)
         if not self.frontier.manager.auto_start:
-            scrapy_kwargs = {'spider': spider}
-            self.frontier.start(**scrapy_kwargs)
+            settings_override = getattr(spider, 'frontier_settings', {})
+            self.frontier.start(settings_override)
             if hasattr(self.frontier.manager.backend, 'delay_on_empty'):
                 self._delay_on_empty = self.frontier.manager.backend.delay_on_empty
 

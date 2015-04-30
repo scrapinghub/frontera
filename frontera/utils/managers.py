@@ -17,8 +17,8 @@ class FrontierManagerWrapper(object):
         self.response_converter = self.response_converter_class
         self.manager = FrontierManager.from_settings(settings, **kwargs)
 
-    def start(self, **kwargs):
-        self.manager.start(**kwargs)
+    def start(self, settings_override=None):
+        self.manager.start(settings_override)
 
     def stop(self, **kwargs):
         self.manager.stop(**kwargs)
