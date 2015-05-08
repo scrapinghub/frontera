@@ -308,7 +308,7 @@ class FrontierManager(object):
         if self.max_requests and self.n_requests >= self.max_requests:
             self.logger.manager.warning(self._msg('MAX PAGES REACHED! (%s/%s)' % (self.n_requests, self.max_requests)))
             self._finished = True
-            return []
+            return
 
         # Calculate number of requests
         max_next_requests = max_next_requests or self.max_next_requests
@@ -339,7 +339,12 @@ class FrontierManager(object):
                                             (len(next_requests), self.n_requests, self.max_requests or '-')))
 
         # Return next requests
-        return next_requests
+        for request in next_requests:
+            request = self._process_components(method_name='process_request',
+                                               obj=request,
+                                               return_classes=self.request_model)
+            if request:
+                yield request
 
     def page_crawled(self, response, links=None):
         """

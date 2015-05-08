@@ -7,6 +7,7 @@ REQUEST_MODEL = 'frontera.core.models.Request'
 RESPONSE_MODEL = 'frontera.core.models.Response'
 MIDDLEWARES = [
     'frontera.contrib.middlewares.fingerprint.UrlFingerprintMiddleware',
+    'frontera.contrib.middlewares.dupefilter.DupeFilterMiddleware',
 ]
 BACKEND = 'frontera.contrib.backends.memory.FIFO'
 TEST_MODE = False
