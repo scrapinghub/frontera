@@ -9,20 +9,22 @@ import java.io.IOException;
 import java.util.*;
 
 public abstract class BuildQueue {
-    long jobStartTimestamp = 0;
     Random RND = null;
     Map<String, List<QueueRecordOuter.QueueRecord>> buffer = null;
 
     public void setup(Reducer.Context context) throws IOException, InterruptedException {
-        jobStartTimestamp = System.currentTimeMillis() * 1000 - 864000; // 10 days before now
         buffer = new HashMap<String, List<QueueRecordOuter.QueueRecord>>();
         RND = new Random();
+    }
+
+    private long getTimestamp() {
+        return (System.currentTimeMillis() - 864000*1000 - RND.nextInt(1000)) * 1000;
     }
 
     public void reduce(BytesWritable hostCrc32, Iterable<BytesWritable> values, Reducer.Context context) throws IOException, InterruptedException {
         int count = 0;
         int flushCounter = 0;
-        long timestamp = jobStartTimestamp;
+        long timestamp = getTimestamp();
 
         for (BytesWritable v : values) {
             QueueRecordOuter.QueueRecord record = QueueRecordOuter.QueueRecord.parseFrom(ByteString.copyFrom(v.getBytes(), 0, v.getLength()));
@@ -46,12 +48,12 @@ public abstract class BuildQueue {
             }
 
             if (count % 1024 == 0)
-                timestamp += 15 * 60;
+                timestamp += 15 * 60 * 1000 * 1000;
         }
     }
 
     public void cleanup(Reducer.Context context) throws IOException, InterruptedException {
-        flushBuffer(context, jobStartTimestamp);
+        flushBuffer(context, getTimestamp());
     }
 
     protected void flushBuffer(Reducer.Context context, long timestamp) throws IOException, InterruptedException {

@@ -100,7 +100,7 @@ public class ShuffleQueueJob extends Configured implements Tool {
         }
     }
 
-    class BuildQueueReducerHbase extends TableReducer<BytesWritable, BytesWritable, ImmutableBytesWritable> {
+    public static class BuildQueueReducerHbase extends TableReducer<BytesWritable, BytesWritable, ImmutableBytesWritable> {
         public class BuildQueueHbase extends BuildQueue {
             private final byte[] CF = "f".getBytes();
 
@@ -148,15 +148,14 @@ public class ShuffleQueueJob extends Configured implements Tool {
         config.set("frontera.hbase.namespace", args[0]);
         config.set("shufflequeue.workdir", String.format("%s/hostsize", args[1]));
 
-        // Get host sizes from queue
-        boolean rHostSize = runBuildQueue();
-        if (!rHostSize)
-            throw new Exception("Error during host sizes calculation.");
+        boolean rJob = runBuildQueueHbase();
+        if (!rJob)
+            throw new Exception("Error during queue building.");
 
         return 0;
     }
 
-    private boolean runBuildQueue2() throws Exception {
+    private boolean runBuildQueueHbase() throws Exception {
         Configuration config = getConf();
         Job job = Job.getInstance(config, "BuildQueue Job");
         job.setJarByClass(ShuffleQueueJob.class);
@@ -178,11 +177,10 @@ public class ShuffleQueueJob extends Configured implements Tool {
                 targetTable,
                 BuildQueueReducerHbase.class,
                 job);
-        job.setNumReduceTasks(0);
         return job.waitForCompletion(true);
     }
 
-    private boolean runBuildQueue() throws Exception {
+    private boolean runBuildQueueDebug() throws Exception {
         Configuration config = getConf();
         Job job = Job.getInstance(config, "BuildQueue Job (debug)");
         job.setJarByClass(ShuffleQueueJob.class);
@@ -201,9 +199,6 @@ public class ShuffleQueueJob extends Configured implements Tool {
 
         job.setReducerClass(BuildQueueReducerCommon.class);
         Path outputPath = new Path(config.get("shufflequeue.workdir"));
-        //job.setOutputFormatClass(SequenceFileOutputFormat.class);
-        //SequenceFileOutputFormat.setOutputPath(job, outputPath);
-        //SequenceFileOutputFormat.setOutputCompressionType(job, SequenceFile.CompressionType.BLOCK);
         FileOutputFormat.setOutputPath(job, outputPath);
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(Text.class);
