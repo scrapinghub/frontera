@@ -78,10 +78,12 @@ class KafkaJSONEncoder(CrawlFrontierJSONEncoder):
     def encode_request(self, request):
         return self.encode(_prepare_request_message(request))
 
-    def encode_update_score(self, fingerprint, score):
+    def encode_update_score(self, fingerprint, score, url, schedule):
         return self.encode({'type': 'update_score',
                             'fprint': fingerprint,
-                            'score': score})
+                            'score': score,
+                            'url': url,
+                            'schedule': schedule})
 
 
 class KafkaJSONDecoder(json.JSONDecoder):
@@ -119,7 +121,7 @@ class KafkaJSONDecoder(json.JSONDecoder):
             request = self._request_from_object(message['r'])
             return ('request_error', request, message['error'])
         if message['type'] == 'update_score':
-            return ('update_score', message['fprint'], message['score'])
+            return ('update_score', message['fprint'], message['score'], message['url'], message['schedule'])
         if message['type'] == 'add_seeds':
             seeds = []
             for seed in message['seeds']:

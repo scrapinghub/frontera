@@ -150,8 +150,8 @@ class FrontierWorker(object):
                     logger.error("Decoding error: %s", e)
                     continue
                 else:
-                    _, fprint, score = msg
-                    batch[fprint] = score
+                    _, fprint, score, url, schedule = msg
+                    batch[fprint] = (score, url, schedule)
                 finally:
                     consumed += 1
             self._backend.update_score(batch)

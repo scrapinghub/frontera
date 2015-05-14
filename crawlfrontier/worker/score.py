@@ -56,7 +56,13 @@ class ScoringWorker(object):
                                 logger.debug('URL: ', seed.url)
                                 score = self.strategy.get_score(seed.url)
                                 if score is not None:
-                                    batch.append(self._encoder.encode_update_score(seed.meta['fingerprint'], score))
+                                    encoded = self._encoder.encode_update_score(
+                                        seed.meta['fingerprint'],
+                                        score,
+                                        seed.url,
+                                        True
+                                    )
+                                    batch.append(encoded)
 
                         if type == 'page_crawled':
                             _, response, links = msg
@@ -64,16 +70,27 @@ class ScoringWorker(object):
                             self.strategy.page_crawled(response, links)
                             score = self.strategy.get_score(response.url)
                             if score is not None:
-                                batch.append(self._encoder.encode_update_score(response.meta['fingerprint'], score))
+                                encoded = self._encoder.encode_update_score(
+                                    response.meta['fingerprint'],
+                                    score,
+                                    response.url,
+                                    True
+                                )
+                                batch.append(encoded)
                             for link in links:
                                 score = self.strategy.get_score(link.url)
                                 if score is not None:
-                                    batch.append(self._encoder.encode_update_score(link.meta['fingerprint'], score))
+                                    encoded = self._encoder.encode_update_score(
+                                        link.meta['fingerprint'],
+                                        score,
+                                        link.url,
+                                        True
+                                    )
+                                    batch.append(encoded)
 
                         if type == 'request_error':
                             _, request, error = msg
                             self.strategy.page_error(request, error)
-                            # TODO: reduce score on specific types of errors
                     finally:
                         consumed += 1
                         if batch:

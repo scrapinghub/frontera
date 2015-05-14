@@ -339,19 +339,16 @@ class HBaseBackend(Backend):
             raise TypeError('batch should be dict with fingerprint as key, and float score as value')
 
         table = self.connection.table('metadata')
-        domains = {}
-        for fprint, data in table.rows(batch.keys(), columns=['m:url']):
-            netloc, hostname, scheme, _, _, _ = parse_domain_from_url_fast(data['m:url'])
-            domains[fprint] = {'name': hostname}
-
         to_schedule = []
         with table.batch(transaction=True) as b:
-            for fprint, score in batch.iteritems():
+            for fprint, (score, url, schedule) in batch.iteritems():
                 obj = prepare_hbase_object(score=score)
                 b.put(fprint, obj)
-                if fprint not in domains:
-                    self.manager.logger.backend.error("Absent URL for %s" % fprint)
-                    continue
-                to_schedule.append((score, fprint, domains[fprint]))
+                if schedule:
+                    _, hostname, _, _, _, _ = parse_domain_from_url_fast(url)
+                    if not hostname:
+                        self.manager.logger.backend.error("Can't get hostname for URL %s, fingerprint %s" % (url, fprint))
+                        continue
+                    to_schedule.append((score, fprint, {'name': hostname}))
         self.queue.schedule(to_schedule)
 
