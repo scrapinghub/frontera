@@ -11,6 +11,9 @@ class CrawlStrategy(object):
     def page_crawled(self, response, links):
         pass
 
+    def page_error(self, request, error):
+        pass
+
     def finished(self):
         return False
 
