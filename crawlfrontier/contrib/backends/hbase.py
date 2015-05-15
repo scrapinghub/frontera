@@ -44,6 +44,9 @@ _pack_functions = {
     'score': lambda x: pack('>d', x)
 }
 
+def unpack_score(blob):
+    return unpack(">d", blob)[0]
+
 def prepare_hbase_object(obj=None, **kwargs):
     if not obj:
         obj = dict()
@@ -112,9 +115,15 @@ class HBaseQueue(object):
         timestamp = int(time() * 1E+6)
         data = dict()
         for score, fingerprint, domain in links:
-            partition_id = self.partitioner.partition(domain['name'], self.partitions)
+            if type(domain) == dict:
+                partition_id = self.partitioner.partition(domain['name'], self.partitions)
+                host_crc32 = get_crc32(domain['name'])
+            elif type(domain) == int:
+                partition_id = self.partitioner.partition_by_hash(domain, self.partitions)
+                host_crc32 = domain
+            else:
+                raise TypeError("domain of unknown type.")
             score = 1 - score  # because of lexicographical sort in HBase
-            host_crc32 = get_crc32(domain['name'])
             rk = "%d_%s_%d" %(partition_id, "%0.2f_%0.2f" % get_interval(score, 0.01), timestamp)
             blob = unhexlify(fingerprint) + pack(">i", host_crc32)
             data.setdefault(rk, []).append((score, blob))
@@ -137,7 +146,7 @@ class HBaseQueue(object):
     def get(self, partition_id, min_requests, min_hosts=None, max_requests_per_host=None):
         table = self.connection.table('queue')
 
-        rk_map = {}
+        meta_map = {}
         queue = {}
         limit = min_requests
         tries = 0
@@ -146,7 +155,7 @@ class HBaseQueue(object):
             tries += 1
             limit *= 5.5 if tries > 1 else 1.0
             self.logger.debug("Try %d, limit %d, requests %d, hosts %d" % (tries, limit, count, len(queue.keys())))
-            rk_map.clear()
+            meta_map.clear()
             queue.clear()
             for rk, data in table.scan(row_prefix='%d_' % partition_id, limit=int(limit)):
                 for cq, buf in data.iteritems():
@@ -159,9 +168,9 @@ class HBaseQueue(object):
                             continue
                         queue[host_id].append(fprint)
 
-                        if fprint not in rk_map:
-                            rk_map[fprint] = []
-                        rk_map[fprint].append(rk)
+                        if fprint not in meta_map:
+                            meta_map[fprint] = []
+                        meta_map[fprint].append((rk, host_id))
 
             count = 0
             to_merge = {}
@@ -180,23 +189,24 @@ class HBaseQueue(object):
 
         # For every fingerprint collect it's row keys and return all fingerprints from them
         fprint_map = {}
-        for fprint, rk_list in rk_map.iteritems():
-            for rk in rk_list:
+        for fprint, meta_list in meta_map.iteritems():
+            for rk, _ in meta_list:
                 fprint_map.setdefault(rk, []).append(fprint)
 
         results = set()
         trash_can = set()
         for _, fprints in queue.iteritems():
             for fprint in fprints:
-                for rk in rk_map[fprint]:
+                for rk, _ in meta_map[fprint]:
                     trash_can.add(rk)
                     for rk_fprint in fprint_map[rk]:
-                        results.add(hexlify(rk_fprint))
+                        _, host_id = meta_map[rk_fprint][0]
+                        results.add((hexlify(rk_fprint), host_id))
 
         with table.batch(transaction=True) as b:
             for rk in trash_can:
                 b.delete(rk)
-        self.logger.debug("%d row keys removed." % len(trash_can))
+        self.logger.debug("%d row keys removed" % (len(trash_can)))
         return results
 
     def rebuild(self, table_name):
@@ -244,7 +254,6 @@ class HBaseBackend(Backend):
     def add_seeds(self, seeds):
         table = self.connection.table('metadata')
         with table.batch(transaction=True) as b:
-            to_schedule = []
             for seed in seeds:
                 url, fingerprint, domain = self.manager.canonicalsolver.get_canonical_url(seed)
                 obj = prepare_hbase_object(url=url,
@@ -254,8 +263,6 @@ class HBaseBackend(Backend):
                                            domain_fingerprint=domain['fingerprint'])
 
                 b.put(fingerprint, obj)
-                # to_schedule.append((seed.meta['score'], fingerprint, domain))
-        self.queue.schedule(to_schedule)
 
     def page_crawled(self, response, links):
         table = self.connection.table('metadata')
@@ -304,31 +311,40 @@ class HBaseBackend(Backend):
         table.put(request.meta['fingerprint'], obj)
 
     def get_next_requests(self, max_next_requests, **kwargs):
-        fingerprints = []
-        self.manager.logger.backend.debug("Querying queue table.")
+        next_pages = []
+        missing = []
+        table = self.connection.table('metadata')
+        log = self.manager.logger.backend
+        log.debug("Querying queue table.")
         partitions = set(kwargs.pop('partitions', []))
         for partition_id in range(0, self.queue_partitions):
             if partition_id not in partitions:
                 continue
-            partition_fingerprints = self.queue.get(partition_id, max_next_requests,
+            fingerprints = self.queue.get(partition_id, max_next_requests,
                                                     min_hosts=24, max_requests_per_host=128)
-            fingerprints.extend(partition_fingerprints)
-            self.manager.logger.backend.debug("Got %d items for partition id %d" % (len(partition_fingerprints), partition_id))
 
-        next_pages = []
-        table = self.connection.table('metadata')
-        self.manager.logger.backend.debug("Querying metadata table.")
-        for chunk in chunks(fingerprints, 3000):
-            self.manager.logger.backend.debug("Iterating over %d size chunk." % len(chunk))
-            for rk, data in table.rows(chunk, columns=['m:url', 'm:domain_fingerprint', 's:score']):
-                r = self.manager.request_model(url=data['m:url'])
-                r.meta['domain'] = {
-                    'fingerprint': data['m:domain_fingerprint']
-                }
-                r.meta['fingerprint'] = rk
-                r.meta['score'] = unpack(">d", data['s:score'])[0]
-                next_pages.append(r)
-        self.manager.logger.backend.debug("Got %d requests." % (len(next_pages)))
+            fprint_hostid_map = dict(fingerprints)
+            log.debug("Got %d items for partition id %d" % (len(fingerprints), partition_id))
+            log.debug("Querying metadata table.")
+            for chunk in chunks(map(lambda x: x[0], fingerprints), 3000):
+                log.debug("Iterating over %d size chunk." % len(chunk))
+                for rk, data in table.rows(chunk, columns=['m:url', 'm:domain_fingerprint', 's:score']):
+                    if 'm:url' not in data:
+                        if 's:score' not in data:
+                            log.error("Missing required columns fingerprint %s" % rk)
+                            continue
+                        missing.append((unpack_score(data['s:score']), rk, fprint_hostid_map[rk]))
+                        continue
+
+                    r = self.manager.request_model(url=data['m:url'])
+                    r.meta['domain'] = {
+                        'fingerprint': data['m:domain_fingerprint']
+                    }
+                    r.meta['fingerprint'] = rk
+                    r.meta['score'] = unpack_score(data['s:score'])
+                    next_pages.append(r)
+        log.debug("Got %d requests, %d are missing" % (len(next_pages), len(missing)))
+        self.queue.schedule(missing)
         return next_pages
 
     def update_score(self, batch):
