@@ -278,7 +278,6 @@ class HBaseBackend(Backend):
             links_dict[link_fingerprint] = (link, link_url, link_domain)
 
         links_metadata = dict(table.rows(links_dict.keys(), columns=['m:state']))
-        created = []
         with table.batch(transaction=True) as b:
             b.put(fingerprint, obj)
             for link_fingerprint, (link, link_url, link_domain) in links_dict.iteritems():
@@ -289,8 +288,6 @@ class HBaseBackend(Backend):
                                                state='NOT_CRAWLED',
                                                domain_fingerprint=link_domain['fingerprint'])
                     b.put(link_fingerprint, obj)
-                    # created.append((link.meta['score'], link_fingerprint, link_domain))
-        self.queue.schedule(created)
 
     def request_error(self, request, error):
         table = self.connection.table('metadata')
