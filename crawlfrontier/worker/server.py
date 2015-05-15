@@ -90,20 +90,11 @@ class JsonRpcResource(JsonResource):
         self.worker = worker
         JsonResource.__init__(self)
 
-    def add_seeds(self, urls):
-        if not isinstance(urls, list):
-            raise JsonRpcError(400, "Seeds expected to be a list.")
-        self.worker.add_seeds(urls)
-        return "success"
-
     def render_POST(self, txrequest):
         jrequest = self.parse_jsonrpc(txrequest)
         method = jrequest['method']
         try:
             try:
-                if method == 'add_seeds':
-                    return jsonrpc_result(jrequest['id'], self.add_seeds(jrequest['params']))
-
                 if method == 'disable_new_batches':
                     self.worker.disable_new_batches()
                     return jsonrpc_result(jrequest['id'], "success")

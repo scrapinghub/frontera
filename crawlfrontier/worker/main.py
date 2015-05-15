@@ -9,7 +9,6 @@ from kafka.common import OffsetOutOfRangeError
 
 from crawlfrontier.contrib.backends.remote.codecs import KafkaJSONDecoder, KafkaJSONEncoder
 from crawlfrontier.core.manager import FrontierManager
-from crawlfrontier.core.models import Request
 from crawlfrontier.settings import Settings
 from crawlfrontier.worker.partitioner import Crc32NamePartitioner
 from crawlfrontier.utils.url import parse_domain_from_url_fast
@@ -203,14 +202,6 @@ class FrontierWorker(object):
         self.stats['batches_after_start'] += 1
         self.stats['last_batch_generated'] = asctime()
         return count
-
-    def add_seeds(self, urls):
-        seeds = []
-        for url in urls:
-            r = Request(url=url)
-            logger.debug('Adding seed URL: ', r.url)
-            seeds.append(r)
-        self._manager.add_seeds(seeds)
 
     def disable_new_batches(self):
         self.slot.disable_new_batches = True
