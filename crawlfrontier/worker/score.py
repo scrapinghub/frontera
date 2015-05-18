@@ -95,7 +95,9 @@ class ScoringWorker(object):
                         consumed += 1
                         if batch:
                             self._producer.send_messages(self.outgoing_topic, *batch)
-
+                if self.strategy.finished():
+                    logger.info("Succesfully reached the crawling goal. Exiting.")
+                    exit(0)
             except OffsetOutOfRangeError, e:
                 # https://github.com/mumrah/kafka-python/issues/263
                 self._in_consumer.seek(0, 2)  # moving to the tail of the log
