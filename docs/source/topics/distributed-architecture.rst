@@ -83,7 +83,7 @@ It's also a good practice to prevent spider from closing because of insufficienc
 3. Implement the crawling strategy
 ==================================
 Use ``crawlfrontier.worker.strategy.spanish`` module for reference. In general, you need to write a ``CrawlingStrategy``
- class with above interface::
+class with above interface::
 
     class CrawlStrategy(object):
         def __init__(self):
@@ -193,7 +193,7 @@ file according to partition ids assigned. E.g. ``settingsN.py``. ::
     # Crawl frontier backend
     #--------------------------------------------------------
     BACKEND = 'crawlfrontier.contrib.backends.remote.KafkaOverusedBackend'
-    KAFKA_SERVER = 'dist-cf1.scrapinghub.com:9092'
+    KAFKA_SERVER = 'localhost:9092'     # Your Kafka service location
     KAFKA_PARTITION_ID = 0      # Partition ID assigned
 
     #--------------------------------------------------------
@@ -248,7 +248,7 @@ Starting the spiders:::
     $ scrapy crawl tutorial -L INFO -s FRONTIER_SETTINGS=frontier.settingsN
 
 You should end up with N spider processes running. Each should read it's own Frontera config, and first one is using
-SEEDS_SOURCE variable to pass seeds to Frontera cluster.
+``SEEDS_SOURCE`` variable to pass seeds to Frontera cluster.
 
 After some time seeds will pass the Kafka topics and get scheduled for downloading by workers. Crawler is bootstrapped.
 
