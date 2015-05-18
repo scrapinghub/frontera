@@ -30,6 +30,7 @@ Basic concepts
 
    topics/what-is-a-crawl-frontier
    topics/architecture
+   topics/distributed-architecture
    topics/frontier-objects
    topics/frontier-api
    topics/frontier-settings
@@ -39,6 +40,9 @@ Basic concepts
 
 :doc:`topics/architecture`
     See how Crawl Frontier works and its different components.
+
+:doc:`topics/distributed-architecture`
+    Distributed configuration of Frontera.
 
 :doc:`topics/frontier-objects`
     Understand the classes used to represent links and pages.
