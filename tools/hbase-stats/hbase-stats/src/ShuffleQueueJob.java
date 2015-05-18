@@ -31,6 +31,8 @@ import java.util.Map;
 
 public class ShuffleQueueJob extends Configured implements Tool {
     public static class HostsDumpMapper extends TableMapper<BytesWritable, BytesWritable> {
+        public static enum Counters {FINGERPRINTS_COUNT}
+
         public void map(ImmutableBytesWritable row, Result value, Context context) throws InterruptedException, IOException {
             String rk = new String(row.get(), row.getOffset(), row.getLength(), "US-ASCII");
             String[] rkParts = rk.split("_");
@@ -59,6 +61,7 @@ public class ShuffleQueueJob extends Configured implements Tool {
                     BytesWritable key = new BytesWritable(hostCrc32);
                     BytesWritable val = new BytesWritable(builder.build().toByteArray());
                     context.write(key, val);
+                    context.getCounter(Counters.FINGERPRINTS_COUNT).increment(1);
                 }
             }
         }
@@ -101,8 +104,11 @@ public class ShuffleQueueJob extends Configured implements Tool {
     }
 
     public static class BuildQueueReducerHbase extends TableReducer<BytesWritable, BytesWritable, ImmutableBytesWritable> {
+        public static enum Counters {FINGERPRINTS_PRODUCED, ROWS_PUT}
+
         public class BuildQueueHbase extends BuildQueue {
             private final byte[] CF = "f".getBytes();
+            private byte[] salt = new byte[4];
 
             public void flushBuffer(Reducer.Context context, long timestamp) throws IOException, InterruptedException {
                 for (Map.Entry<String, List<QueueRecordOuter.QueueRecord>> entry : buffer.entrySet()) {
@@ -110,7 +116,10 @@ public class ShuffleQueueJob extends Configured implements Tool {
                     int size = 4 + recordList.size() * (20 + 4);
                     ByteBuffer bb = ByteBuffer.allocate(size);
                     bb.order(ByteOrder.BIG_ENDIAN);
-                    String rk = String.format("%s_%d", entry.getKey(), timestamp);
+
+                    RND.nextBytes(salt);
+                    String saltStr = new String(Hex.encodeHex(salt, true));
+                    String rk = String.format("%s_%d_%s", entry.getKey(), timestamp, saltStr);
 
                     bb.putInt(recordList.size());
                     String column = null;
@@ -120,10 +129,12 @@ public class ShuffleQueueJob extends Configured implements Tool {
                         ByteString fingerprint = record.getFingerprint();
                         bb.put(fingerprint.asReadOnlyByteBuffer());
                         bb.putInt(record.getHostCrc32());
+                        context.getCounter(Counters.FINGERPRINTS_PRODUCED).increment(1);
                     }
                     Put put = new Put(Bytes.toBytes(rk));
                     put.add(CF, column.getBytes(), bb.array());
                     context.write(null, put);
+                    context.getCounter(Counters.ROWS_PUT).increment(1);
                 }
                 buffer.clear();
             }
@@ -146,16 +157,14 @@ public class ShuffleQueueJob extends Configured implements Tool {
     public int run(String [] args) throws Exception {
         Configuration config = getConf();
         config.set("frontera.hbase.namespace", args[0]);
-        config.set("shufflequeue.workdir", String.format("%s/hostsize", args[1]));
 
-        boolean rJob = runBuildQueueHbase();
+        boolean rJob = runBuildQueueHbase(args);
         if (!rJob)
             throw new Exception("Error during queue building.");
-
         return 0;
     }
 
-    private boolean runBuildQueueHbase() throws Exception {
+    private boolean runBuildQueueHbase(String[] args) throws Exception {
         Configuration config = getConf();
         Job job = Job.getInstance(config, "BuildQueue Job");
         job.setJarByClass(ShuffleQueueJob.class);
@@ -163,8 +172,8 @@ public class ShuffleQueueJob extends Configured implements Tool {
         scan.setCaching(500);
         scan.setCacheBlocks(false);
 
-        String sourceTable = String.format("%s:queue", config.get("frontera.hbase.namespace"));
-        String targetTable = String.format("%s:new_queue", config.get("frontera.hbase.namespace"));
+        String sourceTable = String.format("%s:%s", config.get("frontera.hbase.namespace"), args[1]);
+        String targetTable = String.format("%s:%s", config.get("frontera.hbase.namespace"), args[2]);
         TableMapReduceUtil.initTableMapperJob(
                 sourceTable,
                 scan,
@@ -180,7 +189,7 @@ public class ShuffleQueueJob extends Configured implements Tool {
         return job.waitForCompletion(true);
     }
 
-    private boolean runBuildQueueDebug() throws Exception {
+    private boolean runBuildQueueDebug(String[] args) throws Exception {
         Configuration config = getConf();
         Job job = Job.getInstance(config, "BuildQueue Job (debug)");
         job.setJarByClass(ShuffleQueueJob.class);
@@ -198,10 +207,11 @@ public class ShuffleQueueJob extends Configured implements Tool {
                 job);
 
         job.setReducerClass(BuildQueueReducerCommon.class);
-        Path outputPath = new Path(config.get("shufflequeue.workdir"));
+        Path outputPath = new Path(String.format("%s/hostsize", args[1]));
         FileOutputFormat.setOutputPath(job, outputPath);
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(Text.class);
+        job.setNumReduceTasks(1);
         return job.waitForCompletion(true);
     }
 
