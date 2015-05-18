@@ -45,7 +45,7 @@ These are basically:
 2. Integrate your crawler with the frontier
 ===========================================
 
-Add the Scrapy Crawl Frontier middlewares to your settings::
+Add the Scrapy Crawl Frontier middlewares and scheduler to your settings::
 
     SPIDER_MIDDLEWARES.update({
         'crawlfrontier.contrib.scrapy.middlewares.frontier.CrawlFrontierSpiderMiddleware': 1000,
@@ -54,6 +54,7 @@ Add the Scrapy Crawl Frontier middlewares to your settings::
     DOWNLOADER_MIDDLEWARES.update({
         'crawlfrontier.contrib.scrapy.middlewares.frontier.CrawlFrontierDownloaderMiddleware': 1000,
     })
+    SCHEDULER = 'crawlfrontier.contrib.scrapy.schedulers.frontier.CrawlFrontierScheduler'
 
 Create a Crawl Frontier settings.py file and add it to your Scrapy settings::
 
