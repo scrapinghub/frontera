@@ -22,7 +22,7 @@ logger = logging.getLogger("cf")
 
 
 class Slot(object):
-    def __init__(self, new_batch, consume_incoming, consume_scoring, no_batches, no_scoring, new_batch_delay):
+    def __init__(self, new_batch, consume_incoming, consume_scoring, no_batches, no_scoring, new_batch_delay, no_incoming):
         self.new_batch = CallLaterOnce(new_batch)
         self.new_batch.setErrback(self.error)
 
@@ -38,6 +38,7 @@ class Slot(object):
         self.is_finishing = False
         self.disable_new_batches = no_batches
         self.disable_scoring_consumption = no_scoring
+        self.disable_incoming = no_incoming
         self.new_batch_delay = new_batch_delay
 
     def error(self, f):
@@ -49,7 +50,8 @@ class Slot(object):
         if on_start and not self.disable_new_batches:
             self.new_batch.schedule(0)
         if not self.is_finishing:
-            self.consumption.schedule()
+            if not self.disable_incoming:
+                self.consumption.schedule()
             if not self.disable_new_batches:
                 self.new_batch.schedule(self.new_batch_delay)
             if not self.disable_scoring_consumption:
@@ -58,7 +60,7 @@ class Slot(object):
 
 
 class FrontierWorker(object):
-    def __init__(self, settings, no_batches, no_scoring):
+    def __init__(self, settings, no_batches, no_scoring, no_incoming):
         self._kafka = KafkaClient(settings.get('KAFKA_LOCATION'))
         self._producer = KeyedProducer(self._kafka, partitioner=Crc32NamePartitioner)
 
@@ -85,7 +87,7 @@ class FrontierWorker(object):
         self.outgoing_topic = settings.get('OUTGOING_TOPIC')
         self.max_next_requests = settings.MAX_NEXT_REQUESTS
         self.slot = Slot(self.new_batch, self.consume_incoming, self.consume_scoring, no_batches, no_scoring,
-                         settings.get('NEW_BATCH_DELAY', 60.0))
+                         settings.get('NEW_BATCH_DELAY', 60.0), no_incoming)
         self.stats = {}
 
     def run(self):
@@ -215,6 +217,8 @@ if __name__ == '__main__':
                         help='Disables periodical generation of new batches')
     parser.add_argument('--no-scoring', action='store_true',
                         help='Disables periodical consumption of scoring topic')
+    parser.add_argument('--no-incoming', action='store_true',
+                        help='Disables periodical incoming topic consumption')
     parser.add_argument('--config', type=str, required=True,
                         help='Settings module name, should be accessible by import')
     parser.add_argument('--log-level', '-L', type=str, default='INFO',
@@ -226,7 +230,7 @@ if __name__ == '__main__':
     if args.port:
         settings.set("JSONRPC_PORT", args.port)
 
-    worker = FrontierWorker(settings, args.no_batches, args.no_scoring)
+    worker = FrontierWorker(settings, args.no_batches, args.no_scoring, args.no_incoming)
     server = JsonRpcService(worker, settings)
     server.start_listening()
     worker.run()
