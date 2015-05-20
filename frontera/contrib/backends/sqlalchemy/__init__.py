@@ -5,7 +5,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.types import TypeDecorator
-from sqlalchemy import Column, String, Integer
+from sqlalchemy import Column, String, Integer, PickleType
 from sqlalchemy import UniqueConstraint
 
 from frontera import Backend
@@ -61,6 +61,7 @@ class Page(Base):
     status_code = Column(String(20))
     state = Column(String(12))
     error = Column(String(20))
+    meta = Column(PickleType())
 
     @classmethod
     def query(cls, session):
@@ -122,7 +123,7 @@ class SQLiteBackend(Backend):
 
     def add_seeds(self, seeds):
         for seed in seeds:
-            db_page, _ = self._get_or_create_db_page(url=seed.url, fingerprint=seed.meta['fingerprint'])
+            db_page, _ = self._get_or_create_db_page(seed)
         self.session.commit()
 
     def get_next_requests(self, max_next_requests, **kwargs):
@@ -134,40 +135,41 @@ class SQLiteBackend(Backend):
         next_pages = []
         for db_page in query:
             db_page.state = Page.State.QUEUED
-            request = self.manager.request_model(url=db_page.url)
+            request = self.manager.request_model(url=db_page.url, meta=db_page.meta)
             next_pages.append(request)
         self.session.commit()
         return next_pages
 
     def page_crawled(self, response, links):
-        db_page, _ = self._get_or_create_db_page(url=response.url, fingerprint=response.meta['fingerprint'])
+        db_page, _ = self._get_or_create_db_page(response)
         db_page.state = Page.State.CRAWLED
         db_page.status_code = response.status_code
         for link in links:
-            db_page_from_link, created = self._get_or_create_db_page(url=link.url, fingerprint=link.meta['fingerprint'])
+            db_page_from_link, created = self._get_or_create_db_page(link)
             if created:
                 db_page_from_link.depth = db_page.depth+1
         self.session.commit()
 
     def request_error(self, request, error):
-        db_page, _ = self._get_or_create_db_page(url=request.url, fingerprint=request.meta['fingerprint'])
+        db_page, _ = self._get_or_create_db_page(request)
         db_page.state = Page.State.ERROR
         db_page.error = error
         self.session.commit()
 
-    def _get_or_create_db_page(self, url, fingerprint):
-        if not self._request_exists(fingerprint):
+    def _get_or_create_db_page(self, obj):
+        if not self._request_exists(obj.meta['fingerprint']):
             db_request = self.page_model()
-            db_request.fingerprint = fingerprint
+            db_request.fingerprint = obj.meta['fingerprint']
             db_request.state = Page.State.NOT_CRAWLED
-            db_request.url = url
+            db_request.url = obj.url
             db_request.depth = 0
             db_request.created_at = datetime.datetime.utcnow()
+            db_request.meta = obj.meta
             self.session.add(db_request)
             self.manager.logger.backend.debug('Creating request %s' % db_request)
             return db_request, True
         else:
-            db_request = self.page_model.query(self.session).filter_by(fingerprint=fingerprint).first()
+            db_request = self.page_model.query(self.session).filter_by(fingerprint=obj.meta['fingerprint']).first()
             self.manager.logger.backend.debug('Request exists %s' % db_request)
             return db_request, False
 
