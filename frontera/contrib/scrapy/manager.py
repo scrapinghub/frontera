@@ -5,6 +5,7 @@ from converters import RequestConverter, ResponseConverter
 class ScrapyFrontierManager(FrontierManagerWrapper):
 
     spider = None
+
     def set_spider(self, spider):
         assert self.spider is None, 'Spider is already set. Only one spider is supported per process.'
         self.spider = spider

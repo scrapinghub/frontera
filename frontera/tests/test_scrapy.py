@@ -12,6 +12,7 @@ class TestSpider(object):
     def errback(self):
         pass
 
+
 def test_request_response_converters():
     spider = TestSpider()
     rc = RequestConverter(spider)

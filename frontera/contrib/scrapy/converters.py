@@ -81,11 +81,13 @@ class ResponseConverter(BaseResponseConverter):
                               body=response.body,
                               request=self._request_converter.from_frontier(response.request))
 
+
 def _find_method(obj, func):
     if obj and hasattr(func, 'im_self') and func.im_self is obj:
         return func.im_func.__name__
     else:
         raise ValueError("Function %s is not a method of: %s" % (func, obj))
+
 
 def _get_method(obj, name):
     name = str(name)
