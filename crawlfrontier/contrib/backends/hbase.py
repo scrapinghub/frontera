@@ -4,6 +4,7 @@ from crawlfrontier import Backend
 from crawlfrontier.worker.partitioner import Crc32NamePartitioner
 from crawlfrontier.utils.misc import chunks
 from crawlfrontier.utils.url import parse_domain_from_url_fast
+from hbase_queue_pb2 import QueueCell, QueueItem
 
 from struct import pack, unpack, unpack_from
 from datetime import datetime
@@ -77,16 +78,14 @@ class HBaseQueue(object):
             tables.remove('queue')
 
         if 'queue' not in tables:
-            self.connection.create_table('queue', {'f': {'max_versions': 1, 'bloom_filter_type': 'ROW',
-                                                         'block_cache_enabled': 1}})
+            self.connection.create_table('queue', {'f': {'max_versions': 1, 'block_cache_enabled': 1}})
 
     def schedule(self, links):
         """
         Row - portion of the queue for each partition id created at some point in time
         Row Key - partition id + score interval + timestamp
         Column Qualifier - discrete score (first two digits after dot, e.g. 0.01_0.02, 0.02_0.03, ...)
-        Value - first four bytes uint containing count of items,
-        then 24-byte sha1 fingerprint+crc32(domain name) blocks without delimiters
+        Value - QueueCell protobuf class
 
         Where score is mapped from 0.0 to 1.0
         score intervals are
@@ -114,33 +113,36 @@ class HBaseQueue(object):
 
         timestamp = int(time() * 1E+6)
         data = dict()
-        for score, fingerprint, domain in links:
+        for score, fingerprint, domain, url in links:
+            item = QueueItem()
+            item.fingerprint = fingerprint
+            item.url = url
+            item.score = score
             if type(domain) == dict:
                 partition_id = self.partitioner.partition(domain['name'], self.partitions)
-                host_crc32 = get_crc32(domain['name'])
+                item.host_crc32 = get_crc32(domain['name'])
             elif type(domain) == int:
                 partition_id = self.partitioner.partition_by_hash(domain, self.partitions)
-                host_crc32 = domain
+                item.host_crc32 = domain
             else:
                 raise TypeError("domain of unknown type.")
             score = 1 - score  # because of lexicographical sort in HBase
             rk = "%d_%s_%d" %(partition_id, "%0.2f_%0.2f" % get_interval(score, 0.01), timestamp)
-            blob = unhexlify(fingerprint) + pack(">i", host_crc32)
-            data.setdefault(rk, []).append((score, blob))
+            data.setdefault(rk, []).append((score, item))
 
         table = self.connection.table('queue')
         with table.batch(transaction=True) as b:
             for rk, tuples in data.iteritems():
                 obj = dict()
-                for score, blob in tuples:
+                for score, item in tuples:
                     column = 'f:%0.3f_%0.3f' % get_interval(score, 0.001)
-                    obj.setdefault(column, []).append(blob)
+                    obj.setdefault(column, []).append(item)
 
                 final = dict()
-                for column, blobs in obj.iteritems():
-                    buf = pack(">I", len(blobs))
-                    buf += str().join(blobs)
-                    final[column] = buf
+                for column, items in obj.iteritems():
+                    cell = QueueCell()
+                    cell.items.extend(items)
+                    final[column] = cell.SerializeToString()
                 b.put(rk, final)
 
     def get(self, partition_id, min_requests, min_hosts=None, max_requests_per_host=None):
@@ -159,18 +161,17 @@ class HBaseQueue(object):
             queue.clear()
             for rk, data in table.scan(row_prefix='%d_' % partition_id, limit=int(limit)):
                 for cq, buf in data.iteritems():
-                    fprnts_count, = unpack(">I", buf[:4])
-                    fmt = ">" + fprnts_count*"20si"
-                    for fprint, host_id in chunks(unpack_from(fmt, buf, 4), 2):
-                        if host_id not in queue:
-                            queue[host_id] = []
-                        if max_requests_per_host is not None and len(queue[host_id]) > max_requests_per_host:
+                    cell = QueueCell.FromString(buf)
+                    for item in cell.items:
+                        if item.host_crc32 not in queue:
+                            queue[item.host_crc32] = []
+                        if max_requests_per_host is not None and len(queue[item.host_crc32]) > max_requests_per_host:
                             continue
-                        queue[host_id].append(fprint)
+                        queue[item.host_crc32].append(item.fingerprint)
 
-                        if fprint not in meta_map:
-                            meta_map[fprint] = []
-                        meta_map[fprint].append((rk, host_id))
+                        if item.fingerprint not in meta_map:
+                            meta_map[item.fingerprint] = []
+                        meta_map[item.fingerprint].append((rk, item))
 
             count = 0
             to_merge = {}
@@ -200,8 +201,8 @@ class HBaseQueue(object):
                 for rk, _ in meta_map[fprint]:
                     trash_can.add(rk)
                     for rk_fprint in fprint_map[rk]:
-                        _, host_id = meta_map[rk_fprint][0]
-                        results.add((hexlify(rk_fprint), host_id))
+                        _, item = meta_map[rk_fprint][0]
+                        results.add((hexlify(rk_fprint), item.url, item.score))
 
         with table.batch(transaction=True) as b:
             for rk in trash_can:
@@ -312,8 +313,6 @@ class HBaseBackend(Backend):
 
     def get_next_requests(self, max_next_requests, **kwargs):
         next_pages = []
-        missing = []
-        table = self.connection.table('metadata')
         log = self.manager.logger.backend
         log.debug("Querying queue table.")
         partitions = set(kwargs.pop('partitions', []))
@@ -323,28 +322,12 @@ class HBaseBackend(Backend):
             fingerprints = self.queue.get(partition_id, max_next_requests,
                                                     min_hosts=24, max_requests_per_host=128)
 
-            fprint_hostid_map = dict(fingerprints)
             log.debug("Got %d items for partition id %d" % (len(fingerprints), partition_id))
-            log.debug("Querying metadata table.")
-            for chunk in chunks(map(lambda x: x[0], fingerprints), 3000):
-                log.debug("Iterating over %d size chunk." % len(chunk))
-                for rk, data in table.rows(chunk, columns=['m:url', 'm:domain_fingerprint', 's:score']):
-                    if 'm:url' not in data:
-                        if 's:score' not in data:
-                            log.error("Missing required columns fingerprint %s" % rk)
-                            continue
-                        missing.append((unpack_score(data['s:score']), rk, fprint_hostid_map[rk]))
-                        continue
-
-                    r = self.manager.request_model(url=data['m:url'])
-                    r.meta['domain'] = {
-                        'fingerprint': data['m:domain_fingerprint']
-                    }
-                    r.meta['fingerprint'] = rk
-                    r.meta['score'] = unpack_score(data['s:score'])
-                    next_pages.append(r)
-        log.debug("Got %d requests, %d are missing" % (len(next_pages), len(missing)))
-        self.queue.schedule(missing)
+            for fingerprint, url, score in fingerprints:
+                r = self.manager.request_model(url=url)
+                r.meta['fingerprint'] = fingerprint
+                r.meta['score'] = score
+                next_pages.append(r)
         return next_pages
 
     def update_score(self, batch):
@@ -362,6 +345,6 @@ class HBaseBackend(Backend):
                     if not hostname:
                         self.manager.logger.backend.error("Can't get hostname for URL %s, fingerprint %s" % (url, fprint))
                         continue
-                    to_schedule.append((score, fprint, {'name': hostname}))
+                    to_schedule.append((score, fprint, {'name': hostname}, url))
         self.queue.schedule(to_schedule)
 

@@ -4,3 +4,4 @@ tldextract>=1.5.1
 SQLAlchemy>=0.9.8
 happybase
 kafka-python
+protobuf

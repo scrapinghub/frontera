@@ -1,0 +1,10 @@
+message QueueItem {
+    required bytes fingerprint = 1;
+    required sint32 host_crc32 = 2;
+    required string url = 3;
+    optional float score = 4;
+}
+
+message QueueCell {
+    repeated QueueItem items = 1;
+}
