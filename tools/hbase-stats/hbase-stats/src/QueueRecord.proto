@@ -9,5 +9,6 @@ message QueueRecord {
     optional float start_interval = 4;
     optional float end_interval = 5;
     optional uint64 timestamp = 6;
-
+    optional float score = 7;
+    optional string url = 8;
 }
