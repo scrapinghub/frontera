@@ -121,7 +121,7 @@ class KafkaJSONDecoder(json.JSONDecoder):
             request = self._request_from_object(message['r'])
             return ('request_error', request, message['error'])
         if message['type'] == 'update_score':
-            return ('update_score', message['fprint'], message['score'], message['url'], message['schedule'])
+            return ('update_score', str(message['fprint']), message['score'], str(message['url']), message['schedule'])
         if message['type'] == 'add_seeds':
             seeds = []
             for seed in message['seeds']:
