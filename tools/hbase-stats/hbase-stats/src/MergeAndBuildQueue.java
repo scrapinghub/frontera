@@ -175,7 +175,7 @@ public class MergeAndBuildQueue extends Configured implements Tool {
             QueueRecordOuter.QueueRecord record = records.get(0);
             QueueRecordOuter.QueueRecord.Builder builder = QueueRecordOuter.QueueRecord.newBuilder();
             builder.setFingerprint(item.getFingerprint());
-            builder.setHostCrc32(item.getHostCrc32());
+            builder.setHostCrc32(record.getHostCrc32());
             builder.setPartitionId(record.getPartitionId());
             builder.setStartInterval(record.getStartInterval());
             builder.setEndInterval(record.getEndInterval());
@@ -187,7 +187,7 @@ public class MergeAndBuildQueue extends Configured implements Tool {
             //RND.nextBytes(salt);
             //String saltStr = new String(Hex.encodeHex(salt, true));
             //Text outKey = new Text(String.format("%.3f_%s", item.getScore(), saltStr));
-            IntWritable outKey = new IntWritable(item.getHostCrc32());
+            IntWritable outKey = new IntWritable(record.getHostCrc32());
             context.write(outKey, val);
         }
     }
