@@ -1,3 +1,6 @@
+option java_package = "com.scrapinghub.frontera.hbasestats";
+option java_outer_classname = "HbaseQueue";
+
 message QueueItem {
     required bytes fingerprint = 1;
     required sint32 host_crc32 = 2;
