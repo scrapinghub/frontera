@@ -47,11 +47,13 @@ class ResponseConverter(BaseResponseConverter):
     @classmethod
     def to_frontier(cls, response):
         """response: Scrapy > Frontier"""
-        return FrontierResponse(url=response.url,
-                                status_code=response.status,
-                                headers=response.headers,
-                                body=response.body,
-                                request=response.meta['frontier_request'])
+        frontier_response = FrontierResponse(url=response.url,
+                                             status_code=response.status,
+                                             headers=response.headers,
+                                             body=response.body,
+                                             request=response.meta['frontier_request'])
+        frontier_response.meta.update(response.meta)
+        return frontier_response
 
     @classmethod
     def from_frontier(cls, response):
