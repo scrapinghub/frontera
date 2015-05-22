@@ -21,7 +21,7 @@ public abstract class BuildQueue {
         return (System.currentTimeMillis() - 864000*1000) * 1000;
     }
 
-    public void reduce(BytesWritable hostCrc32, Iterable<BytesWritable> values, Reducer.Context context) throws IOException, InterruptedException {
+    public void reduce(Iterable<BytesWritable> values, Reducer.Context context) throws IOException, InterruptedException {
         int count = 0;
         int flushCounter = 0;
         long timestamp = getTimestamp();

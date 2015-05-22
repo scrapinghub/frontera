@@ -1,4 +1,5 @@
 import com.google.protobuf.ByteString;
+import com.scrapinghub.frontera.hbasestats.HbaseQueue;
 import com.scrapinghub.frontera.hbasestats.QueueRecordOuter;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.hadoop.conf.Configuration;
@@ -17,6 +18,8 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.*;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.input.SequenceFileAsBinaryInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
@@ -25,7 +28,6 @@ import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.List;
 import java.util.Map;
 
@@ -95,7 +97,7 @@ public class ShuffleQueueJob extends Configured implements Tool {
         }
 
         public void reduce(BytesWritable hostCrc32, Iterable<BytesWritable> values, Context context) throws IOException, InterruptedException {
-            buildQueue.reduce(hostCrc32, values, context);
+            buildQueue.reduce(values, context);
         }
 
         public void cleanup(Context context) throws IOException, InterruptedException {
@@ -103,36 +105,38 @@ public class ShuffleQueueJob extends Configured implements Tool {
         }
     }
 
-    public static class BuildQueueReducerHbase extends TableReducer<BytesWritable, BytesWritable, ImmutableBytesWritable> {
-        public static enum Counters {FINGERPRINTS_PRODUCED, ROWS_PUT}
+    public static class BuildQueueReducerHbase extends TableReducer<Text, BytesWritable, ImmutableBytesWritable> {
+        public static enum Counters {ITEMS_PRODUCED, ROWS_PUT}
 
         public class BuildQueueHbase extends BuildQueue {
             private final byte[] CF = "f".getBytes();
             private byte[] salt = new byte[4];
+            private HbaseQueue.QueueItem.Builder item = HbaseQueue.QueueItem.newBuilder();
+            private HbaseQueue.QueueCell.Builder cell = HbaseQueue.QueueCell.newBuilder();
 
             public void flushBuffer(Reducer.Context context, long timestamp) throws IOException, InterruptedException {
                 for (Map.Entry<String, List<QueueRecordOuter.QueueRecord>> entry : buffer.entrySet()) {
                     List<QueueRecordOuter.QueueRecord> recordList = entry.getValue();
-                    int size = 4 + recordList.size() * (20 + 4);
-                    ByteBuffer bb = ByteBuffer.allocate(size);
-                    bb.order(ByteOrder.BIG_ENDIAN);
-
+                    cell.clear();
                     RND.nextBytes(salt);
                     String saltStr = new String(Hex.encodeHex(salt, true));
                     String rk = String.format("%s_%d_%s", entry.getKey(), timestamp, saltStr);
 
-                    bb.putInt(recordList.size());
                     String column = null;
                     for (QueueRecordOuter.QueueRecord record : recordList) {
                         if (column == null)
                             column = String.format("%.3f_%.3f", record.getStartInterval(), record.getEndInterval());
-                        ByteString fingerprint = record.getFingerprint();
-                        bb.put(fingerprint.asReadOnlyByteBuffer());
-                        bb.putInt(record.getHostCrc32());
-                        context.getCounter(Counters.FINGERPRINTS_PRODUCED).increment(1);
+                        item.clear();
+                        item.setFingerprint(record.getFingerprint());
+                        item.setHostCrc32(record.getHostCrc32());
+                        item.setScore(record.getScore());
+                        item.setUrl(record.getUrl());
+
+                        cell.addItems(item.build());
+                        context.getCounter(Counters.ITEMS_PRODUCED).increment(1);
                     }
                     Put put = new Put(Bytes.toBytes(rk));
-                    put.add(CF, column.getBytes(), bb.array());
+                    put.add(CF, column.getBytes(), cell.build().toByteArray());
                     context.write(null, put);
                     context.getCounter(Counters.ROWS_PUT).increment(1);
                 }
@@ -145,8 +149,8 @@ public class ShuffleQueueJob extends Configured implements Tool {
             buildQueue.setup(context);
         }
 
-        public void reduce(BytesWritable hostCrc32, Iterable<BytesWritable> values, Context context) throws IOException, InterruptedException {
-            buildQueue.reduce(hostCrc32, values, context);
+        public void reduce(Text hostCrc32, Iterable<BytesWritable> values, Context context) throws IOException, InterruptedException {
+            buildQueue.reduce(values, context);
         }
 
         public void cleanup(Context context) throws IOException, InterruptedException {
@@ -158,7 +162,7 @@ public class ShuffleQueueJob extends Configured implements Tool {
         Configuration config = getConf();
         config.set("frontera.hbase.namespace", args[0]);
 
-        boolean rJob = runBuildQueueHbase(args);
+        boolean rJob = runBuildQueueFromSequenceFile(args);
         if (!rJob)
             throw new Exception("Error during queue building.");
         return 0;
@@ -186,6 +190,24 @@ public class ShuffleQueueJob extends Configured implements Tool {
                 targetTable,
                 BuildQueueReducerHbase.class,
                 job);
+        return job.waitForCompletion(true);
+    }
+
+    private boolean runBuildQueueFromSequenceFile(String[] args) throws Exception {
+        Configuration config = getConf();
+        Job job = Job.getInstance(config, "BuildQueue Job");
+        job.setJarByClass(ShuffleQueueJob.class);
+        job.setMapOutputKeyClass(Text.class);
+        job.setMapOutputValueClass(BytesWritable.class);
+        job.setInputFormatClass(SequenceFileInputFormat.class);
+        SequenceFileInputFormat.addInputPath(job, new Path(args[1]));
+
+        String targetTable = String.format("%s:%s", config.get("frontera.hbase.namespace"), args[2]);
+        TableMapReduceUtil.initTableReducerJob(
+                targetTable,
+                BuildQueueReducerHbase.class,
+                job);
+
         return job.waitForCompletion(true);
     }
 

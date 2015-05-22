@@ -15,6 +15,7 @@ import org.apache.hadoop.hbase.filter.PageFilter;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil;
 import org.apache.hadoop.hbase.mapreduce.TableMapper;
+import org.apache.hadoop.hbase.mapreduce.TableReducer;
 import org.apache.hadoop.hbase.mapreduce.TableSplit;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.NullWritable;
@@ -22,6 +23,7 @@ import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.input.SequenceFileAsBinaryInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
@@ -37,7 +39,7 @@ import java.util.Random;
 
 public class MergeAndBuildQueue extends Configured implements Tool {
     public static class QueueDumpMapper extends TableMapper<Text, BytesWritable> {
-        public static enum Counters {QUEUE_FINGERPRINTS_COUNT, METADATA_FINGERPRINTS_COUNT}
+        public static enum Counters {QUEUE_FINGERPRINTS_COUNT, METADATA_FINGERPRINTS_COUNT, URL_ABSENT_COUNT}
         HbaseQueue.QueueItem.Builder itemBuilder = HbaseQueue.QueueItem.newBuilder();
 
         private void queueMap(ImmutableBytesWritable row, Result value, Context context) throws InterruptedException, IOException {
@@ -72,7 +74,7 @@ public class MergeAndBuildQueue extends Configured implements Tool {
                     bb2.put(msg);
                     bb2.flip();
 
-                    BytesWritable val = new BytesWritable(bb2.array(), bb2.capacity());
+                    BytesWritable val = new BytesWritable(bb2.array());
                     context.write(key, val);
                     context.getCounter(Counters.QUEUE_FINGERPRINTS_COUNT).increment(1);
                 }
@@ -82,6 +84,7 @@ public class MergeAndBuildQueue extends Configured implements Tool {
         private void metadataMap(ImmutableBytesWritable row, Result value, Context context) throws InterruptedException, IOException {
             String rk = new String(row.get(), row.getOffset(), row.getLength(), "US-ASCII");
             Text key = new Text(rk);
+            itemBuilder.clear();
             try {
                 itemBuilder.setFingerprint(ByteString.copyFrom(Hex.decodeHex(rk.toCharArray())));
             } catch (DecoderException e) {
@@ -100,8 +103,11 @@ public class MergeAndBuildQueue extends Configured implements Tool {
             itemBuilder.setHostCrc32(0);
 
             cell = value.getColumnLatestCell("m".getBytes(), "url".getBytes());
-            if (cell != null) {
+            if (cell != null)
                 itemBuilder.setUrlBytes(ByteString.copyFrom(cell.getValueArray(), cell.getValueOffset(), cell.getValueLength()));
+            else {
+                context.getCounter(Counters.URL_ABSENT_COUNT).increment(1);
+                return;
             }
 
             byte[] msg = itemBuilder.build().toByteArray();
@@ -110,7 +116,7 @@ public class MergeAndBuildQueue extends Configured implements Tool {
             bb2.put(msg);
             bb2.flip();
 
-            BytesWritable val = new BytesWritable(bb2.array(), bb2.capacity());
+            BytesWritable val = new BytesWritable(bb2.array());
             context.write(key, val);
             context.getCounter(Counters.METADATA_FINGERPRINTS_COUNT).increment(1);
         }
@@ -140,7 +146,7 @@ public class MergeAndBuildQueue extends Configured implements Tool {
             byte[] salt = new byte[4];
             List<QueueRecordOuter.QueueRecord> records = new ArrayList<QueueRecordOuter.QueueRecord>();
             for (BytesWritable blob: values) {
-                ByteBuffer bb = ByteBuffer.wrap(blob.getBytes());
+                ByteBuffer bb = ByteBuffer.wrap(blob.getBytes(), 0, blob.getLength());
                 byte b = bb.get();
                 byte[] buf = new byte[bb.remaining()];
                 bb.get(buf);
@@ -207,12 +213,10 @@ public class MergeAndBuildQueue extends Configured implements Tool {
         scan_queue.setAttribute(Scan.SCAN_ATTRIBUTES_TABLE_NAME, "crawler:new_queue".getBytes());
         scans.add(scan_queue);
 
-        PageFilter pf = new PageFilter(1000);
         Scan scan_metadata = new Scan();
         scan_metadata.setCaching(2000);
         scan_metadata.setCacheBlocks(false);
         scan_metadata.setAttribute(Scan.SCAN_ATTRIBUTES_TABLE_NAME, "crawler:metadata".getBytes());
-        scan_metadata.setFilter(pf);
         scans.add(scan_metadata);
 
         TableMapReduceUtil.initTableMapperJob(
@@ -225,17 +229,6 @@ public class MergeAndBuildQueue extends Configured implements Tool {
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
         SequenceFileOutputFormat.setOutputPath(job, new Path("/user/sibiryakov/mergebuild/dumpqueue"));
         SequenceFileOutputFormat.setOutputCompressionType(job, SequenceFile.CompressionType.BLOCK);
-        job.setReducerClass(MergingReducer.class);
-        job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(BytesWritable.class);
-        return job.waitForCompletion(true);
-    }
-
-    private boolean runMerge() throws IOException, ClassNotFoundException, InterruptedException {
-        Configuration config = getConf();
-        Job job = Job.getInstance(config, "Merge Job");
-        job.setJarByClass(MergeAndBuildQueue.class);
-        job.setOutputFormatClass(SequenceFileOutputFormat.class);
         job.setReducerClass(MergingReducer.class);
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(BytesWritable.class);
