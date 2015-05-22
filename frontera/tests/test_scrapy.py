@@ -39,9 +39,13 @@ def test_request_response_converters():
     assert request_converted.cookies['MyCookie'] == 'CookieContent'
     assert request_converted.headers.get('Testkey') == 'test value'
 
+    # Some middleware could change .meta contents
+    request_converted.meta['middleware_stuff'] = 'appeared'
+
     response = ScrapyResponse(url=url, request=request_converted, headers={'TestHeader': 'Test value'})
     frontier_response = rsc.to_frontier(response)
-    assert frontier_response.meta['test_param'] == 'test_value'
+    assert frontier_response.meta['scrapy_meta']['test_param'] == 'test_value'
+    assert frontier_response.meta['scrapy_meta']['middleware_stuff'] == 'appeared'
     assert frontier_response.status_code == 200
 
     response_converted = rsc.from_frontier(frontier_response)
