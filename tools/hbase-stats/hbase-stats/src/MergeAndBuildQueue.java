@@ -17,10 +17,7 @@ import org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil;
 import org.apache.hadoop.hbase.mapreduce.TableMapper;
 import org.apache.hadoop.hbase.mapreduce.TableReducer;
 import org.apache.hadoop.hbase.mapreduce.TableSplit;
-import org.apache.hadoop.io.BytesWritable;
-import org.apache.hadoop.io.NullWritable;
-import org.apache.hadoop.io.SequenceFile;
-import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.*;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileAsBinaryInputFormat;
@@ -137,7 +134,7 @@ public class MergeAndBuildQueue extends Configured implements Tool {
         }
     }
 
-    public static class MergingReducer extends Reducer<Text, BytesWritable, Text, BytesWritable> {
+    public static class MergingReducer extends Reducer<Text, BytesWritable, IntWritable, BytesWritable> {
         public static enum Counters {EMPTY_RECORDS, NO_METADATA}
         Random RND = new Random();
 
@@ -187,9 +184,10 @@ public class MergeAndBuildQueue extends Configured implements Tool {
             builder.setScore(item.getScore());
             BytesWritable val = new BytesWritable(builder.build().toByteArray());
 
-            RND.nextBytes(salt);
-            String saltStr = new String(Hex.encodeHex(salt, true));
-            Text outKey = new Text(String.format("%.3f_%s", item.getScore(), saltStr));
+            //RND.nextBytes(salt);
+            //String saltStr = new String(Hex.encodeHex(salt, true));
+            //Text outKey = new Text(String.format("%.3f_%s", item.getScore(), saltStr));
+            IntWritable outKey = new IntWritable(item.getHostCrc32());
             context.write(outKey, val);
         }
     }
@@ -230,7 +228,7 @@ public class MergeAndBuildQueue extends Configured implements Tool {
         SequenceFileOutputFormat.setOutputPath(job, new Path("/user/sibiryakov/mergebuild/dumpqueue"));
         SequenceFileOutputFormat.setOutputCompressionType(job, SequenceFile.CompressionType.BLOCK);
         job.setReducerClass(MergingReducer.class);
-        job.setOutputKeyClass(Text.class);
+        job.setOutputKeyClass(IntWritable.class);
         job.setOutputValueClass(BytesWritable.class);
         return job.waitForCompletion(true);
     }

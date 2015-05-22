@@ -17,6 +17,7 @@ import org.apache.hadoop.hbase.mapreduce.TableReducer;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.*;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileAsBinaryInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
@@ -105,7 +106,15 @@ public class ShuffleQueueJob extends Configured implements Tool {
         }
     }
 
-    public static class BuildQueueReducerHbase extends TableReducer<Text, BytesWritable, ImmutableBytesWritable> {
+    public static class BuildQueueMapper extends Mapper<Text, BytesWritable, IntWritable, BytesWritable> {
+        public void map(Text key, BytesWritable value, Context context) throws IOException, InterruptedException {
+            QueueRecordOuter.QueueRecord record = QueueRecordOuter.QueueRecord.parseFrom(
+                    ByteString.copyFrom(value.getBytes(), 0, value.getLength()));
+            context.write(new IntWritable(record.getHostCrc32()), value);
+        }
+    }
+
+    public static class BuildQueueReducerHbase extends TableReducer<IntWritable, BytesWritable, ImmutableBytesWritable> {
         public static enum Counters {ITEMS_PRODUCED, ROWS_PUT}
 
         public class BuildQueueHbase extends BuildQueue {
@@ -149,7 +158,7 @@ public class ShuffleQueueJob extends Configured implements Tool {
             buildQueue.setup(context);
         }
 
-        public void reduce(Text hostCrc32, Iterable<BytesWritable> values, Context context) throws IOException, InterruptedException {
+        public void reduce(IntWritable hostCrc32, Iterable<BytesWritable> values, Context context) throws IOException, InterruptedException {
             buildQueue.reduce(values, context);
         }
 
@@ -197,8 +206,9 @@ public class ShuffleQueueJob extends Configured implements Tool {
         Configuration config = getConf();
         Job job = Job.getInstance(config, "BuildQueue Job");
         job.setJarByClass(ShuffleQueueJob.class);
-        job.setMapOutputKeyClass(Text.class);
+        job.setMapOutputKeyClass(IntWritable.class);
         job.setMapOutputValueClass(BytesWritable.class);
+        job.setMapperClass(BuildQueueMapper.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
         SequenceFileInputFormat.addInputPath(job, new Path(args[1]));
 
