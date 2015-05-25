@@ -23,7 +23,7 @@ setup(
     zip_safe=False,
     keywords=['crawler', 'frontier', 'scrapy', 'web', 'requests', 'frontera'],
     classifiers=[
-        #'Framework :: Frontera',
+        'Framework :: Frontera',
         'Development Status :: 4 - Beta',
         'Environment :: Console',
         'Intended Audience :: Developers',
@@ -40,12 +40,12 @@ setup(
         'six>=1.8.0',
         'w3lib>=1.10.0',
         'tldextract>=1.5.1',
+        'SQLAlchemy>=0.9.8'
     ],
     extras_require={
         'graphs': [
             "pyparsing==1.5.7",
             "pydot==1.0.28",
-            "SQLAlchemy>=0.9.8",
         ],
         'logging': [
             "colorlog>=2.4.0",
@@ -53,6 +53,9 @@ setup(
     },
     tests_require=[
         "pytest>=2.6.4",
-        "SQLAlchemy>=0.9.8",
+        "MySQL-python>=1.2.5",
+        "PyMySQL>=0.6.3",
+        "psycopg2>=2.5.4",
+        "scrapy>=0.24"
     ]
 )
