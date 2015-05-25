@@ -18,6 +18,8 @@ import org.apache.hadoop.hbase.mapreduce.TableMapper;
 import org.apache.hadoop.hbase.mapreduce.TableReducer;
 import org.apache.hadoop.hbase.mapreduce.TableSplit;
 import org.apache.hadoop.io.*;
+import org.apache.hadoop.io.compress.SnappyCodec;
+import org.apache.hadoop.io.compress.snappy.SnappyCompressor;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileAsBinaryInputFormat;
@@ -227,6 +229,7 @@ public class MergeAndBuildQueue extends Configured implements Tool {
         job.setOutputFormatClass(SequenceFileOutputFormat.class);
         SequenceFileOutputFormat.setOutputPath(job, new Path("/user/sibiryakov/mergebuild/dumpqueue"));
         SequenceFileOutputFormat.setOutputCompressionType(job, SequenceFile.CompressionType.BLOCK);
+        SequenceFileOutputFormat.setOutputCompressorClass(job, SnappyCodec.class);
         job.setReducerClass(MergingReducer.class);
         job.setOutputKeyClass(IntWritable.class);
         job.setOutputValueClass(BytesWritable.class);
