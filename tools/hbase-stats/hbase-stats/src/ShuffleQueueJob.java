@@ -106,14 +106,6 @@ public class ShuffleQueueJob extends Configured implements Tool {
         }
     }
 
-    public static class BuildQueueMapper extends Mapper<Text, BytesWritable, IntWritable, BytesWritable> {
-        public void map(Text key, BytesWritable value, Context context) throws IOException, InterruptedException {
-            QueueRecordOuter.QueueRecord record = QueueRecordOuter.QueueRecord.parseFrom(
-                    ByteString.copyFrom(value.getBytes(), 0, value.getLength()));
-            context.write(new IntWritable(record.getHostCrc32()), value);
-        }
-    }
-
     public static class BuildQueueReducerHbase extends TableReducer<IntWritable, BytesWritable, ImmutableBytesWritable> {
         public static enum Counters {ITEMS_PRODUCED, ROWS_PUT}
 
@@ -208,7 +200,6 @@ public class ShuffleQueueJob extends Configured implements Tool {
         job.setJarByClass(ShuffleQueueJob.class);
         job.setMapOutputKeyClass(IntWritable.class);
         job.setMapOutputValueClass(BytesWritable.class);
-        job.setMapperClass(BuildQueueMapper.class);
         job.setInputFormatClass(SequenceFileInputFormat.class);
         SequenceFileInputFormat.addInputPath(job, new Path(args[1]));
 
