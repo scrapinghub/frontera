@@ -174,10 +174,8 @@ class HBaseQueue(object):
                         meta_map[item.fingerprint].append((rk, item))
 
             count = 0
-            to_merge = {}
             for host_id, fprints in queue.iteritems():
                 count += len(fprints)
-            queue.update(to_merge)
 
             if min_hosts is not None and len(queue.keys()) < min_hosts:
                 continue
