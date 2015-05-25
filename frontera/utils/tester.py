@@ -39,7 +39,9 @@ class FrontierTester(object):
                     self.frontier.add_seeds([self._make_request(link.url)])
 
     def _make_request(self, url):
-        return self.frontier.request_model(url=url)
+        r = self.frontier.request_model(url=url)
+        r.meta['this_param'] = 'should be passed over'
+        return r
 
     def _make_response(self, url, status_code, request):
         return self.frontier.response_model(url=url, status_code=status_code, request=request)
@@ -64,6 +66,7 @@ class FrontierTester(object):
             else:
                 self.frontier.request_error(request=page_to_crawl,
                                             error=crawled_page.status)
+            assert page_to_crawl.meta['this_param'] == 'should be passed over'
         return requests
 
 

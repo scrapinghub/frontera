@@ -3,21 +3,19 @@ from converters import BaseRequestConverter, BaseResponseConverter
 
 
 class FrontierManagerWrapper(object):
-    request_converter_class = None
-    response_converter_class = None
 
     def __init__(self, settings):
-        assert self.request_converter_class, 'request_converter_class not defined'
-        assert self.response_converter_class, 'response_converter_class not defined'
-        assert issubclass(self.request_converter_class, BaseRequestConverter), 'request_converter_class ' \
-                                                                               'must subclass RequestConverter'
-        assert issubclass(self.response_converter_class, BaseResponseConverter), 'response_converter_class ' \
-                                                                                 'must subclass RequestConverter'
-        self.request_converter = self.request_converter_class
-        self.response_converter = self.response_converter_class
         self.manager = FrontierManager.from_settings(settings)
 
     def start(self):
+        if not hasattr(self, 'request_converter'):
+            raise NotImplementedError("Request converter should be instantiated in subclass")
+        if not hasattr(self, 'response_converter'):
+            raise NotImplementedError("Response converter should be instantiated in subclass")
+        assert isinstance(self.request_converter, BaseRequestConverter), 'request_converter ' \
+                                                                         'must be instance of BaseRequestConverter'
+        assert isinstance(self.response_converter, BaseResponseConverter), 'response_converter ' \
+                                                                           'must be instance of BaseResponseConverter'
         self.manager.start()
 
     def stop(self):

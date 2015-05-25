@@ -3,5 +3,8 @@ from converters import RequestConverter, ResponseConverter
 
 
 class RequestsFrontierManager(FrontierManagerWrapper):
-    request_converter_class = RequestConverter
-    response_converter_class = ResponseConverter
+
+    def __init__(self, settings):
+        super(RequestsFrontierManager, self).__init__(settings)
+        self.request_converter = RequestConverter()
+        self.response_converter = ResponseConverter(self.request_converter)

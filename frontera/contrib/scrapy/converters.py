@@ -8,58 +8,88 @@ from frontera.utils.converters import BaseRequestConverter, BaseResponseConverte
 
 class RequestConverter(BaseRequestConverter):
     """Converts between frontera and Scrapy request objects"""
-    @classmethod
-    def to_frontier(cls, request):
+    def __init__(self, spider):
+        self.spider = spider
+
+    def to_frontier(self, scrapy_request):
         """request: Scrapy > Frontier"""
-        if isinstance(request.cookies, dict):
-            cookies = request.cookies
+        if isinstance(scrapy_request.cookies, dict):
+            cookies = scrapy_request.cookies
         else:
-            cookies = dict(sum([d.items() for d in request.cookies], []))
+            cookies = dict(sum([d.items() for d in scrapy_request.cookies], []))
+        cb = scrapy_request.callback
+        if callable(cb):
+            cb = _find_method(self.spider, cb)
+        eb = scrapy_request.errback
+        if callable(eb):
+            eb = _find_method(self.spider, eb)
         meta = {
-            'scrapy_callback': request.callback,
+            'scrapy_callback': cb,
+            'scrapy_errback': eb,
+            'scrapy_meta': scrapy_request.meta,
             'origin_is_frontier': True,
         }
-        meta.update(request.meta or {})
-        return FrontierRequest(url=request.url,
-                               method=request.method,
-                               headers=request.headers,
+        return FrontierRequest(url=scrapy_request.url,
+                               method=scrapy_request.method,
+                               headers=scrapy_request.headers,
                                cookies=cookies,
                                meta=meta)
 
-    @classmethod
-    def from_frontier(cls, request):
+    def from_frontier(self, frontier_request):
         """request: Frontier > Scrapy"""
-        meta = {
-            'frontier_request': request
-        }
-        meta.update(request.meta or {})
-        return ScrapyRequest(url=request.url,
-                             callback=meta.get('scrapy_callback', None),
-                             method=request.method,
-                             headers=request.headers,
-                             cookies=request.cookies,
+        cb = frontier_request.meta.get('scrapy_callback', None)
+        if cb and self.spider:
+            cb = _get_method(self.spider, cb)
+        eb = frontier_request.meta.get('scrapy_errback', None)
+        if eb and self.spider:
+            eb = _get_method(self.spider, eb)
+        meta = frontier_request.meta['scrapy_meta']
+        meta['frontier_request'] = frontier_request
+        return ScrapyRequest(url=frontier_request.url,
+                             callback=cb,
+                             errback=eb,
+                             method=frontier_request.method,
+                             headers=frontier_request.headers,
+                             cookies=frontier_request.cookies,
                              meta=meta,
                              dont_filter=True)
 
 
 class ResponseConverter(BaseResponseConverter):
     """Converts between frontera and Scrapy response objects"""
-    @classmethod
-    def to_frontier(cls, response):
-        """response: Scrapy > Frontier"""
-        frontier_response = FrontierResponse(url=response.url,
-                                             status_code=response.status,
-                                             headers=response.headers,
-                                             body=response.body,
-                                             request=response.meta['frontier_request'])
-        frontier_response.meta.update(response.meta)
-        return frontier_response
+    def __init__(self, spider, request_converter):
+        self.spider = spider
+        self._request_converter = request_converter
 
-    @classmethod
-    def from_frontier(cls, response):
+    def to_frontier(self, scrapy_response):
+        """response: Scrapy > Frontier"""
+        frontier_request = scrapy_response.meta['frontier_request']
+        frontier_request.meta['scrapy_meta'] = scrapy_response.meta
+        return FrontierResponse(url=scrapy_response.url,
+                                status_code=scrapy_response.status,
+                                headers=scrapy_response.headers,
+                                body=scrapy_response.body,
+                                request=frontier_request)
+
+    def from_frontier(self, response):
         """response: Frontier > Scrapy"""
         return ScrapyResponse(url=response.url,
-                              status=response.status,
+                              status=response.status_code,
                               headers=response.headers,
                               body=response.body,
-                              request=RequestConverter.from_frontier(response.request))
+                              request=self._request_converter.from_frontier(response.request))
+
+
+def _find_method(obj, func):
+    if obj and hasattr(func, 'im_self') and func.im_self is obj:
+        return func.im_func.__name__
+    else:
+        raise ValueError("Function %s is not a method of: %s" % (func, obj))
+
+
+def _get_method(obj, name):
+    name = str(name)
+    try:
+        return getattr(obj, name)
+    except AttributeError:
+        raise ValueError("Method %r not found in: %s" % (name, obj))

@@ -3,5 +3,11 @@ from converters import RequestConverter, ResponseConverter
 
 
 class ScrapyFrontierManager(FrontierManagerWrapper):
-    request_converter_class = RequestConverter
-    response_converter_class = ResponseConverter
+
+    spider = None
+
+    def set_spider(self, spider):
+        assert self.spider is None, 'Spider is already set. Only one spider is supported per process.'
+        self.spider = spider
+        self.request_converter = RequestConverter(self.spider)
+        self.response_converter = ResponseConverter(self.spider, self.request_converter)

@@ -122,6 +122,7 @@ class FronteraScheduler(Scheduler):
         self.stats_manager.add_request_error(error_code)
 
     def open(self, spider):
+        self.frontier.set_spider(spider)
         log.msg('Starting frontier', log.INFO)
         if not self.frontier.manager.auto_start:
             self.frontier.start()
