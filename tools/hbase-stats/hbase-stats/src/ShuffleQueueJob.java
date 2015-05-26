@@ -17,20 +17,25 @@ import org.apache.hadoop.hbase.mapreduce.TableReducer;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.*;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
-import org.apache.hadoop.mapreduce.lib.input.SequenceFileAsBinaryInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.msgpack.MessagePack;
+import org.msgpack.annotation.Message;
+import org.msgpack.packer.Packer;
+import org.msgpack.template.Template;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
+
+import static org.msgpack.template.Templates.tList;
 
 public class ShuffleQueueJob extends Configured implements Tool {
     public static class HostsDumpMapper extends TableMapper<BytesWritable, BytesWritable> {
@@ -109,7 +114,7 @@ public class ShuffleQueueJob extends Configured implements Tool {
     public static class BuildQueueReducerHbase extends TableReducer<IntWritable, BytesWritable, ImmutableBytesWritable> {
         public static enum Counters {ITEMS_PRODUCED, ROWS_PUT}
 
-        public class BuildQueueHbase extends BuildQueue {
+        public class BuildQueueHbaseProtobuf extends BuildQueue {
             private final byte[] CF = "f".getBytes();
             private byte[] salt = new byte[4];
             private HbaseQueue.QueueItem.Builder item = HbaseQueue.QueueItem.newBuilder();
@@ -145,7 +150,52 @@ public class ShuffleQueueJob extends Configured implements Tool {
             }
         }
 
-        final BuildQueueHbase buildQueue = new BuildQueueHbase();
+        @Message
+        public static class QueueItem {
+            public byte[] fingerprint;
+            public int hostCrc32;
+            public String url;
+            public float score;
+        }
+
+        public class BuildQueueHbaseMsgPack extends BuildQueue {
+            private final byte[] CF = "f".getBytes();
+            private byte[] salt = new byte[4];
+            private MessagePack messagePack = new MessagePack();
+
+            public void flushBuffer(Reducer.Context context, long timestamp) throws IOException, InterruptedException {
+                for (Map.Entry<String, List<QueueRecordOuter.QueueRecord>> entry : buffer.entrySet()) {
+                    List<QueueRecordOuter.QueueRecord> recordList = entry.getValue();
+                    RND.nextBytes(salt);
+                    String saltStr = new String(Hex.encodeHex(salt, true));
+                    String rk = String.format("%s_%d_%s", entry.getKey(), timestamp, saltStr);
+
+                    ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                    Packer packer = messagePack.createPacker(bos);
+                    String column = null;
+                    QueueItem item = new QueueItem();
+                    for (QueueRecordOuter.QueueRecord record : recordList) {
+                        if (column == null)
+                            column = String.format("%.3f_%.3f", record.getStartInterval(), record.getEndInterval());
+                        item.fingerprint = record.getFingerprint().toByteArray();
+                        item.hostCrc32 = record.getHostCrc32();
+                        item.url = record.getUrl();
+                        item.score = record.getScore();
+
+                        packer.write(item);
+                        context.getCounter(Counters.ITEMS_PRODUCED).increment(1);
+                    }
+
+                    Put put = new Put(Bytes.toBytes(rk));
+                    put.add(CF, column.getBytes(), bos.toByteArray());
+                    context.write(null, put);
+                    context.getCounter(Counters.ROWS_PUT).increment(1);
+                }
+                buffer.clear();
+            }
+        }
+
+        final BuildQueueHbaseMsgPack buildQueue = new BuildQueueHbaseMsgPack();
         public void setup(Context context) throws IOException, InterruptedException {
             buildQueue.setup(context);
         }
