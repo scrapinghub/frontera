@@ -4,7 +4,6 @@ from crawlfrontier import Backend
 from crawlfrontier.worker.partitioner import Crc32NamePartitioner
 from crawlfrontier.utils.misc import chunks
 from crawlfrontier.utils.url import parse_domain_from_url_fast
-from hbase_queue_pb2 import QueueCell, QueueItem
 
 from struct import pack, unpack, unpack_from
 from datetime import datetime
@@ -12,6 +11,8 @@ from calendar import timegm
 from time import time
 from binascii import hexlify, unhexlify
 from zlib import crc32
+from msgpack import Unpacker, Packer
+from io import BytesIO
 
 
 
@@ -64,21 +65,22 @@ def utcnow_timestamp():
 
 class HBaseQueue(object):
 
-    GET_RETRIES = 3
+    GET_RETRIES = 1
 
     def __init__(self, connection, partitions, logger, drop=False):
         self.connection = connection
         self.partitions = [i for i in range(0, partitions)]
         self.partitioner = Crc32NamePartitioner(self.partitions)
         self.logger = logger
+        self.table_name = 'new_queue_msgpack'
 
         tables = set(self.connection.tables())
-        if drop and 'queue' in tables:
-            self.connection.delete_table('queue', disable=True)
-            tables.remove('queue')
+        if drop and self.table_name in tables:
+            self.connection.delete_table(self.table_name, disable=True)
+            tables.remove(self.table_name)
 
-        if 'queue' not in tables:
-            self.connection.create_table('queue', {'f': {'max_versions': 1, 'block_cache_enabled': 1}})
+        if self.table_name not in tables:
+            self.connection.create_table(self.table_name, {'f': {'max_versions': 1, 'block_cache_enabled': 1}})
 
     def schedule(self, links):
         """
@@ -114,23 +116,20 @@ class HBaseQueue(object):
         timestamp = int(time() * 1E+6)
         data = dict()
         for score, fingerprint, domain, url in links:
-            item = QueueItem()
-            item.fingerprint = fingerprint
-            item.url = url
-            item.score = score
             if type(domain) == dict:
                 partition_id = self.partitioner.partition(domain['name'], self.partitions)
-                item.host_crc32 = get_crc32(domain['name'])
+                host_crc32 = get_crc32(domain['name'])
             elif type(domain) == int:
                 partition_id = self.partitioner.partition_by_hash(domain, self.partitions)
-                item.host_crc32 = domain
+                host_crc32 = domain
             else:
                 raise TypeError("domain of unknown type.")
+            item = [fingerprint, host_crc32, url, score]
             score = 1 - score  # because of lexicographical sort in HBase
             rk = "%d_%s_%d" %(partition_id, "%0.2f_%0.2f" % get_interval(score, 0.01), timestamp)
             data.setdefault(rk, []).append((score, item))
 
-        table = self.connection.table('queue')
+        table = self.connection.table(self.table_name)
         with table.batch(transaction=True) as b:
             for rk, tuples in data.iteritems():
                 obj = dict()
@@ -139,14 +138,15 @@ class HBaseQueue(object):
                     obj.setdefault(column, []).append(item)
 
                 final = dict()
+                stream = BytesIO()
+                packer = Packer()
                 for column, items in obj.iteritems():
-                    cell = QueueCell()
-                    cell.items.extend(items)
-                    final[column] = cell.SerializeToString()
+                    for item in items: stream.write(packer.pack(item))
+                    final[column] = stream.getvalue()
                 b.put(rk, final)
 
     def get(self, partition_id, min_requests, min_hosts=None, max_requests_per_host=None):
-        table = self.connection.table('queue')
+        table = self.connection.table(self.table_name)
 
         meta_map = {}
         queue = {}
@@ -156,22 +156,24 @@ class HBaseQueue(object):
         while tries < self.GET_RETRIES:
             tries += 1
             limit *= 5.5 if tries > 1 else 1.0
-            self.logger.debug("Try %d, limit %d, requests %d, hosts %d" % (tries, limit, count, len(queue.keys())))
+            self.logger.debug("Try %d, limit %d, last attempt: requests %d, hosts %d" % (tries, limit, count, len(queue.keys())))
             meta_map.clear()
             queue.clear()
             for rk, data in table.scan(row_prefix='%d_' % partition_id, limit=int(limit)):
                 for cq, buf in data.iteritems():
-                    cell = QueueCell.FromString(buf)
-                    for item in cell.items:
-                        if item.host_crc32 not in queue:
-                            queue[item.host_crc32] = []
-                        if max_requests_per_host is not None and len(queue[item.host_crc32]) > max_requests_per_host:
+                    stream = BytesIO(buf)
+                    unpacker = Unpacker(stream)
+                    for item in unpacker:
+                        fingerprint, host_crc32, url, score = item
+                        if host_crc32 not in queue:
+                            queue[host_crc32] = []
+                        if max_requests_per_host is not None and len(queue[host_crc32]) > max_requests_per_host:
                             continue
-                        queue[item.host_crc32].append(item.fingerprint)
+                        queue[host_crc32].append(fingerprint)
 
-                        if item.fingerprint not in meta_map:
-                            meta_map[item.fingerprint] = []
-                        meta_map[item.fingerprint].append((rk, item))
+                        if fingerprint not in meta_map:
+                            meta_map[fingerprint] = []
+                        meta_map[fingerprint].append((rk, item))
 
             count = 0
             for host_id, fprints in queue.iteritems():
@@ -200,7 +202,8 @@ class HBaseQueue(object):
                     trash_can.add(rk)
                     for rk_fprint in fprint_map[rk]:
                         _, item = meta_map[rk_fprint][0]
-                        results.add((hexlify(rk_fprint), item.url, item.score))
+                        _, _, url, score = item
+                        results.add((hexlify(rk_fprint), url, score))
 
         with table.batch(transaction=True) as b:
             for rk in trash_can:

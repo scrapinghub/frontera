@@ -5,3 +5,4 @@ SQLAlchemy>=0.9.8
 happybase
 kafka-python
 protobuf
+msgpack-python
