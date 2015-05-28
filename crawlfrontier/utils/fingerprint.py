@@ -2,6 +2,7 @@ import hashlib
 from urlparse import urlparse
 from zlib import crc32
 from struct import pack
+from binascii import hexlify
 
 
 def sha1(key):
@@ -21,4 +22,4 @@ def hostname_local_fingerprint(key):
     doc_uri_combined = doc_uri_combined if type(doc_uri_combined) is str else \
         doc_uri_combined.encode('utf-8', 'ignore')
     doc_fprint = hashlib.md5(doc_uri_combined).digest()
-    return pack(">i16B", host_checksum, doc_fprint)
+    return hexlify(pack(">i16B", host_checksum, doc_fprint))
