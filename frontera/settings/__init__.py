@@ -4,9 +4,12 @@ from importlib import import_module
 import default_settings
 
 
-class Settings(object):
+class BaseSettings(object):
     """
     An object that holds frontier settings values.
+
+    This also defines the base interface for all classes that are to be used
+    as settings in frontera.
     """
     def __init__(self, module=None, attributes=None):
         """
@@ -15,7 +18,6 @@ class Settings(object):
 
         """
         self.attributes = {}
-        self.add_module(default_settings)
         if module:
             self.add_module(module)
         if attributes:
@@ -25,9 +27,24 @@ class Settings(object):
     def from_params(cls, **kwargs):
         return cls(attributes=kwargs)
 
+    @classmethod
+    def object_from(cls, settings):
+        """
+        Generates a new settings object based on a previous obj or settings
+        file.
+
+        `settings` can either be a string path pointing to settings file or a \
+        :class:`BaseSettings <frontera.settings.BaseSettings>` object instance.
+        """
+        if isinstance(settings, BaseSettings):
+            return settings
+        else:
+            return cls(settings)
+
     def __getattr__(self, name):
-        if name.isupper() and name in self.attributes:
-            return self.attributes[name]
+        val = self.get(name)
+        if val is not None:
+            return val
         else:
             return self.__dict__[name]
 
@@ -38,7 +55,7 @@ class Settings(object):
             self.__dict__[name] = value
 
     def add_module(self, module):
-        if isinstance(module, Settings):
+        if isinstance(module, BaseSettings):
             for name, value in module.attributes.items():
                 self.set(name, value)
         else:
@@ -60,3 +77,16 @@ class Settings(object):
     def set_from_dict(self, attributes):
         for name, value in attributes.items():
             self.set(name, value)
+
+
+class DefaultSettings(BaseSettings):
+    def __init__(self):
+        super(DefaultSettings, self).__init__(default_settings)
+
+
+class Settings(BaseSettings):
+    def __init__(self, module=None, attributes=None):
+        super(Settings, self).__init__(default_settings, attributes)
+
+        if module:
+            self.add_module(module)

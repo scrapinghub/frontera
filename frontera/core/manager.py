@@ -2,7 +2,7 @@ from collections import OrderedDict
 
 from frontera.exceptions import NotConfigured
 from frontera.utils.misc import load_object
-from frontera.settings import Settings
+from frontera.settings import Settings, BaseSettings
 from frontera.core.components import Backend, Middleware
 from frontera.logger import FrontierLogger
 from frontera.core import models
@@ -119,11 +119,10 @@ class FrontierManager(object):
     def from_settings(cls, settings=None):
         """
         Returns a :class:`FrontierManager <frontera.core.manager.FrontierManager>`  instance initialized with \
-        the passed settings argument. Argument value can either be a string path pointing to settings file or a \
-        :class:`Settings <frontera.settings.Settings>` object instance. If no settings is given,
+        the passed settings argument. If no settings is given,
         :ref:`frontier default settings <frontier-default-settings>` are used.
         """
-        manager_settings = Settings(settings)
+        manager_settings = Settings.object_from(settings)
         return FrontierManager(request_model=manager_settings.REQUEST_MODEL,
                                response_model=manager_settings.RESPONSE_MODEL,
                                backend=manager_settings.BACKEND,
