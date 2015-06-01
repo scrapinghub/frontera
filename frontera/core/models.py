@@ -25,7 +25,7 @@ class Request(FrontierObject):
         self._method = str(method).upper()
         self._headers = headers or {}
         self._cookies = cookies or {}
-        self._meta = meta or {}
+        self._meta = meta or {'scrapy_meta': {}}
 
     @property
     def url(self):

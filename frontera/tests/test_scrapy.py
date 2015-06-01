@@ -3,6 +3,7 @@
 from frontera.contrib.scrapy.converters import RequestConverter, ResponseConverter
 from scrapy.http.request import Request as ScrapyRequest
 from scrapy.http.response import Response as ScrapyResponse
+from frontera.core.models import Request as FrontierRequest
 
 
 class TestSpider(object):
@@ -53,3 +54,7 @@ def test_request_response_converters():
     assert response_converted.url == url
     assert response_converted.status == 200
     assert response_converted.headers['TestHeader'] == 'Test value'
+
+    frontier_request = FrontierRequest(url)
+    request_converted = rc.from_frontier(frontier_request)
+    assert frontier_request.url == url
