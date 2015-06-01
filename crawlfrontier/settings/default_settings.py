@@ -20,7 +20,7 @@ DELAY_ON_EMPTY = 30.0
 #--------------------------------------------------------
 # Fingerprints mw
 #--------------------------------------------------------
-URL_FINGERPRINT_FUNCTION = 'crawlfrontier.utils.fingerprint.sha1'
+URL_FINGERPRINT_FUNCTION = 'crawlfrontier.utils.fingerprint.hostname_local_fingerprint'
 DOMAIN_FINGERPRINT_FUNCTION = 'crawlfrontier.utils.fingerprint.sha1'
 
 #--------------------------------------------------------

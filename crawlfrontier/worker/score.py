@@ -33,6 +33,7 @@ class ScoringWorker(object):
         self.consumer_batch_size = settings.get('CONSUMER_BATCH_SIZE', 128)
         self.outgoing_topic = settings.get('SCORING_TOPIC')
         self.strategy = strategy_module.CrawlStrategy()
+        self.backend = self._manager.backend
         self.stats = {}
 
     def run(self):
@@ -50,47 +51,15 @@ class ScoringWorker(object):
                         type = msg[0]
                         if type == 'add_seeds':
                             _, seeds = msg
-                            logger.info('Adding %i seeds', len(seeds))
-                            self.strategy.add_seeds(seeds)
-                            for seed in seeds:
-                                logger.debug('URL: ', seed.url)
-                                score = self.strategy.get_score(seed.url)
-                                if score is not None:
-                                    encoded = self._encoder.encode_update_score(
-                                        seed.meta['fingerprint'],
-                                        score,
-                                        seed.url,
-                                        True
-                                    )
-                                    batch.append(encoded)
+                            batch.extend(self.on_add_seeds(seeds))
 
                         if type == 'page_crawled':
                             _, response, links = msg
-                            logger.debug("Page crawled %s", response.url)
-                            self.strategy.page_crawled(response, links)
-                            score = self.strategy.get_score(response.url)
-                            if score is not None:
-                                encoded = self._encoder.encode_update_score(
-                                    response.meta['fingerprint'],
-                                    score,
-                                    response.url,
-                                    True
-                                )
-                                batch.append(encoded)
-                            for link in links:
-                                score = self.strategy.get_score(link.url)
-                                if score is not None:
-                                    encoded = self._encoder.encode_update_score(
-                                        link.meta['fingerprint'],
-                                        score,
-                                        link.url,
-                                        True
-                                    )
-                                    batch.append(encoded)
+                            batch.extend(self.on_page_crawled(response, links))
 
                         if type == 'request_error':
                             _, request, error = msg
-                            self.strategy.page_error(request, error)
+                            batch.extend(self.on_request_error(request, error))
                     finally:
                         consumed += 1
                         if batch:
@@ -106,6 +75,60 @@ class ScoringWorker(object):
             logger.info("Consumed %d items.", consumed)
             self.stats['last_consumed'] = consumed
             self.stats['last_consumption_run'] = asctime()
+
+    def on_add_seeds(self, seeds):
+        logger.info('Adding %i seeds', len(seeds))
+        seed_map = dict(map(lambda seed: (seed.meta['fingerprint'], seed), seeds))
+        self.backend.update_states(seeds, False)
+        scores = self.strategy.add_seeds(seeds)
+        self.backend.update_states(seeds, True)
+
+        for fingerprint, score in scores.iteritems():
+            seed = seed_map[fingerprint]
+            logger.debug('URL: ', seed.url)
+            if score is not None:
+                encoded = self._encoder.encode_update_score(
+                    seed.meta['fingerprint'],
+                    score,
+                    seed.url,
+                    True
+                )
+                yield encoded
+
+    def on_page_crawled(self, response, links):
+        logger.debug("Page crawled %s", response.url)
+        objs_list = [response]
+        objs_list.extend(links)
+        objs = dict(map(lambda obj: (obj.meta['fingerprint'], obj), objs_list))
+        self.backend.update_states(objs_list, False)
+        scores = self.strategy.page_crawled(response, links)
+        self.backend.update_states(objs_list, True)
+
+        for fingerprint, score in scores.iteritems():
+            obj = objs[fingerprint]
+            if score is not None:
+                encoded = self._encoder.encode_update_score(
+                    obj.meta['fingerprint'],
+                    score,
+                    obj.url,
+                    True
+                )
+                yield encoded
+
+    def on_request_error(self, request, error):
+        self.backend.update_states(request, False)
+        scores = self.strategy.page_error(request, error)
+        self.backend.update_states(request, True)
+        assert len(scores) == 1
+        fingerprint, score = scores.popitem()
+        if score is not None:
+            encoded = self._encoder.encode_update_score(
+                request.meta['fingerprint'],
+                score,
+                request.url,
+                False
+            )
+            yield encoded
 
 if __name__ == '__main__':
     parser = ArgumentParser(description="Crawl frontier scoring worker.")

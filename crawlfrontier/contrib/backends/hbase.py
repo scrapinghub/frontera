@@ -40,10 +40,10 @@ _pack_functions = {
     'depth': lambda x: pack('>I', 0),
     'created_at': lambda x: pack('>Q', x),
     'status_code': lambda x: pack('>H', x),
-    'state': lambda x: pack('>B', _state.get_id(x)),
+    'state': lambda x: pack('>B', _state.get_id(x) if type(x) == str else x),
     'error': str,
     'domain_fingerprint': str,
-    'score': lambda x: pack('>d', x)
+    'score': lambda x: pack('>f', x)
 }
 
 def unpack_score(blob):
@@ -53,7 +53,7 @@ def prepare_hbase_object(obj=None, **kwargs):
     if not obj:
         obj = dict()
     for k, v in kwargs.iteritems():
-        cf = 'm' if k != 'score' else 's'
+        cf = 'm' if k not in ['score', 'state'] else 's'
         func = _pack_functions[k]
         obj[cf+':'+k] = func(v)
     return obj
@@ -124,7 +124,7 @@ class HBaseQueue(object):
                 host_crc32 = domain
             else:
                 raise TypeError("domain of unknown type.")
-            item = [fingerprint, host_crc32, url, score]
+            item = [unhexlify(fingerprint), host_crc32, url, score]
             score = 1 - score  # because of lexicographical sort in HBase
             rk = "%d_%s_%d" %(partition_id, "%0.2f_%0.2f" % get_interval(score, 0.01), timestamp)
             data.setdefault(rk, []).append((score, item))
@@ -215,6 +215,35 @@ class HBaseQueue(object):
         pass
 
 
+class HBaseState(object):
+
+    def __init__(self, connection):
+        self.connection = connection
+
+    def update_states(self, objs, persist):
+        table = self.connection.table('metadata')
+        objs = objs if type(objs) in [list, tuple] else [objs]
+        if persist:
+            with table.batch(transaction=True) as b:
+                for obj in objs:
+                    if obj.meta['state'] is not None:
+                        hb_obj = prepare_hbase_object(state=obj.meta['state'])
+                        rk = unhexlify(obj.meta['fingerprint'])
+                        b.put(rk, hb_obj)
+            return
+        fingerprints = [unhexlify(obj.meta['fingerprint']) for obj in objs]
+        records = table.rows(fingerprints, columns=['s'])
+        states = dict()
+        for key, cells in records:
+            if 's:state' in cells:
+                fprint = hexlify(key)
+                states[fprint] = unpack('>B', cells['s:state'])[0]
+        for obj in objs:
+            fprint = obj.meta['fingerprint']
+            obj.meta['state'] = states[fprint] if fprint in states else None
+
+
+
 class HBaseBackend(Backend):
     component_name = 'HBase Backend'
 
@@ -231,6 +260,7 @@ class HBaseBackend(Backend):
         self.connection = Connection(host=host, port=int(port), table_prefix=namespace, table_prefix_separator=':')
         self.queue = HBaseQueue(self.connection, self.queue_partitions, self.manager.logger.backend,
                                 drop=drop_all_tables)
+        self.state_checker = HBaseState(self.connection)
 
         tables = set(self.connection.tables())
         if drop_all_tables and 'metadata' in tables:
@@ -238,9 +268,9 @@ class HBaseBackend(Backend):
             tables.remove('metadata')
 
         if 'metadata' not in tables:
-            self.connection.create_table('metadata', {'m': {'max_versions': 1, 'block_cache_enabled': 1,
-                                                            'bloom_filter_type': 'ROW'},
-                                                      's': {'max_versions': 1}
+            self.connection.create_table('metadata', {'m': {'max_versions': 5}, # 'compression': 'SNAPPY'
+                                                      's': {'max_versions': 1, 'block_cache_enabled': 1,
+                                                            'bloom_filter_type': 'ROW', 'in_memory': True, }
                                                      })
 
     @classmethod
@@ -261,56 +291,37 @@ class HBaseBackend(Backend):
                 obj = prepare_hbase_object(url=url,
                                            depth=0,
                                            created_at=utcnow_timestamp(),
-                                           state='NOT_CRAWLED',
                                            domain_fingerprint=domain['fingerprint'])
 
-                b.put(fingerprint, obj)
+                b.put(unhexlify(fingerprint), obj)
 
     def page_crawled(self, response, links):
         table = self.connection.table('metadata')
         url, fingerprint, domain = self.manager.canonicalsolver.get_canonical_url(response)
-        record = table.row(fingerprint, columns=['m:depth'])
-        if not record:
-            self.manager.logger.backend.error('Unseen record in page_crawled(), url=%s, fingerprint=%s' % (url,
-                                              fingerprint))
-            depth = 0
-            # FIXME put the rest of metadata in obj
-        else:
-            depth, = unpack('>I', record['m:depth'])
-
-        obj = prepare_hbase_object(state='CRAWLED',
-                                   status_code=response.status_code)
+        obj = prepare_hbase_object(status_code=response.status_code)
 
         links_dict = dict()
         for link in links:
             link_url, link_fingerprint, link_domain = self.manager.canonicalsolver.get_canonical_url(link)
-            links_dict[link_fingerprint] = (link, link_url, link_domain)
+            links_dict[unhexlify(link_fingerprint)] = (link, link_url, link_domain)
 
-        links_metadata = dict(table.rows(links_dict.keys(), columns=['m:state']))
         with table.batch(transaction=True) as b:
-            b.put(fingerprint, obj)
+            b.put(unhexlify(fingerprint), obj)
             for link_fingerprint, (link, link_url, link_domain) in links_dict.iteritems():
-                if link_fingerprint not in links_metadata:
-                    obj = prepare_hbase_object(url=link_url,
-                                               depth=depth+1,
-                                               created_at=utcnow_timestamp(),
-                                               state='NOT_CRAWLED',
-                                               domain_fingerprint=link_domain['fingerprint'])
-                    b.put(link_fingerprint, obj)
+                obj = prepare_hbase_object(url=link_url,
+                                           created_at=utcnow_timestamp(),
+                                           domain_fingerprint=link_domain['fingerprint'])
+                b.put(link_fingerprint, obj)
 
     def request_error(self, request, error):
         table = self.connection.table('metadata')
         url, fingerprint, domain = self.manager.canonicalsolver.get_canonical_url(request)
-        record = table.row(fingerprint, columns=['m:state'])
-        obj = prepare_hbase_object(state='ERROR',
-                                   error=error)
-        if not record:
-            prepare_hbase_object(obj, url=request.url,
-                                      depth=0,
-                                      created_at=utcnow_timestamp(),
-                                      domain_fingerprint=domain['fingerprint'])
-
-        table.put(request.meta['fingerprint'], obj)
+        obj = prepare_hbase_object(url=request.url,
+                                   created_at=utcnow_timestamp(),
+                                   error=error,
+                                   domain_fingerprint=domain['fingerprint'])
+        rk = unhexlify(request.meta['fingerprint'])
+        table.put(rk, obj)
 
     def get_next_requests(self, max_next_requests, **kwargs):
         next_pages = []
@@ -320,11 +331,11 @@ class HBaseBackend(Backend):
         for partition_id in range(0, self.queue_partitions):
             if partition_id not in partitions:
                 continue
-            fingerprints = self.queue.get(partition_id, max_next_requests,
+            results = self.queue.get(partition_id, max_next_requests,
                                                     min_hosts=24, max_requests_per_host=128)
 
-            log.debug("Got %d items for partition id %d" % (len(fingerprints), partition_id))
-            for fingerprint, url, score in fingerprints:
+            log.debug("Got %d items for partition id %d" % (len(results), partition_id))
+            for fingerprint, url, score in results:
                 r = self.manager.request_model(url=url)
                 r.meta['fingerprint'] = fingerprint
                 r.meta['score'] = score
@@ -340,7 +351,8 @@ class HBaseBackend(Backend):
         with table.batch(transaction=True) as b:
             for fprint, (score, url, schedule) in batch.iteritems():
                 obj = prepare_hbase_object(score=score)
-                b.put(fprint, obj)
+                rk = unhexlify(fprint)
+                b.put(rk, obj)
                 if schedule:
                     _, hostname, _, _, _, _ = parse_domain_from_url_fast(url)
                     if not hostname:
@@ -348,4 +360,7 @@ class HBaseBackend(Backend):
                         continue
                     to_schedule.append((score, fprint, {'name': hostname}, url))
         self.queue.schedule(to_schedule)
+
+    def update_states(self, objs, persist):
+        self.state_checker.update_states(objs, persist)
 
