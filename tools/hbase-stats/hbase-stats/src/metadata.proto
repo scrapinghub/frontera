@@ -1,0 +1,26 @@
+package hbasestats;
+option java_package = "com.scrapinghub.frontera.hbasestats";
+option java_outer_classname = "MetadataOuter";
+
+message DocumentMetadata {
+    required bytes fingerprint = 1;
+    optional string url = 2;
+    optional int32 depth = 3;
+    optional uint64 created_at = 4;
+    optional int32 status_code = 5;
+    optional int32 state = 6;
+    optional string error = 7;
+    optional string domain_fingerprint = 8;
+    optional float score = 9;
+}
+
+message HBaseCell {
+    required bytes family = 1;
+    required bytes column = 2;
+    required uint64 timestamp = 3;
+    required bytes value = 4;
+}
+
+message HBaseRow {
+    repeated HBaseCell cells = 1;
+}
