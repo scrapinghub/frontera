@@ -22,4 +22,5 @@ def hostname_local_fingerprint(key):
     doc_uri_combined = doc_uri_combined if type(doc_uri_combined) is str else \
         doc_uri_combined.encode('utf-8', 'ignore')
     doc_fprint = hashlib.md5(doc_uri_combined).digest()
-    return hexlify(pack(">i16B", host_checksum, doc_fprint))
+    fprint = hexlify(pack(">i16s", host_checksum, doc_fprint))
+    return fprint
