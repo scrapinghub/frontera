@@ -217,11 +217,12 @@ class HBaseQueue(object):
 
 class HBaseState(object):
 
-    def __init__(self, connection):
+    def __init__(self, connection, table_name):
         self.connection = connection
+        self._table_name = table_name
 
     def update_states(self, objs, persist):
-        table = self.connection.table('metadata')
+        table = self.connection.table(self._table_name)
         objs = objs if type(objs) in [list, tuple] else [objs]
         if persist:
             with table.batch(transaction=True) as b:
@@ -256,22 +257,24 @@ class HBaseBackend(Backend):
         namespace = settings.get('HBASE_NAMESPACE', 'crawler')
         drop_all_tables = settings.get('HBASE_DROP_ALL_TABLES', False)
         self.queue_partitions = settings.get('HBASE_QUEUE_PARTITIONS', 4)
+        self._table_name = settings.get('HBASE_METADATA_TABLE', 'metadata')
 
         self.connection = Connection(host=host, port=int(port), table_prefix=namespace, table_prefix_separator=':')
         self.queue = HBaseQueue(self.connection, self.queue_partitions, self.manager.logger.backend,
                                 drop=drop_all_tables)
-        self.state_checker = HBaseState(self.connection)
+        self.state_checker = HBaseState(self.connection, self._table_name)
+
 
         tables = set(self.connection.tables())
-        if drop_all_tables and 'metadata' in tables:
-            self.connection.delete_table('metadata', disable=True)
-            tables.remove('metadata')
+        if drop_all_tables and self._table_name in tables:
+            self.connection.delete_table(self._table_name, disable=True)
+            tables.remove(self._table_name)
 
-        if 'metadata' not in tables:
-            self.connection.create_table('metadata', {'m': {'max_versions': 5}, # 'compression': 'SNAPPY'
-                                                      's': {'max_versions': 1, 'block_cache_enabled': 1,
+        if self._table_name not in tables:
+            self.connection.create_table(self._table_name, {'m': {'max_versions': 5}, # 'compression': 'SNAPPY'
+                                                            's': {'max_versions': 1, 'block_cache_enabled': 1,
                                                             'bloom_filter_type': 'ROW', 'in_memory': True, }
-                                                     })
+                                                            })
 
     @classmethod
     def from_manager(cls, manager):
@@ -284,7 +287,7 @@ class HBaseBackend(Backend):
         self.connection.close()
 
     def add_seeds(self, seeds):
-        table = self.connection.table('metadata')
+        table = self.connection.table(self._table_name)
         with table.batch(transaction=True) as b:
             for seed in seeds:
                 url, fingerprint, domain = self.manager.canonicalsolver.get_canonical_url(seed)
@@ -296,7 +299,7 @@ class HBaseBackend(Backend):
                 b.put(unhexlify(fingerprint), obj)
 
     def page_crawled(self, response, links):
-        table = self.connection.table('metadata')
+        table = self.connection.table(self._table_name)
         url, fingerprint, domain = self.manager.canonicalsolver.get_canonical_url(response)
         obj = prepare_hbase_object(status_code=response.status_code)
 
@@ -314,7 +317,7 @@ class HBaseBackend(Backend):
                 b.put(link_fingerprint, obj)
 
     def request_error(self, request, error):
-        table = self.connection.table('metadata')
+        table = self.connection.table(self._table_name)
         url, fingerprint, domain = self.manager.canonicalsolver.get_canonical_url(request)
         obj = prepare_hbase_object(url=request.url,
                                    created_at=utcnow_timestamp(),
@@ -346,7 +349,7 @@ class HBaseBackend(Backend):
         if not isinstance(batch, dict):
             raise TypeError('batch should be dict with fingerprint as key, and float score as value')
 
-        table = self.connection.table('metadata')
+        table = self.connection.table(self._table_name)
         to_schedule = []
         with table.batch(transaction=True) as b:
             for fprint, (score, url, schedule) in batch.iteritems():
