@@ -284,6 +284,8 @@ class HBaseBackend(Backend):
                                                             's': {'max_versions': 1, 'block_cache_enabled': 1,
                                                             'bloom_filter_type': 'ROW', 'in_memory': True, }
                                                             })
+        table = self.connection.table(self._table_name)
+        self.batch = table.batch(transaction=True, batch_size=4096)
 
     @classmethod
     def from_manager(cls, manager):
@@ -296,19 +298,15 @@ class HBaseBackend(Backend):
         self.connection.close()
 
     def add_seeds(self, seeds):
-        table = self.connection.table(self._table_name)
-        with table.batch(transaction=True) as b:
-            for seed in seeds:
-                url, fingerprint, domain = self.manager.canonicalsolver.get_canonical_url(seed)
-                obj = prepare_hbase_object(url=url,
-                                           depth=0,
-                                           created_at=utcnow_timestamp(),
-                                           domain_fingerprint=domain['fingerprint'])
-
-                b.put(unhexlify(fingerprint), obj)
+        for seed in seeds:
+            url, fingerprint, domain = self.manager.canonicalsolver.get_canonical_url(seed)
+            obj = prepare_hbase_object(url=url,
+                                       depth=0,
+                                       created_at=utcnow_timestamp(),
+                                       domain_fingerprint=domain['fingerprint'])
+            self.batch.put(unhexlify(fingerprint), obj)
 
     def page_crawled(self, response, links):
-        table = self.connection.table(self._table_name)
         url, fingerprint, domain = self.manager.canonicalsolver.get_canonical_url(response)
         obj = prepare_hbase_object(status_code=response.status_code)
 
@@ -317,23 +315,22 @@ class HBaseBackend(Backend):
             link_url, link_fingerprint, link_domain = self.manager.canonicalsolver.get_canonical_url(link)
             links_dict[unhexlify(link_fingerprint)] = (link, link_url, link_domain)
 
-        with table.batch(transaction=True) as b:
-            b.put(unhexlify(fingerprint), obj)
-            for link_fingerprint, (link, link_url, link_domain) in links_dict.iteritems():
-                obj = prepare_hbase_object(url=link_url,
-                                           created_at=utcnow_timestamp(),
-                                           domain_fingerprint=link_domain['fingerprint'])
-                b.put(link_fingerprint, obj)
+
+        self.batch.put(unhexlify(fingerprint), obj)
+        for link_fingerprint, (link, link_url, link_domain) in links_dict.iteritems():
+            obj = prepare_hbase_object(url=link_url,
+                                       created_at=utcnow_timestamp(),
+                                       domain_fingerprint=link_domain['fingerprint'])
+            self.batch.put(link_fingerprint, obj)
 
     def request_error(self, request, error):
-        table = self.connection.table(self._table_name)
         url, fingerprint, domain = self.manager.canonicalsolver.get_canonical_url(request)
         obj = prepare_hbase_object(url=request.url,
                                    created_at=utcnow_timestamp(),
                                    error=error,
                                    domain_fingerprint=domain['fingerprint'])
         rk = unhexlify(request.meta['fingerprint'])
-        table.put(rk, obj)
+        self.batch.put(rk, obj)
 
     def get_next_requests(self, max_next_requests, **kwargs):
         next_pages = []
@@ -358,20 +355,21 @@ class HBaseBackend(Backend):
         if not isinstance(batch, dict):
             raise TypeError('batch should be dict with fingerprint as key, and float score as value')
 
-        table = self.connection.table(self._table_name)
         to_schedule = []
-        with table.batch(transaction=True) as b:
-            for fprint, (score, url, schedule) in batch.iteritems():
-                obj = prepare_hbase_object(score=score)
-                rk = unhexlify(fprint)
-                b.put(rk, obj)
-                if schedule:
-                    _, hostname, _, _, _, _ = parse_domain_from_url_fast(url)
-                    if not hostname:
-                        self.manager.logger.backend.error("Can't get hostname for URL %s, fingerprint %s" % (url, fprint))
-                        continue
-                    to_schedule.append((score, fprint, {'name': hostname}, url))
+        for fprint, (score, url, schedule) in batch.iteritems():
+            obj = prepare_hbase_object(score=score)
+            rk = unhexlify(fprint)
+            self.batch.put(rk, obj)
+            if schedule:
+                _, hostname, _, _, _, _ = parse_domain_from_url_fast(url)
+                if not hostname:
+                    self.manager.logger.backend.error("Can't get hostname for URL %s, fingerprint %s" % (url, fprint))
+                    continue
+                to_schedule.append((score, fprint, {'name': hostname}, url))
         self.queue.schedule(to_schedule)
+
+    def flush(self):
+        self.batch.send()
 
     def update_states(self, objs, persist):
         self.state_checker.update(objs, persist)
