@@ -56,7 +56,7 @@ class Slot(object):
                 self.new_batch.schedule(self.new_batch_delay)
             if not self.disable_scoring_consumption:
                 self.scoring_consumption.schedule()
-        self.scheduling.schedule(1.0)
+        self.scheduling.schedule(5.0)
 
 
 class FrontierWorker(object):
@@ -138,6 +138,7 @@ class FrontierWorker(object):
         logger.info("Consumed %d items.", consumed)
         self.stats['last_consumed'] = consumed
         self.stats['last_consumption_run'] = asctime()
+        self.slot.schedule()
         return consumed
 
     def consume_scoring(self, *args, **kwargs):
@@ -164,6 +165,7 @@ class FrontierWorker(object):
         logger.info("Consumed %d items during scoring consumption.", consumed)
         self.stats['last_consumed_scoring'] = consumed
         self.stats['last_consumption_run_scoring'] = asctime()
+        self.slot.schedule()
 
     def new_batch(self, *args, **kwargs):
         lags = self._offset_fetcher.get()
