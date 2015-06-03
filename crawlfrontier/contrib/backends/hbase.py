@@ -244,7 +244,7 @@ class HBaseState(object):
         self._state_cache.clear()
 
     def fetch(self, fingerprints):
-        for chunk in chunks(fingerprints, 4096):
+        for chunk in chunks(fingerprints, 131072):
             keys = [unhexlify(fprint) for fprint in chunk]
             table = self.connection.table(self._table_name)
             records = table.rows(keys, columns=['s:state'])
