@@ -233,7 +233,7 @@ class HBaseState(object):
                         b.put(rk, hb_obj)
             return
         fingerprints = [unhexlify(obj.meta['fingerprint']) for obj in objs]
-        records = table.rows(fingerprints, columns=['s'])
+        records = table.rows(fingerprints, columns=['s:state'])
         states = dict()
         for key, cells in records:
             if 's:state' in cells:
