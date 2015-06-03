@@ -64,6 +64,7 @@ class ScoringWorker(object):
                         consumed += 1
                         if batch:
                             self._producer.send_messages(self.outgoing_topic, *batch)
+                        self.backend.flush_states()
                 if self.strategy.finished():
                     logger.info("Succesfully reached the crawling goal. Exiting.")
                     exit(0)
