@@ -222,7 +222,7 @@ class HBaseState(object):
         self._table_name = table_name
         self._state_cache = {}
 
-    def update_states(self, objs, persist):
+    def update(self, objs, persist):
         objs = objs if type(objs) in [list, tuple] else [objs]
         if persist:
             for obj in objs:
@@ -231,29 +231,27 @@ class HBaseState(object):
                     self._state_cache[key] = obj.meta['state']
             return
 
-        fingerprints = []
-        for obj in objs:
-            rk = unhexlify(obj.meta['fingerprint'])
-            if rk not in self._state_cache:
-                fingerprints.append(rk)
-        if fingerprints:
-            table = self.connection.table(self._table_name)
-            records = table.rows(fingerprints, columns=['s:state'])
-            for key, cells in records:
-                if 's:state' in cells:
-                    state = unpack('>B', cells['s:state'])[0]
-                    self._state_cache[key] = state
         for obj in objs:
             key = unhexlify(obj.meta['fingerprint'])
             obj.meta['state'] = self._state_cache[key] if key in self._state_cache else None
 
-    def flush_states(self):
+    def flush(self):
         table = self.connection.table(self._table_name)
         with table.batch(transaction=True) as b:
             for key, state in self._state_cache.iteritems():
                 hb_obj = prepare_hbase_object(state=state)
                 b.put(key, hb_obj)
         self._state_cache.clear()
+
+    def fetch(self, fingerprints):
+        for chunk in chunks(fingerprints, 4096):
+            keys = [unhexlify(fprint) for fprint in chunk]
+            table = self.connection.table(self._table_name)
+            records = table.rows(keys, columns=['s:state'])
+            for key, cells in records:
+                if 's:state' in cells:
+                    state = unpack('>B', cells['s:state'])[0]
+                    self._state_cache[key] = state
 
 
 class HBaseBackend(Backend):
@@ -376,8 +374,11 @@ class HBaseBackend(Backend):
         self.queue.schedule(to_schedule)
 
     def update_states(self, objs, persist):
-        self.state_checker.update_states(objs, persist)
+        self.state_checker.update(objs, persist)
 
     def flush_states(self):
-        self.state_checker.flush_states()
+        self.state_checker.flush()
+
+    def fetch_states(self, fingerprints):
+        self.state_checker.fetch(fingerprints)
 

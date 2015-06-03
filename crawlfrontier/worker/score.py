@@ -37,12 +37,12 @@ class ScoringWorker(object):
         self.stats = {}
 
     def run(self):
-        cycle = 0
         while True:
             consumed = 0
+            batch = []
+            fingerprints = set()
             try:
                 for m in self._in_consumer.get_messages(count=self.consumer_batch_size, block=True, timeout=1.0):
-                    batch = []
                     try:
                         msg = self._decoder.decode(m.message.value)
                     except (KeyError, TypeError), e:
@@ -50,32 +50,57 @@ class ScoringWorker(object):
                         continue
                     else:
                         type = msg[0]
+                        batch.append(msg)
                         if type == 'add_seeds':
                             _, seeds = msg
-                            batch.extend(self.on_add_seeds(seeds))
+                            fingerprints.update(map(lambda x: x.meta['fingerprint'], seeds))
+                            continue
 
                         if type == 'page_crawled':
                             _, response, links = msg
-                            batch.extend(self.on_page_crawled(response, links))
+                            fingerprints.add(response.meta['fingerprint'])
+                            fingerprints.update(map(lambda x: x.meta['fingerprint'], links))
+                            continue
 
                         if type == 'request_error':
                             _, request, error = msg
-                            batch.extend(self.on_request_error(request, error))
+                            fingerprints.add(request.meta['fingerprint'])
+                            continue
+
+                        raise TypeError('Unknown message type %s' % type)
                     finally:
                         consumed += 1
-                        if batch:
-                            self._producer.send_messages(self.outgoing_topic, *batch)
             except OffsetOutOfRangeError, e:
                 # https://github.com/mumrah/kafka-python/issues/263
                 self._in_consumer.seek(0, 2)  # moving to the tail of the log
                 logger.info("Caught OffsetOutOfRangeError, moving to the tail of the log.")
 
+            self.backend.fetch_states(fingerprints)
+            fingerprints.clear()
+            results = []
+            for msg in batch:
+                if type == 'add_seeds':
+                    _, seeds = msg
+                    results.extend(self.on_add_seeds(seeds))
+                    continue
+
+                if type == 'page_crawled':
+                    _, response, links = msg
+                    results.extend(self.on_page_crawled(response, links))
+                    continue
+
+                if type == 'request_error':
+                    _, request, error = msg
+                    results.extend(self.on_request_error(request, error))
+                    continue
+
+            if results:
+                self._producer.send_messages(self.outgoing_topic, *results)
+
+            self.backend.flush_states()
             if self.strategy.finished():
                 logger.info("Succesfully reached the crawling goal. Exiting.")
                 exit(0)
-            if cycle % 20 == 0:
-                self.backend.flush_states()
-            cycle += 1
 
             logger.info("Consumed %d items.", consumed)
             self.stats['last_consumed'] = consumed
