@@ -81,7 +81,6 @@ class FronteraScheduler(Scheduler):
             log.msg('FRONTERA_SETTINGS not found! Using default Frontera settings...', log.WARNING)
         self.frontier = ScrapyFrontierManager(frontier_settings)
 
-        self._delay_on_empty = self.frontier.manager.settings.get('DELAY_ON_EMPTY')
         self._delay_next_call = 0.0
 
     @classmethod
@@ -139,6 +138,10 @@ class FronteraScheduler(Scheduler):
     def has_pending_requests(self):
         return len(self) > 0
 
+    @property
+    def delay_on_empty(self):
+        return self.frontier.manager.settings.get('DELAY_ON_EMPTY')
+
     def _get_next_request(self):
         if not self.frontier.manager.finished and \
                 len(self) < self.crawler.engine.downloader.total_concurrency and \
@@ -148,7 +151,7 @@ class FronteraScheduler(Scheduler):
             requests = self.frontier.get_next_requests(key_type=info['key_type'], overused_keys=info['overused_keys'])
             for request in requests:
                 self._add_pending_request(request)
-            self._delay_next_call = time() + self._delay_on_empty if not requests else 0.0
+            self._delay_next_call = time() + self.delay_on_empty if not requests else 0.0
         return self._get_pending_request()
 
     def _add_pending_request(self, request):
