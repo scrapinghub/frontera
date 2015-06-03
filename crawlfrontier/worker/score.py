@@ -40,7 +40,7 @@ class ScoringWorker(object):
         while True:
             consumed = 0
             try:
-                for m in self._in_consumer.get_messages(count=self.consumer_batch_size, timeout=5.0):
+                for m in self._in_consumer.get_messages(count=self.consumer_batch_size):
                     batch = []
                     try:
                         msg = self._decoder.decode(m.message.value)
