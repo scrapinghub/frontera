@@ -37,10 +37,11 @@ class ScoringWorker(object):
         self.stats = {}
 
     def run(self):
+        cycle = 0
         while True:
             consumed = 0
             try:
-                for m in self._in_consumer.get_messages(count=self.consumer_batch_size):
+                for m in self._in_consumer.get_messages(count=self.consumer_batch_size, block=True, timeout=1.0):
                     batch = []
                     try:
                         msg = self._decoder.decode(m.message.value)
@@ -64,14 +65,17 @@ class ScoringWorker(object):
                         consumed += 1
                         if batch:
                             self._producer.send_messages(self.outgoing_topic, *batch)
-                        self.backend.flush_states()
-                if self.strategy.finished():
-                    logger.info("Succesfully reached the crawling goal. Exiting.")
-                    exit(0)
             except OffsetOutOfRangeError, e:
                 # https://github.com/mumrah/kafka-python/issues/263
                 self._in_consumer.seek(0, 2)  # moving to the tail of the log
                 logger.info("Caught OffsetOutOfRangeError, moving to the tail of the log.")
+
+            if self.strategy.finished():
+                logger.info("Succesfully reached the crawling goal. Exiting.")
+                exit(0)
+            if cycle % 20 == 0:
+                self.backend.flush_states()
+            cycle += 1
 
             logger.info("Consumed %d items.", consumed)
             self.stats['last_consumed'] = consumed
