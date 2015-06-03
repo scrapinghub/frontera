@@ -75,10 +75,11 @@ class ScoringWorker(object):
                 self._in_consumer.seek(0, 2)  # moving to the tail of the log
                 logger.info("Caught OffsetOutOfRangeError, moving to the tail of the log.")
 
-            self.backend.fetch_states(fingerprints)
+            self.backend.fetch_states(list(fingerprints))
             fingerprints.clear()
             results = []
             for msg in batch:
+                type = msg[0]
                 if type == 'add_seeds':
                     _, seeds = msg
                     results.extend(self.on_add_seeds(seeds))
