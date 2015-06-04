@@ -6,6 +6,7 @@ from time import asctime
 from twisted.internet import reactor
 from kafka import KafkaClient, KeyedProducer, SimpleConsumer
 from kafka.common import OffsetOutOfRangeError
+from kafka.protocol import CODEC_SNAPPY
 
 from crawlfrontier.contrib.backends.remote.codecs import KafkaJSONDecoder, KafkaJSONEncoder
 from crawlfrontier.core.manager import FrontierManager
@@ -62,7 +63,7 @@ class Slot(object):
 class FrontierWorker(object):
     def __init__(self, settings, no_batches, no_scoring, no_incoming):
         self._kafka = KafkaClient(settings.get('KAFKA_LOCATION'))
-        self._producer = KeyedProducer(self._kafka, partitioner=Crc32NamePartitioner)
+        self._producer = KeyedProducer(self._kafka, partitioner=Crc32NamePartitioner, codec=CODEC_SNAPPY)
 
         self._in_consumer = SimpleConsumer(self._kafka,
                                        settings.get('FRONTIER_GROUP'),

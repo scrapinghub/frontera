@@ -4,6 +4,7 @@ from crawlfrontier.contrib.backends.remote.codecs import KafkaJSONDecoder, Kafka
 from crawlfrontier.core.manager import FrontierManager
 from kafka import KafkaClient, SimpleProducer, SimpleConsumer
 from kafka.common import OffsetOutOfRangeError
+from kafka.protocol import CODEC_SNAPPY
 
 from time import asctime
 import logging
@@ -18,7 +19,7 @@ logger = logging.getLogger("score")
 class ScoringWorker(object):
     def __init__(self, settings, strategy_module):
         kafka = KafkaClient(settings.get('KAFKA_LOCATION'))
-        self._producer = SimpleProducer(kafka)
+        self._producer = SimpleProducer(kafka, codec=CODEC_SNAPPY)
 
         self._in_consumer = SimpleConsumer(kafka,
                                        settings.get('SCORING_GROUP'),

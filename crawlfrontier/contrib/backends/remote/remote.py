@@ -4,6 +4,7 @@ from codecs import KafkaJSONEncoder, KafkaJSONDecoder
 
 from kafka import KafkaClient, SimpleConsumer, SimpleProducer
 from kafka.common import BrokerResponseError, OffsetOutOfRangeError, MessageSizeTooLargeError
+from kafka.protocol import CODEC_SNAPPY
 from logging import getLogger, StreamHandler
 
 from crawlfrontier import Backend, Settings
@@ -64,7 +65,7 @@ class KafkaBackend(Backend):
         """        
         if self._prod is None:
             try:
-                self._prod = SimpleProducer(self._conn)
+                self._prod = SimpleProducer(self._conn, codec=CODEC_SNAPPY)
             except BrokerResponseError:
                 self._prod = None        
                 if self._manager is not None:
