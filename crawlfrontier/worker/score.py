@@ -2,6 +2,7 @@
 from crawlfrontier.settings import Settings
 from crawlfrontier.contrib.backends.remote.codecs import KafkaJSONDecoder, KafkaJSONEncoder
 from crawlfrontier.core.manager import FrontierManager
+from crawlfrontier.utils.misc import chunks
 from kafka import KafkaClient, SimpleProducer, SimpleConsumer
 from kafka.common import OffsetOutOfRangeError
 from kafka.protocol import CODEC_SNAPPY
@@ -80,6 +81,10 @@ class ScoringWorker(object):
             fingerprints.clear()
             results = []
             for msg in batch:
+                if len(results) > 1024:
+                    self._producer.send_messages(self.outgoing_topic, *results)
+                    results = []
+
                 type = msg[0]
                 if type == 'add_seeds':
                     _, seeds = msg
@@ -95,10 +100,7 @@ class ScoringWorker(object):
                     _, request, error = msg
                     results.extend(self.on_request_error(request, error))
                     continue
-
-            if results:
-                self._producer.send_messages(self.outgoing_topic, *results)
-
+                
             self.backend.flush_states()
             if self.strategy.finished():
                 logger.info("Succesfully reached the crawling goal. Exiting.")
@@ -115,6 +117,7 @@ class ScoringWorker(object):
         scores = self.strategy.add_seeds(seeds)
         self.backend.update_states(seeds, True)
 
+        output = []
         for fingerprint, score in scores.iteritems():
             seed = seed_map[fingerprint]
             logger.debug('URL: ', seed.url)
@@ -125,7 +128,8 @@ class ScoringWorker(object):
                     seed.url,
                     True
                 )
-                yield encoded
+                output.append(encoded)
+        return output
 
     def on_page_crawled(self, response, links):
         logger.debug("Page crawled %s", response.url)
@@ -136,6 +140,7 @@ class ScoringWorker(object):
         scores = self.strategy.page_crawled(response, links)
         self.backend.update_states(objs_list, True)
 
+        output = []
         for fingerprint, score in scores.iteritems():
             obj = objs[fingerprint]
             if score is not None:
@@ -145,7 +150,8 @@ class ScoringWorker(object):
                     obj.url,
                     True
                 )
-                yield encoded
+                output.append(encoded)
+        return output       
 
     def on_request_error(self, request, error):
         self.backend.update_states(request, False)
@@ -160,7 +166,8 @@ class ScoringWorker(object):
                 request.url,
                 False
             )
-            yield encoded
+            return [encoded]
+        return []
 
 if __name__ == '__main__':
     parser = ArgumentParser(description="Crawl frontier scoring worker.")
