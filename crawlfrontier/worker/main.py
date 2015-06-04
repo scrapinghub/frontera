@@ -97,7 +97,7 @@ class FrontierWorker(object):
     def consume_incoming(self, *args, **kwargs):
         consumed = 0
         try:
-            for m in self._in_consumer.get_messages(count=self.consumer_batch_size):
+            for m in self._in_consumer.get_messages(count=self.consumer_batch_size, block=True, timeout=1.0):
                 try:
                     msg = self._decoder.decode(m.message.value)
                 except (KeyError, TypeError), e:

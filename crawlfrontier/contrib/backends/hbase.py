@@ -285,7 +285,7 @@ class HBaseBackend(Backend):
                                                             'bloom_filter_type': 'ROW', 'in_memory': True, }
                                                             })
         table = self.connection.table(self._table_name)
-        self.batch = table.batch(transaction=True, batch_size=4096)
+        self.batch = table.batch(batch_size=12288)
 
     @classmethod
     def from_manager(cls, manager):
@@ -296,6 +296,7 @@ class HBaseBackend(Backend):
 
     def frontier_stop(self):
         self.connection.close()
+        self.flush()
 
     def add_seeds(self, seeds):
         for seed in seeds:
