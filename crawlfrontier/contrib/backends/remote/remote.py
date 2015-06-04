@@ -1,6 +1,6 @@
 import time
 
-from codecs import KafkaJSONEncoder, KafkaJSONDecoder
+from codecs.json import Encoder, Decoder
 
 from kafka import KafkaClient, SimpleConsumer, SimpleProducer
 from kafka.common import BrokerResponseError, OffsetOutOfRangeError, MessageSizeTooLargeError
@@ -55,8 +55,8 @@ class KafkaBackend(Backend):
         self._connect_consumer()
         self._connect_producer()
 
-        self._encoder = KafkaJSONEncoder(manager.request_model)
-        self._decoder = KafkaJSONDecoder(manager.request_model, manager.response_model)
+        self._encoder = Encoder(manager.request_model)
+        self._decoder = Decoder(manager.request_model, manager.response_model)
                 
     def _connect_producer(self):
         """If producer is not connected try to connect it now.

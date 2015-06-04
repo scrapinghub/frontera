@@ -8,7 +8,7 @@ from kafka import KafkaClient, KeyedProducer, SimpleConsumer
 from kafka.common import OffsetOutOfRangeError
 from kafka.protocol import CODEC_SNAPPY
 
-from crawlfrontier.contrib.backends.remote.codecs import KafkaJSONDecoder, KafkaJSONEncoder
+from crawlfrontier.contrib.backends.remote.codecs.json import Decoder, Encoder
 from crawlfrontier.core.manager import FrontierManager
 from crawlfrontier.settings import Settings
 from crawlfrontier.worker.partitioner import Crc32NamePartitioner
@@ -81,8 +81,8 @@ class FrontierWorker(object):
 
         self._manager = FrontierManager.from_settings(settings)
         self._backend = self._manager.backend
-        self._encoder = KafkaJSONEncoder(self._manager.request_model)
-        self._decoder = KafkaJSONDecoder(self._manager.request_model, self._manager.response_model)
+        self._encoder = Encoder(self._manager.request_model)
+        self._decoder = Decoder(self._manager.request_model, self._manager.response_model)
 
         self.consumer_batch_size = settings.get('CONSUMER_BATCH_SIZE', 128)
         self.outgoing_topic = settings.get('OUTGOING_TOPIC')

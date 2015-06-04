@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from crawlfrontier.settings import Settings
-from crawlfrontier.contrib.backends.remote.codecs import KafkaJSONDecoder, KafkaJSONEncoder
+from crawlfrontier.contrib.backends.remote.codecs.json import Decoder, Encoder
 from crawlfrontier.core.manager import FrontierManager
 from crawlfrontier.utils.misc import chunks
 from kafka import KafkaClient, SimpleProducer, SimpleConsumer
@@ -29,8 +29,8 @@ class ScoringWorker(object):
                                        max_buffer_size=10485760)
 
         self._manager = FrontierManager.from_settings(settings)
-        self._decoder = KafkaJSONDecoder(self._manager.request_model, self._manager.response_model)
-        self._encoder = KafkaJSONEncoder(self._manager.request_model)
+        self._decoder = Decoder(self._manager.request_model, self._manager.response_model)
+        self._encoder = Encoder(self._manager.request_model)
 
         self.consumer_batch_size = settings.get('CONSUMER_BATCH_SIZE', 128)
         self.outgoing_topic = settings.get('SCORING_TOPIC')

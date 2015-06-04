@@ -30,9 +30,9 @@ class CrawlFrontierJSONEncoder(json.JSONEncoder):
             return super(CrawlFrontierJSONEncoder, self).default(o)
 
 
-class KafkaJSONEncoder(CrawlFrontierJSONEncoder):
+class Encoder(CrawlFrontierJSONEncoder):
     def __init__(self, request_model, *a, **kw):
-        super(KafkaJSONEncoder, self).__init__(request_model, *a, **kw)
+        super(Encoder, self).__init__(request_model, *a, **kw)
 
     def encode_add_seeds(self, seeds):
         """
@@ -86,11 +86,11 @@ class KafkaJSONEncoder(CrawlFrontierJSONEncoder):
                             'schedule': schedule})
 
 
-class KafkaJSONDecoder(json.JSONDecoder):
+class Decoder(json.JSONDecoder):
     def __init__(self, request_model, response_model, *a, **kw):
         self._request_model = request_model
         self._response_model = response_model
-        super(KafkaJSONDecoder, self).__init__(*a, **kw)
+        super(Decoder, self).__init__(*a, **kw)
 
     def _response_from_object(self, obj):
         request = self._request_model(url=obj['url'],
@@ -112,7 +112,7 @@ class KafkaJSONDecoder(json.JSONDecoder):
         :param bytes message encoded message
         :return tuple of message type and related objects
         """
-        message = super(KafkaJSONDecoder, self).decode(message)
+        message = super(Decoder, self).decode(message)
         if message['type'] == 'page_crawled':
             response = self._response_from_object(message['r'])
             links = [self._request_from_object(link) for link in message['links']]
@@ -131,7 +131,7 @@ class KafkaJSONDecoder(json.JSONDecoder):
         return TypeError('Unknown message type')
 
     def decode_request(self, message):
-        obj = super(KafkaJSONDecoder, self).decode(message)
+        obj = super(Decoder, self).decode(message)
         return self._request_model(url=obj['url'],
                                     method=obj['method'],
                                     headers=obj['headers'],
