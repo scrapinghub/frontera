@@ -24,7 +24,7 @@ class CrawlStrategy(object):
             if link.meta['state'] is None:
                 url, fingerprint, _ = self.canonicalsolver.get_canonical_url(link)
                 scores[fingerprint] = self.get_score(url)
-                response.meta['state'] = _state.get_id('QUEUED')
+                link.meta['state'] = _state.get_id('QUEUED')
         return scores
 
     def page_error(self, request, error):
