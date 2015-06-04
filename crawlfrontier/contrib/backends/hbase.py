@@ -138,9 +138,9 @@ class HBaseQueue(object):
                     obj.setdefault(column, []).append(item)
 
                 final = dict()
-                stream = BytesIO()
                 packer = Packer()
                 for column, items in obj.iteritems():
+                    stream = BytesIO()
                     for item in items: stream.write(packer.pack(item))
                     final[column] = stream.getvalue()
                 b.put(rk, final)
