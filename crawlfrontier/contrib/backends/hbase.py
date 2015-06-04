@@ -225,22 +225,23 @@ class HBaseState(object):
     def update(self, objs, persist):
         objs = objs if type(objs) in [list, tuple] else [objs]
         if persist:
-            for obj in objs:
+            def put(obj):
                 if obj.meta['state'] is not None:
-                    key = unhexlify(obj.meta['fingerprint'])
-                    self._state_cache[key] = obj.meta['state']
+                    self._state_cache[obj.meta['fingerprint']] = obj.meta['state']
+            map(put, objs)
             return
 
-        for obj in objs:
-            key = unhexlify(obj.meta['fingerprint'])
-            obj.meta['state'] = self._state_cache[key] if key in self._state_cache else None
+        def get(obj):
+            fprint = obj.meta['fingerprint']
+            obj.meta['state'] = self._state_cache[fprint] if fprint in self._state_cache else None
+        map(get, objs)
 
     def flush(self):
         table = self.connection.table(self._table_name)
         with table.batch(transaction=True) as b:
-            for key, state in self._state_cache.iteritems():
+            for fprint, state in self._state_cache.iteritems():
                 hb_obj = prepare_hbase_object(state=state)
-                b.put(key, hb_obj)
+                b.put(unhexlify(fprint), hb_obj)
         self._state_cache.clear()
 
     def fetch(self, fingerprints):
@@ -251,7 +252,7 @@ class HBaseState(object):
             for key, cells in records:
                 if 's:state' in cells:
                     state = unpack('>B', cells['s:state'])[0]
-                    self._state_cache[key] = state
+                    self._state_cache[hexlify(key)] = state
 
 
 class HBaseBackend(Backend):
