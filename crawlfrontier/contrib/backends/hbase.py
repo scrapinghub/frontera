@@ -13,6 +13,7 @@ from binascii import hexlify, unhexlify
 from zlib import crc32
 from msgpack import Unpacker, Packer
 from io import BytesIO
+from random import choice
 
 
 
@@ -263,11 +264,12 @@ class HBaseBackend(Backend):
 
         settings = manager.settings
         port = settings.get('HBASE_THRIFT_PORT', 9090)
-        host = settings.get('HBASE_THRIFT_HOST', 'localhost')
+        hosts = settings.get('HBASE_THRIFT_HOST', 'localhost')
         namespace = settings.get('HBASE_NAMESPACE', 'crawler')
         drop_all_tables = settings.get('HBASE_DROP_ALL_TABLES', False)
         self.queue_partitions = settings.get('HBASE_QUEUE_PARTITIONS', 4)
         self._table_name = settings.get('HBASE_METADATA_TABLE', 'metadata')
+        host = choice(hosts) if type(hosts) in [list, tuple] else hosts
 
         self.connection = Connection(host=host, port=int(port), table_prefix=namespace, table_prefix_separator=':')
         self.queue = HBaseQueue(self.connection, self.queue_partitions, self.manager.logger.backend,
