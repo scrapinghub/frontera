@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from crawlfrontier.settings import Settings
-from crawlfrontier.contrib.backends.remote.codecs.json import Decoder, Encoder
+from crawlfrontier.contrib.backends.remote.codecs.msgpack import Decoder, Encoder
 from crawlfrontier.core.manager import FrontierManager
 from crawlfrontier.utils.misc import chunks
 from kafka import KafkaClient, SimpleProducer, SimpleConsumer
@@ -100,7 +100,8 @@ class ScoringWorker(object):
                     _, request, error = msg
                     results.extend(self.on_request_error(request, error))
                     continue
-                
+            if len(results):
+                self._producer.send_messages(self.outgoing_topic, *results)
             self.backend.flush_states()
             if self.strategy.finished():
                 logger.info("Succesfully reached the crawling goal. Exiting.")

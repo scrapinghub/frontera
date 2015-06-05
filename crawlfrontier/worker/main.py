@@ -8,7 +8,7 @@ from kafka import KafkaClient, KeyedProducer, SimpleConsumer
 from kafka.common import OffsetOutOfRangeError
 from kafka.protocol import CODEC_SNAPPY
 
-from crawlfrontier.contrib.backends.remote.codecs.json import Decoder, Encoder
+from crawlfrontier.contrib.backends.remote.codecs.msgpack import Decoder, Encoder
 from crawlfrontier.core.manager import FrontierManager
 from crawlfrontier.settings import Settings
 from crawlfrontier.worker.partitioner import Crc32NamePartitioner

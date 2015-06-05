@@ -1,6 +1,6 @@
 import time
 
-from codecs.json import Encoder, Decoder
+from codecs.msgpack import Encoder, Decoder
 
 from kafka import KafkaClient, SimpleConsumer, SimpleProducer
 from kafka.common import BrokerResponseError, OffsetOutOfRangeError, MessageSizeTooLargeError
