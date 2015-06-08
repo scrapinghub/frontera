@@ -237,16 +237,19 @@ class HBaseState(object):
             obj.meta['state'] = self._state_cache[fprint] if fprint in self._state_cache else None
         map(get, objs)
 
-    def flush(self):
+    def flush(self, is_clear):
         table = self.connection.table(self._table_name)
         with table.batch(transaction=True) as b:
             for fprint, state in self._state_cache.iteritems():
                 hb_obj = prepare_hbase_object(state=state)
                 b.put(unhexlify(fprint), hb_obj)
-        self._state_cache.clear()
+        if is_clear:
+            self._state_cache.clear()
 
     def fetch(self, fingerprints):
-        for chunk in chunks(fingerprints, 131072):
+        to_fetch = [f for f in fingerprints if f not in self._state_cache]
+        print "to fetch %d from %d" % (len(to_fetch), len(fingerprints))
+        for chunk in chunks(to_fetch, 131072):
             keys = [unhexlify(fprint) for fprint in chunk]
             table = self.connection.table(self._table_name)
             records = table.rows(keys, columns=['s:state'])
@@ -378,8 +381,8 @@ class HBaseBackend(Backend):
     def update_states(self, objs, persist):
         self.state_checker.update(objs, persist)
 
-    def flush_states(self):
-        self.state_checker.flush()
+    def flush_states(self, is_clear=True):
+        self.state_checker.flush(is_clear)
 
     def fetch_states(self, fingerprints):
         self.state_checker.fetch(fingerprints)
