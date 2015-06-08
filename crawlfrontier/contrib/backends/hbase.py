@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from happybase import Connection
+
 from crawlfrontier import Backend
 from crawlfrontier.worker.partitioner import Crc32NamePartitioner
 from crawlfrontier.utils.misc import chunks
@@ -274,7 +275,8 @@ class HBaseBackend(Backend):
         self._table_name = settings.get('HBASE_METADATA_TABLE', 'metadata')
         host = choice(hosts) if type(hosts) in [list, tuple] else hosts
 
-        self.connection = Connection(host=host, port=int(port), table_prefix=namespace, table_prefix_separator=':')
+        self.connection = Connection(host=host, port=int(port), table_prefix=namespace, table_prefix_separator=':',
+                                     protocol='compact')
         self.queue = HBaseQueue(self.connection, self.queue_partitions, self.manager.logger.backend,
                                 drop=drop_all_tables)
         self.state_checker = HBaseState(self.connection, self._table_name)
