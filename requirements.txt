@@ -6,3 +6,4 @@ happybase
 kafka-python
 protobuf
 msgpack-python
+python-snappy
