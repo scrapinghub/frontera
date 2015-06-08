@@ -276,7 +276,7 @@ class HBaseBackend(Backend):
         host = choice(hosts) if type(hosts) in [list, tuple] else hosts
 
         self.connection = Connection(host=host, port=int(port), table_prefix=namespace, table_prefix_separator=':',
-                                     protocol='compact')
+                                     protocol='compact', transport='framed')
         self.queue = HBaseQueue(self.connection, self.queue_partitions, self.manager.logger.backend,
                                 drop=drop_all_tables)
         self.state_checker = HBaseState(self.connection, self._table_name)
