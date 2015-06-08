@@ -20,13 +20,15 @@ class ScoringWorker(object):
     def __init__(self, settings, strategy_module):
         kafka = KafkaClient(settings.get('KAFKA_LOCATION'))
         self._producer = SimpleProducer(kafka, codec=CODEC_SNAPPY)
-
+        partition_id = settings.get('SCORING_PARTITION_ID')
+        if not partition_id:
+            raise AttributeError("Scoring worker partition id isn't set.")
         self._in_consumer = SimpleConsumer(kafka,
                                        settings.get('SCORING_GROUP'),
                                        settings.get('INCOMING_TOPIC'),
                                        buffer_size=1048576,
                                        max_buffer_size=10485760,
-                                       partitions=[settings.get('SCORING_PARTITION_ID')])
+                                       partitions=[partition_id])
 
         self._manager = FrontierManager.from_settings(settings)
         self._decoder = Decoder(self._manager.request_model, self._manager.response_model)
