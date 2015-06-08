@@ -21,7 +21,7 @@ class ScoringWorker(object):
         kafka = KafkaClient(settings.get('KAFKA_LOCATION'))
         self._producer = SimpleProducer(kafka, codec=CODEC_SNAPPY)
         partition_id = settings.get('SCORING_PARTITION_ID')
-        if not partition_id:
+        if partition_id == None or type(partition_id) != int:
             raise AttributeError("Scoring worker partition id isn't set.")
         self._in_consumer = SimpleConsumer(kafka,
                                        settings.get('SCORING_GROUP'),
