@@ -240,10 +240,11 @@ class HBaseState(object):
 
     def flush(self, is_clear):
         table = self.connection.table(self._table_name)
-        with table.batch(transaction=True) as b:
-            for fprint, state in self._state_cache.iteritems():
-                hb_obj = prepare_hbase_object(state=state)
-                b.put(unhexlify(fprint), hb_obj)
+        for chunk in chunks(self._state_cache.items(), 49152):
+            with table.batch(transaction=True) as b:
+                for fprint, state in chunk:
+                    hb_obj = prepare_hbase_object(state=state)
+                    b.put(unhexlify(fprint), hb_obj)
         if is_clear:
             self._state_cache.clear()
 
