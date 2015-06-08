@@ -2,7 +2,6 @@
 from crawlfrontier.settings import Settings
 from crawlfrontier.contrib.backends.remote.codecs.msgpack import Decoder, Encoder
 from crawlfrontier.core.manager import FrontierManager
-from crawlfrontier.utils.misc import chunks
 from kafka import KafkaClient, SimpleProducer, SimpleConsumer
 from kafka.common import OffsetOutOfRangeError
 from kafka.protocol import CODEC_SNAPPY
@@ -26,7 +25,8 @@ class ScoringWorker(object):
                                        settings.get('SCORING_GROUP'),
                                        settings.get('INCOMING_TOPIC'),
                                        buffer_size=1048576,
-                                       max_buffer_size=10485760)
+                                       max_buffer_size=10485760,
+                                       partitions=[settings.get('SCORING_PARTITION_ID')])
 
         self._manager = FrontierManager.from_settings(settings)
         self._decoder = Decoder(self._manager.request_model, self._manager.response_model)
@@ -39,6 +39,7 @@ class ScoringWorker(object):
         self.stats = {}
 
     def run(self):
+        cache_flush_counter = 0
         while True:
             consumed = 0
             batch = []
@@ -102,7 +103,15 @@ class ScoringWorker(object):
                     continue
             if len(results):
                 self._producer.send_messages(self.outgoing_topic, *results)
-            self.backend.flush_states()
+
+            if cache_flush_counter == 30:
+                logger.info("Flushing states")
+                self.backend.flush_states(is_clear=False)
+                logger.info("Flushing states finished")
+                cache_flush_counter = 0
+
+            cache_flush_counter += 1
+
             if self.strategy.finished():
                 logger.info("Succesfully reached the crawling goal. Exiting.")
                 exit(0)

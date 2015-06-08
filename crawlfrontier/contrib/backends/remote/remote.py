@@ -2,13 +2,14 @@ import time
 
 from codecs.msgpack import Encoder, Decoder
 
-from kafka import KafkaClient, SimpleConsumer, SimpleProducer
+from kafka import KafkaClient, SimpleConsumer, KeyedProducer
 from kafka.common import BrokerResponseError, OffsetOutOfRangeError, MessageSizeTooLargeError
 from kafka.protocol import CODEC_SNAPPY
 from logging import getLogger, StreamHandler
 
 from crawlfrontier import Backend, Settings
 from crawlfrontier.core import OverusedBuffer
+from crawlfrontier.worker.partitioner import FingerprintPartitioner
 
 
 class TestManager(object):
@@ -65,7 +66,7 @@ class KafkaBackend(Backend):
         """        
         if self._prod is None:
             try:
-                self._prod = SimpleProducer(self._conn, codec=CODEC_SNAPPY)
+                self._prod = KeyedProducer(self._conn, partitioner=FingerprintPartitioner, codec=CODEC_SNAPPY)
             except BrokerResponseError:
                 self._prod = None        
                 if self._manager is not None:
@@ -115,14 +116,14 @@ class KafkaBackend(Backend):
         # flush everything if a batch is incomplete
         self._prod.stop()
 
-    def _send_message(self, encoded_message, fail_wait_time=1.0, max_tries=5):
+    def _send_message(self, encoded_message, key, fail_wait_time=1.0, max_tries=5):
         start = time.clock()
         success = False
         if self._connect_producer():
             n_tries = 0
             while not success and n_tries < max_tries:
                 try:
-                    self._prod.send_messages(self._topic_done, encoded_message)
+                    self._prod.send_messages(self._topic_done, key, encoded_message)
                     success = True
                 except MessageSizeTooLargeError, e:
                     self._manager.logger.backend.error(str(e))
@@ -142,13 +143,13 @@ class KafkaBackend(Backend):
         return success
 
     def add_seeds(self, seeds):
-        self._send_message(self._encoder.encode_add_seeds(seeds))
+        self._send_message(self._encoder.encode_add_seeds(seeds), seeds[0].meta['fingerprint'])
 
     def page_crawled(self, response, links):
-        self._send_message(self._encoder.encode_page_crawled(response, links))
+        self._send_message(self._encoder.encode_page_crawled(response, links), response.meta['fingerprint'])
             
     def request_error(self, page, error):
-        self._send_message(self._encoder.encode_request_error(page, error))
+        self._send_message(self._encoder.encode_request_error(page, error), page.meta['fingerprint'])
 
     def get_next_requests(self, max_n_requests, **kwargs):
         start = time.clock()
