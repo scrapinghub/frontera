@@ -238,14 +238,17 @@ class HBaseState(object):
             obj.meta['state'] = self._state_cache[fprint] if fprint in self._state_cache else None
         map(get, objs)
 
-    def flush(self, is_clear):
+    def flush(self, force_clear):
+        if len(self._state_cache) > 1000000:
+            force_clear = True
         table = self.connection.table(self._table_name)
         for chunk in chunks(self._state_cache.items(), 49152):
             with table.batch(transaction=True) as b:
                 for fprint, state in chunk:
                     hb_obj = prepare_hbase_object(state=state)
                     b.put(unhexlify(fprint), hb_obj)
-        if is_clear:
+        if force_clear:
+            print "Cache has %d items, clearing" % len(self._state_cache)
             self._state_cache.clear()
 
     def fetch(self, fingerprints):
