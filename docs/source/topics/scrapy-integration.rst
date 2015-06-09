@@ -81,6 +81,18 @@ Default: ``None``
 
 A file path pointing to Frontera settings.
 
+
+Defining frontier settings via Scrapy settings
+==============================================
+
+:ref:`Frontier settings <frontier-built-in-frontier-settings>` can also be defined via Scrapy settings.
+In this case, the order of precedence will be the following:
+
+1. Settings defined in the file pointed by FRONTERA_SETTINGS (higher precedence)
+2. Settings defined in the Scrapy settings
+3. Default frontier settings
+
+
 .. _Scrapy middlewares: http://doc.scrapy.org/en/latest/topics/downloader-middleware.html
 .. _Scrapy settings: http://doc.scrapy.org/en/latest/topics/settings.html
 .. _DOWNLOADER_MIDDLEWARES: http://doc.scrapy.org/en/latest/topics/settings.html#std:setting-DOWNLOADER_MIDDLEWARES
