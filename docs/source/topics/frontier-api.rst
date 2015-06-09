@@ -30,7 +30,7 @@ class method, using either a string path::
     >>> from frontera import FrontierManager
     >>> frontier = FrontierManager.from_settings('my_project.frontier.settings')
 
-or a :class:`Settings <frontera.settings.Settings>` object instance::
+or a :class:`BaseSettings <frontera.settings.BaseSettings>` object instance::
 
     >>> from frontera import FrontierManager, Settings
     >>> settings = Settings()
