@@ -55,15 +55,11 @@ class BaseSettings(object):
             self.__dict__[name] = value
 
     def add_module(self, module):
-        if isinstance(module, BaseSettings):
-            for name, value in module.attributes.items():
-                self.set(name, value)
-        else:
-            if isinstance(module, six.string_types):
-                module = import_module(module)
-            for key in dir(module):
-                if key.isupper():
-                    self.set(key, getattr(module, key))
+        if isinstance(module, six.string_types):
+            module = import_module(module)
+        for key in dir(module):
+            if key.isupper():
+                self.set(key, getattr(module, key))
 
     def get(self, key, default_value=None):
         if not key.isupper():
