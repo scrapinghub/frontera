@@ -22,7 +22,7 @@ class DupeFilterMiddleware(Middleware):
 
     def __init__(self, manager):
         self.manager = manager
-        dpfclassname = manager.settings.get('DUPEFILTER_CLASS', DEFAULT_DUPE_FILTER)
+        dpfclassname = manager.settings.get('FRONTERA_DUPEFILTER_CLASS', DEFAULT_DUPE_FILTER)
         dpfclass = load_object(dpfclassname)
         self.dupefilter = dpfclass.from_manager(manager)
 
