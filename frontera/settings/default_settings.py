@@ -23,6 +23,11 @@ URL_FINGERPRINT_FUNCTION = 'frontera.utils.fingerprint.sha1'
 DOMAIN_FINGERPRINT_FUNCTION = 'frontera.utils.fingerprint.sha1'
 
 #--------------------------------------------------------
+# Stats
+#--------------------------------------------------------
+STATS_MANAGER = None
+
+#--------------------------------------------------------
 # Logging
 #--------------------------------------------------------
 LOGGER = 'frontera.logger.FrontierLogger'

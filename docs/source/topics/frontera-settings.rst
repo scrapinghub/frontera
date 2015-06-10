@@ -163,6 +163,15 @@ Default: ``'frontera.core.models.Response'``
 The :class:`Response <frontera.core.models.Response>` model to be used by the frontier.
 
 
+.. setting:: STATS_MANAGER
+
+STATS_MANAGER
+-------------
+
+Default: ``None``
+
+A stats manager instance
+
 .. setting:: TEST_MODE
 
 TEST_MODE
