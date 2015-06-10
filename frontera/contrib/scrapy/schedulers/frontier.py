@@ -6,6 +6,7 @@ from collections import deque
 from time import time
 
 from frontera.contrib.scrapy.manager import ScrapyFrontierManager
+from frontera.contrib.scrapy.settings_adapter import ScrapySettingsAdapter
 
 STATS_PREFIX = 'frontera'
 
@@ -75,12 +76,8 @@ class FronteraScheduler(Scheduler):
         self.stats_manager = StatsManager(crawler.stats)
         self._pending_requests = deque()
         self.redirect_enabled = crawler.settings.get('REDIRECT_ENABLED')
-
-        frontier_settings = crawler.settings.get('FRONTERA_SETTINGS', None)
-        if not frontier_settings:
-            log.msg('FRONTERA_SETTINGS not found! Using default Frontera settings...', log.WARNING)
-        self.frontier = ScrapyFrontierManager(frontier_settings)
-
+        settings = ScrapySettingsAdapter(crawler.settings)
+        self.frontier = ScrapyFrontierManager(settings)
         self._delay_on_empty = self.frontier.manager.settings.get('DELAY_ON_EMPTY')
         self._delay_next_call = 0.0
 
