@@ -78,7 +78,7 @@ class FronteraScheduler(Scheduler):
         self.redirect_enabled = crawler.settings.get('REDIRECT_ENABLED')
         settings = ScrapySettingsAdapter(crawler.settings)
         self.frontier = ScrapyFrontierManager(settings)
-        self._delay_on_empty = self.frontier.manager.settings.get('DELAY_ON_EMPTY')
+        self._delay_on_empty = None
         self._delay_next_call = 0.0
 
     @classmethod
@@ -119,6 +119,8 @@ class FronteraScheduler(Scheduler):
         self.stats_manager.add_request_error(error_code)
 
     def open(self, spider):
+        self.frontier.manager.settings.set_from_dict(getattr(spider, 'frontera_settings', {}))
+        self._delay_on_empty = self.frontier.manager.settings.get('DELAY_ON_EMPTY')
         self.frontier.set_spider(spider)
         log.msg('Starting frontier', log.INFO)
         if not self.frontier.manager.auto_start:
