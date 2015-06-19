@@ -23,7 +23,6 @@ setup(
     zip_safe=False,
     keywords=['crawler', 'frontier', 'scrapy', 'web', 'requests', 'frontera'],
     classifiers=[
-        'Framework :: Frontera',
         'Development Status :: 4 - Beta',
         'Environment :: Console',
         'Intended Audience :: Developers',
