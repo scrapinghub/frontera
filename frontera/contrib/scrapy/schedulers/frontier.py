@@ -105,8 +105,7 @@ class FronteraScheduler(Scheduler):
         for element in result:
             if isinstance(element, Request):
                 links.append(element)
-            else:
-                yield element
+            yield element
         self.frontier.page_crawled(response=response,
                                    links=links)
         self.stats_manager.add_crawled_page(response.status, len(links))
