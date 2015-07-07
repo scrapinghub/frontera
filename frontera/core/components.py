@@ -84,6 +84,8 @@ class Component(object):
         """
         return cls()
 
+    def process_request(self, request):
+        return request
 
 class Backend(Component):
     """Interface definition for a Frontier Backend"""

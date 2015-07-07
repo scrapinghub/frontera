@@ -29,9 +29,10 @@ class BaseFingerprintMiddleware(Middleware):
             self._add_fingerprint(seed)
         return seeds
 
+    def process_request(self, request):
+        return self._add_fingerprint(request)
+
     def page_crawled(self, response, links):
-        for link in links:
-            self._add_fingerprint(link)
         return self._add_fingerprint(response)
 
     def request_error(self, request, error):

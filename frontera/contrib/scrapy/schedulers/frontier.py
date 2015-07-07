@@ -36,37 +36,37 @@ class StatsManager(object):
         self.prefix = prefix
 
     def add_seeds(self, count=1):
-        self._inc_value('seeds_count', count)
+        self.inc_value('seeds_count', count)
 
     def add_crawled_page(self, status_code, n_links):
-        self._inc_value('crawled_pages_count')
-        self._inc_value('crawled_pages_count/%s' % str(status_code))
-        self._inc_value('links_extracted_count', n_links)
+        self.inc_value('crawled_pages_count')
+        self.inc_value('crawled_pages_count/%s' % str(status_code))
+        self.inc_value('links_extracted_count', n_links)
 
     def add_redirected_requests(self, count=1):
-        self._inc_value('redirected_requests_count', count)
+        self.inc_value('redirected_requests_count', count)
 
     def add_returned_requests(self, count=1):
-        self._inc_value('returned_requests_count', count)
+        self.inc_value('returned_requests_count', count)
 
     def add_request_error(self, error_code):
-        self._inc_value('request_errors_count')
-        self._inc_value('request_errors_count/%s' % str(error_code))
+        self.inc_value('request_errors_count')
+        self.inc_value('request_errors_count/%s' % str(error_code))
 
     def set_iterations(self, iterations):
-        self._set_value('iterations', iterations)
+        self.set_value('iterations', iterations)
 
     def set_pending_requests(self, pending_requests):
-        self._set_value('pending_requests_count', pending_requests)
+        self.set_value('pending_requests_count', pending_requests)
+
+    def inc_value(self, variable, count=1):
+        self.stats.inc_value(self._get_stats_name(variable), count)
+
+    def set_value(self, variable, value):
+        self.stats.set_value(self._get_stats_name(variable), value)
 
     def _get_stats_name(self, variable):
         return '%s/%s' % (self.prefix, variable)
-
-    def _inc_value(self, variable, count=1):
-        self.stats.inc_value(self._get_stats_name(variable), count)
-
-    def _set_value(self, variable, value):
-        self.stats.set_value(self._get_stats_name(variable), value)
 
 
 class FronteraScheduler(Scheduler):
@@ -76,10 +76,8 @@ class FronteraScheduler(Scheduler):
         self.stats_manager = StatsManager(crawler.stats)
         self._pending_requests = deque()
         self.redirect_enabled = crawler.settings.get('REDIRECT_ENABLED')
-        settings = ScrapySettingsAdapter(crawler.settings)
-        self.frontier = ScrapyFrontierManager(settings)
-        self._delay_on_empty = self.frontier.manager.settings.get('DELAY_ON_EMPTY')
         self._delay_next_call = 0.0
+        self.frontier = None
 
     @classmethod
     def from_crawler(cls, crawler):
@@ -107,8 +105,7 @@ class FronteraScheduler(Scheduler):
         for element in result:
             if isinstance(element, Request):
                 links.append(element)
-            else:
-                yield element
+            yield element
         self.frontier.page_crawled(response=response,
                                    links=links)
         self.stats_manager.add_crawled_page(response.status, len(links))
@@ -119,6 +116,12 @@ class FronteraScheduler(Scheduler):
         self.stats_manager.add_request_error(error_code)
 
     def open(self, spider):
+        settings = ScrapySettingsAdapter(spider.crawler.settings)
+        settings.set_from_dict(getattr(spider, 'frontera_settings', {}))
+        settings.set('STATS_MANAGER', self.stats_manager)
+        self.frontier = ScrapyFrontierManager(settings)
+        self._delay_on_empty = self.frontier.manager.settings.get('DELAY_ON_EMPTY')
+
         self.frontier.set_spider(spider)
         log.msg('Starting frontier', log.INFO)
         if not self.frontier.manager.auto_start:

@@ -7,6 +7,7 @@ REQUEST_MODEL = 'frontera.core.models.Request'
 RESPONSE_MODEL = 'frontera.core.models.Response'
 MIDDLEWARES = [
     'frontera.contrib.middlewares.fingerprint.UrlFingerprintMiddleware',
+    'frontera.contrib.middlewares.dupefilter.DupeFilterMiddleware',
 ]
 BACKEND = 'frontera.contrib.backends.memory.FIFO'
 TEST_MODE = False
@@ -21,6 +22,11 @@ DELAY_ON_EMPTY = 0.0
 #--------------------------------------------------------
 URL_FINGERPRINT_FUNCTION = 'frontera.utils.fingerprint.sha1'
 DOMAIN_FINGERPRINT_FUNCTION = 'frontera.utils.fingerprint.sha1'
+
+#--------------------------------------------------------
+# Stats
+#--------------------------------------------------------
+STATS_MANAGER = None
 
 #--------------------------------------------------------
 # Logging
