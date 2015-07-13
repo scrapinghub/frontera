@@ -28,6 +28,7 @@ class RequestConverter(BaseRequestConverter):
             'scrapy_errback': eb,
             'scrapy_meta': scrapy_request.meta,
             'origin_is_frontier': True,
+            'dont_filter': scrapy_request.dont_filter,
         }
         return FrontierRequest(url=scrapy_request.url,
                                method=scrapy_request.method,
