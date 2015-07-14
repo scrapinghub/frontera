@@ -15,6 +15,8 @@ def md5(key):
 
 def hostname_local_fingerprint(key):
     result = urlparse(key)
+    if not result.hostname:
+        return sha1(key)
     host_checksum = crc32(result.hostname) if type(result.hostname) is str else \
         crc32(result.hostname.encode('utf-8', 'ignore'))
     doc_uri_combined = result.path+';'+result.params+result.query+result.fragment

@@ -50,6 +50,7 @@ def parse_domain_from_url(url):
 
     return netloc, name, scheme, sld, tld, subdomain
 
+
 def parse_domain_from_url_fast(url):
     """
     Extract domain info from a passed url, without analyzing subdomains and tld

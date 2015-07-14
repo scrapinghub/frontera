@@ -102,5 +102,5 @@ class DomainMiddleware(Middleware):
         obj.meta['domain'] = parse_domain_info(obj.url, self.manager.test_mode)
         if 'redirect_urls' in obj.meta:
             obj.meta['redirect_domains'] = [parse_domain_info(url, self.manager.test_mode)
-                                                for url in obj.meta['redirect_urls']]
+                                            for url in obj.meta['redirect_urls']]
         return obj
