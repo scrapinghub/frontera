@@ -24,6 +24,7 @@ class ComponentsPipelineMixin(object):
         self._backend = self._load_object(backend)
         assert isinstance(self.backend, Backend), "backend '%s' must subclass Backend" % \
                                                   self.backend.__class__.__name__
+
     @property
     def canonicalsolver(self):
         """
@@ -68,9 +69,8 @@ class ComponentsPipelineMixin(object):
             components = component if isinstance(component, list) else [component]
             for component in components:
                 result = self._process_component(component=component, method_name=method_name,
-                                                     component_category=component_category, obj=return_obj,
-                                                     return_classes=return_classes,
-                                                     **kwargs)
+                                                 component_category=component_category, obj=return_obj,
+                                                 return_classes=return_classes, **kwargs)
                 if check_response:
                     return_obj = result
                 if check_response and obj and not return_obj:
@@ -123,9 +123,9 @@ class BaseManager(object):
     def from_settings(cls, settings=None):
         manager_settings = Settings(settings)
         return BaseManager(request_model=manager_settings.REQUEST_MODEL,
-                               response_model=manager_settings.RESPONSE_MODEL,
-                               logger=manager_settings.LOGGER,
-                               settings=manager_settings)
+                           response_model=manager_settings.RESPONSE_MODEL,
+                           logger=manager_settings.LOGGER,
+                           settings=manager_settings)
 
     def _load_object(self, obj_class_name, silent=False):
         obj_class = load_object(obj_class_name)
