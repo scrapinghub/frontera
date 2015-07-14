@@ -3,19 +3,184 @@ from collections import OrderedDict
 from frontera.exceptions import NotConfigured
 from frontera.utils.misc import load_object
 from frontera.settings import Settings, BaseSettings
-from frontera.core.components import Backend, Middleware
+from frontera.core.components import Backend, Middleware, CanonicalSolver
 from frontera.logger import FrontierLogger
 from frontera.core import models
 
 
-class FrontierManager(object):
+class ComponentsPipelineMixin(object):
+    def __init__(self, backend, middlewares=None, canonicalsolver=None):
+        # Load middlewares
+        self._middlewares = self._load_middlewares(middlewares)
+
+        # Load canonical solver
+        self.logger.manager.debug("Loading canonical url solver '%s'" % canonicalsolver)
+        self._canonicalsolver = self._load_object(canonicalsolver)
+        assert isinstance(self.canonicalsolver, CanonicalSolver), \
+            "canonical solver '%s' must subclass CanonicalSolver" % self.canonicalsolver.__class__.__name__
+
+        # Load backend
+        self.logger.manager.debug("Loading backend '%s'" % backend)
+        self._backend = self._load_object(backend)
+        assert isinstance(self.backend, Backend), "backend '%s' must subclass Backend" % \
+                                                  self.backend.__class__.__name__
+
+    @property
+    def canonicalsolver(self):
+        """
+        Instance of CanonicalSolver used for getting canonical urls in frontier components.
+        """
+        return self._canonicalsolver
+
+    @property
+    def middlewares(self):
+        """
+        A list of :class:`Middleware <frontera.core.components.Middleware>` objects to be used by the frontier. \
+        Can be defined with :setting:`MIDDLEWARES` setting.
+        """
+        return self._middlewares
+
+    @property
+    def backend(self):
+        """
+        The :class:`Backend <frontera.core.components.Backend>` object to be used by the frontier. \
+        Can be defined with :setting:`BACKEND` setting.
+        """
+        return self._backend
+
+    def _load_middlewares(self, middleware_names):
+        # TO-DO: Use dict for middleware ordering
+        mws = []
+        for mw_name in middleware_names or []:
+            self.logger.manager.debug("Loading middleware '%s'" % mw_name)
+            try:
+                mw = self._load_object(mw_name, silent=False)
+                assert isinstance(mw, Middleware), "middleware '%s' must subclass Middleware" % mw.__class__.__name__
+                if mw:
+                    mws.append(mw)
+            except NotConfigured:
+                self.logger.manager.warning("middleware '%s' disabled!" % mw_name)
+
+        return mws
+
+    def _process_components(self, method_name, obj=None, return_classes=None, **kwargs):
+        return_obj = obj
+        for component_category, component, check_response in self._components_pipeline:
+            components = component if isinstance(component, list) else [component]
+            for component in components:
+                result = self._process_component(component=component, method_name=method_name,
+                                                 component_category=component_category, obj=return_obj,
+                                                 return_classes=return_classes, **kwargs)
+                if check_response:
+                    return_obj = result
+                if check_response and obj and not return_obj:
+                    self.logger.manager.warning("Object '%s' filtered in '%s' by '%s'" % (
+                        obj.__class__.__name__, method_name, component.__class__.__name__
+                    ))
+                    return
+        return return_obj
+
+    def _process_component(self, component, method_name, component_category, obj, return_classes, **kwargs):
+        debug_msg = "processing '%s' '%s.%s' %s" % (method_name, component_category, component.__class__.__name__, obj)
+        self.logger.debugging.debug(debug_msg)
+        return_obj = getattr(component, method_name)(*([obj] if obj else []), **kwargs)
+        assert return_obj is None or isinstance(return_obj, return_classes), \
+            "%s '%s.%s' must return None or %s, Got '%s'" % \
+            (component_category, obj.__class__.__name__, method_name,
+             ' or '.join(c.__name__ for c in return_classes)
+             if isinstance(return_classes, tuple) else
+             return_classes.__name__,
+             return_obj.__class__.__name__)
+        return return_obj
+
+
+class BaseManager(object):
+    def __init__(self, request_model, response_model, logger, settings=None):
+
+        # Settings
+        self._settings = settings or Settings()
+
+        # Logger
+        self._logger = load_object(logger)(self._settings)
+        assert isinstance(self._logger, FrontierLogger), "logger '%s' must subclass FrontierLogger" % \
+                                                         self._logger.__class__.__name__
+
+        # Log frontier manager starting
+        self.logger.manager.debug('-'*80)
+        self.logger.manager.debug('Starting Frontier Manager...')
+
+        # Load request model
+        self._request_model = load_object(request_model)
+        assert issubclass(self._request_model, models.Request), "Request model '%s' must subclass 'Request'" % \
+                                                                self._request_model.__name__
+
+        # Load response model
+        self._response_model = load_object(response_model)
+        assert issubclass(self._response_model, models.Response), "Response model '%s' must subclass 'Response'" % \
+                                                                  self._response_model.__name__
+
+    @classmethod
+    def from_settings(cls, settings=None):
+        manager_settings = Settings(settings)
+        return BaseManager(request_model=manager_settings.REQUEST_MODEL,
+                           response_model=manager_settings.RESPONSE_MODEL,
+                           logger=manager_settings.LOGGER,
+                           settings=manager_settings)
+
+    def _load_object(self, obj_class_name, silent=False):
+        obj_class = load_object(obj_class_name)
+        try:
+            return self._load_frontier_object(obj_class)
+        except NotConfigured:
+            if not silent:
+                raise NotConfigured
+
+    def _load_frontier_object(self, obj_class):
+        if hasattr(obj_class, 'from_manager'):
+            return obj_class.from_manager(self)
+        else:
+            return obj_class()
+
+    @property
+    def request_model(self):
+        """
+        The :class:`Request <frontera.core.models.Request>` object to be used by the frontier. \
+        Can be defined with :setting:`REQUEST_MODEL` setting.
+        """
+        return self._request_model
+
+    @property
+    def response_model(self):
+        """
+        The :class:`Response <frontera.core.models.Response>` object to be used by the frontier. \
+        Can be defined with :setting:`RESPONSE_MODEL` setting.
+        """
+        return self._response_model
+
+    @property
+    def logger(self):
+        """
+        The :class:`Logger` object to be used by the frontier. Can be defined with :setting:`LOGGER` setting.
+        """
+        return self._logger
+
+    @property
+    def settings(self):
+        """
+        The :class:`Settings <frontera.settings.Settings>` object used by the frontier.
+        """
+        return self._settings
+
+
+class FrontierManager(BaseManager, ComponentsPipelineMixin):
     """
     The :class:`FrontierManager <frontera.core.manager.FrontierManager>` object encapsulates the whole frontier,
     providing an API to interact with. It's also responsible of loading and communicating all different frontier
     components.
     """
     def __init__(self, request_model, response_model, backend, logger, event_log_manager, middlewares=None,
-                 test_mode=False, max_requests=0, max_next_requests=0, auto_start=True, settings=None):
+                 test_mode=False, max_requests=0, max_next_requests=0, auto_start=True, settings=None,
+                 canonicalsolver=None):
         """
         :param object/string request_model: The :class:`Request <frontera.core.models.Request>` object to be \
         used by the frontier.
@@ -46,15 +211,20 @@ class FrontierManager(object):
 
         :param object/string settings: The :class:`Settings <frontera.settings.Settings>` object used by \
         the frontier.
+
+        :param object/string canonicalsolver: The :class:`CanonicalSolver <frontera.core.components.CanonicalSolver>`
+        object to be used by frontier.
         """
 
-        # Settings
-        self._settings = settings or Settings()
+        BaseManager.__init__(self, request_model, response_model, logger, settings=settings)
+        ComponentsPipelineMixin.__init__(self, backend=backend, middlewares=middlewares, canonicalsolver=canonicalsolver)
 
-        # Logger
-        self._logger = load_object(logger)(self._settings)
-        assert isinstance(self._logger, FrontierLogger), "logger '%s' must subclass FrontierLogger" % \
-                                                         self._logger.__class__.__name__
+        # Init frontier components pipeline
+        self._components_pipeline = [
+            ('Middleware', self.middlewares, True),
+            ('Backend', self.backend, False),
+            ('CanonicalSolver', self.canonicalsolver, False)
+        ]
 
         # Log frontier manager starting
         self.logger.manager.debug('-'*80)
@@ -63,31 +233,6 @@ class FrontierManager(object):
         # Test mode
         self._test_mode = test_mode
         self.logger.manager.debug('Test mode %s' % ("ENABLED" if self.test_mode else "DISABLED"))
-
-        # Load request model
-        self._request_model = load_object(request_model)
-        assert issubclass(self._request_model, models.Request), "Request model '%s' must subclass 'Request'" % \
-                                                                self._request_model.__name__
-
-        # Load response model
-        self._response_model = load_object(response_model)
-        assert issubclass(self._response_model, models.Response), "Response model '%s' must subclass 'Response'" % \
-                                                                  self._response_model.__name__
-
-        # Load middlewares
-        self._middlewares = self._load_middlewares(middlewares)
-
-        # Load backend
-        self.logger.manager.debug("Loading backend '%s'" % backend)
-        self._backend = self._load_object(backend)
-        assert isinstance(self.backend, Backend), "backend '%s' must subclass Backend" % \
-                                                  self.backend.__class__.__name__
-
-        # Init frontier components pipeline
-        self._components_pipeline = [
-            ('Middleware', self.middlewares, True),
-            ('Backend', self.backend, False),
-        ]
 
         # Page counters
         self._max_requests = max_requests
@@ -133,38 +278,8 @@ class FrontierManager(object):
                                max_requests=manager_settings.MAX_REQUESTS,
                                max_next_requests=manager_settings.MAX_NEXT_REQUESTS,
                                auto_start=manager_settings.AUTO_START,
-                               settings=manager_settings)
-
-    @property
-    def request_model(self):
-        """
-        The :class:`Request <frontera.core.models.Request>` object to be used by the frontier. \
-        Can be defined with :setting:`REQUEST_MODEL` setting.
-        """
-        return self._request_model
-
-    @property
-    def response_model(self):
-        """
-        The :class:`Response <frontera.core.models.Response>` object to be used by the frontier. \
-        Can be defined with :setting:`RESPONSE_MODEL` setting.
-        """
-        return self._response_model
-
-    @property
-    def backend(self):
-        """
-        The :class:`Backend <frontera.core.components.Backend>` object to be used by the frontier. \
-        Can be defined with :setting:`BACKEND` setting.
-        """
-        return self._backend
-
-    @property
-    def logger(self):
-        """
-        The :class:`Logger` object to be used by the frontier. Can be defined with :setting:`LOGGER` setting.
-        """
-        return self._logger
+                               settings=manager_settings,
+                               canonicalsolver=manager_settings.CANONICAL_SOLVER)
 
     @property
     def event_log_manager(self):
@@ -173,14 +288,6 @@ class FrontierManager(object):
         Can be defined with :setting:`EVENT_LOGGER` setting.
         """
         return self._event_log_manager
-
-    @property
-    def middlewares(self):
-        """
-        A list of :class:`Middleware <frontera.core.components.Middleware>` objects to be used by the frontier. \
-        Can be defined with :setting:`MIDDLEWARES` setting.
-        """
-        return self._middlewares
 
     @property
     def test_mode(self):
@@ -215,13 +322,6 @@ class FrontierManager(object):
         Can be defined with :setting:`AUTO_START` setting.
         """
         return self._auto_start
-
-    @property
-    def settings(self):
-        """
-        The :class:`Settings <frontera.settings.Settings>` object used by the frontier.
-        """
-        return self._settings
 
     @property
     def iteration(self):
@@ -392,64 +492,6 @@ class FrontierManager(object):
 
     def _msg(self, msg):
         return '(%s) %s' % (self.iteration, msg)
-
-    def _load_object(self, obj_class_name, silent=False):
-        obj_class = load_object(obj_class_name)
-        try:
-            return self._load_frontier_object(obj_class)
-        except NotConfigured:
-            if not silent:
-                raise NotConfigured
-
-    def _load_frontier_object(self, obj_class):
-        if hasattr(obj_class, 'from_manager'):
-            return obj_class.from_manager(self)
-        else:
-            return obj_class()
-
-    def _load_middlewares(self, middleware_names):
-        # TO-DO: Use dict for middleware ordering
-        mws = []
-        for mw_name in middleware_names or []:
-            self.logger.manager.debug("Loading middleware '%s'" % mw_name)
-            try:
-                mw = self._load_object(mw_name, silent=False)
-                assert isinstance(mw, Middleware), "middleware '%s' must subclass Middleware" % mw.__class__.__name__
-                if mw:
-                    mws.append(mw)
-            except NotConfigured:
-                self.logger.manager.warning("middleware '%s' disabled!" % mw_name)
-
-        return mws
-
-    def _process_components(self, method_name, obj=None, return_classes=None, **kwargs):
-        return_obj = obj
-        for component_category, component, check_response in self._components_pipeline:
-            components = component if isinstance(component, list) else [component]
-            for component in components:
-                return_obj = self._process_component(component=component, method_name=method_name,
-                                                     component_category=component_category, obj=return_obj,
-                                                     return_classes=return_classes,
-                                                     **kwargs)
-                if check_response and obj and not return_obj:
-                    self.logger.manager.warning("Object '%s' filtered in '%s' by '%s'" % (
-                        obj.__class__.__name__, method_name, component.__class__.__name__
-                    ))
-                    return
-        return return_obj
-
-    def _process_component(self, component, method_name, component_category, obj, return_classes, **kwargs):
-        debug_msg = "processing '%s' '%s.%s' %s" % (method_name, component_category, component.__class__.__name__, obj)
-        self.logger.debugging.debug(debug_msg)
-        return_obj = getattr(component, method_name)(*([obj] if obj else []), **kwargs)
-        assert return_obj is None or isinstance(return_obj, return_classes), \
-            "%s '%s.%s' must return None or %s, Got '%s'" % \
-            (component_category, obj.__class__.__name__, method_name,
-             ' or '.join(c.__name__ for c in return_classes)
-             if isinstance(return_classes, tuple) else
-             return_classes.__name__,
-             return_obj.__class__.__name__)
-        return return_obj
 
     def _check_startstop(self):
         assert self._started, "Frontier not started!"
