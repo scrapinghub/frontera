@@ -1,7 +1,7 @@
 import re
 
 from frontera.core.components import Middleware
-from frontera.utils.url import parse_domain_from_url
+from frontera.utils.url import parse_domain_from_url_fast
 
 
 def parse_domain_info(url, test_mode=False):
@@ -10,7 +10,7 @@ def parse_domain_info(url, test_mode=False):
         netloc = name = match.groups()[0] if match else '?'
         scheme = sld = tld = subdomain = '-'
     else:
-        netloc, name, scheme, sld, tld, subdomain = parse_domain_from_url(url)
+        netloc, name, scheme, sld, tld, subdomain = parse_domain_from_url_fast(url)
     return {
         'netloc': netloc,
         'name': name,
@@ -100,4 +100,7 @@ class DomainMiddleware(Middleware):
 
     def _add_domain(self, obj):
         obj.meta['domain'] = parse_domain_info(obj.url, self.manager.test_mode)
+        if 'redirect_urls' in obj.meta:
+            obj.meta['redirect_domains'] = [parse_domain_info(url, self.manager.test_mode)
+                                                for url in obj.meta['redirect_urls']]
         return obj
