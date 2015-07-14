@@ -7,17 +7,12 @@ from scrapy_spider.spiders.example import MySpider
 
 
 def test_scrapy_spider():
-    spider = MySpider()
     settings = Settings()
     settings.setmodule("frontera.tests.scrapy_spider.settings")
-    crawler = Crawler(settings)
+    crawler = Crawler(MySpider, settings=settings)
     crawler.signals.connect(reactor.stop, signal=signals.spider_closed)
-    crawler.configure()
-    crawler.crawl(spider)
-    crawler.start()
-    log.start()
+    crawler.crawl()
     reactor.run()
-
     stats = crawler.stats.spider_stats['example']
     assert stats['frontera/crawled_pages_count'] == 5
-    assert spider.callback_calls > 0
+    assert crawler.spider.callback_calls > 0
