@@ -9,6 +9,7 @@ MIDDLEWARES = [
     'frontera.contrib.middlewares.fingerprint.UrlFingerprintMiddleware',
 ]
 BACKEND = 'frontera.contrib.backends.memory.FIFO'
+CANONICAL_SOLVER = 'frontera.contrib.canonicalsolvers.Basic'
 TEST_MODE = False
 MAX_REQUESTS = 0
 MAX_NEXT_REQUESTS = 0
