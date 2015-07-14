@@ -51,6 +51,14 @@ def parse_domain_from_url(url):
     return netloc, name, scheme, sld, tld, subdomain
 
 
+def parse_domain_from_url_fast(url):
+    """
+    Extract domain info from a passed url, without analyzing subdomains and tld
+    """
+    result = parse_url(url)
+    return result.netloc, result.hostname, result.scheme, "", "", ""
+
+
 def safe_url_string(url, encoding='utf8'):
     """Convert the given url into a legal URL by escaping unsafe characters
     according to RFC-3986.
