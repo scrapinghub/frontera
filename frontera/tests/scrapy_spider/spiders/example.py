@@ -1,5 +1,4 @@
 from scrapy.contrib.linkextractors.lxmlhtml import LxmlLinkExtractor
-from scrapy.contrib.linkextractors.sgml import SgmlLinkExtractor
 from scrapy.contrib.linkextractors.regex import RegexLinkExtractor
 from scrapy.contrib.spiders import CrawlSpider, Rule
 
@@ -21,7 +20,6 @@ class MySpider(CrawlSpider):
 
     rules = [Rule(FallbackLinkExtractor([
         LxmlLinkExtractor(),
-        SgmlLinkExtractor(),
         RegexLinkExtractor(),
     ]), callback='parse_page', follow=True)]
 
