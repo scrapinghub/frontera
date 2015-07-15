@@ -32,6 +32,7 @@ def test_request_response_converters():
     assert frontier_request.method == 'GET'
     assert frontier_request.headers['Testkey'] == 'test value'
     assert frontier_request.cookies['MyCookie'] == 'CookieContent'
+    assert 'frontier_request' not in frontier_request.meta['scrapy_meta']
 
     request_converted = rc.from_frontier(frontier_request)
     assert request_converted.meta['test_param'] == 'test_value'
@@ -48,6 +49,7 @@ def test_request_response_converters():
     assert frontier_response.meta['scrapy_meta']['test_param'] == 'test_value'
     assert frontier_response.meta['scrapy_meta']['middleware_stuff'] == 'appeared'
     assert frontier_response.status_code == 200
+    assert 'frontier_request' not in frontier_response.meta['scrapy_meta']
 
     response_converted = rsc.from_frontier(frontier_response)
     assert response_converted.meta['test_param'] == 'test_value'

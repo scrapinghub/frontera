@@ -23,12 +23,21 @@ class RequestConverter(BaseRequestConverter):
         eb = scrapy_request.errback
         if callable(eb):
             eb = _find_method(self.spider, eb)
-        meta = {
+
+        scrapy_meta = scrapy_request.meta
+        meta = {}
+        if 'frontier_request' in scrapy_meta:
+            request = scrapy_meta['frontier_request']
+            if isinstance(request, FrontierRequest):
+                meta = request.meta
+            del scrapy_meta['frontier_request']
+
+        meta.update({
             'scrapy_callback': cb,
             'scrapy_errback': eb,
-            'scrapy_meta': scrapy_request.meta,
+            'scrapy_meta': scrapy_meta,
             'origin_is_frontier': True,
-        }
+        })
         return FrontierRequest(url=scrapy_request.url,
                                method=scrapy_request.method,
                                headers=scrapy_request.headers,
@@ -65,6 +74,7 @@ class ResponseConverter(BaseResponseConverter):
         """response: Scrapy > Frontier"""
         frontier_request = scrapy_response.meta['frontier_request']
         frontier_request.meta['scrapy_meta'] = scrapy_response.meta
+        del scrapy_response.meta['frontier_request']
         return FrontierResponse(url=scrapy_response.url,
                                 status_code=scrapy_response.status,
                                 headers=scrapy_response.headers,
