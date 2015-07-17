@@ -1,4 +1,5 @@
 from datetime import timedelta
+import logging
 
 AUTO_START = True
 BACKEND = 'frontera.contrib.backends.memory.FIFO'
@@ -66,8 +67,6 @@ LOGGING_EVENTS_INCLUDE_DOMAIN_FIELDS = ['name', 'netloc', 'scheme', 'sld', 'tld'
 LOGGING_EVENTS_HANDLERS = [
     "frontera.logger.handlers.EVENTS",
 ]
-
-import logging
 
 LOGGING_MANAGER_ENABLED = False
 LOGGING_MANAGER_LOGLEVEL = logging.DEBUG

@@ -13,7 +13,7 @@ class Request(FrontierObject):
     :class:`Response <frontera.core.models.Response>` object when crawled.
 
     """
-    def __init__(self, url, method='GET', headers=None, cookies=None, meta=None):
+    def __init__(self, url, method='GET', headers=None, cookies=None, meta=None, body=''):
         """
         :param string url: URL to send.
         :param string method: HTTP method to use.
@@ -26,6 +26,7 @@ class Request(FrontierObject):
         self._headers = headers or {}
         self._cookies = cookies or {}
         self._meta = meta or {'scrapy_meta': {}}
+        self._body = body
 
     @property
     def url(self):
@@ -64,6 +65,13 @@ class Request(FrontierObject):
         on the components you have enabled.
         """
         return self._meta
+
+    @property
+    def body(self):
+        """
+        A string representing the request body.
+        """
+        return self._body
 
     def __str__(self):
         return "<%s at 0x%0x %s>" % (type(self).__name__, id(self), self.url)
