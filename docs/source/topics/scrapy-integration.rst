@@ -79,7 +79,7 @@ FRONTERA_SETTINGS
 
 Default: ``None``
 
-A file path pointing to Frontera settings.
+A module path pointing to Frontera settings.
 
 
 Defining frontier settings via Scrapy settings
