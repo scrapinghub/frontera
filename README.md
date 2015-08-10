@@ -1,10 +1,19 @@
-# Installation #
+## Installation
 
-pip install -r requirements.txt
+```bash
+$ pip install frontera
+```
 
-python setup.py install
-
-
-# Documentation #
+## Documentation
 
 See http://frontera.readthedocs.org/
+
+EuroPython's presentation http://www.slideshare.net/sixtyone/fronteraopen-source-large-scale-web-crawling-framework
+
+
+## Distributed extension
+
+GitHub: https://github.com/scrapinghub/distributed-frontera
+
+RTD: http://distributed-frontera.readthedocs.org/
+
