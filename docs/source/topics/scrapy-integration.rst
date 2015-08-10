@@ -27,7 +27,7 @@ To activate the Frontera in your Scrapy project, just add them to the `SPIDER_MI
 
 Create a Frontera ``settings.py`` file and add it to your Scrapy settings::
 
-    FRONTERA_SETTINGS = 'tutorial/frontera/settings.py'
+    FRONTERA_SETTINGS = 'tutorial.frontera.settings'
 
 
 
@@ -79,7 +79,7 @@ FRONTERA_SETTINGS
 
 Default: ``None``
 
-A file path pointing to Frontera settings.
+A module path pointing to Frontera settings.
 
 
 Defining frontier settings via Scrapy settings
