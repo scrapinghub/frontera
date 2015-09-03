@@ -10,6 +10,7 @@ from sqlalchemy import UniqueConstraint
 
 from frontera import Backend
 from frontera.utils.misc import load_object
+from frontera.core.models import Response as frontera_response
 
 # Default settings
 DEFAULT_ENGINE = 'sqlite:///:memory:'
@@ -62,6 +63,9 @@ class Page(Base):
     state = Column(String(12))
     error = Column(String(20))
     meta = Column(PickleType())
+    headers = Column(PickleType())
+    cookies = Column(PickleType())
+    method = Column(String(6))
 
     @classmethod
     def query(cls, session):
@@ -135,7 +139,8 @@ class SQLAlchemyBackend(Backend):
         next_pages = []
         for db_page in query:
             db_page.state = Page.State.QUEUED
-            request = self.manager.request_model(url=db_page.url, meta=db_page.meta)
+            request = self.manager.request_model(url=db_page.url, meta=db_page.meta, headers=db_page.headers,
+                                                 cookies=db_page.cookies, method=db_page.method)
             next_pages.append(request)
         self.session.commit()
         return next_pages
@@ -161,9 +166,16 @@ class SQLAlchemyBackend(Backend):
         db_page.fingerprint = obj.meta['fingerprint']
         db_page.state = Page.State.NOT_CRAWLED
         db_page.url = obj.url
-        db_page.depth = 0
         db_page.created_at = datetime.datetime.utcnow()
         db_page.meta = obj.meta
+
+        if not isinstance(obj, frontera_response):
+            db_page.headers = obj.headers
+            db_page.method = obj.method
+            db_page.cookies = obj.cookies
+        else:
+            db_page.depth = 0
+
         return db_page
 
     def _get_or_create_db_page(self, obj):
