@@ -173,7 +173,6 @@ class SQLAlchemyBackend(Backend):
             db_page.headers = obj.headers
             db_page.method = obj.method
             db_page.cookies = obj.cookies
-        else:
             db_page.depth = 0
 
         return db_page
