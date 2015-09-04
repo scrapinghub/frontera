@@ -156,22 +156,26 @@ class SQLiteBackend(Backend):
         db_page.error = error
         self.session.commit()
 
+    def _create_page(self, obj):
+        db_page = self.page_model()
+        db_page.fingerprint = obj.meta['fingerprint']
+        db_page.state = Page.State.NOT_CRAWLED
+        db_page.url = obj.url
+        db_page.depth = 0
+        db_page.created_at = datetime.datetime.utcnow()
+        db_page.meta = obj.meta
+        return db_page
+
     def _get_or_create_db_page(self, obj):
         if not self._request_exists(obj.meta['fingerprint']):
-            db_request = self.page_model()
-            db_request.fingerprint = obj.meta['fingerprint']
-            db_request.state = Page.State.NOT_CRAWLED
-            db_request.url = obj.url
-            db_request.depth = 0
-            db_request.created_at = datetime.datetime.utcnow()
-            db_request.meta = obj.meta
-            self.session.add(db_request)
-            self.manager.logger.backend.debug('Creating request %s' % db_request)
-            return db_request, True
+            db_page = self._create_page(obj)
+            self.session.add(db_page)
+            self.manager.logger.backend.debug('Creating request %s' % db_page)
+            return db_page, True
         else:
-            db_request = self.page_model.query(self.session).filter_by(fingerprint=obj.meta['fingerprint']).first()
-            self.manager.logger.backend.debug('Request exists %s' % db_request)
-            return db_request, False
+            db_page = self.page_model.query(self.session).filter_by(fingerprint=obj.meta['fingerprint']).first()
+            self.manager.logger.backend.debug('Request exists %s' % db_page)
+            return db_page, False
 
     def _request_exists(self, fingerprint):
         q = self.page_model.query(self.session).filter_by(fingerprint=fingerprint)
