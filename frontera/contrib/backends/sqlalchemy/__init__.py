@@ -158,7 +158,7 @@ class SQLiteBackend(Backend):
     def _create_db_page(self, obj, depth):
         db_page = self.page_model()
         db_page.meta = obj.meta
-        db_page.fingerprint = obj.met['fingerprint']
+        db_page.fingerprint = obj.meta['fingerprint']
         db_page.state = Page.State.NOT_CRAWLED
         db_page.url = obj.url
         db_page.depth = depth
