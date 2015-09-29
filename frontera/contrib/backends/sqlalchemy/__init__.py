@@ -10,7 +10,7 @@ from sqlalchemy import UniqueConstraint
 
 from frontera import Backend
 from frontera.utils.misc import load_object
-from frontera.core.models import Response as frontera_response
+from frontera.core.models import Request, Response
 
 # Default settings
 DEFAULT_ENGINE = 'sqlite:///:memory:'
@@ -168,13 +168,16 @@ class SQLAlchemyBackend(Backend):
         db_page.url = obj.url
         db_page.created_at = datetime.datetime.utcnow()
         db_page.meta = obj.meta
+        db_page.depth = 0
 
-        if not isinstance(obj, frontera_response):
+        if isinstance(obj, Request):
             db_page.headers = obj.headers
             db_page.method = obj.method
             db_page.cookies = obj.cookies
-            db_page.depth = 0
-
+        elif isinstance(obj, Response):
+            db_page.headers = obj.request.headers
+            db_page.method = obj.request.method
+            db_page.cookies = obj.request.cookies
         return db_page
 
     def _get_or_create_db_page(self, obj):
