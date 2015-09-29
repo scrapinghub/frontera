@@ -4,7 +4,6 @@ import cgi
 import hashlib
 from six import moves
 from w3lib.util import unicode_to_str
-import tldextract
 
 
 # Python 2.x urllib.always_safe become private in Python 3.x;
@@ -39,6 +38,7 @@ def parse_domain_from_url(url):
      https://google.es/mail    google.es           google.es       https     google      es
     -------------------------------------------------------------------------------------------------------
     """
+    import tldextract
     extracted = tldextract.extract(url)
     scheme, _, _, _, _, _ = parse_url(url)
 
