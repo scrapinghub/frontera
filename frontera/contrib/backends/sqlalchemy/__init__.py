@@ -71,8 +71,8 @@ class Page(Base):
         return '<Page:%s>' % self.url
 
 
-class SQLiteBackend(Backend):
-    component_name = 'SQLite Backend'
+class SQLAlchemyBackend(Backend):
+    component_name = 'SQLAlchemy Backend'
 
     def __init__(self, manager):
         self.manager = manager
@@ -185,35 +185,35 @@ class SQLiteBackend(Backend):
         raise NotImplementedError
 
 
-class FIFOBackend(SQLiteBackend):
-    component_name = 'SQLite FIFO Backend'
+class FIFOBackend(SQLAlchemyBackend):
+    component_name = 'SQLAlchemy FIFO Backend'
 
     def _get_order_by(self, query):
         return query.order_by(self.page_model.created_at)
 
 
-class LIFOBackend(SQLiteBackend):
-    component_name = 'SQLite LIFO Backend'
+class LIFOBackend(SQLAlchemyBackend):
+    component_name = 'SQLAlchemy LIFO Backend'
 
     def _get_order_by(self, query):
         return query.order_by(self.page_model.created_at.desc())
 
 
-class DFSBackend(SQLiteBackend):
-    component_name = 'SQLite DFS Backend'
+class DFSBackend(SQLAlchemyBackend):
+    component_name = 'SQLAlchemy DFS Backend'
 
     def _get_order_by(self, query):
         return query.order_by(self.page_model.depth.desc(), self.page_model.created_at)
 
 
-class BFSBackend(SQLiteBackend):
-    component_name = 'SQLite BFS Backend'
+class BFSBackend(SQLAlchemyBackend):
+    component_name = 'SQLAlchemy BFS Backend'
 
     def _get_order_by(self, query):
         return query.order_by(self.page_model.depth, self.page_model.created_at)
 
 
-BASE = SQLiteBackend
+BASE = SQLAlchemyBackend
 LIFO = LIFOBackend
 FIFO = FIFOBackend
 DFS = DFSBackend
