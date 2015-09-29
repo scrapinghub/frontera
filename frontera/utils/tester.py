@@ -39,7 +39,12 @@ class FrontierTester(object):
                     self.frontier.add_seeds([self._make_request(link.url)])
 
     def _make_request(self, url):
-        r = self.frontier.request_model(url=url)
+        r = self.frontier.request_model(url=url,
+                                        headers={
+                                            'X-Important-Header': 'Frontera'
+                                        },
+                                        method='POST',
+                                        cookies={'currency': 'USD'})
         r.meta['this_param'] = 'should be passed over'
         return r
 
@@ -67,6 +72,9 @@ class FrontierTester(object):
                 self.frontier.request_error(request=page_to_crawl,
                                             error=crawled_page.status)
             assert page_to_crawl.meta['this_param'] == 'should be passed over'
+            assert page_to_crawl.headers['X-Important-Header'] == 'Frontera'
+            assert page_to_crawl.method == 'POST'
+            assert page_to_crawl.cookies['currency'] == 'USD'
         return requests
 
 
