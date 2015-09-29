@@ -50,6 +50,9 @@ An example of a generated fingerprint for a :class:`Request <frontera.core.model
     '198d99a8b2284701d6c147174cd69a37a7dea90f'
 
 
+.. _frontier-objects-additional-data:
+
+
 Adding additional data to objects
 =================================
 

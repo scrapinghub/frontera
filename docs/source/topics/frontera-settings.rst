@@ -225,6 +225,21 @@ Default: ``frontera.utils.fingerprint.sha1``
 The function used to calculate the ``domain`` fingerprint.
 
 
+.. setting:: TLDEXTRACT_DOMAIN_INFO
+
+TLDEXTRACT_DOMAIN_INFO
+----------------------
+
+Default: ``False``
+
+If set to ``True``, will use `tldextract`_ to attach extra domain information
+(second-level, top-level and subdomain) to meta field (see :ref:`frontier-objects-additional-data`).
+
+
+.. _tldextract: https://pypi.python.org/pypi/tldextract
+
+
+
 Default settings
 ================
 

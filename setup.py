@@ -38,7 +38,6 @@ setup(
     install_requires=[
         'six>=1.8.0',
         'w3lib>=1.10.0',
-        'tldextract>=1.5.1',
         'SQLAlchemy>=0.9.8'
     ],
     extras_require={
@@ -49,12 +48,16 @@ setup(
         'logging': [
             "colorlog>=2.4.0",
         ],
+        'tldextract': [
+            'tldextract>=1.5.1',
+        ]
     },
     tests_require=[
         "pytest>=2.6.4",
         "MySQL-python>=1.2.5",
         "PyMySQL>=0.6.3",
         "psycopg2>=2.5.4",
-        "scrapy>=0.24"
+        "scrapy>=0.24",
+        "tldextract>=1.5.1",
     ]
 )

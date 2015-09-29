@@ -1,24 +1,7 @@
 import re
 
 from frontera.core.components import Middleware
-from frontera.utils.url import parse_domain_from_url_fast
-
-
-def parse_domain_info(url, test_mode=False):
-    if test_mode:
-        match = re.match('([A-Z])\w+', url)
-        netloc = name = match.groups()[0] if match else '?'
-        scheme = sld = tld = subdomain = '-'
-    else:
-        netloc, name, scheme, sld, tld, subdomain = parse_domain_from_url_fast(url)
-    return {
-        'netloc': netloc,
-        'name': name,
-        'scheme': scheme,
-        'sld': sld,
-        'tld': tld,
-        'subdomain': subdomain,
-    }
+from frontera.utils.url import parse_domain_from_url_fast, parse_domain_from_url
 
 
 class DomainMiddleware(Middleware):
@@ -74,6 +57,8 @@ class DomainMiddleware(Middleware):
 
     def __init__(self, manager):
         self.manager = manager
+        use_tldextract = self.manager.settings.get('TLDEXTRACT_DOMAIN_INFO', False)
+        self.parse_domain_func = parse_domain_from_url if use_tldextract else parse_domain_from_url_fast
 
     @classmethod
     def from_manager(cls, manager):
@@ -99,8 +84,24 @@ class DomainMiddleware(Middleware):
         return self._add_domain(request)
 
     def _add_domain(self, obj):
-        obj.meta['domain'] = parse_domain_info(obj.url, self.manager.test_mode)
+        obj.meta['domain'] = self.parse_domain_info(obj.url, self.manager.test_mode)
         if 'redirect_urls' in obj.meta:
-            obj.meta['redirect_domains'] = [parse_domain_info(url, self.manager.test_mode)
+            obj.meta['redirect_domains'] = [self.parse_domain_info(url, self.manager.test_mode)
                                             for url in obj.meta['redirect_urls']]
         return obj
+
+    def parse_domain_info(self, url, test_mode=False):
+        if test_mode:
+            match = re.match('([A-Z])\w+', url)
+            netloc = name = match.groups()[0] if match else '?'
+            scheme = sld = tld = subdomain = '-'
+        else:
+            netloc, name, scheme, sld, tld, subdomain = self.parse_domain_func(url)
+        return {
+            'netloc': netloc,
+            'name': name,
+            'scheme': scheme,
+            'sld': sld,
+            'tld': tld,
+            'subdomain': subdomain,
+        }
