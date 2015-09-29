@@ -10,6 +10,7 @@ from sqlalchemy import UniqueConstraint
 
 from frontera import Backend
 from frontera.utils.misc import load_object
+from frontera.core.models import Request, Response
 
 # Default settings
 DEFAULT_ENGINE = 'sqlite:///:memory:'
@@ -62,6 +63,9 @@ class Page(Base):
     state = Column(String(12))
     error = Column(String(20))
     meta = Column(PickleType())
+    headers = Column(PickleType())
+    cookies = Column(PickleType())
+    method = Column(String(6))
 
     @classmethod
     def query(cls, session):
@@ -71,8 +75,8 @@ class Page(Base):
         return '<Page:%s>' % self.url
 
 
-class SQLiteBackend(Backend):
-    component_name = 'SQLite Backend'
+class SQLAlchemyBackend(Backend):
+    component_name = 'SQLAlchemy Backend'
 
     def __init__(self, manager):
         self.manager = manager
@@ -135,7 +139,8 @@ class SQLiteBackend(Backend):
         next_pages = []
         for db_page in query:
             db_page.state = Page.State.QUEUED
-            request = self.manager.request_model(url=db_page.url, meta=db_page.meta)
+            request = self.manager.request_model(url=db_page.url, meta=db_page.meta, headers=db_page.headers,
+                                                 cookies=db_page.cookies, method=db_page.method)
             next_pages.append(request)
         self.session.commit()
         return next_pages
@@ -161,9 +166,18 @@ class SQLiteBackend(Backend):
         db_page.fingerprint = obj.meta['fingerprint']
         db_page.state = Page.State.NOT_CRAWLED
         db_page.url = obj.url
-        db_page.depth = 0
         db_page.created_at = datetime.datetime.utcnow()
         db_page.meta = obj.meta
+        db_page.depth = 0
+
+        if isinstance(obj, Request):
+            db_page.headers = obj.headers
+            db_page.method = obj.method
+            db_page.cookies = obj.cookies
+        elif isinstance(obj, Response):
+            db_page.headers = obj.request.headers
+            db_page.method = obj.request.method
+            db_page.cookies = obj.request.cookies
         return db_page
 
     def _get_or_create_db_page(self, obj):
@@ -185,35 +199,35 @@ class SQLiteBackend(Backend):
         raise NotImplementedError
 
 
-class FIFOBackend(SQLiteBackend):
-    component_name = 'SQLite FIFO Backend'
+class FIFOBackend(SQLAlchemyBackend):
+    component_name = 'SQLAlchemy FIFO Backend'
 
     def _get_order_by(self, query):
         return query.order_by(self.page_model.created_at)
 
 
-class LIFOBackend(SQLiteBackend):
-    component_name = 'SQLite LIFO Backend'
+class LIFOBackend(SQLAlchemyBackend):
+    component_name = 'SQLAlchemy LIFO Backend'
 
     def _get_order_by(self, query):
         return query.order_by(self.page_model.created_at.desc())
 
 
-class DFSBackend(SQLiteBackend):
-    component_name = 'SQLite DFS Backend'
+class DFSBackend(SQLAlchemyBackend):
+    component_name = 'SQLAlchemy DFS Backend'
 
     def _get_order_by(self, query):
         return query.order_by(self.page_model.depth.desc(), self.page_model.created_at)
 
 
-class BFSBackend(SQLiteBackend):
-    component_name = 'SQLite BFS Backend'
+class BFSBackend(SQLAlchemyBackend):
+    component_name = 'SQLAlchemy BFS Backend'
 
     def _get_order_by(self, query):
         return query.order_by(self.page_model.depth, self.page_model.created_at)
 
 
-BASE = SQLiteBackend
+BASE = SQLAlchemyBackend
 LIFO = LIFOBackend
 FIFO = FIFOBackend
 DFS = DFSBackend
