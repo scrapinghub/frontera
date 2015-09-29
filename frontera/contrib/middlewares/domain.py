@@ -1,16 +1,19 @@
 import re
 
 from frontera.core.components import Middleware
-from frontera.utils.url import parse_domain_from_url_fast
+from frontera.utils.url import parse_domain_from_url_fast, parse_domain_from_url
 
 
-def parse_domain_info(url, test_mode=False):
+def parse_domain_info(url, test_mode=False, use_tldextract=False):
     if test_mode:
         match = re.match('([A-Z])\w+', url)
         netloc = name = match.groups()[0] if match else '?'
         scheme = sld = tld = subdomain = '-'
     else:
-        netloc, name, scheme, sld, tld, subdomain = parse_domain_from_url_fast(url)
+        if use_tldextract:
+            netloc, name, scheme, sld, tld, subdomain = parse_domain_from_url(url)
+        else:
+            netloc, name, scheme, sld, tld, subdomain = parse_domain_from_url_fast(url)
     return {
         'netloc': netloc,
         'name': name,
@@ -99,8 +102,9 @@ class DomainMiddleware(Middleware):
         return self._add_domain(request)
 
     def _add_domain(self, obj):
-        obj.meta['domain'] = parse_domain_info(obj.url, self.manager.test_mode)
+        use_tldextract = self.manager.settings.get('TLDEXTRACT_DOMAIN_INFO', False)
+        obj.meta['domain'] = parse_domain_info(obj.url, self.manager.test_mode, use_tldextract)
         if 'redirect_urls' in obj.meta:
-            obj.meta['redirect_domains'] = [parse_domain_info(url, self.manager.test_mode)
+            obj.meta['redirect_domains'] = [parse_domain_info(url, self.manager.test_mode, use_tldextract)
                                             for url in obj.meta['redirect_urls']]
         return obj
