@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 import datetime
+from sqlalchemy import exc
 
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine
@@ -123,11 +124,11 @@ class SQLiteBackend(Backend):
 
     def add_seeds(self, seeds):
         for seed in seeds:
-            db_page, _ = self._get_or_create_db_page(seed)
+            self._create_db_page(seed, 0)
         self.session.commit()
 
     def get_next_requests(self, max_next_requests, **kwargs):
-        query = self.page_model.query(self.session)
+        query = self.page_model.query(self.session).with_lockmode('update')
         query = query.filter(self.page_model.state == Page.State.NOT_CRAWLED)
         query = self._get_order_by(query)
         if max_next_requests:
@@ -141,41 +142,38 @@ class SQLiteBackend(Backend):
         return next_pages
 
     def page_crawled(self, response, links):
-        db_page, _ = self._get_or_create_db_page(response)
+        db_page = self._get_db_page(response)
         db_page.state = Page.State.CRAWLED
         db_page.status_code = response.status_code
         for link in links:
-            db_page_from_link, created = self._get_or_create_db_page(link)
-            if created:
-                db_page_from_link.depth = db_page.depth+1
+            self._create_db_page(link, db_page.depth+1)
         self.session.commit()
 
     def request_error(self, request, error):
-        db_page, _ = self._get_or_create_db_page(request)
+        db_page = self._get_db_page(request)
         db_page.state = Page.State.ERROR
         db_page.error = error
         self.session.commit()
 
-    def _create_page(self, obj):
+    def _create_db_page(self, obj, depth):
         db_page = self.page_model()
+        db_page.meta = obj.meta
         db_page.fingerprint = obj.meta['fingerprint']
         db_page.state = Page.State.NOT_CRAWLED
         db_page.url = obj.url
-        db_page.depth = 0
+        db_page.depth = depth
         db_page.created_at = datetime.datetime.utcnow()
-        db_page.meta = obj.meta
-        return db_page
-
-    def _get_or_create_db_page(self, obj):
-        if not self._request_exists(obj.meta['fingerprint']):
-            db_page = self._create_page(obj)
+        try:
             self.session.add(db_page)
-            self.manager.logger.backend.debug('Creating request %s' % db_page)
-            return db_page, True
-        else:
-            db_page = self.page_model.query(self.session).filter_by(fingerprint=obj.meta['fingerprint']).first()
+            self.session.commit()
+        except exc.IntegrityError as e:
+            self.session.rollback()
             self.manager.logger.backend.debug('Request exists %s' % db_page)
-            return db_page, False
+
+    def _get_db_page(self, obj):
+        db_page = self.page_model.query(self.session).filter_by(fingerprint=obj.meta['fingerprint']).first()
+        self.manager.logger.backend.debug('Request exists %s' % db_page)
+        return db_page
 
     def _request_exists(self, fingerprint):
         q = self.page_model.query(self.session).filter_by(fingerprint=fingerprint)
