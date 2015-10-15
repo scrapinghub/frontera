@@ -18,6 +18,9 @@ See http://frontera.readthedocs.org/
 
 EuroPython's presentation http://www.slideshare.net/sixtyone/fronteraopen-source-large-scale-web-crawling-framework
 
+## Google groups
+
+See https://groups.google.com/a/scrapinghub.com/forum/#!forum/frontera
 
 ## Distributed extension
 
