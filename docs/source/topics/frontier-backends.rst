@@ -219,5 +219,5 @@ For a complete list of all settings used for sqlalchemy backends check the :doc:
 .. _OrderedDict: https://docs.python.org/2/library/collections.html#collections.OrderedDict
 .. _heapq: https://docs.python.org/2/library/heapq.html
 .. _SQLAlchemy: http://www.sqlalchemy.org/
-.. _any databases supported by SQLAlchemy: http://docs.sqlalchemy.org/en/rel_0_9/dialects/index.html
-.. _declarative sqlalchemy model: http://docs.sqlalchemy.org/en/rel_0_9/orm/extensions/declarative.html
+.. _any databases supported by SQLAlchemy: http://docs.sqlalchemy.org/en/latest/dialects/index.html
+.. _declarative sqlalchemy model: http://docs.sqlalchemy.org/en/latest/orm/extensions/declarative/index.html
