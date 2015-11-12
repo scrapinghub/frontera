@@ -15,12 +15,12 @@ def test_settings_passed_as_attributes_can_be_found():
 
 def test_fallsback_to_frontera_default_settings():
     settings = Settings()
-    assert settings.get('MAX_NEXT_REQUESTS') == 0
+    assert settings.get('MAX_NEXT_REQUESTS') == 64
 
 
 def test_allows_settings_to_be_accessed_by_attribute():
     settings = Settings()
-    assert settings.MAX_NEXT_REQUESTS == 0
+    assert settings.MAX_NEXT_REQUESTS == 64
 
 
 def test_settings_attributes_can_be_assigned():
@@ -38,5 +38,5 @@ def test_object_from_loads_settings_from_a_module():
 def test_new_instance_copies_the_given_instance():
     settings = Settings()
     new_instance = BaseSettings.object_from(settings)
-    assert new_instance.MAX_NEXT_REQUESTS == 0
+    assert new_instance.MAX_NEXT_REQUESTS == 64
     assert type(new_instance) == Settings

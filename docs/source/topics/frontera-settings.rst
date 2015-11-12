@@ -112,7 +112,7 @@ The Logger class to be used by the Frontier.
 MAX_NEXT_REQUESTS
 -----------------
 
-Default: ``0``
+Default: ``64``
 
 The maximum number of requests returned by
 :attr:`get_next_requests <frontera.core.manager.FrontierManager.get_next_requests>` API method.
