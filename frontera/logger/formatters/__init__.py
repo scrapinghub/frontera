@@ -11,7 +11,7 @@ try:
     LOG_COLOR_FORMAT = "%(log_color)s"+LOG_FORMAT
     COLORS = {
         "DEBUG": "white",
-        "INFO": "black",
+        "INFO": "green",
         "WARNING": "yellow",
         "ERROR": "red",
         "CRITICAL": "bold_purple",
@@ -49,12 +49,6 @@ try:
         format=LOG_COLOR_FORMAT,
         log_colors=COLORS.copy(),
         log_color_field="levelname")
-
-    CONSOLE_MANAGER.log_colors['DEBUG'] = 'blue'
-    CONSOLE_BACKEND.log_colors['DEBUG'] = 'green'
-    CONSOLE_DEBUGGING.log_colors['DEBUG'] = 'cyan'
-
-
 except ImportError:
     EVENTS = logging.Formatter(fmt=LOG_EVENT_FORMAT)
     CONSOLE = logging.Formatter(fmt=LOG_FORMAT)
