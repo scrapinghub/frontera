@@ -1,6 +1,6 @@
 from core.manager import FrontierManager
 from core.models import Request, Response
-from core.components import Backend, Middleware
+from core.components import Backend, Middleware, Metadata, Queue, States
 from settings import Settings
 from utils import graphs
 from utils.tester import FrontierTester
