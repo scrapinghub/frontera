@@ -2,16 +2,12 @@ from abc import ABCMeta, abstractmethod
 
 
 class StartStopMixin(object):
-    __metaclass__ = ABCMeta
-
-    @abstractmethod
     def frontier_start(self):
         """
         Called when the frontier starts, see :ref:`starting/stopping the frontier <frontier-start-stop>`.
         """
         pass
 
-    @abstractmethod
     def frontier_stop(self):
         """
         Called when the frontier stops, see :ref:`starting/stopping the frontier <frontier-start-stop>`.
@@ -125,7 +121,7 @@ class States(StartStopMixin):
         raise NotImplementedError
 
 
-class Component(StartStopMixin, Metadata):
+class Component(Metadata):
     """
     Interface definition for a frontier component
     The :class:`Component <frontera.core.components.Component>` object is the base class for frontier
@@ -177,7 +173,7 @@ class CanonicalSolver(Middleware):
     component_name = 'Base CanonicalSolver'
 
 
-class Backend(StartStopMixin, Metadata):
+class Backend(Metadata):
     """Interface definition for frontier backend."""
     __metaclass__ = ABCMeta
 

@@ -37,6 +37,7 @@ class MetadataModel(DeclarativeBase):
     depth = Column(Integer, nullable=False)
     created_at = Column(DatetimeTimestamp(20), nullable=False)
     status_code = Column(String(20))
+    score = Column(Float)
     error = Column(String(20))
     meta = Column(PickleType())
     headers = Column(PickleType())
@@ -60,11 +61,6 @@ class StateModel(DeclarativeBase):
             'mysql_row_format': 'DYNAMIC',
         },
     )
-
-    NOT_CRAWLED = 0
-    QUEUED = 1
-    CRAWLED = 2
-    ERROR = 3
 
     fingerprint = Column(String(40), primary_key=True, nullable=False)
     state = Column(SmallInteger())
