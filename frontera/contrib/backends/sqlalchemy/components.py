@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
-import datetime
+from datetime import datetime
 from frontera.core.components import Metadata, States, Queue
 from frontera.core.models import Request, Response
 from frontera.utils.url import parse_domain_from_url_fast
@@ -38,7 +38,7 @@ class SQLAlchemyMetadata(Metadata):
         db_page = self.model()
         db_page.fingerprint = obj.meta['fingerprint']
         db_page.url = obj.url
-        db_page.created_at = datetime.datetime.utcnow()
+        db_page.created_at = datetime.utcnow()
         db_page.meta = obj.meta
         db_page.depth = 0
 
@@ -114,7 +114,7 @@ class SQLAlchemyQueue(Queue):
 
     GET_RETRIES = 3
 
-    def __init__(self, session_cls, queue_cls, metadata_cls, partitions):
+    def __init__(self, session_cls, queue_cls, metadata_cls, partitions, ordering='default'):
         self.session = session_cls()
         self.queue_model = queue_cls
         self.metadata_model = metadata_cls
@@ -122,9 +122,17 @@ class SQLAlchemyQueue(Queue):
         self.logger = logging.getLogger("frontera.contrib.backends.sqlalchemy.SQLAlchemyQueue")
         self.partitions = [i for i in range(0, partitions)]
         self.partitioner = Crc32NamePartitioner(self.partitions)
+        self.ordering = ordering
 
     def frontier_stop(self):
         self.session.close()
+
+    def _order_by(self, query):
+        if self.ordering == 'created':
+            return query.order_by(self.queue_model.created_at)
+        if self.ordering == 'created_desc':
+            return query.order_by(self.queue_model.created_at.desc())
+        return query.order_by(self.queue_model.score)
 
     def get_next_requests(self, max_n_requests, partition_id, **kwargs):
         """
@@ -156,8 +164,7 @@ class SQLAlchemyQueue(Queue):
                               (tries, limit, count, len(queue.keys())))
             queue.clear()
             count = 0
-            for item in self.session.query(self.queue_model).filter_by(partition_id=partition_id).\
-                                                             order_by(self.queue_model.score).limit(limit):
+            for item in self._order_by(self.session.query(self.queue_model).filter_by(partition_id=partition_id)).limit(limit):
                 if item.host_crc32 not in queue:
                     queue[item.host_crc32] = []
                 if max_requests_per_host is not None and len(queue[item.host_crc32]) > max_requests_per_host:
@@ -166,10 +173,8 @@ class SQLAlchemyQueue(Queue):
                 count += 1
                 if count > max_n_requests:
                     break
-
             if min_hosts is not None and len(queue.keys()) < min_hosts:
                 continue
-
             if min_requests is not None and count < min_requests:
                 continue
             break
@@ -185,16 +190,17 @@ class SQLAlchemyQueue(Queue):
         return results
 
     def schedule(self, batch):
-        for fprint, (score, url, schedule) in batch.iteritems():
+        for fprint, (score, request, schedule) in batch.iteritems():
             if schedule:
-                _, hostname, _, _, _, _ = parse_domain_from_url_fast(url)
+                _, hostname, _, _, _, _ = parse_domain_from_url_fast(request.url)
                 if not hostname:
-                    self.logger.error("Can't get hostname for URL %s, fingerprint %s" % (url, fprint))
+                    self.logger.error("Can't get hostname for URL %s, fingerprint %s" % (request.url, fprint))
                     continue
                 partition_id = self.partitioner.partition(hostname, self.partitions)
                 host_crc32 = get_crc32(hostname)
-                q = self.queue_model(fingerprint=fprint, score=score, url=url, partition_id=partition_id,
-                                     host_crc32=host_crc32)
+                q = self.queue_model(fingerprint=fprint, score=score, url=request.url, meta=request.meta,
+                                     headers=request.headers, cookies=request.cookies, method=request.method,
+                                     partition_id=partition_id, host_crc32=host_crc32, created_at=datetime.utcnow())
                 self.session.add(q)
             m = self.metadata_model(fingerprint=fprint, score=score)
             self.session.merge(m)

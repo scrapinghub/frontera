@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from core.components import Partitioner
+from frontera.core.components import Partitioner
 from zlib import crc32
 
 

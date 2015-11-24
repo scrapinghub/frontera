@@ -1,25 +1,8 @@
 # -*- coding: utf-8 -*-
-import datetime
-
-from sqlalchemy.types import TypeDecorator
-from sqlalchemy import Column, String, Integer, PickleType, SmallInteger, Float
+from sqlalchemy import Column, String, Integer, PickleType, SmallInteger, Float, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 
 DeclarativeBase = declarative_base()
-
-
-class DatetimeTimestamp(TypeDecorator):
-
-    impl = String  # To use milliseconds in mysql
-    timestamp_format = '%Y%m%d%H%M%S%f'
-
-    def process_bind_param(self, value, _):
-        if isinstance(value, datetime.datetime):
-            return value.strftime(self.timestamp_format)
-        raise ValueError('Not valid datetime')
-
-    def process_result_value(self, value, _):
-        return datetime.datetime.strptime(value, self.timestamp_format)
 
 
 class MetadataModel(DeclarativeBase):
@@ -35,7 +18,7 @@ class MetadataModel(DeclarativeBase):
     url = Column(String(1024), nullable=False)
     fingerprint = Column(String(40), primary_key=True, nullable=False)
     depth = Column(Integer, nullable=False)
-    created_at = Column(DatetimeTimestamp(20), nullable=False)
+    created_at = Column(DateTime, nullable=False)
     status_code = Column(String(20))
     score = Column(Float)
     error = Column(String(20))
@@ -93,6 +76,8 @@ class QueueModel(DeclarativeBase):
     headers = Column(PickleType())
     cookies = Column(PickleType())
     method = Column(String(6))
+    created_at = Column(DateTime)
+    depth = Column(SmallInteger)
 
     @classmethod
     def query(cls, session):

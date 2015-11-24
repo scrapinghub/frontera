@@ -1,4 +1,4 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod, abstractproperty
 
 
 class StartStopMixin(object):
@@ -71,8 +71,8 @@ class Queue(StartStopMixin):
         """
         Schedules a new documents for download from batch, and updates score in metadata.
 
-        :param batch: dict, key - hex string fingerprint, value - tuple(score, url, schedule), if ``schedule`` is True,
-        then document needs to be scheduled for download, False - only update score in metadata.
+        :param batch: dict, key - hex string fingerprint, value - tuple(score, request, schedule), if ``schedule``
+        is True, then document needs to be scheduled for download, False - only update score in metadata.
         """
         raise NotImplementedError
 
@@ -176,6 +176,27 @@ class CanonicalSolver(Middleware):
 class Backend(Metadata):
     """Interface definition for frontier backend."""
     __metaclass__ = ABCMeta
+
+    @abstractproperty
+    def queue(self):
+        """
+        :return: associated :class:`Queue <frontera.core.components.Queue>` object
+        """
+        raise NotImplementedError
+
+    @abstractproperty
+    def metadata(self):
+        """
+        :return: associated :class:`Metadata <frontera.core.components.Metadata>` object
+        """
+        raise NotImplementedError
+
+    @abstractproperty
+    def states(self):
+        """
+        :return: associated :class:`States <frontera.core.components.States>` object
+        """
+        raise NotImplementedError
 
     @abstractmethod
     def finished(self):
