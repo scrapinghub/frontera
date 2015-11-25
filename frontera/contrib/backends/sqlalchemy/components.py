@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 import logging
 from datetime import datetime
-from frontera.core.components import Metadata, States, Queue
-from frontera.core.models import Request, Response
-from frontera.utils.url import parse_domain_from_url_fast
+
 from frontera.contrib.backends import Crc32NamePartitioner
-from frontera.utils.misc import get_crc32, chunks
+from frontera.contrib.backends.memory import MemoryStates
 from frontera.contrib.backends.sqlalchemy.models import DeclarativeBase
+from frontera.core.components import Metadata, Queue
+from frontera.core.models import Request, Response
+from frontera.utils.misc import get_crc32, chunks
+from frontera.utils.url import parse_domain_from_url_fast
 
 
 class SQLAlchemyMetadata(Metadata):
@@ -54,19 +56,14 @@ class SQLAlchemyMetadata(Metadata):
         return db_page
 
 
-class SQLAlchemyState(States):
-    NOT_CRAWLED = 0
-    QUEUED = 1
-    CRAWLED = 2
-    ERROR = 3
+class SQLAlchemyState(MemoryStates):
 
     def __init__(self, session_cls, model_cls, cache_size_limit):
+        super(SQLAlchemyState, self).__init__(cache_size_limit)
         self.session = session_cls()
         self.model = model_cls
         self.table = DeclarativeBase.metadata.tables['states']
-        self._cache = dict()
         self.logger = logging.getLogger("frontera.contrib.backends.sqlalchemy.SQLAlchemyState")
-        self._cache_size_limit = cache_size_limit
 
     def frontier_stop(self):
         self.flush()
@@ -82,32 +79,12 @@ class SQLAlchemyState(States):
                 self._cache[state.fingerprint] = state.state
 
     def flush(self, force_clear=False):
-        if len(self._cache) > self._cache_size_limit:
-            force_clear = True
         for fingerprint, state_val in self._cache.iteritems():
             state = self.model(fingerprint=fingerprint, state=state_val)
             self.session.add(state)
         self.session.commit()
         self.logger.debug("State cache has been flushed.")
-        if force_clear:
-            self.logger.debug("Cache has %d items, clearing" % len(self._cache))
-            self._cache.clear()
-
-    def _put(self, obj):
-        if obj.meta['state'] is not None:
-            self._cache[obj.meta['fingerprint']] = obj.meta['state']
-
-    def _get(self, obj):
-        fprint = obj.meta['fingerprint']
-        obj.meta['state'] = self._cache[fprint] if fprint in self._cache else None
-
-    def update_cache(self, objs):
-        objs = objs if type(objs) in [list, tuple] else [objs]
-        map(self._put, objs)
-
-    def set_states(self, objs):
-        objs = objs if type(objs) in [list, tuple] else [objs]
-        map(self._get, objs)
+        super(SQLAlchemyState, self).flush(force_clear)
 
 
 class SQLAlchemyQueue(Queue):

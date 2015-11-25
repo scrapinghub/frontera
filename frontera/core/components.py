@@ -87,8 +87,12 @@ class Queue(StartStopMixin):
 
 class States(StartStopMixin):
     """Interface definition for a frontier document states"""
-
     __metaclass__ = ABCMeta
+
+    NOT_CRAWLED = 0
+    QUEUED = 1
+    CRAWLED = 2
+    ERROR = 3
 
     @abstractmethod
     def update_cache(self, objs):

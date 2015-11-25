@@ -17,7 +17,7 @@ AUTO_START = True
 OVERUSED_SLOT_FACTOR = 5.0
 DELAY_ON_EMPTY = 0.0
 
-STATE_CACHE_SIZE_LIMIT = 3000000
+STATE_CACHE_SIZE = 1000000
 
 #--------------------------------------------------------
 # Fingerprints mw
