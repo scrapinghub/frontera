@@ -342,7 +342,9 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
         """
         Boolean value indicating if the frontier has finished. See :ref:`Finish conditions <frontier-finish>`.
         """
-        return self._finished
+        if not self._finished:
+            return self.backend.finished()
+        return True
 
     def start(self):
         """

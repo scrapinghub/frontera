@@ -135,7 +135,7 @@ class FronteraScheduler(Scheduler):
         return len(self._pending_requests)
 
     def has_pending_requests(self):
-        return len(self) > 0
+        return not self.frontier.finished()
 
     def _get_next_request(self):
         if not self.frontier.manager.finished and \
