@@ -71,7 +71,7 @@ class Queue(StartStopMixin):
         """
         Schedules a new documents for download from batch, and updates score in metadata.
 
-        :param batch: dict, key - hex string fingerprint, value - tuple(score, request, schedule), if ``schedule``
+        :param batch: list of tuples(fingerprint, score, request, schedule), if ``schedule``
         is True, then document needs to be scheduled for download, False - only update score in metadata.
         """
         raise NotImplementedError

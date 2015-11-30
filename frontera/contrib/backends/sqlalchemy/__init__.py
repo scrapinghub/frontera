@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from frontera import Backend
 from frontera.utils.misc import load_object
 from frontera.contrib.backends.sqlalchemy.models import DeclarativeBase
-from frontera.contrib.backends.sqlalchemy.components import SQLAlchemyMetadata, SQLAlchemyQueue, SQLAlchemyState
+from frontera.contrib.backends.sqlalchemy.components import Metadata, Queue, States
 
 
 # Default settings
@@ -41,22 +41,23 @@ class CommonBackend(Backend):
         self.engine.dispose()
 
     def add_seeds(self, seeds):
-        for seed in seeds: seed.meta['depth'] = 0
+        for seed in seeds:
+            seed.meta['depth'] = 0
         self.metadata.add_seeds(seeds)
         self.states.fetch([seed.meta['fingerprint'] for seed in seeds])
         self.states.set_states(seeds)
         self._schedule(seeds)
 
     def _schedule(self, requests):
-        batch = {}
+        batch = []
         queue_incr = 0
         for request in requests:
-            schedule = True if request.meta['state'] in [SQLAlchemyState.NOT_CRAWLED, SQLAlchemyState.ERROR, None] else False
-            batch[request.meta['fingerprint']] = (self._get_score(request), request, schedule)
-
+            schedule = True if request.meta['state'] in [States.NOT_CRAWLED, States.ERROR, None] else False
+            batch.append((request.meta['fingerprint'], self._get_score(request), request, schedule))
             if schedule:
                 queue_incr += 1
         self.queue.schedule(batch)
+        self.metadata.update_score(batch)
         self.queue_size += queue_incr
 
     def _get_score(self, obj):
@@ -68,11 +69,11 @@ class CommonBackend(Backend):
         return batch
 
     def page_crawled(self, response, links):
-        # TODO: add canonical url solver for response and links
-        response.meta['state'] = SQLAlchemyState.CRAWLED
+        response.meta['state'] = States.CRAWLED
         self.states.update_cache(response)
         to_fetch = []
         depth = (response.meta['depth'] if 'depth' in response.meta else 0)+1
+
         for link in links:
             to_fetch.append(link.meta['fingerprint'])
             link.meta['depth'] = depth
@@ -80,10 +81,13 @@ class CommonBackend(Backend):
         self.states.set_states(links)
         self.metadata.page_crawled(response, links)
         self._schedule(links)
+        for link in links:
+            if not link.meta['state']:
+                link.meta['state'] = States.QUEUED
+        self.states.update_cache(links)
 
     def request_error(self, request, error):
-        # TODO: add canonical url solver
-        request.meta['state'] = SQLAlchemyState.ERROR
+        request.meta['state'] = States.ERROR
         self.metadata.request_error(request, error)
         self.states.update_cache(request)
 
@@ -118,13 +122,13 @@ class SQLAlchemyBackend(CommonBackend):
             for name, table in DeclarativeBase.metadata.tables.items():
                 session.execute(table.delete())
             session.close()
-            self._metadata = SQLAlchemyMetadata(self.session_cls, self.models['MetadataModel'])
-            self._states = SQLAlchemyState(self.session_cls, self.models['StateModel'],
-                                           settings.get('STATE_CACHE_SIZE_LIMIT'))
-            self._queue = self._create_queue(settings)
+        self._metadata = Metadata(self.session_cls, self.models['MetadataModel'])
+        self._states = States(self.session_cls, self.models['StateModel'],
+                              settings.get('STATE_CACHE_SIZE_LIMIT'))
+        self._queue = self._create_queue(settings)
 
     def _create_queue(self, settings):
-        return SQLAlchemyQueue(self.session_cls, self.models['QueueModel'], self.models['MetadataModel'], 1)
+        return Queue(self.session_cls, self.models['QueueModel'], 1)
 
     @property
     def queue(self):
@@ -143,23 +147,21 @@ class FIFOBackend(SQLAlchemyBackend):
     component_name = 'SQLAlchemy FIFO Backend'
 
     def _create_queue(self, settings):
-        return SQLAlchemyQueue(self.session_cls, self.models['QueueModel'], self.models['MetadataModel'], 1,
-                               ordering='created')
+        return Queue(self.session_cls, self.models['QueueModel'], 1, ordering ='created')
 
 
 class LIFOBackend(SQLAlchemyBackend):
     component_name = 'SQLAlchemy LIFO Backend'
 
     def _create_queue(self, settings):
-        return SQLAlchemyQueue(self.session_cls, self.models['QueueModel'], self.models['MetadataModel'], 1,
-                               ordering='created_desc')
+        return Queue(self.session_cls, self.models['QueueModel'], 1, ordering='created_desc')
 
 
 class DFSBackend(SQLAlchemyBackend):
     component_name = 'SQLAlchemy DFS Backend'
 
     def _create_queue(self, settings):
-        return SQLAlchemyQueue(self.session_cls, self.models['QueueModel'], self.models['MetadataModel'], 1)
+        return Queue(self.session_cls, self.models['QueueModel'], 1)
 
     def _get_score(self, obj):
         return -obj.meta['depth']
@@ -169,7 +171,7 @@ class BFSBackend(SQLAlchemyBackend):
     component_name = 'SQLAlchemy BFS Backend'
 
     def _create_queue(self, settings):
-        return SQLAlchemyQueue(self.session_cls, self.models['QueueModel'], self.models['MetadataModel'], 1)
+        return Queue(self.session_cls, self.models['QueueModel'], 1)
 
     def _get_score(self, obj):
         return obj.meta['depth']

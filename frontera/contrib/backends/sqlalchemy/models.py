@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from sqlalchemy import Column, String, Integer, PickleType, SmallInteger, Float, DateTime
+from sqlalchemy import Column, String, Integer, PickleType, SmallInteger, Float, DateTime, BigInteger
 from sqlalchemy.ext.declarative import declarative_base
 
 DeclarativeBase = declarative_base()
@@ -15,8 +15,8 @@ class MetadataModel(DeclarativeBase):
         },
     )
 
-    url = Column(String(1024), nullable=False)
     fingerprint = Column(String(40), primary_key=True, nullable=False)
+    url = Column(String(1024), nullable=False)
     depth = Column(Integer, nullable=False)
     created_at = Column(DateTime, nullable=False)
     status_code = Column(String(20))
@@ -76,7 +76,7 @@ class QueueModel(DeclarativeBase):
     headers = Column(PickleType())
     cookies = Column(PickleType())
     method = Column(String(6))
-    created_at = Column(DateTime)
+    created_at = Column(BigInteger, index=True)
     depth = Column(SmallInteger)
 
     @classmethod

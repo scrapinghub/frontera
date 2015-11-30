@@ -1,17 +1,18 @@
 # -*- coding: utf-8 -*-
 import logging
 from datetime import datetime
+from time import time
 
 from frontera.contrib.backends import Crc32NamePartitioner
 from frontera.contrib.backends.memory import MemoryStates
 from frontera.contrib.backends.sqlalchemy.models import DeclarativeBase
-from frontera.core.components import Metadata, Queue
+from frontera.core.components import Metadata as BaseMetadata, Queue as BaseQueue
 from frontera.core.models import Request, Response
 from frontera.utils.misc import get_crc32, chunks
 from frontera.utils.url import parse_domain_from_url_fast
 
 
-class SQLAlchemyMetadata(Metadata):
+class Metadata(BaseMetadata):
     def __init__(self, session_cls, model_cls):
         self.session = session_cls(expire_on_commit=False)   # FIXME: Should be explicitly mentioned in docs
         self.model = model_cls
@@ -55,15 +56,21 @@ class SQLAlchemyMetadata(Metadata):
             db_page.status_code = obj.status_code
         return db_page
 
+    def update_score(self, batch):
+        for fprint, score, request, schedule in batch:
+            m = self.model(fingerprint=fprint, score=score)
+            self.session.merge(m)
+        self.session.commit()
 
-class SQLAlchemyState(MemoryStates):
+
+class States(MemoryStates):
 
     def __init__(self, session_cls, model_cls, cache_size_limit):
-        super(SQLAlchemyState, self).__init__(cache_size_limit)
+        super(States, self).__init__(cache_size_limit)
         self.session = session_cls()
         self.model = model_cls
         self.table = DeclarativeBase.metadata.tables['states']
-        self.logger = logging.getLogger("frontera.contrib.backends.sqlalchemy.SQLAlchemyState")
+        self.logger = logging.getLogger("frontera.contrib.backends.sqlalchemy.States")
 
     def frontier_stop(self):
         self.flush()
@@ -84,19 +91,18 @@ class SQLAlchemyState(MemoryStates):
             self.session.add(state)
         self.session.commit()
         self.logger.debug("State cache has been flushed.")
-        super(SQLAlchemyState, self).flush(force_clear)
+        super(States, self).flush(force_clear)
 
 
-class SQLAlchemyQueue(Queue):
+class Queue(BaseQueue):
 
     GET_RETRIES = 3
 
-    def __init__(self, session_cls, queue_cls, metadata_cls, partitions, ordering='default'):
+    def __init__(self, session_cls, queue_cls, partitions, ordering='default'):
         self.session = session_cls()
         self.queue_model = queue_cls
-        self.metadata_model = metadata_cls
         self.table = DeclarativeBase.metadata.tables['queue']
-        self.logger = logging.getLogger("frontera.contrib.backends.sqlalchemy.SQLAlchemyQueue")
+        self.logger = logging.getLogger("frontera.contrib.backends.sqlalchemy.Queue")
         self.partitions = [i for i in range(0, partitions)]
         self.partitioner = Crc32NamePartitioner(self.partitions)
         self.ordering = ordering
@@ -110,6 +116,45 @@ class SQLAlchemyQueue(Queue):
         if self.ordering == 'created_desc':
             return query.order_by(self.queue_model.created_at.desc())
         return query.order_by(self.queue_model.score)
+
+    def get_next_requests(self, max_n_requests, partition_id, **kwargs):
+        """
+        Dequeues new batch of requests for crawling.
+
+        :param max_n_requests: maximum number of requests to return
+        :param partition_id: partition id
+        :return: list of :class:`Request <frontera.core.models.Request>` objects.
+        """
+        results = []
+        for item in self._order_by(self.session.query(self.queue_model).filter_by(partition_id=partition_id)).limit(max_n_requests):
+            method = 'GET' if not item.method else item.method
+            results.append(Request(item.url, method=method, meta=item.meta, headers=item.headers, cookies=item.cookies))
+            self.session.delete(item)
+        self.session.commit()
+        return results
+
+    def schedule(self, batch):
+        for fprint, score, request, schedule in batch:
+            if schedule:
+                _, hostname, _, _, _, _ = parse_domain_from_url_fast(request.url)
+                if not hostname:
+                    self.logger.error("Can't get hostname for URL %s, fingerprint %s" % (request.url, fprint))
+                    partition_id = self.partitions[0]
+                    host_crc32 = 0
+                else:
+                    partition_id = self.partitioner.partition(hostname, self.partitions)
+                    host_crc32 = get_crc32(hostname)
+                q = self.queue_model(fingerprint=fprint, score=score, url=request.url, meta=request.meta,
+                                     headers=request.headers, cookies=request.cookies, method=request.method,
+                                     partition_id=partition_id, host_crc32=host_crc32, created_at=time()*1E+3)
+                self.session.add(q)
+        self.session.commit()
+
+    def count(self):
+        return self.session.query(self.queue_model).count()
+
+
+class BroadCrawlingQueue(Queue):
 
     def get_next_requests(self, max_n_requests, partition_id, **kwargs):
         """
@@ -141,7 +186,8 @@ class SQLAlchemyQueue(Queue):
                               (tries, limit, count, len(queue.keys())))
             queue.clear()
             count = 0
-            for item in self._order_by(self.session.query(self.queue_model).filter_by(partition_id=partition_id)).limit(limit):
+            for item in self._order_by(self.session.query(self.queue_model).filter_by(partition_id=partition_id)).\
+                    limit(limit):
                 if item.host_crc32 not in queue:
                     queue[item.host_crc32] = []
                 if max_requests_per_host is not None and len(queue[item.host_crc32]) > max_requests_per_host:
@@ -165,23 +211,3 @@ class SQLAlchemyQueue(Queue):
                 self.session.delete(item)
         self.session.commit()
         return results
-
-    def schedule(self, batch):
-        for fprint, (score, request, schedule) in batch.iteritems():
-            if schedule:
-                _, hostname, _, _, _, _ = parse_domain_from_url_fast(request.url)
-                if not hostname:
-                    self.logger.error("Can't get hostname for URL %s, fingerprint %s" % (request.url, fprint))
-                    continue
-                partition_id = self.partitioner.partition(hostname, self.partitions)
-                host_crc32 = get_crc32(hostname)
-                q = self.queue_model(fingerprint=fprint, score=score, url=request.url, meta=request.meta,
-                                     headers=request.headers, cookies=request.cookies, method=request.method,
-                                     partition_id=partition_id, host_crc32=host_crc32, created_at=datetime.utcnow())
-                self.session.add(q)
-            m = self.metadata_model(fingerprint=fprint, score=score)
-            self.session.merge(m)
-        self.session.commit()
-
-    def count(self):
-        return self.session.query(self.queue_model).count()

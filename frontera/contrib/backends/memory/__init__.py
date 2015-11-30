@@ -5,6 +5,7 @@ import random
 
 from frontera import Backend
 from frontera.core.components import Metadata, Queue, States
+from frontera.core import OverusedBuffer
 from frontera.utils.heap import Heap
 from frontera.contrib.backends import Crc32NamePartitioner
 from frontera.utils.url import parse_domain_from_url_fast
@@ -43,7 +44,7 @@ class MemoryQueue(Queue):
         self.partitions = [i for i in range(0, partitions)]
         self.partitioner = Crc32NamePartitioner(self.partitions)
         self.logger = logging.getLogger("frontera.contrib.backends.memory.MemoryQueue")
-        self.heap={}
+        self.heap = {}
         for partition in self.partitions:
             self.heap[partition] = Heap(self._compare_pages)
 
@@ -54,14 +55,15 @@ class MemoryQueue(Queue):
         return self.heap[partition_id].pop(max_n_requests)
 
     def schedule(self, batch):
-        for fprint, (score, request, schedule) in batch.iteritems():
+        for fprint, score, request, schedule in batch:
             if schedule:
                 request.meta['_scr'] = score
                 _, hostname, _, _, _, _ = parse_domain_from_url_fast(request.url)
                 if not hostname:
                     self.logger.error("Can't get hostname for URL %s, fingerprint %s" % (request.url, fprint))
-                    continue
-                partition_id = self.partitioner.partition(hostname, self.partitions)
+                    partition_id = self.partitions[0]
+                else:
+                    partition_id = self.partitioner.partition(hostname, self.partitions)
                 self.heap[partition_id].push(request)
 
     def _compare_pages(self, first, second):
@@ -141,17 +143,19 @@ class MemoryBaseBackend(Backend):
         pass
 
     def add_seeds(self, seeds):
-        for seed in seeds: seed.meta['depth'] = 0
+        for seed in seeds:
+            seed.meta['depth'] = 0
+            seed.meta['created_at'] = datetime.datetime.utcnow()
         self.metadata.add_seeds(seeds)
         self.states.fetch([seed.meta['fingerprint'] for seed in seeds])
         self.states.set_states(seeds)
         self._schedule(seeds)
 
     def _schedule(self, requests):
-        batch = {}
+        batch = []
         for request in requests:
             schedule = True if request.meta['state'] in [States.NOT_CRAWLED, States.ERROR, None] else False
-            batch[request.meta['fingerprint']] = (self._get_score(request), request, schedule)
+            batch.append((request.meta['fingerprint'], self._get_score(request), request, schedule))
         self.queue.schedule(batch)
 
     def _get_score(self, obj):
@@ -161,7 +165,6 @@ class MemoryBaseBackend(Backend):
         return self.queue.get_next_requests(max_next_requests, 0, **kwargs)
 
     def page_crawled(self, response, links):
-        # TODO: add canonical url solver for response and links
         response.meta['state'] = States.CRAWLED
         self.states.update_cache(response)
         to_fetch = []
@@ -174,9 +177,12 @@ class MemoryBaseBackend(Backend):
         self.states.set_states(links)
         self.metadata.page_crawled(response, links)
         self._schedule(links)
+        for link in links:
+            if not link.meta['state']:
+                link.meta['state'] = States.QUEUED
+        self.states.update_cache(links)
 
     def request_error(self, request, error):
-        # TODO: add canonical url solver
         request.meta['state'] = States.ERROR
         self.metadata.request_error(request, error)
         self.states.update_cache(request)
@@ -235,6 +241,15 @@ class MemoryBFSBackend(MemoryBaseBackend):
 class MemoryRandomBackend(MemoryBaseBackend):
     def _create_queue(self, settings):
         return MemoryRandomQueue(1)
+
+
+class MemoryDFSOverusedBackend(MemoryDFSBackend):
+    def __init__(self, manager):
+        super(MemoryDFSOverusedBackend, self).__init__(manager)
+        self.overused_buffer = OverusedBuffer(super(MemoryDFSOverusedBackend, self).get_next_requests)
+
+    def get_next_requests(self, max_next_requests, **kwargs):
+        return self.overused_buffer.get_next_requests(max_next_requests, **kwargs)
 
 
 BASE = MemoryBaseBackend
