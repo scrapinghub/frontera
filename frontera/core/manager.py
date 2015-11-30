@@ -222,8 +222,8 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
         # Init frontier components pipeline
         self._components_pipeline = [
             ('Middleware', self.middlewares, True),
-            ('Backend', self.backend, False),
-            ('CanonicalSolver', self.canonicalsolver, False)
+            ('CanonicalSolver', self.canonicalsolver, False),
+            ('Backend', self.backend, False)
         ]
 
         # Log frontier manager starting

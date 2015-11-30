@@ -109,17 +109,7 @@ class Middleware(Component):
     component_name = 'Base Middleware'
 
 
-class CanonicalSolver(Component):
+class CanonicalSolver(Middleware):
     """Interface definition for a Frontera Canonical Solver"""
     __metaclass__ = ABCMeta
     component_name = 'Base CanonicalSolver'
-
-    @abstractmethod
-    def get_canonical_url(self, response):
-        """
-        Returns canonical URL string for response.
-
-        :param object response: The :class:`Response <frontera.core.models.Response>` object for the crawled page.
-        :return: str
-        """
-        raise NotImplementedError
