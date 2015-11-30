@@ -57,10 +57,14 @@ Extending Frontera
    :hidden:
 
    topics/frontier-middlewares
+   topics/frontier-canonicalsolvers
    topics/frontier-backends
 
 :doc:`topics/frontier-middlewares`
     Filter or alter information for links and pages.
+
+:doc:`topics/frontier-canonicalsolvers`
+    Identify and make use of canonical url of document.
 
 :doc:`topics/frontier-backends`
     Define your own crawling logic.

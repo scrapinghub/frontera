@@ -84,7 +84,7 @@ class Response(FrontierObject):
         :param int status_code: the HTTP status of the response. Defaults to 200.
         :param dict headers: dictionary of headers to send.
         :param dict body: the response body.
-        :param dict request: The Request object that generated this response.
+        :param Request request: The Request object that generated this response.
         """
 
         self._url = url

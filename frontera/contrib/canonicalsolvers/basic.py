@@ -5,10 +5,10 @@ from frontera.core.components import CanonicalSolver
 class BasicCanonicalSolver(CanonicalSolver):
     """
     Implements a simple CanonicalSolver taking always first URL from redirect chain, if there were redirects.
-    It allows easily to avoid leaking of requests in CF (e.g. when request issued by
+    It allows easily to avoid leaking of requests in Frontera (e.g. when request issued by
     :attr:`get_next_requests() <frontera.core.manager.FrontierManager.get_next_requests>` never matched in
     :attr:`page_crawled() <frontera.core.manager.FrontierManager.page_crawled>`) at the price of duplicating
-    records in CF for pages having more than one URL or complex redirects chains.
+    records in Frontera for pages having more than one URL or complex redirects chains.
     """
     def frontier_start(self):
         pass

@@ -87,6 +87,16 @@ Default: ``'frontera.contrib.backends.memory.FIFO'``
 The :class:`Backend <frontera.core.components.Backend>` to be used by the frontier. For more info see
 :ref:`Activating a backend <frontier-activating-backend>`.
 
+.. setting:: CANONICAL_SOLVER
+
+CANONICAL_SOLVER
+----------------
+
+Default: ``frontera.contrib.canonicalsolvers.Basic``
+
+The :class:`CanonicalSolver <frontera.core.components.CanonicalSolver>` to be used by the frontier for resolving
+canonical URLs. For more info see :ref:`Canonical URL Solver <canonical-url-solver>`.
+
 
 .. setting:: EVENT_LOGGER
 

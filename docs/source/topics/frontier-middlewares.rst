@@ -1,3 +1,5 @@
+.. _frontier-middlewares:
+
 ===========
 Middlewares
 ===========
