@@ -17,28 +17,26 @@ class BasicCanonicalSolver(CanonicalSolver):
         pass
 
     def add_seeds(self, seeds):
-        pass
+        for seed in seeds:
+            self._set_canonical(seed)
 
     def page_crawled(self, response, links):
-        pass
+        self._set_canonical(response)
+        for link in links:
+            self._set_canonical(link)
 
     def request_error(self, page, error):
-        pass
+        self._set_canonical(page)
 
-    def get_canonical_url(self, obj):
-        canonical_url = obj.url
-        canonical_fingerprint = obj.meta['fingerprint']
-        canonical_domain = obj.meta['domain'] if 'domain' in obj.meta else str()
+    def _set_canonical(self, obj):
         if 'redirect_urls' in obj.meta:
             redirect_urls = obj.meta['redirect_urls']
             redirect_fingerprints = obj.meta['redirect_fingerprints']
             redirect_domains = obj.meta['redirect_domains']
             redirect_urls.append(obj.url)
             redirect_fingerprints.append(obj.meta['fingerprint'])
-            redirect_domains.append(canonical_domain)
+            redirect_domains.append(obj.meta['domain'])
 
-            canonical_url = redirect_urls[0]
-            canonical_fingerprint = redirect_fingerprints[0]
-            canonical_domain = redirect_domains[0]
-
-        return (canonical_url, canonical_fingerprint, canonical_domain)
+            obj.url = redirect_urls[0]
+            obj.meta['fingerprint'] = redirect_fingerprints[0]
+            obj.meta['domain'] = redirect_domains[0]
