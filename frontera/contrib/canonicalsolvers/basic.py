@@ -32,11 +32,12 @@ class BasicCanonicalSolver(CanonicalSolver):
         if 'redirect_urls' in obj.meta:
             redirect_urls = obj.meta['redirect_urls']
             redirect_fingerprints = obj.meta['redirect_fingerprints']
-            redirect_domains = obj.meta['redirect_domains']
             redirect_urls.append(obj.url)
             redirect_fingerprints.append(obj.meta['fingerprint'])
-            redirect_domains.append(obj.meta['domain'])
-
-            obj.url = redirect_urls[0]
+            obj._url = redirect_urls[0]
             obj.meta['fingerprint'] = redirect_fingerprints[0]
-            obj.meta['domain'] = redirect_domains[0]
+
+            if 'redirect_domains' in obj.meta:
+                redirect_domains = obj.meta['redirect_domains']
+                redirect_domains.append(obj.meta['domain'])
+                obj.meta['domain'] = redirect_domains[0]
