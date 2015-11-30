@@ -15,7 +15,7 @@ class S3SeedLoader(FileSeedLoader):
         self.bucket_keys_prefix = u.path.lstrip('/')
         self.s3_aws_access_key = settings.get('SEEDS_AWS_ACCESS_KEY')
         self.s3_aws_secret_key = settings.get('SEEDS_AWS_SECRET_ACCESS_KEY')
-        
+
     def load_seeds(self):
         conn = connect_s3(self.s3_aws_access_key,
                           self.s3_aws_secret_key)
