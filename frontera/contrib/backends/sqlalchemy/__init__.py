@@ -122,6 +122,10 @@ class SQLAlchemyBackend(Backend):
         pass
 
     def frontier_stop(self):
+        query = self.page_model.query(self.session).filter(self.page_model.state == Page.State.QUEUED)
+        for db_page in query:
+            db_page.state = Page.State.NOT_CRAWLED
+        self.session.commit()
         self.session.close()
         self.engine.dispose()
 
