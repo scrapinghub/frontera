@@ -147,7 +147,7 @@ class FIFOBackend(SQLAlchemyBackend):
     component_name = 'SQLAlchemy FIFO Backend'
 
     def _create_queue(self, settings):
-        return Queue(self.session_cls, self.models['QueueModel'], 1, ordering ='created')
+        return Queue(self.session_cls, self.models['QueueModel'], 1, ordering='created')
 
 
 class LIFOBackend(SQLAlchemyBackend):

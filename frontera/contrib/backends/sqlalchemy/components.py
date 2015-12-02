@@ -3,6 +3,7 @@ import logging
 from datetime import datetime
 from time import time
 
+from cachetools import LRUCache
 from frontera.contrib.backends import Crc32NamePartitioner
 from frontera.contrib.backends.memory import MemoryStates
 from frontera.contrib.backends.sqlalchemy.models import DeclarativeBase
@@ -17,25 +18,41 @@ class Metadata(BaseMetadata):
         self.session = session_cls(expire_on_commit=False)   # FIXME: Should be explicitly mentioned in docs
         self.model = model_cls
         self.table = DeclarativeBase.metadata.tables['metadata']
+        self.cache = LRUCache(10000)
+        self.logger = logging.getLogger("frontera.contrib.backends.sqlalchemy.Metadata")
 
     def frontier_stop(self):
         self.session.close()
 
     def add_seeds(self, seeds):
-        self.session.add_all(map(self._create_page, seeds))
+        for seed in seeds:
+            o = self._create_page(seed)
+            self.cache[o.fingerprint] = self.session.merge(o)
         self.session.commit()
 
     def request_error(self, page, error):
-        m = self._create_page(page)
+        m = self._modify_page(page) if page.meta['fingerprint'] in self.cache else self._create_page(page)
         m.error = error
-        self.session.merge(m)
+        self.cache[m.fingerprint] = self.session.merge(m)
         self.session.commit()
 
     def page_crawled(self, response, links):
-        self.session.merge(self._create_page(response))
+        r = self._modify_page(response) if response.meta['fingerprint'] in self.cache else self._create_page(response)
+        self.cache[r.fingerprint] = self.session.merge(r)
         for link in links:
-            self.session.merge(self._create_page(link))
+            if link.meta['fingerprint'] not in self.cache:
+                self.cache[link.meta['fingerprint']] = self.session.merge(self._create_page(link))
         self.session.commit()
+
+    def _modify_page(self, obj):
+        db_page = self.cache[obj.meta['fingerprint']]
+        db_page.fetched_at = datetime.utcnow()
+        if isinstance(obj, Response):
+            db_page.headers = obj.request.headers
+            db_page.method = obj.request.method
+            db_page.cookies = obj.request.cookies
+            db_page.status_code = obj.status_code
+        return db_page
 
     def _create_page(self, obj):
         db_page = self.model()
@@ -88,7 +105,7 @@ class States(MemoryStates):
     def flush(self, force_clear=False):
         for fingerprint, state_val in self._cache.iteritems():
             state = self.model(fingerprint=fingerprint, state=state_val)
-            self.session.add(state)
+            self.session.merge(state)
         self.session.commit()
         self.logger.debug("State cache has been flushed.")
         super(States, self).flush(force_clear)
@@ -115,7 +132,8 @@ class Queue(BaseQueue):
             return query.order_by(self.queue_model.created_at)
         if self.ordering == 'created_desc':
             return query.order_by(self.queue_model.created_at.desc())
-        return query.order_by(self.queue_model.score)
+        return query.order_by(self.queue_model.score, self.queue_model.created_at)  # TODO: remove second parameter,
+        # it's not necessary for proper crawling, but needed for tests
 
     def get_next_requests(self, max_n_requests, partition_id, **kwargs):
         """
@@ -125,15 +143,19 @@ class Queue(BaseQueue):
         :param partition_id: partition id
         :return: list of :class:`Request <frontera.core.models.Request>` objects.
         """
+        print "GNR"
         results = []
         for item in self._order_by(self.session.query(self.queue_model).filter_by(partition_id=partition_id)).limit(max_n_requests):
             method = 'GET' if not item.method else item.method
             results.append(Request(item.url, method=method, meta=item.meta, headers=item.headers, cookies=item.cookies))
+            print item.url, item.score
             self.session.delete(item)
         self.session.commit()
         return results
 
     def schedule(self, batch):
+        to_save = []
+        print "SCH"
         for fprint, score, request, schedule in batch:
             if schedule:
                 _, hostname, _, _, _, _ = parse_domain_from_url_fast(request.url)
@@ -146,8 +168,10 @@ class Queue(BaseQueue):
                     host_crc32 = get_crc32(hostname)
                 q = self.queue_model(fingerprint=fprint, score=score, url=request.url, meta=request.meta,
                                      headers=request.headers, cookies=request.cookies, method=request.method,
-                                     partition_id=partition_id, host_crc32=host_crc32, created_at=time()*1E+3)
-                self.session.add(q)
+                                     partition_id=partition_id, host_crc32=host_crc32, created_at=time()*1E+6)
+                to_save.append(q)
+                print q.url, q.score, q.created_at
+        self.session.bulk_save_objects(to_save)
         self.session.commit()
 
     def count(self):

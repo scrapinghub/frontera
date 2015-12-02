@@ -4,3 +4,5 @@ PyMySQL>=0.6.3
 psycopg2>=2.5.4
 scrapy>=0.24
 -r tldextract.txt
+SQLAlchemy>=0.9.8
+cachetools
