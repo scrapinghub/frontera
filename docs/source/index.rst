@@ -1,8 +1,8 @@
 .. _topics-index:
 
-======================================
+================================
 Frontera |version| documentation
-======================================
+================================
 
 This documentation contains everything you need to know about Frontera.
 

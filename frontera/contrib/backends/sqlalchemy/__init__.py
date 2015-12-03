@@ -9,18 +9,6 @@ from frontera.contrib.backends.sqlalchemy.models import DeclarativeBase
 from frontera.contrib.backends.sqlalchemy.components import Metadata, Queue, States
 
 
-# Default settings
-DEFAULT_ENGINE = 'sqlite:///:memory:'
-DEFAULT_ENGINE_ECHO = False
-DEFAULT_DROP_ALL_TABLES = True
-DEFAULT_CLEAR_CONTENT = True
-DEFAULT_MODELS = {
-    'MetadataModel': 'frontera.contrib.backends.sqlalchemy.models.MetadataModel',
-    'StateModel': 'frontera.contrib.backends.sqlalchemy.models.StateModel',
-    'QueueModel': 'frontera.contrib.backends.sqlalchemy.models.QueueModel'
-}
-
-
 class CommonBackend(Backend):
     component_name = 'Common Backend'
 
@@ -98,14 +86,12 @@ class CommonBackend(Backend):
 class SQLAlchemyBackend(CommonBackend):
     def __init__(self, manager):
         self.manager = manager
-
-        # Get settings
         settings = manager.settings
-        engine = settings.get('SQLALCHEMYBACKEND_ENGINE', DEFAULT_ENGINE)
-        engine_echo = settings.get('SQLALCHEMYBACKEND_ENGINE_ECHO', DEFAULT_ENGINE_ECHO)
-        drop_all_tables = settings.get('SQLALCHEMYBACKEND_DROP_ALL_TABLES', DEFAULT_DROP_ALL_TABLES)
-        clear_content = settings.get('SQLALCHEMYBACKEND_CLEAR_CONTENT', DEFAULT_CLEAR_CONTENT)
-        models = settings.get('SQLALCHEMYBACKEND_MODELS', DEFAULT_MODELS)
+        engine = settings.get('SQLALCHEMYBACKEND_ENGINE')
+        engine_echo = settings.get('SQLALCHEMYBACKEND_ENGINE_ECHO')
+        drop_all_tables = settings.get('SQLALCHEMYBACKEND_DROP_ALL_TABLES')
+        clear_content = settings.get('SQLALCHEMYBACKEND_CLEAR_CONTENT')
+        models = settings.get('SQLALCHEMYBACKEND_MODELS')
 
         self.engine = create_engine(engine, echo=engine_echo)
         self.models = dict([(name, load_object(klass)) for name, klass in models.items()])
@@ -122,7 +108,8 @@ class SQLAlchemyBackend(CommonBackend):
             for name, table in DeclarativeBase.metadata.tables.items():
                 session.execute(table.delete())
             session.close()
-        self._metadata = Metadata(self.session_cls, self.models['MetadataModel'])
+        self._metadata = Metadata(self.session_cls, self.models['MetadataModel'],
+                                  settings.get('SQLALCHEMYBACKEND_CACHE_SIZE'))
         self._states = States(self.session_cls, self.models['StateModel'],
                               settings.get('STATE_CACHE_SIZE_LIMIT'))
         self._queue = self._create_queue(settings)

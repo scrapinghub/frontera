@@ -1,6 +1,6 @@
-==========================
+====================
 Frontera at a glance
-==========================
+====================
 
 Frontera is an application framework that is meant to be used as part of a `Crawling System`_, allowing you to
 easily manage and define tasks related to a :doc:`crawl frontier <what-is-frontera>`.
@@ -52,7 +52,7 @@ This article about :doc:`integration with Scrapy <scrapy-integration>` explains 
 
 Configure frontier settings to use a built-in backend like in-memory BFS::
 
-    BACKEND = 'frontera.contrib.backends.memory.heapq.BFS'
+    BACKEND = 'frontera.contrib.backends.memory.BFS'
 
 4. Run the spider
 =================
@@ -67,7 +67,7 @@ What else?
 ==========
 
 You’ve seen a simple example of how to use Frontera with Scrapy, but this is just the surface.
-Frontera provides many powerful features for making Frontier management easy and efficient, such as:
+Frontera provides many powerful features for making frontier management easy and efficient, such as:
 
 * Easy :doc:`built-in integration with Scrapy <scrapy-integration>` and :doc:`any other crawler <frontier-api>`
   through its API.
@@ -76,14 +76,15 @@ Frontera provides many powerful features for making Frontier management easy and
 
 * Built-in support for :ref:`database storage <frontier-backends-sqlalchemy>` for crawled pages.
 
-* Support for extending Frontera by plugging your own functionality using :doc:`middlewares <frontier-middlewares>`.
+* Plugging your own request/response altering logic using :doc:`middlewares <frontier-middlewares>`.
 
 * Built-in middlewares for:
 
   * Extracting :ref:`domain info <frontier-domain-middleware>` from page URLs.
-  * Create :ref:`unique fingerprints for page URLs <frontier-url-fingerprint-middleware>` and :ref:`domain names <frontier-domain-fingerprint-middleware>`.
+  * Create :ref:`unique fingerprints for page URLs <frontier-url-fingerprint-middleware>` and
+  :ref:`domain names <frontier-domain-fingerprint-middleware>`.
 
-* Create fake sitemaps and reproduce crawling without crawler with the :doc:`graph Manager <graph-manager>`.
+* Create fake sitemaps and reproduce crawling without crawler with the :doc:`Graph Manager <graph-manager>`.
 
 * Tools for :doc:`easy frontier testing <frontier-tester>`.
 
@@ -95,7 +96,7 @@ Frontera provides many powerful features for making Frontier management easy and
 What's next?
 ============
 
-The next obvious steps are for you to :doc:`install Frontera <installation>`, and read the
+The next obvious steps are for you to :doc:`install Frontera <installation>`, read the
 :doc:`architecture overview <architecture>` and :doc:`API docs <frontier-api>`. Thanks for your interest!
 
 

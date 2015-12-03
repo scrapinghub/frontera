@@ -14,11 +14,11 @@ from frontera.utils.url import parse_domain_from_url_fast
 
 
 class Metadata(BaseMetadata):
-    def __init__(self, session_cls, model_cls):
+    def __init__(self, session_cls, model_cls, cache_size):
         self.session = session_cls(expire_on_commit=False)   # FIXME: Should be explicitly mentioned in docs
         self.model = model_cls
         self.table = DeclarativeBase.metadata.tables['metadata']
-        self.cache = LRUCache(10000)
+        self.cache = LRUCache(cache_size)
         self.logger = logging.getLogger("frontera.contrib.backends.sqlalchemy.Metadata")
 
     def frontier_stop(self):
@@ -112,9 +112,6 @@ class States(MemoryStates):
 
 
 class Queue(BaseQueue):
-
-    GET_RETRIES = 3
-
     def __init__(self, session_cls, queue_cls, partitions, ordering='default'):
         self.session = session_cls()
         self.queue_model = queue_cls
@@ -143,19 +140,16 @@ class Queue(BaseQueue):
         :param partition_id: partition id
         :return: list of :class:`Request <frontera.core.models.Request>` objects.
         """
-        print "GNR"
         results = []
         for item in self._order_by(self.session.query(self.queue_model).filter_by(partition_id=partition_id)).limit(max_n_requests):
             method = 'GET' if not item.method else item.method
             results.append(Request(item.url, method=method, meta=item.meta, headers=item.headers, cookies=item.cookies))
-            print item.url, item.score
             self.session.delete(item)
         self.session.commit()
         return results
 
     def schedule(self, batch):
         to_save = []
-        print "SCH"
         for fprint, score, request, schedule in batch:
             if schedule:
                 _, hostname, _, _, _, _ = parse_domain_from_url_fast(request.url)
@@ -170,7 +164,6 @@ class Queue(BaseQueue):
                                      headers=request.headers, cookies=request.cookies, method=request.method,
                                      partition_id=partition_id, host_crc32=host_crc32, created_at=time()*1E+6)
                 to_save.append(q)
-                print q.url, q.score, q.created_at
         self.session.bulk_save_objects(to_save)
         self.session.commit()
 
@@ -179,6 +172,8 @@ class Queue(BaseQueue):
 
 
 class BroadCrawlingQueue(Queue):
+    
+    GET_RETRIES = 3
 
     def get_next_requests(self, max_n_requests, partition_id, **kwargs):
         """
