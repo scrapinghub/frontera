@@ -58,7 +58,7 @@ class Queue(StartStopMixin):
     @abstractmethod
     def get_next_requests(self, max_n_requests, partition_id, **kwargs):
         """
-        Returns a list of next requests to be crawled.
+        Returns a list of next requests to be crawled, and excludes them from internal storage.
 
         :param int max_next_requests: Maximum number of requests to be returned by this method.
         :param dict kwargs: A parameters from downloader component.
@@ -81,6 +81,7 @@ class Queue(StartStopMixin):
     def count(self):
         """
         Returns count of documents in the queue.
+
         :return: int
         """
         raise NotImplementedError
@@ -124,6 +125,11 @@ class States(StartStopMixin):
 
     @abstractmethod
     def fetch(self, fingerprints):
+        """
+        Get states from the persistent storage to internal cache.
+
+        :param fingerprints: list document fingerprints, which state to read
+        """
         raise NotImplementedError
 
 

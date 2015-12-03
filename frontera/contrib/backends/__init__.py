@@ -16,6 +16,9 @@ class Crc32NamePartitioner(Partitioner):
 
 
 class CommonBackend(Backend):
+    """
+    A simpliest possible backend, performing one-time crawl: if page was crawled once, it will not be crawled again.
+    """
     component_name = 'Common Backend'
 
     @classmethod

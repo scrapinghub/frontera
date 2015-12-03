@@ -2,20 +2,21 @@
 Backends
 ========
 
-Frontier :class:`Backend <frontera.core.components.Backend>` is where the crawling logic/policies lies.
-It’s responsible for receiving all the crawl info and selecting the next pages to be crawled.
-It's called by the :class:`FrontierManager <frontera.core.manager.FrontierManager>` after
+Frontier :class:`Backend <frontera.core.components.Backend>` is where the crawling logic/policies lies, essentially a
+brain of your crawler. :class:`Queue <frontera.core.components.Queue>`,
+:class:`Metadata <frontera.core.components.Metadata>` and :class:`States <frontera.core.components.States>` are classes
+where all low level code is meant to be placed, and
+Backend opposite, operates on a higher levels. Frontera is bundled with database and in-memory implementations of
+Queue, Metadata and States which can be combined in your custom backends or used standalone by directly
+instantiating :class:`FrontierManager <frontera.core.manager.FrontierManager>` and Backend.
+
+Backend methods are called by the FrontierManager after
 :class:`Middleware <frontera.core.components.Middleware>`, using hooks for
-:class:`Request <frontera.core.models.Request>`
-and :class:`Response <frontera.core.models.Response>` processing according to
-:ref:`frontier data flow <frontier-data-flow>`.
+:class:`Request <frontera.core.models.Request>` and :class:`Response <frontera.core.models.Response>` processing
+according to :ref:`frontier data flow <frontier-data-flow>`.
 
-Unlike :class:`Middleware`, that can have many different instances activated, only one
-:class:`Backend <frontera.core.components.Backend>` can be used per frontier.
-
-Some backends require, depending on the logic implemented, a persistent storage to manage
-:class:`Request <frontera.core.models.Request>`
-and :class:`Response <frontera.core.models.Response>` objects info.
+Unlike Middleware, that can have many different instances activated, only one Backend can be used per
+frontier.
 
 
 .. _frontier-activating-backend:
@@ -23,25 +24,24 @@ and :class:`Response <frontera.core.models.Response>` objects info.
 Activating a backend
 ====================
 
-To activate the frontier middleware component, set it through the :setting:`BACKEND` setting.
+To activate the frontier backend component, set it through the :setting:`BACKEND` setting.
 
 Here’s an example::
 
     BACKEND = 'frontera.contrib.backends.memory.FIFO'
 
-Keep in mind that some backends may need to be enabled through a particular setting. See
-:ref:`each backend documentation <frontier-built-in-backend>` for more info.
+Keep in mind that some backends may need to be additionally configured through a particular setting. See
+:ref:`backends documentation <frontier-built-in-backend>` for more info.
 
 .. _frontier-writing-backend:
 
 Writing your own backend
-===========================
+========================
 
-Writing your own frontier backend is easy. Each :class:`Backend <frontera.core.components.Backend>` component is a
-single Python class inherited from :class:`Component <frontera.core.components.Component>`.
+Writing your own frontier backend is easy. Each backend component is a single Python class inherited from
+:class:`Backend` and using one or all of :class:`Queue`, :class:`Metadata` and :class:`States`.
 
-:class:`FrontierManager <frontera.core.manager.FrontierManager>` will communicate with active
-:class:`Backend <frontera.core.components.Backend>` through the methods described below.
+:class:`FrontierManager` will communicate with active :class:`Backend` through the methods described below.
 
 
 .. autoclass:: frontera.core.components.Backend
@@ -56,11 +56,11 @@ single Python class inherited from :class:`Component <frontera.core.components.C
 
         :return: None.
 
+    .. automethod:: frontera.core.components.Backend.finished
+
     .. automethod:: frontera.core.components.Backend.add_seeds
 
         :return: None.
-
-    .. automethod:: frontera.core.components.Backend.get_next_requests
 
     .. automethod:: frontera.core.components.Backend.page_crawled
 
@@ -70,27 +70,87 @@ single Python class inherited from :class:`Component <frontera.core.components.C
 
         :return: None.
 
+    .. automethod:: frontera.core.components.Backend.get_next_requests
+
     **Class Methods**
 
     .. automethod:: frontera.core.components.Backend.from_manager
 
+    **Properties**
+
+    .. autoattribute:: frontera.core.components.Backend.queue
+
+    .. autoattribute:: frontera.core.components.Backend.states
+
+    .. autoattribute:: frontera.core.components.Backend.metadata
+
+
+At the same time :class:`Backend` should communicate with low-level storage by means of these classes:
+
+Metadata
+^^^^^^^^
+
+.. autoclass:: frontera.core.components.Metadata
+
+    **Methods**
+
+    .. automethod:: frontera.core.components.Metadata.add_seeds
+
+    .. automethod:: frontera.core.components.Metadata.request_error
+
+    .. automethod:: frontera.core.components.Metadata.page_crawled
+
+
+Known implementations are: :class:`MemoryMetadata` and :class:`sqlalchemy.components.Metadata`.
+
+Queue
+^^^^^
+
+.. autoclass:: frontera.core.components.Queue
+
+    **Methods**
+
+    .. automethod:: frontera.core.components.Queue.get_next_requests
+
+    .. automethod:: frontera.core.components.Queue.schedule
+
+    .. automethod:: frontera.core.components.Queue.count
+
+Known implementations are: :class:`MemoryQueue` and :class:`sqlalchemy.components.Queue`.
+
+States
+^^^^^^
+
+.. autoclass:: frontera.core.components.States
+
+    **Methods**
+
+    .. automethod:: frontera.core.components.States.update_cache
+
+    .. automethod:: frontera.core.components.States.set_states
+
+    .. automethod:: frontera.core.components.States.flush
+
+    .. automethod:: frontera.core.components.States.fetch
+
+
+Known implementations are: :class:`MemoryStates` and :class:`sqlalchemy.components.States`.
 
 .. _frontier-built-in-backend:
 
 Built-in backend reference
-=============================
+==========================
 
-This page describes all :ref:`each backend documentation <frontier-built-in-backend>` components that come with
-Frontera. For information on how to use them and how to write your own middleware, see the
-:ref:`backend usage guide. <frontier-writing-backend>`.
+This article describes all backend components that come bundled with Frontera.
 
 To know the default activated :class:`Backend <frontera.core.components.Backend>` check the
 :setting:`BACKEND` setting.
 
+
 .. _frontier-backends-basic-algorithms:
 
 Basic algorithms
-----------------
+^^^^^^^^^^^^^^^^
 Some of the built-in :class:`Backend <frontera.core.components.Backend>` objects implement basic algorithms as
 as `FIFO`_/`LIFO`_ or `DFS`_/`BFS`_ for page visit ordering.
 
@@ -99,45 +159,50 @@ Differences between them will be on storage engine used. For instance,
 :class:`sqlalchemy.FIFO <frontera.contrib.backends.sqlalchemy.FIFO>` will use the same logic but with different
 storage engines.
 
+All these backend variations are using the same :class:`CommonBackend <frontera.contrib.backends.CommonBackend>` class.
+
+.. autoclass:: frontera.contrib.backends.CommonBackend
+
+
 .. _frontier-backends-memory:
 
-
 Memory backends
----------------------
+^^^^^^^^^^^^^^^
 
-This set of :class:`Backend <frontera.core.components.Backend>` objects will use an `heapq`_ object as storage for
-:ref:`basic algorithms <frontier-backends-basic-algorithms>`.
+This set of :class:`Backend <frontera.core.components.Backend>` objects will use an `heapq`_ module as queue and native
+dictionaries as storage for :ref:`basic algorithms <frontier-backends-basic-algorithms>`.
 
 
 .. class:: frontera.contrib.backends.memory.BASE
 
-    Base class for in-memory heapq :class:`Backend <frontera.core.components.Backend>` objects.
+    Base class for in-memory :class:`Backend <frontera.core.components.Backend>` objects.
 
 .. class:: frontera.contrib.backends.memory.FIFO
 
-    In-memory heapq :class:`Backend <frontera.core.components.Backend>` implementation of `FIFO`_ algorithm.
+    In-memory :class:`Backend <frontera.core.components.Backend>` implementation of `FIFO`_ algorithm.
 
 .. class:: frontera.contrib.backends.memory.LIFO
 
-    In-memory heapq :class:`Backend <frontera.core.components.Backend>` implementation of `LIFO`_ algorithm.
+    In-memory :class:`Backend <frontera.core.components.Backend>` implementation of `LIFO`_ algorithm.
 
 .. class:: frontera.contrib.backends.memory.BFS
 
-    In-memory heapq :class:`Backend <frontera.core.components.Backend>` implementation of `BFS`_ algorithm.
+    In-memory :class:`Backend <frontera.core.components.Backend>` implementation of `BFS`_ algorithm.
 
 .. class:: frontera.contrib.backends.memory.DFS
 
-    In-memory heapq :class:`Backend <frontera.core.components.Backend>` implementation of `DFS`_ algorithm.
+    In-memory :class:`Backend <frontera.core.components.Backend>` implementation of `DFS`_ algorithm.
 
 .. class:: frontera.contrib.backends.memory.RANDOM
 
-    In-memory heapq :class:`Backend <frontera.core.components.Backend>` implementation of a random selection
+    In-memory :class:`Backend <frontera.core.components.Backend>` implementation of a random selection
     algorithm.
+
 
 .. _frontier-backends-sqlalchemy:
 
 SQLAlchemy backends
----------------------
+^^^^^^^^^^^^^^^^^^^
 
 This set of :class:`Backend <frontera.core.components.Backend>` objects will use `SQLAlchemy`_ as storage for
 :ref:`basic algorithms <frontier-backends-basic-algorithms>`.
@@ -145,45 +210,13 @@ This set of :class:`Backend <frontera.core.components.Backend>` objects will use
 By default it uses an in-memory SQLite database as a storage engine, but `any databases supported by SQLAlchemy`_ can
 be used.
 
-:class:`Request <frontera.core.models.Request>` and :class:`Response <frontera.core.models.Response>` are
-represented by a `declarative sqlalchemy model`_::
 
-    class Page(Base):
-        __tablename__ = 'pages'
-        __table_args__ = (
-            UniqueConstraint('url'),
-        )
-        class State:
-            NOT_CRAWLED = 'NOT CRAWLED'
-            QUEUED = 'QUEUED'
-            CRAWLED = 'CRAWLED'
-            ERROR = 'ERROR'
-
-        url = Column(String(1000), nullable=False)
-        fingerprint = Column(String(40), primary_key=True, nullable=False, index=True, unique=True)
-        depth = Column(Integer, nullable=False)
-        created_at = Column(TIMESTAMP, nullable=False)
-        status_code = Column(String(20))
-        state = Column(String(10))
-        error = Column(String(20))
-
-If you need to create your own models, you can do it by using the :setting:`DEFAULT_MODELS` setting::
-
-    DEFAULT_MODELS = {
-        'Page': 'frontera.contrib.backends.sqlalchemy.models.Page',
-    }
+If you need to use your own `declarative sqlalchemy models`_, you can do it by using the
+:setting:`SQLALCHEMYBACKEND_MODELS` setting.
 
 This setting uses a dictionary where ``key`` represents the name of the model to define and ``value`` the model to use.
-If you want for instance to create a model to represent domains::
 
-    DEFAULT_MODELS = {
-        'Page': 'frontera.contrib.backends.sqlalchemy.models.Page',
-        'Domain': 'myproject.backends.sqlalchemy.models.Domain',
-    }
-
-Models can be accessed from the Backend dictionary attribute ``models``.
-
-For a complete list of all settings used for sqlalchemy backends check the :doc:`settings <frontera-settings>` section.
+For a complete list of all settings used for SQLAlchemy backends check the :doc:`settings <frontera-settings>` section.
 
 .. class:: frontera.contrib.backends.sqlalchemy.BASE
 
@@ -220,4 +253,4 @@ For a complete list of all settings used for sqlalchemy backends check the :doc:
 .. _heapq: https://docs.python.org/2/library/heapq.html
 .. _SQLAlchemy: http://www.sqlalchemy.org/
 .. _any databases supported by SQLAlchemy: http://docs.sqlalchemy.org/en/latest/dialects/index.html
-.. _declarative sqlalchemy model: http://docs.sqlalchemy.org/en/latest/orm/extensions/declarative/index.html
+.. _declarative sqlalchemy models: http://docs.sqlalchemy.org/en/latest/orm/extensions/declarative/index.html
