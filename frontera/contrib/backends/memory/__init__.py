@@ -3,7 +3,7 @@ import datetime
 import logging
 import random
 
-from frontera import Backend
+from frontera.contrib.backends import CommonBackend
 from frontera.core.components import Metadata, Queue, States
 from frontera.core import OverusedBuffer
 from frontera.utils.heap import Heap
@@ -37,6 +37,9 @@ class MemoryMetadata(Metadata):
         else:
             page = self.requests[fingerprint]
             return page, False
+
+    def update_score(self, batch):
+        pass
 
 
 class MemoryQueue(Queue):
@@ -104,7 +107,7 @@ class MemoryStates(States):
             self._cache.clear()
 
 
-class MemoryBaseBackend(Backend):
+class MemoryBaseBackend(CommonBackend):
     """
     Base class for in-memory heapq Backend objects.
     """
@@ -136,56 +139,15 @@ class MemoryBaseBackend(Backend):
     def _create_queue(self, settings):
         return MemoryQueue(1)
 
-    def frontier_start(self):
-        pass
-
-    def frontier_stop(self):
-        pass
-
     def add_seeds(self, seeds):
         for seed in seeds:
-            seed.meta['depth'] = 0
             seed.meta['created_at'] = datetime.datetime.utcnow()
-        self.metadata.add_seeds(seeds)
-        self.states.fetch([seed.meta['fingerprint'] for seed in seeds])
-        self.states.set_states(seeds)
-        self._schedule(seeds)
-
-    def _schedule(self, requests):
-        batch = []
-        for request in requests:
-            schedule = True if request.meta['state'] in [States.NOT_CRAWLED, States.ERROR, None] else False
-            batch.append((request.meta['fingerprint'], self._get_score(request), request, schedule))
-        self.queue.schedule(batch)
-
-    def _get_score(self, obj):
-        return 1.0
-
-    def get_next_requests(self, max_next_requests, **kwargs):
-        return self.queue.get_next_requests(max_next_requests, 0, **kwargs)
+        super(MemoryBaseBackend, self).add_seeds(seeds)
 
     def page_crawled(self, response, links):
-        response.meta['state'] = States.CRAWLED
-        self.states.update_cache(response)
-        to_fetch = []
-        depth = (response.meta['depth'] if 'depth' in response.meta else 0)+1
         for link in links:
-            to_fetch.append(link.meta['fingerprint'])
-            link.meta['depth'] = depth
             link.meta['created_at'] = datetime.datetime.utcnow()
-        self.states.fetch(to_fetch)
-        self.states.set_states(links)
-        self.metadata.page_crawled(response, links)
-        self._schedule(links)
-        for link in links:
-            if not link.meta['state']:
-                link.meta['state'] = States.QUEUED
-        self.states.update_cache(links)
-
-    def request_error(self, request, error):
-        request.meta['state'] = States.ERROR
-        self.metadata.request_error(request, error)
-        self.states.update_cache(request)
+        super(MemoryBaseBackend, self).page_crawled(response, links)
 
     def finished(self):
         return self.queue.count() == 0

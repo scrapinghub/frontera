@@ -172,7 +172,7 @@ class Queue(BaseQueue):
 
 
 class BroadCrawlingQueue(Queue):
-    
+
     GET_RETRIES = 3
 
     def get_next_requests(self, max_n_requests, partition_id, **kwargs):

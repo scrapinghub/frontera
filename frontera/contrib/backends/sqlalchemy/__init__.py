@@ -3,84 +3,10 @@ from __future__ import absolute_import
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from frontera import Backend
-from frontera.utils.misc import load_object
-from frontera.contrib.backends.sqlalchemy.models import DeclarativeBase
+from frontera.contrib.backends import CommonBackend
 from frontera.contrib.backends.sqlalchemy.components import Metadata, Queue, States
-
-
-class CommonBackend(Backend):
-    component_name = 'Common Backend'
-
-    @classmethod
-    def from_manager(cls, manager):
-        return cls(manager)
-
-    def frontier_start(self):
-        self.metadata.frontier_start()
-        self.queue.frontier_start()
-        self.states.frontier_start()
-        self.queue_size = self.queue.count()
-
-    def frontier_stop(self):
-        self.metadata.frontier_stop()
-        self.queue.frontier_stop()
-        self.states.frontier_stop()
-        self.engine.dispose()
-
-    def add_seeds(self, seeds):
-        for seed in seeds:
-            seed.meta['depth'] = 0
-        self.metadata.add_seeds(seeds)
-        self.states.fetch([seed.meta['fingerprint'] for seed in seeds])
-        self.states.set_states(seeds)
-        self._schedule(seeds)
-
-    def _schedule(self, requests):
-        batch = []
-        queue_incr = 0
-        for request in requests:
-            schedule = True if request.meta['state'] in [States.NOT_CRAWLED, States.ERROR, None] else False
-            batch.append((request.meta['fingerprint'], self._get_score(request), request, schedule))
-            if schedule:
-                queue_incr += 1
-        self.queue.schedule(batch)
-        self.metadata.update_score(batch)
-        self.queue_size += queue_incr
-
-    def _get_score(self, obj):
-        return 1.0
-
-    def get_next_requests(self, max_next_requests, **kwargs):
-        batch = self.queue.get_next_requests(max_next_requests, 0, **kwargs)
-        self.queue_size -= len(batch)
-        return batch
-
-    def page_crawled(self, response, links):
-        response.meta['state'] = States.CRAWLED
-        self.states.update_cache(response)
-        to_fetch = []
-        depth = (response.meta['depth'] if 'depth' in response.meta else 0)+1
-
-        for link in links:
-            to_fetch.append(link.meta['fingerprint'])
-            link.meta['depth'] = depth
-        self.states.fetch(to_fetch)
-        self.states.set_states(links)
-        self.metadata.page_crawled(response, links)
-        self._schedule(links)
-        for link in links:
-            if not link.meta['state']:
-                link.meta['state'] = States.QUEUED
-        self.states.update_cache(links)
-
-    def request_error(self, request, error):
-        request.meta['state'] = States.ERROR
-        self.metadata.request_error(request, error)
-        self.states.update_cache(request)
-
-    def finished(self):
-        return self.queue_size == 0
+from frontera.contrib.backends.sqlalchemy.models import DeclarativeBase
+from frontera.utils.misc import load_object
 
 
 class SQLAlchemyBackend(CommonBackend):
@@ -113,6 +39,10 @@ class SQLAlchemyBackend(CommonBackend):
         self._states = States(self.session_cls, self.models['StateModel'],
                               settings.get('STATE_CACHE_SIZE_LIMIT'))
         self._queue = self._create_queue(settings)
+
+    def frontier_stop(self):
+        super(SQLAlchemyBackend, self).frontier_stop()
+        self.engine.dispose()
 
     def _create_queue(self, settings):
         return Queue(self.session_cls, self.models['QueueModel'], 1)

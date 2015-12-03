@@ -16,13 +16,14 @@ class StartStopMixin(object):
 
 
 class Metadata(StartStopMixin):
-    """Interface definition for frontier metadata"""
+    """Interface definition for a frontier metadata class. This class is responsible for storing documents metadata,
+    including content and optimized for write-only data flow."""
     __metaclass__ = ABCMeta
 
     @abstractmethod
     def add_seeds(self, seeds):
         """
-        This method is called when new seeds are are added to the frontier.
+        This method is called when new seeds are added to the frontier.
 
         :param list seeds: A list of :class:`Request <frontera.core.models.Request>` objects.
         """
@@ -51,7 +52,7 @@ class Metadata(StartStopMixin):
 
 
 class Queue(StartStopMixin):
-    """Interface definition for a frontier queue"""
+    """Interface definition for a frontier queue class. The queue has priorities and partitions."""
     __metaclass__ = ABCMeta
 
     @abstractmethod
@@ -86,7 +87,8 @@ class Queue(StartStopMixin):
 
 
 class States(StartStopMixin):
-    """Interface definition for a frontier document states"""
+    """Interface definition for a document states management class. This class is responsible for providing actual
+    documents state, and persist the state changes in batch-oriented manner."""
     __metaclass__ = ABCMeta
 
     NOT_CRAWLED = 0
@@ -135,7 +137,7 @@ class Component(Metadata):
     :class:`FrontierManager <frontera.core.manager.FrontierManager>` communicates with the active components
     using the hook methods listed below.
 
-    Implementations are different for  :class:`Middleware <frontera.core.components.Middleware>` and
+    Implementations are different for :class:`Middleware <frontera.core.components.Middleware>` and
     :class:`Backend <frontera.core.components.Backend>` objects, therefore methods are not fully described here
     but in their corresponding section.
 
@@ -177,7 +179,7 @@ class CanonicalSolver(Middleware):
     component_name = 'Base CanonicalSolver'
 
 
-class Backend(Metadata):
+class Backend(Component):
     """Interface definition for frontier backend."""
     __metaclass__ = ABCMeta
 
