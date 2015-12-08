@@ -67,20 +67,17 @@ class CommonBackend(Backend):
     def page_crawled(self, response, links):
         response.meta['state'] = States.CRAWLED
         self.states.update_cache(response)
-        to_fetch = []
         depth = (response.meta['depth'] if 'depth' in response.meta else 0)+1
-
+        to_fetch = {}
         for link in links:
-            to_fetch.append(link.meta['fingerprint'])
+            to_fetch[link.meta['fingerprint']] = link
             link.meta['depth'] = depth
-        self.states.fetch(to_fetch)
+        self.states.fetch(to_fetch.keys())
         self.states.set_states(links)
-        self.metadata.page_crawled(response, links)
-        self._schedule(links)
-        for link in links:
-            if not link.meta['state']:
-                link.meta['state'] = States.QUEUED
-        self.states.update_cache(links)
+        unique_links = to_fetch.values()
+        self.metadata.page_crawled(response, unique_links)
+        self._schedule(unique_links)
+        self.states.update_cache(unique_links)
 
     def request_error(self, request, error):
         request.meta['state'] = States.ERROR

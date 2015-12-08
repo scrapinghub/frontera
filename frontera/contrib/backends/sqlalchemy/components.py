@@ -4,6 +4,7 @@ from datetime import datetime
 from time import time
 
 from cachetools import LRUCache
+
 from frontera.contrib.backends import Crc32NamePartitioner
 from frontera.contrib.backends.memory import MemoryStates
 from frontera.contrib.backends.sqlalchemy.models import DeclarativeBase
@@ -19,7 +20,7 @@ class Metadata(BaseMetadata):
         self.model = model_cls
         self.table = DeclarativeBase.metadata.tables['metadata']
         self.cache = LRUCache(cache_size)
-        self.logger = logging.getLogger("frontera.contrib.backends.sqlalchemy.Metadata")
+        self.logger = logging.getLogger("frontera.contrib.backends.sqlalchemy.components.Metadata")
 
     def frontier_stop(self):
         self.session.close()
@@ -87,7 +88,7 @@ class States(MemoryStates):
         self.session = session_cls()
         self.model = model_cls
         self.table = DeclarativeBase.metadata.tables['states']
-        self.logger = logging.getLogger("frontera.contrib.backends.sqlalchemy.States")
+        self.logger = logging.getLogger("frontera.contrib.backends.sqlalchemy.components.States")
 
     def frontier_stop(self):
         self.flush()
@@ -116,7 +117,7 @@ class Queue(BaseQueue):
         self.session = session_cls()
         self.queue_model = queue_cls
         self.table = DeclarativeBase.metadata.tables['queue']
-        self.logger = logging.getLogger("frontera.contrib.backends.sqlalchemy.Queue")
+        self.logger = logging.getLogger("frontera.contrib.backends.sqlalchemy.components.Queue")
         self.partitions = [i for i in range(0, partitions)]
         self.partitioner = Crc32NamePartitioner(self.partitions)
         self.ordering = ordering
@@ -164,6 +165,7 @@ class Queue(BaseQueue):
                                      headers=request.headers, cookies=request.cookies, method=request.method,
                                      partition_id=partition_id, host_crc32=host_crc32, created_at=time()*1E+6)
                 to_save.append(q)
+                request.meta['state'] = States.QUEUED
         self.session.bulk_save_objects(to_save)
         self.session.commit()
 
