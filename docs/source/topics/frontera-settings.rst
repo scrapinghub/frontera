@@ -249,37 +249,105 @@ If set to ``True``, will use `tldextract`_ to attach extra domain information
 .. _tldextract: https://pypi.python.org/pypi/tldextract
 
 
+Built-in backends settings
+==========================
+
+.. setting:: STATE_CACHE_SIZE
+
+STATE_CACHE_SIZE
+^^^^^^^^^^^^^^^^
+
+Default: ``1000000``
+
+Maximum count of elements in state cache before it gets clear.
+
+
+SQLAlchemy
+----------
+
+.. setting:: SQLALCHEMYBACKEND_CACHE_SIZE
+
+SQLALCHEMYBACKEND_CACHE_SIZE
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Default: ``10000``
+
+SQLAlchemy Metadata LRU Cache size. It's used for caching objects, which are requested from DB every time already known,
+documents are crawled. This is mainly saves DB throughput, increase it if you're experiencing problems with too high
+volume of SELECT's to Metadata table, or decrease if you need to save memory.
+
+.. setting::
+
+SQLALCHEMYBACKEND_CLEAR_CONTENT
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Default: ``True``
+
+Set to ``False`` if you need to disable table content clean up on backend instantiation (e.g. every Scrapy spider run).
+
+
+.. setting::
+
+SQLALCHEMYBACKEND_DROP_ALL_TABLES
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Default: ``True``
+
+Set to ``False`` if you need to disable dropping of DB tables on backend instantiation (e.g. every Scrapy spider run).
+
+.. setting::
+
+SQLALCHEMYBACKEND_ENGINE
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Default:: ``sqlite:///:memory:``
+
+SQLAlchemy database URL. Default is set to memory.
+
+.. setting::
+
+SQLALCHEMYBACKEND_ENGINE_ECHO
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Default: ``False``
+
+Turn on/off SQLAlchemy verbose output. Useful for debugging SQL queries.
+
+.. setting::
+
+SQLALCHEMYBACKEND_MODELS
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Default::
+
+    {
+        'MetadataModel': 'frontera.contrib.backends.sqlalchemy.models.MetadataModel',
+        'StateModel': 'frontera.contrib.backends.sqlalchemy.models.StateModel',
+        'QueueModel': 'frontera.contrib.backends.sqlalchemy.models.QueueModel'
+    }
+
+This is mapping with SQLAlchemy models used by backends. It is mainly used for customization.
+
+
+Revisting backend
+-----------------
+
+.. setting:: SQLALCHEMYBACKEND_REVISIT_INTERVAL
+
+SQLALCHEMYBACKEND_REVISIT_INTERVAL
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Default: ``timedelta(days=1)``
+
+Time between document visits, expressed in ``datetime.timedelta`` objects. Changing of this setting will only affect
+documents scheduled after the change. All previously queued documents will be crawled with old periodicity.
+
 
 Default settings
 ================
 
 If no settings are specified, frontier will use the built-in default ones. For a complete list of default values see:
 :ref:`Built-in settings reference <frontier-built-in-frontier-settings>`. All default settings can be overridden.
-
-Frontier default settings
--------------------------
-
-Values::
-
-    PAGE_MODEL = 'frontera.core.models.Page'
-    LINK_MODEL = 'frontera.core.models.Link'
-    FRONTIER = 'frontera.core.frontier.Frontier'
-    MIDDLEWARES = [
-        'frontera.contrib.middlewares.fingerprint.UrlFingerprintMiddleware',
-    ]
-    BACKEND = 'frontera.contrib.backends.memory.FIFO'
-    TEST_MODE = False
-    MAX_PAGES = 0
-    MAX_NEXT_PAGES = 0
-    AUTO_START = True
-
-Fingerprints middleware default settings
-----------------------------------------
-
-Values::
-
-    URL_FINGERPRINT_FUNCTION = 'frontera.utils.fingerprint.sha1'
-    DOMAIN_FINGERPRINT_FUNCTION = 'frontera.utils.fingerprint.sha1'
 
 
 Logging default settings

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 from datetime import datetime
-from time import time
+from time import time, sleep
 
 from cachetools import LRUCache
 
@@ -12,6 +12,25 @@ from frontera.core.components import Metadata as BaseMetadata, Queue as BaseQueu
 from frontera.core.models import Request, Response
 from frontera.utils.misc import get_crc32, chunks
 from frontera.utils.url import parse_domain_from_url_fast
+
+
+def retry_and_rollback(func):
+    def func_wrapper(self, *args, **kwargs):
+        tries = 5
+        while True:
+            try:
+                return func(self, *args, **kwargs)
+            except Exception, exc:
+                self.logger.exception(exc)
+                self.session.rollback()
+                sleep(5)
+                tries -= 1
+                if tries > 0:
+                    self.logger.info("Tries left %i" % tries)
+                    continue
+                else:
+                    raise exc
+    return func_wrapper
 
 
 class Metadata(BaseMetadata):
@@ -25,18 +44,21 @@ class Metadata(BaseMetadata):
     def frontier_stop(self):
         self.session.close()
 
+    @retry_and_rollback
     def add_seeds(self, seeds):
         for seed in seeds:
             o = self._create_page(seed)
             self.cache[o.fingerprint] = self.session.merge(o)
         self.session.commit()
 
+    @retry_and_rollback
     def request_error(self, page, error):
         m = self._modify_page(page) if page.meta['fingerprint'] in self.cache else self._create_page(page)
         m.error = error
         self.cache[m.fingerprint] = self.session.merge(m)
         self.session.commit()
 
+    @retry_and_rollback
     def page_crawled(self, response, links):
         r = self._modify_page(response) if response.meta['fingerprint'] in self.cache else self._create_page(response)
         self.cache[r.fingerprint] = self.session.merge(r)
@@ -74,6 +96,7 @@ class Metadata(BaseMetadata):
             db_page.status_code = obj.status_code
         return db_page
 
+    @retry_and_rollback
     def update_score(self, batch):
         for fprint, score, request, schedule in batch:
             m = self.model(fingerprint=fprint, score=score)
@@ -90,10 +113,12 @@ class States(MemoryStates):
         self.table = DeclarativeBase.metadata.tables['states']
         self.logger = logging.getLogger("frontera.contrib.backends.sqlalchemy.components.States")
 
+    @retry_and_rollback
     def frontier_stop(self):
         self.flush()
         self.session.close()
 
+    @retry_and_rollback
     def fetch(self, fingerprints):
         to_fetch = [f for f in fingerprints if f not in self._cache]
         self.logger.debug("cache size %s" % len(self._cache))
@@ -103,6 +128,7 @@ class States(MemoryStates):
             for state in self.session.query(self.model).filter(self.model.fingerprint.in_(chunk)):
                 self._cache[state.fingerprint] = state.state
 
+    @retry_and_rollback
     def flush(self, force_clear=False):
         for fingerprint, state_val in self._cache.iteritems():
             state = self.model(fingerprint=fingerprint, state=state_val)
@@ -116,7 +142,6 @@ class Queue(BaseQueue):
     def __init__(self, session_cls, queue_cls, partitions, ordering='default'):
         self.session = session_cls()
         self.queue_model = queue_cls
-        self.table = DeclarativeBase.metadata.tables['queue']
         self.logger = logging.getLogger("frontera.contrib.backends.sqlalchemy.components.Queue")
         self.partitions = [i for i in range(0, partitions)]
         self.partitioner = Crc32NamePartitioner(self.partitions)
@@ -142,13 +167,20 @@ class Queue(BaseQueue):
         :return: list of :class:`Request <frontera.core.models.Request>` objects.
         """
         results = []
-        for item in self._order_by(self.session.query(self.queue_model).filter_by(partition_id=partition_id)).limit(max_n_requests):
-            method = 'GET' if not item.method else item.method
-            results.append(Request(item.url, method=method, meta=item.meta, headers=item.headers, cookies=item.cookies))
-            self.session.delete(item)
-        self.session.commit()
+        try:
+            for item in self._order_by(self.session.query(self.queue_model).filter_by(partition_id=partition_id)).\
+                    limit(max_n_requests):
+                method = 'GET' if not item.method else item.method
+                results.append(Request(item.url, method=method, meta=item.meta, headers=item.headers,
+                                       cookies=item.cookies))
+                self.session.delete(item)
+            self.session.commit()
+        except Exception, exc:
+            self.logger.exception(exc)
+            self.session.rollback()
         return results
 
+    @retry_and_rollback
     def schedule(self, batch):
         to_save = []
         for fprint, score, request, schedule in batch:
@@ -169,6 +201,7 @@ class Queue(BaseQueue):
         self.session.bulk_save_objects(to_save)
         self.session.commit()
 
+    @retry_and_rollback
     def count(self):
         return self.session.query(self.queue_model).count()
 
@@ -177,6 +210,7 @@ class BroadCrawlingQueue(Queue):
 
     GET_RETRIES = 3
 
+    @retry_and_rollback
     def get_next_requests(self, max_n_requests, partition_id, **kwargs):
         """
         Dequeues new batch of requests for crawling.

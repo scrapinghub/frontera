@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 AUTO_START = True
 BACKEND = 'frontera.contrib.backends.memory.FIFO'
 CANONICAL_SOLVER = 'frontera.contrib.canonicalsolvers.Basic'
@@ -23,6 +25,7 @@ SQLALCHEMYBACKEND_MODELS = {
     'StateModel': 'frontera.contrib.backends.sqlalchemy.models.StateModel',
     'QueueModel': 'frontera.contrib.backends.sqlalchemy.models.QueueModel'
 }
+SQLALCHEMYBACKEND_REVISIT_INTERVAL = timedelta(days=1)
 STATE_CACHE_SIZE = 1000000
 TEST_MODE = False
 TLDEXTRACT_DOMAIN_INFO = False

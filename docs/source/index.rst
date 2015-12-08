@@ -110,7 +110,6 @@ All the rest
    topics/examples
    topics/best-practices
    topics/tests
-   topics/release-notes
 
 :doc:`topics/examples`
     Some example projects and scripts using Frontera.

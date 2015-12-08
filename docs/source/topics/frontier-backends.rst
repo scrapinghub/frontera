@@ -244,6 +244,16 @@ For a complete list of all settings used for SQLAlchemy backends check the :doc:
     algorithm.
 
 
+Revisting backend
+^^^^^^^^^^^^^^^^^
+
+Based on custom SQLAlchemy backend, and queue. Crawling starts with seeds. After seeds are crawled, every new
+document will be scheduled for immediate crawling. On fetching every new document will be scheduled for recrawling
+after fixed interval set by :setting:`SQLALCHEMYBACKEND_REVISIT_INTERVAL`.
+
+Current implementation of revisiting backend has no prioritization. During long term runs spider could go idle, because
+there are no documents available for crawling, but there are documents waiting for their scheduled revisit time.
+
 
 .. _FIFO: http://en.wikipedia.org/wiki/FIFO
 .. _LIFO: http://en.wikipedia.org/wiki/LIFO_(computing)
