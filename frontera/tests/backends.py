@@ -1,7 +1,7 @@
 import pytest
 
 from frontera import FrontierManager, Settings, FrontierTester, graphs
-from frontera.utils.tester import DownloaderSimulator, BaseDownloaderSimulator
+from frontera.utils.tester import BaseDownloaderSimulator
 
 
 class BackendTest(object):
@@ -71,7 +71,7 @@ class BackendSequenceTest(BackendTest):
 
     def get_sequence(self, site_list, max_next_requests, downloader_simulator=BaseDownloaderSimulator()):
         """
-        Returns a crawling sequence from a site list
+        Returns an Frontera iteration sequence from a site list
 
         :param list site_list: A list of sites to use as frontier seeds.
         :param int max_next_requests: Max next requests for the frontier.
@@ -86,10 +86,20 @@ class BackendSequenceTest(BackendTest):
                                 graph_manager=graph_manager,
                                 max_next_requests=max_next_requests,
                                 downloader_simulator=downloader_simulator)
-
-        # Run tester and generate sequence
         tester.run()
-        return [page.url for page in tester.sequence]
+        return tester.sequence
+
+    def get_url_sequence(self, site_list, max_next_requests, downloader_simulator=BaseDownloaderSimulator()):
+        """
+        Returns a crawling sequence from a site list
+
+        :param list site_list: A list of sites to use as frontier seeds.
+        :param int max_next_requests: Max next requests for the frontier.
+        """
+        sequence = []
+        for requests, iteration, dl_info in self.get_sequence(site_list, max_next_requests, downloader_simulator):
+            sequence.extend([r.url for r in requests])
+        return sequence
 
     def assert_sequence(self, site_list, expected_sequence, max_next_requests):
         """
@@ -100,7 +110,7 @@ class BackendSequenceTest(BackendTest):
         """
 
         # Get sequence
-        sequence = self.get_sequence(site_list, max_next_requests)
+        sequence = self.get_url_sequence(site_list, max_next_requests)
         #print [str(n) for n in sequence]
 
         # Assert sequence equals expected
@@ -162,40 +172,6 @@ class FIFOBackendTest(BackendSequenceTest):
             expected_sequence=self.EXPECTED_SEQUENCES[expected_sequence],
             max_next_requests=max_next_requests,
         )
-
-
-class DFSOverusedBackendTest(BackendSequenceTest):
-
-    EXPECTED_SEQUENCES = {
-        "SEQUENCE_01_A": [
-            'https://www.a.com', 'http://b.com', 'http://www.a.com/2', 'http://www.a.com/2/1', 'http://www.a.com/3',
-            'http://www.a.com/2/1/3', 'http://www.a.com/2/4/1', 'http://www.a.net', 'http://b.com/2',
-            'http://test.cloud.c.com', 'http://cloud.c.com', 'http://test.cloud.c.com/2',
-            'http://b.com/entries?page=2', 'http://www.a.com/2/4/2'
-        ],
-        "SEQUENCE_02_A": [
-            'https://www.a.com', 'http://b.com', 'http://www.a.com/2', 'http://www.a.com/2/1', 'http://www.a.com/3',
-            'http://www.a.com/2/1/3', 'http://www.a.com/2/4/1', 'http://www.a.com/2/4/2', 'http://www.a.net',
-            'http://b.com/2', 'http://test.cloud.c.com', 'http://cloud.c.com', 'http://test.cloud.c.com/2',
-            'http://b.com/entries?page=2'
-        ]
-    }
-
-    def test_sequence1(self):
-        sequence = self.get_sequence(TEST_SITES['SITE_09'], max_next_requests=5,
-                                     downloader_simulator=DownloaderSimulator(rate=1))
-
-        expected_sequence = self.EXPECTED_SEQUENCES['SEQUENCE_01_A']
-        assert len(sequence) == len(expected_sequence)
-        assert sequence == expected_sequence
-
-    def test_sequence2(self):
-        sequence = self.get_sequence(TEST_SITES['SITE_09'], max_next_requests=5,
-                                     downloader_simulator=BaseDownloaderSimulator())
-
-        expected_sequence = self.EXPECTED_SEQUENCES['SEQUENCE_02_A']
-        assert len(sequence) == len(expected_sequence)
-        assert sequence == expected_sequence
 
 
 class LIFOBackendTest(BackendSequenceTest):
@@ -547,7 +523,7 @@ class RANDOMBackendTest(BackendSequenceTest):
         ]
     )
     def test_sequence(self, site_list, max_next_requests):
-        sequence = self.get_sequence(
+        sequence = self.get_url_sequence(
             site_list=TEST_SITES[site_list],
             max_next_requests=max_next_requests,
         )
