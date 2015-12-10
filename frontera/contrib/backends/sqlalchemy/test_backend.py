@@ -4,8 +4,8 @@ import pymysql
 from psycopg2 import connect
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
-from frontera import Settings
 from frontera.tests import backends
+from frontera.tests.test_revisiting_backend import RevisitingBackendTest
 
 
 #----------------------------------------------------
@@ -27,6 +27,9 @@ class SQLAlchemyBFS(backends.BFSBackendTest):
     backend_class = 'frontera.contrib.backends.sqlalchemy.BFS'
 
 
+class SQLAlchemyRevisiting(RevisitingBackendTest):
+    backend_class = 'frontera.contrib.backends.sqlalchemy.revisiting.Backend'
+
 #----------------------------------------------------
 # SQLite Memory
 #----------------------------------------------------
@@ -36,7 +39,6 @@ class SQLiteMemory(backends.BackendTest):
         settings = super(SQLiteMemory, self).get_settings()
         settings.SQLALCHEMYBACKEND_ENGINE = 'sqlite:///:memory:'
         return settings
-
 
 class TestSQLiteMemoryFIFO(SQLAlchemyFIFO, SQLiteMemory):
     pass
@@ -53,6 +55,9 @@ class TestSQLiteMemoryDFS(SQLAlchemyDFS, SQLiteMemory):
 class TestSQLiteMemoryBFS(SQLAlchemyBFS, SQLiteMemory):
     pass
 
+
+class TestSQLiteMemoryRevisiting(SQLAlchemyRevisiting):
+    pass
 
 #----------------------------------------------------
 # SQLite File

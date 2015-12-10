@@ -60,7 +60,6 @@ class BackendSequenceTest(BackendTest):
     A pytest base class for testing
     :class:`Backend <frontera.core.components.Backend>` crawling sequences.
     """
-
     def get_settings(self):
         settings = super(BackendSequenceTest, self).get_settings()
         settings.TEST_MODE = True
@@ -69,7 +68,8 @@ class BackendSequenceTest(BackendTest):
         settings.LOGGING_DEBUGGING_ENABLED = False
         return settings
 
-    def get_sequence(self, site_list, max_next_requests, downloader_simulator=BaseDownloaderSimulator()):
+    def get_sequence(self, site_list, max_next_requests, downloader_simulator=BaseDownloaderSimulator(),
+                     frontier_tester=FrontierTester):
         """
         Returns an Frontera iteration sequence from a site list
 
@@ -82,14 +82,15 @@ class BackendSequenceTest(BackendTest):
         graph_manager.add_site_list(site_list)
 
         # Tester
-        tester = FrontierTester(frontier=self.get_frontier(),
+        tester = frontier_tester(frontier=self.get_frontier(),
                                 graph_manager=graph_manager,
                                 max_next_requests=max_next_requests,
                                 downloader_simulator=downloader_simulator)
         tester.run()
         return tester.sequence
 
-    def get_url_sequence(self, site_list, max_next_requests, downloader_simulator=BaseDownloaderSimulator()):
+    def get_url_sequence(self, site_list, max_next_requests, downloader_simulator=BaseDownloaderSimulator(),
+                         frontier_tester=FrontierTester):
         """
         Returns a crawling sequence from a site list
 
@@ -97,7 +98,8 @@ class BackendSequenceTest(BackendTest):
         :param int max_next_requests: Max next requests for the frontier.
         """
         sequence = []
-        for requests, iteration, dl_info in self.get_sequence(site_list, max_next_requests, downloader_simulator):
+        for requests, iteration, dl_info in self.get_sequence(site_list, max_next_requests, downloader_simulator,
+                                                              frontier_tester):
             sequence.extend([r.url for r in requests])
         return sequence
 

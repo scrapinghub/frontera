@@ -8,13 +8,14 @@ from sqlalchemy import Column, DateTime
 from frontera import Request
 from frontera.contrib.backends import Crc32NamePartitioner
 from frontera.contrib.backends.sqlalchemy import SQLAlchemyBackend
-from frontera.contrib.backends.sqlalchemy.models import QueueModel
+from frontera.contrib.backends.sqlalchemy.models import QueueModelMixin, DeclarativeBase
 from frontera.core.components import Queue as BaseQueue, States
 from frontera.utils.misc import get_crc32
 from frontera.utils.url import parse_domain_from_url_fast
 
 
-class RevisitingQueueModel(QueueModel):
+class RevisitingQueueModel(QueueModelMixin, DeclarativeBase):
+    __tablename__ = 'revisiting_queue'
 
     crawl_at = Column(DateTime, nullable=False)
 
@@ -42,7 +43,7 @@ class RevisitingQueue(BaseQueue):
     def __init__(self, session_cls, queue_cls, partitions):
         self.session = session_cls()
         self.queue_model = queue_cls
-        self.logger = logging.getLogger("frontera.contrib.backends.sqlalchemy.revisiting.RevistingQueue")
+        self.logger = logging.getLogger("frontera.contrib.backends.sqlalchemy.revisiting.RevisitingQueue")
         self.partitions = [i for i in range(0, partitions)]
         self.partitioner = Crc32NamePartitioner(self.partitions)
 
@@ -115,3 +116,7 @@ class Backend(SQLAlchemyBackend):
         self.queue.schedule(batch)
         self.metadata.update_score(batch)
         self.queue_size += queue_incr
+
+    def page_crawled(self, response, links):
+        super(Backend, self).page_crawled(response, links)
+        self._schedule([response.request])

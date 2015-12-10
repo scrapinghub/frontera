@@ -57,8 +57,7 @@ class StateModel(DeclarativeBase):
         return '<State:%s=%d>' % (self.fingerprint, self.state)
 
 
-class QueueModel(DeclarativeBase):
-    __tablename__ = 'queue'
+class QueueModelMixin(object):
     __table_args__ = (
         {
             'mysql_charset': 'utf8',
@@ -79,6 +78,10 @@ class QueueModel(DeclarativeBase):
     method = Column(String(6))
     created_at = Column(BigInteger, index=True)
     depth = Column(SmallInteger)
+
+
+class QueueModel(QueueModelMixin, DeclarativeBase):
+    __tablename__ = 'queue'
 
     @classmethod
     def query(cls, session):
