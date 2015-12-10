@@ -2,6 +2,7 @@
 from frontera import Backend
 from frontera.core.components import Partitioner, States
 from zlib import crc32
+from collections import OrderedDict
 
 
 class Crc32NamePartitioner(Partitioner):
@@ -52,6 +53,7 @@ class CommonBackend(Backend):
             batch.append((request.meta['fingerprint'], self._get_score(request), request, schedule))
             if schedule:
                 queue_incr += 1
+                request.meta['state'] = States.QUEUED
         self.queue.schedule(batch)
         self.metadata.update_score(batch)
         self.queue_size += queue_incr
@@ -68,7 +70,7 @@ class CommonBackend(Backend):
         response.meta['state'] = States.CRAWLED
         self.states.update_cache(response)
         depth = (response.meta['depth'] if 'depth' in response.meta else 0)+1
-        to_fetch = {}
+        to_fetch = OrderedDict()
         for link in links:
             to_fetch[link.meta['fingerprint']] = link
             link.meta['depth'] = depth

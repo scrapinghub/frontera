@@ -54,7 +54,7 @@ class RevisitingQueue(BaseQueue):
         try:
             for item in self.session.query(self.queue_model).\
                     filter(RevisitingQueueModel.crawl_at <= datetime.utcnow(),
-                           RevisitingQueueModel.partition_id==partition_id).\
+                           RevisitingQueueModel.partition_id == partition_id).\
                     limit(max_n_requests):
                 method = 'GET' if not item.method else item.method
                 results.append(Request(item.url, method=method, meta=item.meta, headers=item.headers, cookies=item.cookies))

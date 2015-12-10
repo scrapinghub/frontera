@@ -119,6 +119,7 @@ class MemoryBaseBackend(CommonBackend):
         self._metadata = MemoryMetadata()
         self._states = MemoryStates(settings.get("STATE_CACHE_SIZE"))
         self._queue = self._create_queue(settings)
+        self._id = 0
 
     @property
     def metadata(self):
@@ -141,12 +142,14 @@ class MemoryBaseBackend(CommonBackend):
 
     def add_seeds(self, seeds):
         for seed in seeds:
-            seed.meta['created_at'] = datetime.datetime.utcnow()
+            seed.meta['id'] = self._id
+            self._id += 1
         super(MemoryBaseBackend, self).add_seeds(seeds)
 
     def page_crawled(self, response, links):
         for link in links:
-            link.meta['created_at'] = datetime.datetime.utcnow()
+            link.meta['id'] = self._id
+            self._id += 1
         super(MemoryBaseBackend, self).page_crawled(response, links)
 
     def finished(self):
@@ -155,24 +158,24 @@ class MemoryBaseBackend(CommonBackend):
 
 class MemoryFIFOQueue(MemoryQueue):
     def _compare_pages(self, first, second):
-        return cmp(first.meta['created_at'], second.meta['created_at'])
+        return cmp(first.meta['id'], second.meta['id'])
 
 
 class MemoryLIFOQueue(MemoryQueue):
     def _compare_pages(self, first, second):
-        return cmp(second.meta['created_at'], first.meta['created_at'])
+        return cmp(second.meta['id'], first.meta['id'])
 
 
 class MemoryDFSQueue(MemoryQueue):
     def _compare_pages(self, first, second):
-        return cmp((second.meta['depth'], first.meta['created_at']),
-                   (first.meta['depth'], second.meta['created_at']))
+        return cmp((second.meta['depth'], first.meta['id']),
+                   (first.meta['depth'], second.meta['id']))
 
 
 class MemoryBFSQueue(MemoryQueue):
     def _compare_pages(self, first, second):
-        return cmp((first.meta['depth'], first.meta['created_at']),
-                   (second.meta['depth'], second.meta['created_at']))
+        return cmp((first.meta['depth'], first.meta['id']),
+                   (second.meta['depth'], second.meta['id']))
 
 
 class MemoryRandomQueue(MemoryQueue):
