@@ -21,8 +21,9 @@ class FrontierTester(object):
         else:
             self._add_all()
         while True:
-            requests = self._run_iteration()
-            self.sequence += requests
+            result = self._run_iteration()
+            self.sequence.append(result)
+            requests, iteration, dl_info = result
             if not requests and self.downloader_simulator.idle():
                 break
         self.frontier.stop()
@@ -75,7 +76,7 @@ class FrontierTester(object):
             assert page_to_crawl.headers['X-Important-Header'] == 'Frontera'
             assert page_to_crawl.method == 'POST'
             assert page_to_crawl.cookies['currency'] == 'USD'
-        return requests
+        return (requests, self.frontier.iteration, kwargs)
 
 
 class BaseDownloaderSimulator(object):

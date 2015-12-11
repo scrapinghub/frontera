@@ -37,10 +37,13 @@ setup(
     ],
     install_requires=[
         'six>=1.8.0',
-        'w3lib>=1.10.0',
-        'SQLAlchemy>=0.9.8'
+        'w3lib>=1.10.0'
     ],
     extras_require={
+        'sql': [
+            'SQLAlchemy>=0.9.8',
+            'cachetools'
+        ],
         'graphs': [
             "pyparsing==1.5.7",
             "pydot==1.0.28",
@@ -59,5 +62,7 @@ setup(
         "psycopg2>=2.5.4",
         "scrapy>=0.24",
         "tldextract>=1.5.1",
+        "SQLAlchemy>=0.9.8",
+        "cachetools"
     ]
 )

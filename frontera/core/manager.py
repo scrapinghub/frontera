@@ -183,37 +183,37 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
                  canonicalsolver=None):
         """
         :param object/string request_model: The :class:`Request <frontera.core.models.Request>` object to be \
-        used by the frontier.
+            used by the frontier.
 
         :param object/string response_model: The :class:`Response <frontera.core.models.Response>` object to be \
-        used by the frontier.
+            used by the frontier.
 
         :param object/string backend: The :class:`Backend <frontera.core.components.Backend>` object to be \
-        used by the frontier.
+            used by the frontier.
 
         :param object/string logger: The :class:`Logger` object to be used by the frontier.
 
         :param object/string event_log_manager: The :class:`EventLogger` object to be used by the frontier.
 
         :param list middlewares: A list of :class:`Middleware <frontera.core.components.Middleware>` \
-        objects to be used by the frontier.
+            objects to be used by the frontier.
 
         :param bool test_mode: Activate/deactivate :ref:`frontier test mode <frontier-test-mode>`.
 
         :param int max_requests: Number of pages after which the frontier would stop (See \
-        :ref:`Finish conditions <frontier-finish>`).
+            :ref:`Finish conditions <frontier-finish>`).
 
         :param int max_next_requests: Maximum number of requests returned by \
-        :attr:`get_next_requests <frontera.core.manager.FrontierManager.get_next_requests>` method.
+            :attr:`get_next_requests <frontera.core.manager.FrontierManager.get_next_requests>` method.
 
         :param bool auto_start: Activate/deactivate automatic frontier start (See :ref:`starting/stopping the \
-        frontier <frontier-start-stop>`).
+            frontier <frontier-start-stop>`).
 
         :param object/string settings: The :class:`Settings <frontera.settings.Settings>` object used by \
-        the frontier.
+            the frontier.
 
         :param object/string canonicalsolver: The :class:`CanonicalSolver <frontera.core.components.CanonicalSolver>`
-        object to be used by frontier.
+            object to be used by frontier.
         """
 
         BaseManager.__init__(self, request_model, response_model, logger, settings=settings)
@@ -342,7 +342,9 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
         """
         Boolean value indicating if the frontier has finished. See :ref:`Finish conditions <frontier-finish>`.
         """
-        return self._finished
+        if not self._finished:
+            return self.backend.finished()
+        return True
 
     def start(self):
         """

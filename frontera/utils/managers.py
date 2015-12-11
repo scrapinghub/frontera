@@ -38,3 +38,6 @@ class FrontierManagerWrapper(object):
     def request_error(self, request, error):
         self.manager.request_error(request=self.request_converter.to_frontier(request),
                                    error=error)
+
+    def finished(self):
+        return self.manager.finished

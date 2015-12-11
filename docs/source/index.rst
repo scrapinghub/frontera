@@ -1,8 +1,8 @@
 .. _topics-index:
 
-======================================
+================================
 Frontera |version| documentation
-======================================
+================================
 
 This documentation contains everything you need to know about Frontera.
 
@@ -51,7 +51,7 @@ Basic concepts
 
 
 Extending Frontera
-========================
+==================
 
 .. toctree::
    :hidden:
@@ -67,7 +67,7 @@ Extending Frontera
     Identify and make use of canonical url of document.
 
 :doc:`topics/frontier-backends`
-    Define your own crawling logic.
+    Define your own crawling policy and custom storage.
 
 
 Built-in services and tools
@@ -110,7 +110,6 @@ All the rest
    topics/examples
    topics/best-practices
    topics/tests
-   topics/release-notes
 
 :doc:`topics/examples`
     Some example projects and scripts using Frontera.
@@ -120,10 +119,6 @@ All the rest
 
 :doc:`topics/tests`
     How to run and write Frontera tests.
-
-:doc:`topics/release-notes`
-    See what has changed in recent Frontera versions.
-
 
 
 ..   topics/frontier-at-a-glance

@@ -5,7 +5,7 @@ Frontera API
 This section documents the Frontera core API, and is intended for developers of middlewares and backends.
 
 Frontera API / Manager
-============================
+======================
 
 The main entry point to Frontera API is the :class:`FrontierManager <frontera.core.manager.FrontierManager>`
 object, passed to middlewares and backend through the from_manager class method. This object provides access to all
@@ -20,9 +20,8 @@ middlewares and backend, as well as for managing the data flow around the whole 
 Loading from settings
 =====================
 
-Although :class:`FrontierManager <frontera.core.manager.FrontierManager>` can be initialized using parameters the most common way of doing this is using
-:doc:`Frontera Settings <frontera-settings>`.
-
+Although :class:`FrontierManager <frontera.core.manager.FrontierManager>` can be initialized using parameters the most
+common way of doing this is using :doc:`Frontera Settings <frontera-settings>`.
 
 This can be done through the :attr:`from_settings <frontera.core.manager.FrontierManager.from_settings>`
 class method, using either a string path::
@@ -81,7 +80,6 @@ Frontier Manager
     .. automethod:: frontera.core.manager.FrontierManager.from_settings
 
 
-
 .. _frontier-start-stop:
 
 Starting/Stopping the frontier
@@ -90,8 +88,7 @@ Starting/Stopping the frontier
 Sometimes, frontier components need to perform initialization and finalization operations. The frontier mechanism to
 notify the different components of the frontier start and stop is done by the
 :attr:`start() <frontera.core.manager.FrontierManager.start>` and
-:attr:`stop() <frontera.core.manager.FrontierManager.stop>` methods
-respectively.
+:attr:`stop() <frontera.core.manager.FrontierManager.stop>` methods respectively.
 
 By default :attr:`auto_start <frontera.core.manager.FrontierManager.auto_start>` frontier value is activated,
 this means that components will be notified once the
@@ -129,7 +126,7 @@ Finishing the frontier
 ======================
 
 Crawl can be finished either by the Crawler or by the Frontera. Frontera will finish when a maximum number
-of pages are returned. This limit is controlled by the
+of pages is returned. This limit is controlled by the
 :attr:`max_requests <frontera.core.manager.FrontierManager.max_requests>` attribute
 (:setting:`MAX_REQUESTS` setting).
 

@@ -1,3 +1,4 @@
+from frontera.tests.test_overused_buffer import DFSOverusedBackendTest
 from frontera.tests import backends
 
 
@@ -17,7 +18,7 @@ class TestDFSOverused(backends.DFSBackendTest):
     backend_class = 'frontera.contrib.backends.memory.MemoryDFSOverusedBackend'
 
 
-class TestDFSOverusedSimulation(backends.DFSOverusedBackendTest):
+class TestDFSOverusedSimulation(DFSOverusedBackendTest):
     backend_class = 'frontera.contrib.backends.memory.MemoryDFSOverusedBackend'
 
 

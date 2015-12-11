@@ -68,27 +68,21 @@ Just run your Scrapy spider as usual from the command line::
 
 Frontier Scrapy settings
 ========================
-
-Here’s a list of all available Frontera Scrapy settings, in alphabetical order, along with their default values
-and the scope where they apply:
-
+You can configure your frontier two ways:
 .. setting:: FRONTERA_SETTINGS
+- Using ``FRONTERA_SETTINGS`` parameter, which is a module path pointing to Frontera settings in Scrapy settings file.
+Defaults to ``None``
 
-FRONTERA_SETTINGS
------------------
-
-Default: ``None``
-
-A module path pointing to Frontera settings.
+- Define frontier settings right into Scrapy settings file.
 
 
 Defining frontier settings via Scrapy settings
-==============================================
+----------------------------------------------
 
 :ref:`Frontier settings <frontier-built-in-frontier-settings>` can also be defined via Scrapy settings.
 In this case, the order of precedence will be the following:
 
-1. Settings defined in the file pointed by FRONTERA_SETTINGS (higher precedence)
+1. Settings defined in the file pointed by :setting:`FRONTERA_SETTINGS` (higher precedence)
 2. Settings defined in the Scrapy settings
 3. Default frontier settings
 
