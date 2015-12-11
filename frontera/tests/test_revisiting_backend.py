@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from frontera.tests.backends import BackendSequenceTest, TEST_SITES
 from frontera.utils.tester import FrontierTester
-from frontera.contrib.backends.sqlalchemy.models import DeclarativeBase
 
 from datetime import timedelta
 import pytest
@@ -41,7 +40,6 @@ class RevisitingBackendTest(BackendSequenceTest):
             ('SITE_02', 10),
         ]
     )
-
     def test_sequence(self, site_list, max_next_requests):
         sequence = self.get_url_sequence(
             site_list=TEST_SITES[site_list],

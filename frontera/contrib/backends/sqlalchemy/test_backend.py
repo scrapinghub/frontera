@@ -30,6 +30,7 @@ class SQLAlchemyBFS(backends.BFSBackendTest):
 class SQLAlchemyRevisiting(RevisitingBackendTest):
     backend_class = 'frontera.contrib.backends.sqlalchemy.revisiting.Backend'
 
+
 #----------------------------------------------------
 # SQLite Memory
 #----------------------------------------------------
@@ -39,6 +40,7 @@ class SQLiteMemory(backends.BackendTest):
         settings = super(SQLiteMemory, self).get_settings()
         settings.SQLALCHEMYBACKEND_ENGINE = 'sqlite:///:memory:'
         return settings
+
 
 class TestSQLiteMemoryFIFO(SQLAlchemyFIFO, SQLiteMemory):
     pass
@@ -58,6 +60,7 @@ class TestSQLiteMemoryBFS(SQLAlchemyBFS, SQLiteMemory):
 
 class TestSQLiteMemoryRevisiting(SQLAlchemyRevisiting):
     pass
+
 
 #----------------------------------------------------
 # SQLite File

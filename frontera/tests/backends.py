@@ -83,9 +83,9 @@ class BackendSequenceTest(BackendTest):
 
         # Tester
         tester = frontier_tester(frontier=self.get_frontier(),
-                                graph_manager=graph_manager,
-                                max_next_requests=max_next_requests,
-                                downloader_simulator=downloader_simulator)
+                                 graph_manager=graph_manager,
+                                 max_next_requests=max_next_requests,
+                                 downloader_simulator=downloader_simulator)
         tester.run()
         return tester.sequence
 

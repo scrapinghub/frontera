@@ -59,7 +59,7 @@ class CommonBackend(Backend):
         self.queue_size += queue_incr
 
     def _get_score(self, obj):
-        return 1.0
+        return obj.meta.get('score', 1.0)
 
     def get_next_requests(self, max_next_requests, **kwargs):
         batch = self.queue.get_next_requests(max_next_requests, 0, **kwargs)
@@ -69,7 +69,7 @@ class CommonBackend(Backend):
     def page_crawled(self, response, links):
         response.meta['state'] = States.CRAWLED
         self.states.update_cache(response)
-        depth = (response.meta['depth'] if 'depth' in response.meta else 0)+1
+        depth = response.meta.get('depth', 0)+1
         to_fetch = OrderedDict()
         for link in links:
             to_fetch[link.meta['fingerprint']] = link
