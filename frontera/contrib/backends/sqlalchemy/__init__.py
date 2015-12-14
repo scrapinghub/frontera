@@ -45,7 +45,7 @@ class SQLAlchemyBackend(CommonBackend):
         self.engine.dispose()
 
     def _create_queue(self, settings):
-        return Queue(self.session_cls, self.models['QueueModel'], 1)
+        return Queue(self.session_cls, self.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'))
 
     @property
     def queue(self):
@@ -64,21 +64,23 @@ class FIFOBackend(SQLAlchemyBackend):
     component_name = 'SQLAlchemy FIFO Backend'
 
     def _create_queue(self, settings):
-        return Queue(self.session_cls, self.models['QueueModel'], 1, ordering='created')
+        return Queue(self.session_cls, self.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'),
+                     ordering='created')
 
 
 class LIFOBackend(SQLAlchemyBackend):
     component_name = 'SQLAlchemy LIFO Backend'
 
     def _create_queue(self, settings):
-        return Queue(self.session_cls, self.models['QueueModel'], 1, ordering='created_desc')
+        return Queue(self.session_cls, self.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'),
+                     ordering='created_desc')
 
 
 class DFSBackend(SQLAlchemyBackend):
     component_name = 'SQLAlchemy DFS Backend'
 
     def _create_queue(self, settings):
-        return Queue(self.session_cls, self.models['QueueModel'], 1)
+        return Queue(self.session_cls, self.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'))
 
     def _get_score(self, obj):
         return -obj.meta['depth']
@@ -88,7 +90,7 @@ class BFSBackend(SQLAlchemyBackend):
     component_name = 'SQLAlchemy BFS Backend'
 
     def _create_queue(self, settings):
-        return Queue(self.session_cls, self.models['QueueModel'], 1)
+        return Queue(self.session_cls, self.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'))
 
     def _get_score(self, obj):
         return obj.meta['depth']

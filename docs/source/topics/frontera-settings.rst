@@ -252,6 +252,16 @@ If set to ``True``, will use `tldextract`_ to attach extra domain information
 Built-in backends settings
 ==========================
 
+.. setting:: SPIDER_FEED_PARTITIONS
+
+SPIDER_FEED_PARTITIONS
+^^^^^^^^^^^^^^^^^^^^^^
+
+Default: ``1``
+
+Number of partitions to use in backend. This option is useful when backend is used in distributed environment, and
+meant to be equal to number of fetching processes used in your cluster.
+
 .. setting:: STATE_CACHE_SIZE
 
 STATE_CACHE_SIZE
