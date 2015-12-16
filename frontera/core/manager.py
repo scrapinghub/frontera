@@ -48,17 +48,16 @@ class ComponentsPipelineMixin(object):
 
     def _load_backend(self, backend, db_worker, strategy_worker):
         cls = load_object(backend)
-        assert isinstance(self.backend, Backend), "backend '%s' must subclass Backend" % \
-                                                  self.backend.__class__.__name__
-        if isinstance(cls, DistributedBackend):
+        assert issubclass(cls, Backend), "backend '%s' must subclass Backend" % cls.__name__
+        if issubclass(cls, DistributedBackend):
             if db_worker:
                 return cls.db_worker(self)
             if strategy_worker:
                 return cls.strategy_worker(self)
             raise RuntimeError("Distributed backends are meant to be used in workers.")
         else:
-            assert db_worker or strategy_worker, "In distributed environment only DistributedBackend " \
-                                                 "subclasses are allowed to use."
+            assert not strategy_worker, "In order to distribute backend only DistributedBackend " \
+                                        "subclasses are allowed to use."
         if hasattr(cls, 'from_manager'):
             return cls.from_manager(self)
         else:

@@ -115,6 +115,9 @@ class Distributed(DistributedBackend):
         self.models = dict([(name, load_object(klass)) for name, klass in models.items()])
         self.session_cls = sessionmaker()
         self.session_cls.configure(bind=self.engine)
+        self._metadata = None
+        self._queue = None
+        self._states = None
 
     @classmethod
     def strategy_worker(cls, manager):
@@ -161,3 +164,45 @@ class Distributed(DistributedBackend):
                                settings.get('SQLALCHEMYBACKEND_CACHE_SIZE'))
         b._queue = Queue(b.session_cls, queue_m, settings.get('SPIDER_FEED_PARTITIONS'))
         return b
+
+    @property
+    def queue(self):
+        return self._queue
+
+    @property
+    def metadata(self):
+        return self._metadata
+
+    @property
+    def states(self):
+        return self._states
+
+    def frontier_start(self):
+        for component in [self.metadata, self.queue, self.states]:
+            if component:
+                component.frontier_start()
+
+    def frontier_stop(self):
+        for component in [self.metadata, self.queue, self.states]:
+            if component:
+                component.frontier_stop()
+
+    def add_seeds(self, seeds):
+        self.metadata.add_seeds(seeds)
+
+    def get_next_requests(self, max_next_requests, **kwargs):
+        partitions = kwargs.pop('partitions', [0])  # TODO: Collect from all known partitions
+        batch = []
+        for partition_id in partitions:
+            batch.extend(self.queue.get_next_requests(max_next_requests, partition_id, **kwargs))
+        return batch
+
+    def page_crawled(self, response, links):
+        self.metadata.page_crawled(response, links)
+
+    def request_error(self, request, error):
+        self.metadata.request_error(request, error)
+
+    def finished(self):
+        return NotImplementedError
+
