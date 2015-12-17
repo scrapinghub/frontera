@@ -98,7 +98,7 @@ class Backend(SQLAlchemyBackend):
     def _create_queue(self, settings):
         self.interval = settings.get("SQLALCHEMYBACKEND_REVISIT_INTERVAL")
         assert isinstance(self.interval, timedelta)
-        return RevisitingQueue(self.session_cls, RevisitingQueueModel, 1)
+        return RevisitingQueue(self.session_cls, RevisitingQueueModel, settings.get('SPIDER_FEED_PARTITIONS'))
 
     def _schedule(self, requests):
         batch = []

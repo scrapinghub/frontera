@@ -214,27 +214,27 @@ class MemoryRandomQueue(MemoryQueue):
 
 class MemoryFIFOBackend(MemoryBaseBackend):
     def _create_queue(self, settings):
-        return MemoryDequeQueue(1)
+        return MemoryDequeQueue(settings.get('SPIDER_FEED_PARTITIONS'))
 
 
 class MemoryLIFOBackend(MemoryBaseBackend):
     def _create_queue(self, settings):
-        return MemoryDequeQueue(1, is_fifo=False)
+        return MemoryDequeQueue(settings.get('SPIDER_FEED_PARTITIONS'), is_fifo=False)
 
 
 class MemoryDFSBackend(MemoryBaseBackend):
     def _create_queue(self, settings):
-        return MemoryDFSQueue(1)
+        return MemoryDFSQueue(settings.get('SPIDER_FEED_PARTITIONS'))
 
 
 class MemoryBFSBackend(MemoryBaseBackend):
     def _create_queue(self, settings):
-        return MemoryBFSQueue(1)
+        return MemoryBFSQueue(settings.get('SPIDER_FEED_PARTITIONS'))
 
 
 class MemoryRandomBackend(MemoryBaseBackend):
     def _create_queue(self, settings):
-        return MemoryRandomQueue(1)
+        return MemoryRandomQueue(settings.get('SPIDER_FEED_PARTITIONS'))
 
 
 class MemoryDFSOverusedBackend(MemoryDFSBackend):

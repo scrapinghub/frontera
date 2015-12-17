@@ -3,13 +3,13 @@ from collections import OrderedDict
 from frontera.exceptions import NotConfigured
 from frontera.utils.misc import load_object
 from frontera.settings import Settings, BaseSettings
-from frontera.core.components import Backend, Middleware, CanonicalSolver
+from frontera.core.components import Backend, DistributedBackend, Middleware, CanonicalSolver
 from frontera.logger import FrontierLogger
 from frontera.core import models
 
 
 class ComponentsPipelineMixin(object):
-    def __init__(self, backend, middlewares=None, canonicalsolver=None):
+    def __init__(self, backend, middlewares=None, canonicalsolver=None, db_worker=False, strategy_worker=False):
         # Load middlewares
         self._middlewares = self._load_middlewares(middlewares)
 
@@ -21,9 +21,7 @@ class ComponentsPipelineMixin(object):
 
         # Load backend
         self.logger.manager.debug("Loading backend '%s'" % backend)
-        self._backend = self._load_object(backend)
-        assert isinstance(self.backend, Backend), "backend '%s' must subclass Backend" % \
-                                                  self.backend.__class__.__name__
+        self._backend = self._load_backend(backend, db_worker, strategy_worker)
 
     @property
     def canonicalsolver(self):
@@ -47,6 +45,23 @@ class ComponentsPipelineMixin(object):
         Can be defined with :setting:`BACKEND` setting.
         """
         return self._backend
+
+    def _load_backend(self, backend, db_worker, strategy_worker):
+        cls = load_object(backend)
+        assert issubclass(cls, Backend), "backend '%s' must subclass Backend" % cls.__name__
+        if issubclass(cls, DistributedBackend):
+            if db_worker:
+                return cls.db_worker(self)
+            if strategy_worker:
+                return cls.strategy_worker(self)
+            raise RuntimeError("Distributed backends are meant to be used in workers.")
+        else:
+            assert not strategy_worker, "In order to distribute backend only DistributedBackend " \
+                                        "subclasses are allowed to use."
+        if hasattr(cls, 'from_manager'):
+            return cls.from_manager(self)
+        else:
+            return cls()
 
     def _load_middlewares(self, middleware_names):
         # TO-DO: Use dict for middleware ordering
@@ -180,7 +195,7 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
     """
     def __init__(self, request_model, response_model, backend, logger, event_log_manager, middlewares=None,
                  test_mode=False, max_requests=0, max_next_requests=0, auto_start=True, settings=None,
-                 canonicalsolver=None):
+                 canonicalsolver=None, db_worker=False, strategy_worker=False):
         """
         :param object/string request_model: The :class:`Request <frontera.core.models.Request>` object to be \
             used by the frontier.
@@ -214,10 +229,16 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
 
         :param object/string canonicalsolver: The :class:`CanonicalSolver <frontera.core.components.CanonicalSolver>`
             object to be used by frontier.
+
+        :param bool db_worker: True if class is instantiated in DB worker environment
+
+        :param bool strategy_worker: True if class is instantiated in strategy worker environment
         """
 
         BaseManager.__init__(self, request_model, response_model, logger, settings=settings)
-        ComponentsPipelineMixin.__init__(self, backend=backend, middlewares=middlewares, canonicalsolver=canonicalsolver)
+        ComponentsPipelineMixin.__init__(self, backend=backend, middlewares=middlewares,
+                                         canonicalsolver=canonicalsolver, db_worker=db_worker,
+                                         strategy_worker=strategy_worker)
 
         # Init frontier components pipeline
         self._components_pipeline = [
@@ -261,7 +282,7 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
             self.start()
 
     @classmethod
-    def from_settings(cls, settings=None):
+    def from_settings(cls, settings=None, db_worker=False, strategy_worker=False):
         """
         Returns a :class:`FrontierManager <frontera.core.manager.FrontierManager>`  instance initialized with \
         the passed settings argument. If no settings is given,
@@ -279,7 +300,9 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
                                max_next_requests=manager_settings.MAX_NEXT_REQUESTS,
                                auto_start=manager_settings.AUTO_START,
                                settings=manager_settings,
-                               canonicalsolver=manager_settings.CANONICAL_SOLVER)
+                               canonicalsolver=manager_settings.CANONICAL_SOLVER,
+                               db_worker=db_worker,
+                               strategy_worker=strategy_worker)
 
     @property
     def event_log_manager(self):

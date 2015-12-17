@@ -62,7 +62,10 @@ class CommonBackend(Backend):
         return obj.meta.get('score', 1.0)
 
     def get_next_requests(self, max_next_requests, **kwargs):
-        batch = self.queue.get_next_requests(max_next_requests, 0, **kwargs)
+        partitions = kwargs.pop('partitions', [0])  # TODO: Collect from all known partitions
+        batch = []
+        for partition_id in partitions:
+            batch.extend(self.queue.get_next_requests(max_next_requests, partition_id, **kwargs))
         self.queue_size -= len(batch)
         return batch
 

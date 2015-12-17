@@ -185,10 +185,7 @@ class CanonicalSolver(Middleware):
     component_name = 'Base CanonicalSolver'
 
 
-class Backend(Component):
-    """Interface definition for frontier backend."""
-    __metaclass__ = ABCMeta
-
+class PropertiesMixin(object):
     @abstractproperty
     def queue(self):
         """
@@ -210,6 +207,11 @@ class Backend(Component):
         """
         raise NotImplementedError
 
+
+class Backend(PropertiesMixin, Component):
+    """Interface definition for frontier backend."""
+    __metaclass__ = ABCMeta
+
     @abstractmethod
     def finished(self):
         """
@@ -228,6 +230,19 @@ class Backend(Component):
 
         :return: list of :class:`Request <frontera.core.models.Request>` objects.
         """
+        raise NotImplementedError
+
+
+class DistributedBackend(Backend):
+    """Interface definition for distributed frontier backend. Implies using in strategy worker and DB worker."""
+    __metaclass__ = ABCMeta
+
+    @classmethod
+    def strategy_worker(cls, manager):
+        raise NotImplementedError
+
+    @classmethod
+    def db_worker(cls, manager):
         raise NotImplementedError
 
 
@@ -254,3 +269,5 @@ class Partitioner(object):
             partitions: (optional) a list of partitions.
         """
         raise NotImplementedError('partition function has to be implemented')
+
+

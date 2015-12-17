@@ -171,8 +171,10 @@ class Queue(BaseQueue):
             for item in self._order_by(self.session.query(self.queue_model).filter_by(partition_id=partition_id)).\
                     limit(max_n_requests):
                 method = 'GET' if not item.method else item.method
-                results.append(Request(item.url, method=method, meta=item.meta, headers=item.headers,
-                                       cookies=item.cookies))
+                r = Request(item.url, method=method, meta=item.meta, headers=item.headers, cookies=item.cookies)
+                r.meta['fingerprint'] = item.fingerprint
+                r.meta['score'] = item.score
+                results.append(r)
                 self.session.delete(item)
             self.session.commit()
         except Exception, exc:
