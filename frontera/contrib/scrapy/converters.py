@@ -54,7 +54,7 @@ class RequestConverter(BaseRequestConverter):
         eb = frontier_request.meta.get('scrapy_errback', None)
         if eb and self.spider:
             eb = _get_method(self.spider, eb)
-        meta = frontier_request.meta['scrapy_meta']
+        meta = frontier_request.meta.get('scrapy_meta', {})
         meta['frontier_request'] = frontier_request
         return ScrapyRequest(url=frontier_request.url,
                              callback=cb,
