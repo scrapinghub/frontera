@@ -6,7 +6,7 @@ from time import time, sleep
 from sqlalchemy import Column, DateTime
 
 from frontera import Request
-from frontera.contrib.backends import Crc32NamePartitioner
+from frontera.contrib.backends.partitioners import Crc32NamePartitioner
 from frontera.contrib.backends.sqlalchemy import SQLAlchemyBackend
 from frontera.contrib.backends.sqlalchemy.models import QueueModelMixin, DeclarativeBase
 from frontera.core.components import Queue as BaseQueue, States

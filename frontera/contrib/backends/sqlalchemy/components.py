@@ -4,8 +4,7 @@ from datetime import datetime
 from time import time, sleep
 
 from cachetools import LRUCache
-
-from frontera.contrib.backends import Crc32NamePartitioner
+from frontera.contrib.backends.partitioners import Crc32NamePartitioner
 from frontera.contrib.backends.memory import MemoryStates
 from frontera.contrib.backends.sqlalchemy.models import DeclarativeBase
 from frontera.core.components import Metadata as BaseMetadata, Queue as BaseQueue

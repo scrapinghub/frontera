@@ -271,6 +271,15 @@ Default: ``1000000``
 
 Maximum count of elements in state cache before it gets clear.
 
+.. setting:: KAFKA_GET_TIMEOUT
+
+KAFKA_GET_TIMEOUT
+^^^^^^^^^^^^^^^^^
+
+Default: ``5.0``
+
+Time process should block until requested amount of data will be received from message bus.
+
 
 SQLAlchemy
 ----------

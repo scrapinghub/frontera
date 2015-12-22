@@ -159,7 +159,8 @@ Differences between them will be on storage engine used. For instance,
 :class:`sqlalchemy.FIFO <frontera.contrib.backends.sqlalchemy.FIFO>` will use the same logic but with different
 storage engines.
 
-All these backend variations are using the same :class:`CommonBackend <frontera.contrib.backends.CommonBackend>` class.
+All these backend variations are using the same :class:`CommonBackend <frontera.contrib.backends.CommonBackend>` class
+implementing one-time visit crawling policy with priority queue.
 
 .. autoclass:: frontera.contrib.backends.CommonBackend
 
@@ -244,8 +245,8 @@ For a complete list of all settings used for SQLAlchemy backends check the :doc:
     algorithm.
 
 
-Revisting backend
-^^^^^^^^^^^^^^^^^
+Revisiting backend
+^^^^^^^^^^^^^^^^^^
 
 Based on custom SQLAlchemy backend, and queue. Crawling starts with seeds. After seeds are crawled, every new
 document will be scheduled for immediate crawling. On fetching every new document will be scheduled for recrawling

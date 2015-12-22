@@ -41,18 +41,29 @@ setup(
     ],
     extras_require={
         'sql': [
-            'SQLAlchemy>=0.9.8',
+            'SQLAlchemy>=1.0.0',
             'cachetools'
         ],
         'graphs': [
-            "pyparsing==1.5.7",
-            "pydot==1.0.28",
+            'pyparsing==1.5.7',
+            'pydot==1.0.28',
         ],
         'logging': [
-            "colorlog>=2.4.0",
+            'colorlog>=2.4.0',
         ],
         'tldextract': [
             'tldextract>=1.5.1',
+        ],
+        'hbase': [
+            'happybase'
+        ],
+        'zeromq': [
+            'pyzmq',
+            'msgpack-python'
+        ],
+        'kafka': [
+            'kafka-python',
+            'python-snappy'
         ]
     },
     tests_require=[
@@ -62,7 +73,7 @@ setup(
         "psycopg2>=2.5.4",
         "scrapy>=0.24",
         "tldextract>=1.5.1",
-        "SQLAlchemy>=0.9.8",
+        "SQLAlchemy>=1.0.0",
         "cachetools"
     ]
 )

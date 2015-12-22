@@ -6,3 +6,5 @@ scrapy>=0.24
 -r tldextract.txt
 SQLAlchemy>=0.9.8
 cachetools
+pyzmq
+
