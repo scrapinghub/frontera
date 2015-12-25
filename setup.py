@@ -64,6 +64,9 @@ setup(
         'kafka': [
             'kafka-python',
             'python-snappy'
+        ],
+        'distributed': [
+            'Twisted'
         ]
     },
     tests_require=[

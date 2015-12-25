@@ -10,8 +10,8 @@ from frontera.logger.handlers import CONSOLE
 from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
 
-from distributed_frontera.settings import Settings
-from distributed_frontera.backends.remote.codecs.msgpack import Decoder, Encoder
+from frontera.settings import Settings
+from frontera.contrib.backends.remote.codecs.msgpack import Decoder, Encoder
 
 
 logger = logging.getLogger("strategy-worker")

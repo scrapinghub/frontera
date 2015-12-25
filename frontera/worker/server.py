@@ -6,7 +6,7 @@ from traceback import format_exception
 
 from twisted.web import server, resource
 
-from distributed_frontera.worker.utils import listen_tcp
+from frontera.utils.async import listen_tcp
 
 logger = getLogger("cf-server")
 

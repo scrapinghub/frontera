@@ -12,7 +12,8 @@ from frontera.logger.handlers import CONSOLE
 
 from frontera.contrib.backends.remote.codecs.msgpack import Decoder, Encoder
 from frontera.settings import Settings
-from frontera.utils.misc import load_object, CallLaterOnce
+from frontera.utils.misc import load_object
+from frontera.utils.async import CallLaterOnce
 from server import WorkerJsonRpcService
 
 logger = logging.getLogger("db-worker")
