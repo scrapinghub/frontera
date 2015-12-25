@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
+
 from msgpack import packb, unpackb
+
+from frontera.contrib.backends.remote.codecs import BaseDecoder, BaseEncoder
 
 
 def _prepare_request_message(request):
@@ -28,7 +31,7 @@ def _prepare_response_message(response, send_body):
     return [response.url, response.status_code, response.meta, response.body if send_body else None]
 
 
-class Encoder(object):
+class Encoder(BaseEncoder):
     def __init__(self, request_model, *a, **kw):
         self.send_body = True if 'send_body' in kw and kw['send_body'] else False
 
@@ -54,7 +57,7 @@ class Encoder(object):
         return packb(['of', int(partition_id), int(offset)])
 
 
-class Decoder(object):
+class Decoder(BaseDecoder):
     def __init__(self, request_model, response_model, *a, **kw):
         self._request_model = request_model
         self._response_model = response_model

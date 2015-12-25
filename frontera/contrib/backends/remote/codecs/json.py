@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 import json
 from base64 import b64decode, b64encode
+from frontera.contrib.backends.remote.codecs import BaseDecoder, BaseEncoder
 
 
 def _prepare_request_message(request):
@@ -35,32 +36,18 @@ class CrawlFrontierJSONEncoder(json.JSONEncoder):
             return super(CrawlFrontierJSONEncoder, self).default(o)
 
 
-class Encoder(CrawlFrontierJSONEncoder):
+class Encoder(BaseEncoder, CrawlFrontierJSONEncoder):
     def __init__(self, request_model, *a, **kw):
+        self.send_body = kw.pop('send_body', False)
         super(Encoder, self).__init__(request_model, *a, **kw)
-        self.send_body = True if 'send_body' in kw and kw['send_body'] else False
 
     def encode_add_seeds(self, seeds):
-        """
-        Encodes add_seeds message
-
-        :param list seeds A list of frontier Request objects
-        :return bytes encoded message
-        """
         return self.encode({
             'type': 'add_seeds',
             'seeds': [_prepare_request_message(seed) for seed in seeds]
         })
 
     def encode_page_crawled(self, response, links):
-        """
-        Encodes a page_crawled message
-
-        :param object response A frontier Response object
-        :param list links A list of Request objects
-
-        :return bytes encoded message
-        """
         return self.encode({
             'type': 'page_crawled',
             'r': _prepare_response_message(response, self.send_body),
@@ -68,13 +55,6 @@ class Encoder(CrawlFrontierJSONEncoder):
         })
 
     def encode_request_error(self, request, error):
-        """
-        Encodes a request_error message
-        :param object request A frontier Request object
-        :param string error Error description
-
-        :return bytes encoded message
-        """
         return self.encode({
             'type': 'request_error',
             'r': _prepare_request_message(request),
@@ -105,7 +85,7 @@ class Encoder(CrawlFrontierJSONEncoder):
         })
 
 
-class Decoder(json.JSONDecoder):
+class Decoder(json.JSONDecoder, BaseDecoder):
     def __init__(self, request_model, response_model, *a, **kw):
         self._request_model = request_model
         self._response_model = response_model
@@ -127,12 +107,6 @@ class Decoder(json.JSONDecoder):
                                    meta=obj['meta'])
 
     def decode(self, message):
-        """
-        Decodes the message
-
-        :param bytes message encoded message
-        :return tuple of message type and related objects
-        """
         message = super(Decoder, self).decode(message)
         if message['type'] == 'page_crawled':
             response = self._response_from_object(message['r'])

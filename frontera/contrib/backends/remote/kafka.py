@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import time
 from logging import getLogger, StreamHandler
 
@@ -6,7 +7,7 @@ from kafka.common import BrokerResponseError, OffsetOutOfRangeError, MessageSize
 from kafka.protocol import CODEC_SNAPPY
 from frontera.core import OverusedBuffer
 
-from codecs.msgpack import Encoder, Decoder
+from frontera.contrib.backends.remote.codecs.msgpack import Encoder, Decoder
 from frontera import Backend, Settings
 from frontera.contrib.backends.partitioners import FingerprintPartitioner
 
