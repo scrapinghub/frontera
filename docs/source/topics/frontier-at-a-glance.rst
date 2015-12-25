@@ -2,14 +2,18 @@
 Frontera at a glance
 ====================
 
-Frontera is an application framework that is meant to be used as part of a `Crawling System`_, allowing you to
-easily manage and define tasks related to a :doc:`crawl frontier <what-is-frontera>`.
+`Frontera`_ is a crawl frontier framework for a `Crawling System`_. :doc:`Crawl frontier <what-is-frontera>` is
+managing *when* and *what* to crawl next, and checking for *crawling goal* accomplishment.
 
-Even though it was originally designed for `Scrapy`_, it can also be used with any other Crawling Framework/System as
-the framework offers a generic frontier functionality.
+Frontera also provides replication, sharding and isolation of all parts of Frontera-based crawler to scale and
+distribute it.
+
+Frontera contain components to allow creation of fully-operational web crawler with `Scrapy`_. Even though it was
+originally designed for Scrapy, it can also be used with any other Crawling framework/system as the framework offers
+a generic frontier functionality.
 
 The purpose of this document is to introduce you to the concepts behind Frontera so that you can get an idea of
-how it works and to decide if it is suited to your needs.
+how it works and decide if it is suited to your needs.
 
 
 1. Create your crawler
@@ -103,3 +107,4 @@ The next obvious steps are for you to :doc:`install Frontera <installation>`, re
 
 .. _Crawling System: http://en.wikipedia.org/wiki/Web_crawler
 .. _Scrapy: http://scrapy.org/
+.. _`Frontera`: http://github.com/scrapinghub/frontera
