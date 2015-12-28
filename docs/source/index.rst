@@ -12,11 +12,15 @@ First steps
 .. toctree::
    :hidden:
 
+   topics/overview
    topics/frontier-at-a-glance
    topics/installation
 
-:doc:`topics/frontier-at-a-glance`
+:doc:`topics/overview`
     Understand what Frontera is and how it can help you.
+
+:doc:`topics/frontier-at-a-glance`
+    Understand what Frontera is and how it can help you (old).
 
 :doc:`topics/installation`
     Get Frontera installed on your computer.
@@ -110,6 +114,7 @@ All the rest
    topics/examples
    topics/best-practices
    topics/tests
+   topics/glossary
 
 :doc:`topics/examples`
     Some example projects and scripts using Frontera.
@@ -120,6 +125,8 @@ All the rest
 :doc:`topics/tests`
     How to run and write Frontera tests.
 
+:doc:`topics/glossary`
+    Glossary of terms.
 
 ..   topics/frontier-at-a-glance
    topics/installation
