@@ -4,20 +4,25 @@
 Frontera |version| documentation
 ================================
 
-This documentation contains everything you need to know about Frontera.
+This documentation contains (almost) everything you need to know about Frontera.
 
-First steps
-===========
+Introduction
+============
 
 .. toctree::
    :hidden:
 
    topics/overview
+   topics/run-modes
    topics/frontier-at-a-glance
    topics/installation
 
+
 :doc:`topics/overview`
     Understand what Frontera is and how it can help you.
+
+:doc:`topics/run-modes`
+    Frontera run modes: single process, distributed spiders and backends.
 
 :doc:`topics/frontier-at-a-glance`
     Understand what Frontera is and how it can help you (old).

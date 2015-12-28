@@ -21,11 +21,11 @@ downloading them from the web. Main features of Frontera are:
 Use cases
 ---------
 
-Here are few cases, for what external crawl frontier can be suitable for:
+Here are few cases, external crawl frontier can be suitable for:
 - URL ordering/queueing isolation from the spider (e.g. distributed cluster of spiders, need of remote management of
 ordering/queueing),
 - URL (meta)data storage is needed (e.g. to demonstrate it's contents somewhere),
-- advanced URL ordering logic is needed, and it's hard to maintain code within spider/fetcher.
+- advanced URL ordering logic is needed, when it's hard to maintain code within spider/fetcher.
 
 
 One-time crawl, few websites
@@ -44,7 +44,7 @@ If website is big, and it's expensive to crawl the whole website, Frontera can b
 the most important documents.
 
 
-Few websites, distributed load
+Distributed load, few websites
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If website needs to be crawled faster than single spider one could use distributed spiders mode. In this mode Frontera
@@ -55,8 +55,8 @@ are distributed to spiders randomly, and desired request rate can be set in spid
 Consider also using proxy services, such as `Crawlera`_.
 
 
-Revisiting for a set of websites
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Revisiting
+^^^^^^^^^^
 
 There is a set of websites and one need to re-crawl them on timely (or other) manner. Frontera provides simple
 revisiting backend, scheduling already visited documents for next visit using time interval set by option. This
