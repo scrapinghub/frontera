@@ -216,6 +216,7 @@ class Backend(PropertiesMixin, Component):
     def finished(self):
         """
         Quick check if crawling is finished. Called pretty often, please make sure calls are lightweight.
+
         :return: boolean
         """
         raise NotImplementedError
@@ -323,6 +324,7 @@ class BaseCrawlingStrategy(object):
         """
         Called by Strategy worker, after finishing processing each cycle of spider log. If this method returns true,
         then Strategy worker reports that crawling goal is achieved, stops and exits.
+
         :return: bool
         """
         return False

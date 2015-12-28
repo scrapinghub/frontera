@@ -2,17 +2,17 @@
 Crawling strategy
 =================
 
-Use ``distributed_frontera.worker.strategy.bfs`` module for reference. In general, you need to write a
+Use ``frontera.worker.strategies.bfs`` module for reference. In general, you need to write a
 ``CrawlingStrategy`` class implementing the interface:
 
-.. autoclass:: distributed_frontera.worker.strategy.base.BaseCrawlingStrategy
+.. autoclass:: frontera.core.components.BaseCrawlingStrategy
 
     **Methods**
 
-    .. automethod:: distributed_frontera.worker.strategy.base.BaseCrawlingStrategy.add_seeds
-    .. automethod:: distributed_frontera.worker.strategy.base.BaseCrawlingStrategy.page_crawled
-    .. automethod:: distributed_frontera.worker.strategy.base.BaseCrawlingStrategy.page_error
-    .. automethod:: distributed_frontera.worker.strategy.base.BaseCrawlingStrategy.finished
+    .. automethod:: frontera.core.components.BaseCrawlingStrategy.add_seeds
+    .. automethod:: frontera.core.components.BaseCrawlingStrategy.page_crawled
+    .. automethod:: frontera.core.components.BaseCrawlingStrategy.page_error
+    .. automethod:: frontera.core.components.BaseCrawlingStrategy.finished
 
 
 The class named ``CrawlingStrategy`` should put in a standalone module and passed to :term:`strategy worker` using

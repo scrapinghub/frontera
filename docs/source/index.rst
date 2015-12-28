@@ -14,49 +14,53 @@ Introduction
 
    topics/overview
    topics/run-modes
-   topics/frontier-at-a-glance
-   topics/installation
 
 
 :doc:`topics/overview`
     Understand what Frontera is and how it can help you.
 
 :doc:`topics/run-modes`
-    Frontera run modes: single process, distributed spiders and backends.
-
-:doc:`topics/frontier-at-a-glance`
-    Understand what Frontera is and how it can help you (old).
-
-:doc:`topics/installation`
-    Get Frontera installed on your computer.
+    High level architecture and Frontera run modes.
 
 
-Basic concepts
+Using Frontera
 ==============
 
 .. toctree::
    :hidden:
 
-   topics/what-is-frontera
-   topics/architecture
+   topics/installation
    topics/frontier-objects
-   topics/frontier-api
+   topics/frontier-middlewares
+   topics/frontier-canonicalsolvers
+   topics/frontier-backends
+   topics/own_crawling_strategy
+   topics/scrapy-integration
    topics/frontera-settings
 
-:doc:`topics/what-is-frontera`
-    Learn what Frontera is and how to use it.
-
-:doc:`topics/architecture`
-    See how Frontera works and its different components.
+:doc:`topics/installation`
+    HOWTO and Dependencies options.
 
 :doc:`topics/frontier-objects`
-    Understand the classes used to represent links and pages.
+    Understand the classes used to represent requests and responses.
 
-:doc:`topics/frontier-api`
-    Learn how to use the frontier.
+:doc:`topics/frontier-middlewares`
+    Filter or alter information for links and documents.
+
+:doc:`topics/frontier-canonicalsolvers`
+    Identify and make use of canonical url of document.
+
+:doc:`topics/frontier-backends`
+    Define your own crawling policy and custom storage.
+
+:doc:`topics/own_crawling_strategy`
+    Implementing own crawling strategy for distributed backend.
+
+:doc:`topics/scrapy-integration`
+    Learn how to use Frontera with Scrapy.
 
 :doc:`topics/frontera-settings`
-    See how to configure Frontera.
+    Settings reference.
 
 
 Extending Frontera
@@ -65,18 +69,18 @@ Extending Frontera
 .. toctree::
    :hidden:
 
-   topics/frontier-middlewares
-   topics/frontier-canonicalsolvers
-   topics/frontier-backends
+:doc:`topics/what-is-frontera`
+    Learn what Frontera is and how to use it.
 
-:doc:`topics/frontier-middlewares`
-    Filter or alter information for links and pages.
+:doc:`topics/architecture`
+    See how Frontera works and its different components.
 
-:doc:`topics/frontier-canonicalsolvers`
-    Identify and make use of canonical url of document.
+:doc:`topics/frontier-api`
+    Learn how to use the frontier.
 
-:doc:`topics/frontier-backends`
-    Define your own crawling policy and custom storage.
+   topics/what-is-frontera
+   topics/architecture
+   topics/frontier-api
 
 
 Built-in services and tools
@@ -85,15 +89,12 @@ Built-in services and tools
 .. toctree::
    :hidden:
 
-   topics/scrapy-integration
    topics/requests-integration
    topics/graph-manager
    topics/frontier-tester
    topics/scrapy-recorder
-   topics/seed-loaders
 
-:doc:`topics/scrapy-integration`
-    Learn how to use Frontera with Scrapy.
+
 
 :doc:`topics/requests-integration`
     Learn how to use Frontera with Requests.

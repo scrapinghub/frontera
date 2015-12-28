@@ -14,6 +14,15 @@ def md5(key):
 
 
 def hostname_local_fingerprint(key):
+    """
+    This function is used for URL fingerprinting, which serves to uniquely identify the document in storage.
+    ``hostname_local_fingerprint`` is constructing fingerprint getting first 4 bytes as Crc32 from host, and rest is MD5
+    from rest of the URL. Default option is set to make use of HBase block cache. It is expected to fit all the documents
+    of average website within one cache block, which can be efficiently read from disk once.
+
+    :param key: str URL
+    :return: str 20 bytes hex string
+    """
     result = urlparse(key)
     if not result.hostname:
         return sha1(key)
