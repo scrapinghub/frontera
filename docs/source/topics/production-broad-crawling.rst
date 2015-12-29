@@ -1,8 +1,8 @@
-=====================
-Production deployment
-=====================
+=========================
+Production broad crawling
+=========================
 
-These are the topics you need to consider when deploying Frontera-based crawler in production system.
+These are the topics you need to consider when deploying Frontera-based broad crawler in production system.
 
 DNS Service
 ===========

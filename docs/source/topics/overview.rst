@@ -9,14 +9,16 @@ downloading them from the web. Main features of Frontera are:
 * distributed spiders and backends architecture,
 * customizable crawling policy,
 * easy integration with Scrapy,
-* relational databases support (MySQL, PostgreSQL, sqlite) with `SQLAlchemy`_ and `HBase`_ key-value database out of
-  the box,
+* relational databases support (MySQL, PostgreSQL, sqlite, and more) with `SQLAlchemy`_ and `HBase`_ key-value database
+  out of the box,
 * `ZeroMQ`_ and `Kafka`_ message bus implementations for distributed crawlers,
 * precise crawling logic tuning with crawling emulation using fake sitemaps with the
   :doc:`Graph Manager <graph-manager>`.
 * transparent transport layer concept (:term:`message bus`) and communication protocol,
 * pure Python implementation.
 
+
+.. _use-cases:
 
 Use cases
 ---------

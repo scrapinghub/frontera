@@ -4,17 +4,30 @@
 Frontera |version| documentation
 ================================
 
-This documentation contains (almost) everything you need to know about Frontera.
+`Frontera`_ is a crawl frontier framework for a `Crawling System`_. :ref:`Crawl Frontier <crawl-frontier>` is
+managing *when* and *what* to crawl next, and checking for *crawling goal* accomplishment.
+
+Frontera also provides replication, sharding and isolation of all parts of Frontera-based crawler to scale and
+distribute it.
+
+Frontera contain components to allow creation of fully-operational web crawler with `Scrapy`_. Even though it was
+originally designed for Scrapy, it can also be used with any other Crawling framework/system as the framework offers
+a generic tool box.
+
 
 Introduction
 ============
+
+The purpose of this chapter is to introduce you to the concepts behind Frontera so that you can get an idea of
+how it works and decide if it is suited to your needs.
 
 .. toctree::
    :hidden:
 
    topics/overview
    topics/run-modes
-
+   topics/quick-start-single
+   topics/quick-start-distributed
 
 :doc:`topics/overview`
     Understand what Frontera is and how it can help you.
@@ -22,6 +35,11 @@ Introduction
 :doc:`topics/run-modes`
     High level architecture and Frontera run modes.
 
+:doc:`topics/quick-start-single`
+    using Scrapy as a container for running Frontera.
+
+:doc:`topics/quick-start-distributed`
+    with SQLite and ZeroMQ.
 
 Using Frontera
 ==============
@@ -63,14 +81,46 @@ Using Frontera
     Settings reference.
 
 
-Extending Frontera
-==================
+Advanced usage
+==============
 
 .. toctree::
    :hidden:
 
-:doc:`topics/what-is-frontera`
-    Learn what Frontera is and how to use it.
+   topics/what-is-cf
+   topics/graph-manager
+   topics/scrapy-recorder
+   topics/production-broad-crawling
+
+:doc:`topics/what-is-cf`
+    Learn Crawl Frontier theory.
+
+:doc:`topics/graph-manager`
+    Define fake crawlings for websites to test your frontier.
+
+:doc:`topics/scrapy-recorder`
+    Create Scrapy crawl recordings and reproduce them later.
+
+:doc:`topics/production-broad-crawling`
+    Deployment and tuning information.
+
+
+Developer documentation
+=======================
+
+.. toctree::
+   :hidden:
+
+   topics/architecture
+   topics/frontier-api
+   topics/requests-integration
+   topics/examples
+   topics/tests
+   topics/frontier-tester
+   topics/faq
+   topics/contributing
+   topics/glossary
+
 
 :doc:`topics/architecture`
     See how Frontera works and its different components.
@@ -78,80 +128,30 @@ Extending Frontera
 :doc:`topics/frontier-api`
     Learn how to use the frontier.
 
-   topics/what-is-frontera
-   topics/architecture
-   topics/frontier-api
-
-
-Built-in services and tools
-===========================
-
-.. toctree::
-   :hidden:
-
-   topics/requests-integration
-   topics/graph-manager
-   topics/frontier-tester
-   topics/scrapy-recorder
-
-
-
 :doc:`topics/requests-integration`
     Learn how to use Frontera with Requests.
-
-:doc:`topics/graph-manager`
-    Define fake crawlings for websites to test your frontier.
-
-:doc:`topics/frontier-tester`
-    Test your frontier in an easy way.
-
-:doc:`topics/scrapy-recorder`
-    Create Scrapy crawl recordings and reproduce them later.
-
-:doc:`topics/seed-loaders`
-    Scrapy middlewares for seed loading
-
-All the rest
-============
-
-.. toctree::
-   :hidden:
-
-   topics/examples
-   topics/best-practices
-   topics/tests
-   topics/glossary
 
 :doc:`topics/examples`
     Some example projects and scripts using Frontera.
 
-:doc:`topics/best-practices`
-    The best practices of Frontera usage.
-
 :doc:`topics/tests`
     How to run and write Frontera tests.
+
+:doc:`topics/frontier-tester`
+    Test your frontier in an easy way.
+
+:doc:`topics/faq`
+    Frequently asked questions.
+
+:doc:`topics/contributing`
+    HOWTO contribute.
+
 
 :doc:`topics/glossary`
     Glossary of terms.
 
-..   topics/frontier-at-a-glance
-   topics/installation
-   topics/what-is-a-crawl-frontier
-   topics/architecture
-   topics/frontier-objects
-   topics/frontier-api
-   topics/frontier-middlewares
-   topics/frontier-backends
-   topics/frontera-settings
-   topics/scrapy-integration
-   topics/graph-manager
-   topics/frontier-tester
-   topics/scrapy-recorder
-   topics/release-notes
 
-..   topics/frontier-logging
-   topics/seed-loaders
-   topics/faq
-   topics/wip
-   topics/common-practices
-   topics/contributing
+
+.. _Crawling System: http://en.wikipedia.org/wiki/Web_crawler
+.. _Scrapy: http://scrapy.org/
+.. _`Frontera`: http://github.com/scrapinghub/frontera

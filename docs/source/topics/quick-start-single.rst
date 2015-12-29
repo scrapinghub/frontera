@@ -1,23 +1,9 @@
-====================
-Frontera at a glance
-====================
+==========================
+Quick start single process
+==========================
 
-`Frontera`_ is a crawl frontier framework for a `Crawling System`_. :doc:`Crawl frontier <what-is-frontera>` is
-managing *when* and *what* to crawl next, and checking for *crawling goal* accomplishment.
-
-Frontera also provides replication, sharding and isolation of all parts of Frontera-based crawler to scale and
-distribute it.
-
-Frontera contain components to allow creation of fully-operational web crawler with `Scrapy`_. Even though it was
-originally designed for Scrapy, it can also be used with any other Crawling framework/system as the framework offers
-a generic frontier functionality.
-
-The purpose of this document is to introduce you to the concepts behind Frontera so that you can get an idea of
-how it works and decide if it is suited to your needs.
-
-
-1. Create your crawler
-======================
+1. Create your spider
+=====================
 
 Create your Scrapy project as you usually do. Enter a directory where you’d like to store your code and then run::
 
@@ -45,11 +31,16 @@ These are basically:
 - **tutorial/settings.py**: the project’s settings file.
 - **tutorial/spiders/**: a directory where you’ll later put your spiders.
 
+2. Install Frontera
+===================
 
-2. Integrate your crawler with the frontier
-===========================================
+See :doc:`installation`.
+
+2. Integrate your spider with the Frontera
+==========================================
 
 This article about :doc:`integration with Scrapy <scrapy-integration>` explains this step in detail.
+
 
 3. Choose your backend
 ======================
@@ -73,38 +64,24 @@ What else?
 You’ve seen a simple example of how to use Frontera with Scrapy, but this is just the surface.
 Frontera provides many powerful features for making frontier management easy and efficient, such as:
 
+* Built-in support for :ref:`database storage <frontier-backends-sqlalchemy>` for crawled pages.
+
 * Easy :doc:`built-in integration with Scrapy <scrapy-integration>` and :doc:`any other crawler <frontier-api>`
   through its API.
 
-* Creating different crawling logic/policies :doc:`defining your own backend <frontier-backends>`.
+* :ref:`Two distributed crawling modes <use-cases>` with use of ZeroMQ or Kafka and distributed backends.
 
-* Built-in support for :ref:`database storage <frontier-backends-sqlalchemy>` for crawled pages.
+* Creating different crawling logic/policies :doc:`defining your own backend <frontier-backends>`.
 
 * Plugging your own request/response altering logic using :doc:`middlewares <frontier-middlewares>`.
 
-* Built-in middlewares for:
-
-  * Extracting :ref:`domain info <frontier-domain-middleware>` from page URLs.
-  * Create :ref:`unique fingerprints for page URLs <frontier-url-fingerprint-middleware>` and
-  :ref:`domain names <frontier-domain-fingerprint-middleware>`.
-
 * Create fake sitemaps and reproduce crawling without crawler with the :doc:`Graph Manager <graph-manager>`.
-
-* Tools for :doc:`easy frontier testing <frontier-tester>`.
 
 * :doc:`Record your Scrapy crawls <scrapy-recorder>` and use it later for frontier testing.
 
 * Logging facility that you can hook on to for catching errors and debug your frontiers.
 
 
-What's next?
-============
-
-The next obvious steps are for you to :doc:`install Frontera <installation>`, read the
-:doc:`architecture overview <architecture>` and :doc:`API docs <frontier-api>`. Thanks for your interest!
 
 
 
-.. _Crawling System: http://en.wikipedia.org/wiki/Web_crawler
-.. _Scrapy: http://scrapy.org/
-.. _`Frontera`: http://github.com/scrapinghub/frontera
