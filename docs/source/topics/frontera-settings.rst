@@ -241,17 +241,6 @@ SCORING_PARTITION_ID
 Used by strategy worker, and represents partition startegy worker assigned to.
 
 
-.. setting:: SPIDER_FEED_PARTITIONS
-
-SPIDER_FEED_PARTITIONS
-----------------------
-
-Default: ``1``
-
-Number of partitions to use in backend. This option is useful when backend is used in distributed environment, and
-meant to be equal to number of fetching processes used in your cluster.
-
-
 .. setting:: SPIDER_LOG_PARTITIONS
 
 SPIDER_LOG_PARTITIONS
@@ -259,7 +248,7 @@ SPIDER_LOG_PARTITIONS
 
 Default: ``1``
 
-Number of :term:`spider log` stream partitions. This affects number of required :term:`strategy worker`s,
+Number of :term:`spider log` stream partitions. This affects number of required :term:`strategy worker` (s),
 each strategy worker assigned to it's own partition.
 
 .. setting:: SPIDER_FEED_PARTITIONS
@@ -355,7 +344,6 @@ If set to ``True``, will use `tldextract`_ to attach extra domain information
 Built-in backends settings
 ==========================
 
-
 SQLAlchemy
 ----------
 
@@ -370,7 +358,7 @@ SQLAlchemy Metadata LRU Cache size. It's used for caching objects, which are req
 documents are crawled. This is mainly saves DB throughput, increase it if you're experiencing problems with too high
 volume of SELECT's to Metadata table, or decrease if you need to save memory.
 
-.. setting::
+.. setting:: SQLALCHEMYBACKEND_CLEAR_CONTENT
 
 SQLALCHEMYBACKEND_CLEAR_CONTENT
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -380,7 +368,7 @@ Default: ``True``
 Set to ``False`` if you need to disable table content clean up on backend instantiation (e.g. every Scrapy spider run).
 
 
-.. setting::
+.. setting:: SQLALCHEMYBACKEND_DROP_ALL_TABLES
 
 SQLALCHEMYBACKEND_DROP_ALL_TABLES
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -389,7 +377,7 @@ Default: ``True``
 
 Set to ``False`` if you need to disable dropping of DB tables on backend instantiation (e.g. every Scrapy spider run).
 
-.. setting::
+.. setting:: SQLALCHEMYBACKEND_ENGINE
 
 SQLALCHEMYBACKEND_ENGINE
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -398,7 +386,7 @@ Default:: ``sqlite:///:memory:``
 
 SQLAlchemy database URL. Default is set to memory.
 
-.. setting::
+.. setting:: SQLALCHEMYBACKEND_ENGINE_ECHO
 
 SQLALCHEMYBACKEND_ENGINE_ECHO
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -407,7 +395,7 @@ Default: ``False``
 
 Turn on/off SQLAlchemy verbose output. Useful for debugging SQL queries.
 
-.. setting::
+.. setting:: SQLALCHEMYBACKEND_MODELS
 
 SQLALCHEMYBACKEND_MODELS
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -436,6 +424,8 @@ Default: ``timedelta(days=1)``
 Time between document visits, expressed in ``datetime.timedelta`` objects. Changing of this setting will only affect
 documents scheduled after the change. All previously queued documents will be crawled with old periodicity.
 
+
+.. _hbase-settings:
 
 HBase backend
 -------------
@@ -532,6 +522,7 @@ Default: ``False``
 Whatever to compress content and metadata in HBase using Snappy. Decreases amount of disk and network IO within HBase,
 lowering response times. HBase have to be properly configured to support Snappy compression.
 
+.. _zeromq-settings:
 
 ZeroMQ message bus settings
 ===========================
@@ -557,21 +548,12 @@ Default: ``5550``
 The base port for all ZeroMQ sockets. It uses 6 sockets overall and port starting from base with step 1. Be sure that
 interval [base:base+5] is available.
 
+.. _kafka-settings:
 
 Kafka message bus settings
 ==========================
 
-The message bus class is ``distributed_frontera.messagebus.kafkabus.MessageBus``
-
-
-.. setting:: KAFKA_GET_TIMEOUT
-
-KAFKA_GET_TIMEOUT
------------------
-
-Default: ``5.0``
-
-How much time to wait for messages from Kafka consumer.
+The message bus class is ``frontera.contrib.messagebus.kafkabus.MessageBus``
 
 .. setting:: KAFKA_LOCATION
 

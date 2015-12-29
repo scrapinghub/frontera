@@ -266,6 +266,18 @@ Current implementation of revisiting backend has no prioritization. During long 
 there are no documents available for crawling, but there are documents waiting for their scheduled revisit time.
 
 
+HBase backend
+^^^^^^^^^^^^^
+
+.. autoclass:: frontera.contrib.backends.hbase.HBaseBackend
+
+Is more suitable for large scale web crawlers. Settings reference can be found here :ref:`hbase-settings`. Consider
+tunning a block cache to fit states within one block for average size website. To achieve this it's recommended to use
+:attr:`hostname_local_fingerprint <frontera.utils.fingerprint.hostname_local_fingerprint>`
+
+to achieve documents closeness within the same host. This function can be selected with :setting:`URL_FINGERPRINT_FUNCTION`
+setting.
+
 .. _FIFO: http://en.wikipedia.org/wiki/FIFO
 .. _LIFO: http://en.wikipedia.org/wiki/LIFO_(computing)
 .. _DFS: http://en.wikipedia.org/wiki/Depth-first_search
