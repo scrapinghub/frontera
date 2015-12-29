@@ -38,10 +38,11 @@ Keep in mind that some backends may need to be additionally configured through a
 Writing your own backend
 ========================
 
-Writing your own frontier backend is easy. Each backend component is a single Python class inherited from
-:class:`Backend` and using one or all of :class:`Queue`, :class:`Metadata` and :class:`States`.
+Each backend component is a single Python class inherited from :class:`Backend <frontera.core.components.Backend>` or
+:class:`DistributedBackend <frontera.core.components.DistributedBackend>` and using one or all of
+:class:`Queue`, :class:`Metadata` and :class:`States`.
 
-:class:`FrontierManager` will communicate with active :class:`Backend` through the methods described below.
+:class:`FrontierManager` will communicate with active backend through the methods described below.
 
 
 .. autoclass:: frontera.core.components.Backend
@@ -85,7 +86,15 @@ Writing your own frontier backend is easy. Each backend component is a single Py
     .. autoattribute:: frontera.core.components.Backend.metadata
 
 
-At the same time :class:`Backend` should communicate with low-level storage by means of these classes:
+.. autoclass:: frontera.core.components.DistributedBackend
+
+Inherits all methods of Backend, and has two more class methods, which are called during strategy and db worker
+instantiation.
+
+    .. automethod:: frontera.core.components.DistributedBackend.strategy_worker
+    .. automethod:: frontera.core.components.DistributedBackend.db_worker
+
+Backend should communicate with low-level storage by means of these classes:
 
 Metadata
 ^^^^^^^^
@@ -135,6 +144,7 @@ States
 
 
 Known implementations are: :class:`MemoryStates` and :class:`sqlalchemy.components.States`.
+
 
 .. _frontier-built-in-backend:
 

@@ -2,9 +2,18 @@
 Run modes
 =========
 
+A diagram showing architecture of running modes:
+
 .. image:: _images/high-level-arc.png
 
-A diagram showing architecture of running modes.
+
+====================  =========================================================================  ======================================================  =====================
+Mode                  Parent class                                                               Components needed                                       Available backends
+====================  =========================================================================  ======================================================  =====================
+Single process        :class:`Backend <frontera.core.components.Backend>`                        single process running the crawler                      Memory, SQLAlchemy
+Distributed spiders   :class:`Backend <frontera.core.components.Backend>`                        spiders and single :term:`db worker`                    Memory, SQLAlchemy
+Distributed backends  :class:`DistributedBackend <frontera.core.components.DistributedBackend>`  spiders, :term:`strategy worker` (s) and db worker(s).  SQLAlchemy, HBase
+====================  =========================================================================  ======================================================  =====================
 
 
 Single process

@@ -65,7 +65,7 @@ cluster.
 
 Now, let's create a Frontera workers settings file under ``frontera`` subfolder and name it ``worker_settings.py``. ::
 
-    from distributed_frontera.settings.default_settings import MIDDLEWARES
+    from frontera.settings.default_settings import MIDDLEWARES
 
     MAX_NEXT_REQUESTS = 128     # Size of batch to generate per partition, should be consistent with
                                 # CONCURRENT_REQUESTS in spider. General recommendation is 5-7x CONCURRENT_REQUESTS
@@ -143,15 +143,15 @@ others for the rest. Batch generation instance isn't much dependent on the count
 to storage is. Here is how to run all in the same process::
 
     # start DB worker, enabling batch generation, DB saving and scoring log consumption
-    $ python -m distributed_frontera.worker.main --config frontera.worker_settings
+    $ python -m frontera.worker.db --config frontera.worker_settings
 
 
 Next, let's start strategy worker with sample strategy for crawling the internet in Breadth-first manner.::
 
-    $ python -m distributed_frontera.worker.score --config frontera.strategy0 --strategy distributed_frontera.worker.strategy.bfs
-    $ python -m distributed_frontera.worker.score --config frontera.strategy1 --strategy distributed_frontera.worker.strategy.bfs
+    $ python -m frontera.worker.strategy --config frontera.strategy0 --strategy frontera.worker.strategies.bfs
+    $ python -m frontera.worker.strategy --config frontera.strategy1 --strategy frontera.worker.strategies.bfs
     ...
-    $ python -m distributed_frontera.worker.score --config frontera.strategyN --strategy distributed_frontera.worker.strategy.bfs
+    $ python -m frontera.worker.strategy --config frontera.strategyN --strategy frontera.worker.strategies.bfs
 
 You should notice that all processes are writing messages to the output. It's ok if nothing is written in streams,
 because of absence of seed URLs in the system.
