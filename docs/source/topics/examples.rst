@@ -6,13 +6,13 @@ The project repo includes an ``examples`` folder with some scripts and projects 
 
     examples/
         requests/
-        scrapy_frontier/
+        general-spider/
         scrapy_recording/
         scripts/
 
 
 - **requests**: Example script with `Requests`_ library.
-- **scrapy_frontier**: Scrapy Frontier example project.
+- **general-spider**: Scrapy integration example project.
 - **scrapy_recording**: Scrapy Recording example project.
 - **scripts**: Some simple scripts.
 
@@ -36,14 +36,13 @@ How to run it::
     python links_follower.py
 
 
-scrapy_frontier
-===============
+general-spider
+==============
 
-A simple script with a spider that follows all the links for the sites defined in a ``seeds.txt`` file.
+A simple Scrapy spider that follows all the links from the seeds. Contains configuration files for single process,
+distributed spider and backends run modes.
 
-How to run it::
-
-    scrapy crawl example
+See :doc:`quick-start-distributed` for how to run it.
 
 
 scrapy_recording

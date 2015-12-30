@@ -23,13 +23,18 @@ For Ubuntu, type in command line: ::
     $ pip install frontera[distributed,zeromq,sql]
 
 
-Checkout a simple Scrapy spider
-===============================
+Get a spider example code
+=========================
+
+First checkout a GitHub Frontera repository:
+::
+
+    $ git clone https://github.com/scrapinghub/frontera.git
+
+There is a general spider example in ``examples/general-spider`` folder.
+
 This is a general spider, it does almost nothing except extracting links from downloaded content. It also contains some
-of predefined options, please consult settings reference to get more information. ::
-
-    $ git clone https://github.com/sibiryakov/general-spider.git
-
+settings files, please consult :doc:`settings reference <frontera-settings>` to get more information.
 
 .. _running_zeromq_broker:
 
@@ -46,7 +51,7 @@ All further commands have to be made from ``general-spider`` root directory.
 
 Second, let's start DB worker. ::
 
-    $ python -m frontera.worker.main --config frontier.workersettings
+    $ python -m frontera.worker.db --config frontier.workersettings
 
 
 You should notice that DB is writing messages to the output. It's ok if nothing is written in ZeroMQ sockets, because
@@ -56,7 +61,7 @@ There are Spanish (.es zone) internet URLs from DMOZ directory in general spider
 seeds to bootstrap crawling.
 Starting the spiders: ::
 
-    $ scrapy crawl general -L INFO -s FRONTERA_SETTINGS=frontier.spider0 -s SEEDS_SOURCE=seeds_es_dmoz.txt
+    $ scrapy crawl general -L INFO -s FRONTERA_SETTINGS=frontier.spider0 -s SEEDS_SOURCE=seeds_es_smp.txt
     $ scrapy crawl general -L INFO -s FRONTERA_SETTINGS=frontier.spider1
 
 

@@ -21,7 +21,7 @@ HBASE_QUEUE_TABLE = 'queue'
 KAFKA_GET_TIMEOUT = 5.0
 MAX_NEXT_REQUESTS = 64
 MAX_REQUESTS = 0
-MESSAGE_BUS = 'distributed_frontera.messagebus.zeromq.MessageBus'
+MESSAGE_BUS = 'frontera.contrib.messagebus.zeromq.MessageBus'
 MIDDLEWARES = [
     'frontera.contrib.middlewares.fingerprint.UrlFingerprintMiddleware',
 ]
