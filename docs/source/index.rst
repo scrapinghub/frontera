@@ -4,8 +4,10 @@
 Frontera |version| documentation
 ================================
 
-`Frontera`_ is a crawl frontier framework for a `Crawling System`_. :ref:`Crawl Frontier <crawl-frontier>` is
-managing *when* and *what* to crawl next, and checking for *crawling goal* accomplishment.
+`Frontera`_ is a web crawling tool box, allowing to build crawlers of any scale and purpose.
+
+`Frontera`_ provides :ref:`Crawl Frontier <crawl-frontier>` framework by managing *when* and *what* to crawl next,
+and checking for *crawling goal* accomplishment.
 
 Frontera also provides replication, sharding and isolation of all parts of Frontera-based crawler to scale and
 distribute it.
