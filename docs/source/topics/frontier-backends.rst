@@ -38,10 +38,11 @@ Keep in mind that some backends may need to be additionally configured through a
 Writing your own backend
 ========================
 
-Writing your own frontier backend is easy. Each backend component is a single Python class inherited from
-:class:`Backend` and using one or all of :class:`Queue`, :class:`Metadata` and :class:`States`.
+Each backend component is a single Python class inherited from :class:`Backend <frontera.core.components.Backend>` or
+:class:`DistributedBackend <frontera.core.components.DistributedBackend>` and using one or all of
+:class:`Queue`, :class:`Metadata` and :class:`States`.
 
-:class:`FrontierManager` will communicate with active :class:`Backend` through the methods described below.
+:class:`FrontierManager` will communicate with active backend through the methods described below.
 
 
 .. autoclass:: frontera.core.components.Backend
@@ -85,7 +86,15 @@ Writing your own frontier backend is easy. Each backend component is a single Py
     .. autoattribute:: frontera.core.components.Backend.metadata
 
 
-At the same time :class:`Backend` should communicate with low-level storage by means of these classes:
+.. autoclass:: frontera.core.components.DistributedBackend
+
+Inherits all methods of Backend, and has two more class methods, which are called during strategy and db worker
+instantiation.
+
+    .. automethod:: frontera.core.components.DistributedBackend.strategy_worker
+    .. automethod:: frontera.core.components.DistributedBackend.db_worker
+
+Backend should communicate with low-level storage by means of these classes:
 
 Metadata
 ^^^^^^^^
@@ -136,6 +145,7 @@ States
 
 Known implementations are: :class:`MemoryStates` and :class:`sqlalchemy.components.States`.
 
+
 .. _frontier-built-in-backend:
 
 Built-in backend reference
@@ -159,7 +169,8 @@ Differences between them will be on storage engine used. For instance,
 :class:`sqlalchemy.FIFO <frontera.contrib.backends.sqlalchemy.FIFO>` will use the same logic but with different
 storage engines.
 
-All these backend variations are using the same :class:`CommonBackend <frontera.contrib.backends.CommonBackend>` class.
+All these backend variations are using the same :class:`CommonBackend <frontera.contrib.backends.CommonBackend>` class
+implementing one-time visit crawling policy with priority queue.
 
 .. autoclass:: frontera.contrib.backends.CommonBackend
 
@@ -244,8 +255,8 @@ For a complete list of all settings used for SQLAlchemy backends check the :doc:
     algorithm.
 
 
-Revisting backend
-^^^^^^^^^^^^^^^^^
+Revisiting backend
+^^^^^^^^^^^^^^^^^^
 
 Based on custom SQLAlchemy backend, and queue. Crawling starts with seeds. After seeds are crawled, every new
 document will be scheduled for immediate crawling. On fetching every new document will be scheduled for recrawling
@@ -254,6 +265,18 @@ after fixed interval set by :setting:`SQLALCHEMYBACKEND_REVISIT_INTERVAL`.
 Current implementation of revisiting backend has no prioritization. During long term runs spider could go idle, because
 there are no documents available for crawling, but there are documents waiting for their scheduled revisit time.
 
+
+HBase backend
+^^^^^^^^^^^^^
+
+.. autoclass:: frontera.contrib.backends.hbase.HBaseBackend
+
+Is more suitable for large scale web crawlers. Settings reference can be found here :ref:`hbase-settings`. Consider
+tunning a block cache to fit states within one block for average size website. To achieve this it's recommended to use
+:attr:`hostname_local_fingerprint <frontera.utils.fingerprint.hostname_local_fingerprint>`
+
+to achieve documents closeness within the same host. This function can be selected with :setting:`URL_FINGERPRINT_FUNCTION`
+setting.
 
 .. _FIFO: http://en.wikipedia.org/wiki/FIFO
 .. _LIFO: http://en.wikipedia.org/wiki/LIFO_(computing)

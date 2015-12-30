@@ -7,7 +7,7 @@ from frontera.contrib.backends import CommonBackend
 from frontera.core.components import Metadata, Queue, States
 from frontera.core import OverusedBuffer
 from frontera.utils.heap import Heap
-from frontera.contrib.backends import Crc32NamePartitioner
+from frontera.contrib.backends.partitioners import Crc32NamePartitioner
 from frontera.utils.url import parse_domain_from_url_fast
 
 

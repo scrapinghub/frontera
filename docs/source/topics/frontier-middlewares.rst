@@ -135,6 +135,8 @@ UrlFingerprintMiddleware
 ------------------------
 
 .. autoclass:: frontera.contrib.middlewares.fingerprint.UrlFingerprintMiddleware()
+.. autofunction:: frontera.utils.fingerprint.hostname_local_fingerprint
+
 
 
 .. _frontier-domain-fingerprint-middleware:
