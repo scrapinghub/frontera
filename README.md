@@ -22,9 +22,4 @@ EuroPython's presentation http://www.slideshare.net/sixtyone/fronteraopen-source
 
 See https://groups.google.com/a/scrapinghub.com/forum/#!forum/frontera
 
-## Distributed extension
-
-GitHub: https://github.com/scrapinghub/distributed-frontera
-
-RTD: http://distributed-frontera.readthedocs.org/
 
