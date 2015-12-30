@@ -73,7 +73,7 @@ You can configure your frontier two ways:
 .. setting:: FRONTERA_SETTINGS
 
 - Using ``FRONTERA_SETTINGS`` parameter, which is a module path pointing to Frontera settings in Scrapy settings file.
-Defaults to ``None``
+  Defaults to ``None``
 
 - Define frontier settings right into Scrapy settings file.
 

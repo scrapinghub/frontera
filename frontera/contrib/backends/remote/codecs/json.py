@@ -2,7 +2,7 @@
 from __future__ import absolute_import
 import json
 from base64 import b64decode, b64encode
-from frontera.contrib.backends.remote.codecs import BaseDecoder, BaseEncoder
+from frontera.core.codec import BaseDecoder, BaseEncoder
 
 
 def _prepare_request_message(request):

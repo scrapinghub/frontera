@@ -3,7 +3,7 @@ from __future__ import absolute_import
 
 from msgpack import packb, unpackb
 
-from frontera.contrib.backends.remote.codecs import BaseDecoder, BaseEncoder
+from frontera.core.codec import BaseDecoder, BaseEncoder
 
 
 def _prepare_request_message(request):

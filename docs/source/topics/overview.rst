@@ -73,7 +73,7 @@ Broad crawling
 ^^^^^^^^^^^^^^
 
 This use case requires full distribution: spiders and backend. In addition to spiders process one should be running
-:term:`strategy worker`s and :term:`db worker`s, depending on chosen partitioning scheme.
+:term:`strategy worker` (s) and :term:`db worker` (s), depending on chosen partitioning scheme.
 
 Frontera can be used for broad set of tasks related to large scale web crawling:
 
