@@ -85,7 +85,8 @@ class DBWorker(object):
         self.slot = Slot(self.new_batch, self.consume_incoming, self.consume_scoring, no_batches,
                          self.strategy_enabled, settings.get('NEW_BATCH_DELAY'), no_incoming)
         self.job_id = 0
-        self.stats = {}
+        self.stats = {'consumed_spider_log': 0,
+                      'consumed_scoring_log':0}
 
     def set_process_info(self, process_info):
         self.process_info = process_info
@@ -157,6 +158,7 @@ class DBWorker(object):
             reactor.stop()
         """
         logger.info("Consumed %d items.", consumed)
+        self.stats['consumed_spider_log'] += consumed
         self.stats['last_consumed'] = consumed
         self.stats['last_consumption_run'] = asctime()
         self.slot.schedule()
@@ -185,6 +187,7 @@ class DBWorker(object):
         self.queue.schedule(batch)
 
         logger.info("Consumed %d items during scoring consumption.", consumed)
+        self.stats['consumed_scoring_log'] += consumed
         self.stats['last_consumed_scoring'] = consumed
         self.stats['last_consumption_run_scoring'] = asctime()
         self.slot.schedule()
