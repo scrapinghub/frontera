@@ -13,19 +13,24 @@ class Request(FrontierObject):
     :class:`Response <frontera.core.models.Response>` object when crawled.
 
     """
-    def __init__(self, url, method='GET', headers=None, cookies=None, meta=None):
+    def __init__(self, url, method='GET', headers=None, body=None, cookies=None, meta=None,
+                 dont_filter=False):
         """
         :param string url: URL to send.
         :param string method: HTTP method to use.
+        :param string body: encoded Body for request
         :param dict headers: dictionary of headers to send.
         :param dict cookies: dictionary of cookies to attach to this request.
         :param dict meta: dictionary that contains arbitrary metadata for this request.
+        :param bool dont_filter: indicates that this request should not be filtered by backend
         """
         self._url = url
         self._method = str(method).upper()
         self._headers = headers or {}
         self._cookies = cookies or {}
         self._meta = meta or {'scrapy_meta': {}}
+        self._body = body
+        self._dont_filter = dont_filter
 
     @property
     def url(self):
@@ -50,6 +55,13 @@ class Request(FrontierObject):
         return self._headers
 
     @property
+    def body(self):
+        """
+        Body to attach to this request.
+        """
+        return self._body
+
+    @property
     def cookies(self):
         """
         Dictionary of cookies to attach to this request.
@@ -64,6 +76,10 @@ class Request(FrontierObject):
         on the components you have enabled.
         """
         return self._meta
+
+    @property
+    def dont_filter(self):
+        return self._dont_filter
 
     def __str__(self):
         return "<%s at 0x%0x %s>" % (type(self).__name__, id(self), self.url)

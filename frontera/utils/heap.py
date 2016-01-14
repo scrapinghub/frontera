@@ -39,14 +39,23 @@ class HeapObjectWrapper(object):
     def __str__(self):
         return str(self.obj)
 
-
+# When limit is specified, it is a bounded heap and push will use heapreplace and return poped element
+# Ignoring the fact that the returned element should actually never be discarded
 class Heap(object):
-    def __init__(self, compare_function):
+    def __init__(self, compare_function,limit=0):
         self.heap = []
         self._compare_function = compare_function
+        self.limit = limit
+
+    def __len__(self):
+        return self.heap.__len__()
 
     def push(self, obj):
-        heapq.heappush(self.heap, HeapObjectWrapper(obj, self._compare_function))
+        wrapped = HeapObjectWrapper(obj, self._compare_function)
+        if self.__len__() >= self.limit > 0:
+            return heapq.heapreplace(self.heap,wrapped).obj
+        else:
+            heapq.heappush(self.heap, wrapped)
 
     def pop(self, n):
         pages = []
