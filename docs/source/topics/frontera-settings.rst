@@ -157,8 +157,11 @@ MAX_NEXT_REQUESTS
 Default: ``64``
 
 The maximum number of requests returned by
-:attr:`get_next_requests <frontera.core.manager.FrontierManager.get_next_requests>` API method.
-If value is 0 (default), no maximum value will be used.
+:attr:`get_next_requests <frontera.core.manager.FrontierManager.get_next_requests>` API method. In distributed context
+it could be amount of requests produced per spider by :term:`db worker` or count of requests read from message bus per
+attempt to fill the spider queue. In single process it's the count of requests to get from backend per one call to
+``get_next_requests`` method.
+
 
 .. setting:: MAX_REQUESTS
 

@@ -67,8 +67,7 @@ Now, let's create a Frontera workers settings file under ``frontera`` subfolder 
 
     from frontera.settings.default_settings import MIDDLEWARES
 
-    MAX_NEXT_REQUESTS = 128     # Size of batch to generate per partition, should be consistent with
-                                # CONCURRENT_REQUESTS in spider. General recommendation is 5-7x CONCURRENT_REQUESTS
+    MAX_NEXT_REQUESTS = 256
 
     #--------------------------------------------------------
     # Url storage
@@ -101,7 +100,7 @@ settings file according to partition ids assigned. E.g. ``settingsN.py``. ::
 
     from distributed_frontera.settings.default_settings import MIDDLEWARES
 
-    MAX_NEXT_REQUESTS = 256     # Should be consistent with MAX_NEXT_REQUESTS set for Frontera worker
+    MAX_NEXT_REQUESTS = 256
 
     MIDDLEWARES.extend([
         'frontera.contrib.middlewares.domain.DomainMiddleware',
@@ -133,6 +132,25 @@ bandwidth.
 
 The same thing have to be done for strategy workers, each strategy worker should have it's own partition id
 (see :setting:`SCORING_PARTITION_ID`) assigned in config files named ``strategyN.py``.
+
+
+Configuring MAX_NEXT_REQUESTS
+=============================
+
+The :setting:`MAX_NEXT_REQUESTS` is used for controlling the batch size. In spiders config it controls how much items
+will be consumed per one :attr:`get_next_requests <frontera.core.manager.FrontierManager.get_next_requests>` call. At
+the same time in db worker config it sets count of items to generate per partition. When setting these parameters keep
+in mind:
+
+* DB worker and spider values have to be consistent to avoid overloading of message bus and loosing messages. In other
+  words, DB worker have to produce slightly more than consumed by spiders, because the spider should still be able to
+  fetch new pages even though the DB worker has not pushed a new batch yet.
+* Spider consumption rate is depending on many factors: internet connection latency, amount of spider
+  parsing/scraping work, delays and auto throttling settings, usage of proxies, etc.
+* Keep spider queue always full to prevent spider idling.
+* General recommendation is to set DB worker value 2-4 times bigger than spiders.
+* Batch size shouldn't be big to not generate too much load on backend, and allow system quickly react on queue changes.
+* Watch out warnings about lost messages.
 
 
 Starting the cluster
