@@ -10,7 +10,7 @@ from colorlog import ColoredFormatter
 class ColorFormatter(ColoredFormatter):
 
     def __init__(self, format, log_colors, log_color_field, datefmt=None, reset=True, style='%'):
-        super(ColorFormatter, self).__init__(format=format, datefmt=datefmt, log_colors=log_colors,
+        super(ColorFormatter, self).__init__(fmt=format, datefmt=datefmt, log_colors=log_colors,
                                              reset=reset, style=style)
         self.log_color_field = log_color_field
 
