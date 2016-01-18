@@ -259,7 +259,7 @@ each strategy worker assigned to it's own partition.
 SPIDER_FEED_PARTITIONS
 ----------------------
 
-Default: ``2``
+Default: ``1``
 
 Number of :term:`spider feed` partitions. This directly affects number of spider processes running. Every spider is
 assigned to it's own partition.
