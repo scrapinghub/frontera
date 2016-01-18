@@ -512,8 +512,8 @@ HBASE_USE_COMPACT_PROTOCOL
 
 Default: ``False``
 
-Whatever workers should use Thrift compact protocol. Dramatically reduces transmission overhead, but needs to be turned
-on on server too.
+When enabled workers will use the framed and compact protocol of Thrift . Dramatically reduces transmission overhead, 
+but the server needs to be configured to use framed and compact protocol.
 
 .. setting:: HBASE_USE_SNAPPY
 
