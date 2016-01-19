@@ -223,10 +223,12 @@ class HBaseQueue(Queue):
 
         results = []
         trash_can = set()
+
         for _, fprints in queue.iteritems():
             for fprint in fprints:
                 for rk, _ in meta_map[fprint]:
-                    trash_can.add(rk)
+                    if rk in trash_can:
+                        continue
                     for rk_fprint in fprint_map[rk]:
                         _, item = meta_map[rk_fprint][0]
                         _, _, url, score = item
@@ -234,6 +236,7 @@ class HBaseQueue(Queue):
                             'fingerprint': hexlify(rk_fprint),
                             'score': score,
                         }))
+                    trash_can.add(rk)
 
         with table.batch(transaction=True) as b:
             for rk in trash_can:
@@ -280,7 +283,7 @@ class HBaseState(States):
                     hb_obj = prepare_hbase_object(state=state)
                     b.put(unhexlify(fprint), hb_obj)
         if force_clear:
-            self.logger.debug("Cache has %d items, clearing" % len(self._state_cache))
+            self.logger.debug("Cache has %d requests, clearing" % len(self._state_cache))
             self._state_cache.clear()
 
     def fetch(self, fingerprints):
@@ -459,5 +462,5 @@ class HBaseBackend(DistributedBackend):
             results = self.queue.get_next_requests(max_next_requests, partition_id, min_requests=64,
                                                    min_hosts=24, max_requests_per_host=128)
             next_pages.extend(results)
-            self.logger.debug("Got %d items for partition id %d" % (len(results), partition_id))
+            self.logger.debug("Got %d requests for partition id %d" % (len(results), partition_id))
         return next_pages
