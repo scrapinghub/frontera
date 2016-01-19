@@ -505,15 +505,15 @@ Default: ``9090``
 
 HBase Thrift server port
 
-.. setting:: HBASE_USE_COMPACT_PROTOCOL
+.. setting:: HBASE_USE_FRAMED_COMPACT
 
-HBASE_USE_COMPACT_PROTOCOL
+HBASE_USE_FRAMED_COMPACT
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Default: ``False``
 
-When enabled workers will use the framed and compact protocol of Thrift . Dramatically reduces transmission overhead, 
-but the server needs to be configured to use framed and compact protocol.
+When enabled workers will use TFramedTransport and TCompactProtocol features of Thrift. Dramatically reduces transmission overhead, 
+but the server needs to be configured to use framed transport and compact protocol.
 
 .. setting:: HBASE_USE_SNAPPY
 
