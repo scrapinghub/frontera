@@ -512,8 +512,8 @@ HBASE_USE_FRAMED_COMPACT
 
 Default: ``False``
 
-When enabled workers will use TFramedTransport and TCompactProtocol features of Thrift. Dramatically reduces transmission overhead, 
-but the server needs to be configured to use framed transport and compact protocol.
+Enabling this option dramatically reduces transmission overhead, but the server needs to be properly configured to use
+Thrifts framed transport and compact protocol.
 
 .. setting:: HBASE_USE_SNAPPY
 
