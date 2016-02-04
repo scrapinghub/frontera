@@ -387,7 +387,7 @@ class HBaseBackend(DistributedBackend):
             'table_prefix': namespace,
             'table_prefix_separator': ':'
         }
-        if settings.get('HBASE_USE_COMPACT_PROTOCOL'):
+        if settings.get('HBASE_USE_FRAMED_COMPACT'):
             kwargs.update({
                 'protocol': 'compact',
                 'transport': 'framed'
