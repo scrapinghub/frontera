@@ -532,14 +532,15 @@ ZeroMQ message bus settings
 
 The message bus class is ``distributed_frontera.messagebus.zeromq.MessageBus``
 
-.. setting:: ZMQ_HOSTNAME
+.. setting:: ZMQ_ADDRESS
 
-ZMQ_HOSTNAME
+ZMQ_ADDRESS
 ------------
 
 Default: ``127.0.0.1``
 
-Hostname, where ZeroMQ socket should bind or connect.
+Defines where the ZeroMQ socket should bind or connect. Can be a hostname or an IP
+address.
 
 .. setting:: ZMQ_BASE_PORT
 

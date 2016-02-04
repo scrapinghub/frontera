@@ -51,7 +51,7 @@ TEST_MODE = False
 TLDEXTRACT_DOMAIN_INFO = False
 URL_FINGERPRINT_FUNCTION = 'frontera.utils.fingerprint.sha1'
 
-ZMQ_HOSTNAME = '127.0.0.1'
+ZMQ_ADDRESS = '127.0.0.1'
 ZMQ_BASE_PORT = 5550
 
 #--------------------------------------------------------

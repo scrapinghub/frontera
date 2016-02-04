@@ -26,7 +26,7 @@ class Server(object):
     db_in = None
     db_out = None
 
-    def __init__(self, hostname, base_port):
+    def __init__(self, address, base_port):
         self.ctx = zmq.Context()
         self.loop = IOLoop.instance()
         self.stats = {
@@ -39,7 +39,10 @@ class Server(object):
             'sw_out_recvd': 0
         }
 
-        socket_config = SocketConfig(hostname, base_port)
+        socket_config = SocketConfig(address, base_port)
+
+        if socket_config.is_ipv6:
+            self.ctx.setsockopt(zmq.IPV6, True)
 
         spiders_in_s = self.ctx.socket(zmq.XPUB)
         spiders_out_s = self.ctx.socket(zmq.XSUB)
@@ -69,8 +72,12 @@ class Server(object):
         self.sw_in.on_recv(self.handle_sw_in_recv)
         self.db_in.on_recv(self.handle_db_in_recv)
         self.spiders_in.on_recv(self.handle_spiders_in_recv)
-        logging.basicConfig(format="%(asctime)s %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
-        self.logger = logging.getLogger("distributed_frontera.messagebus.zeromq.broker.Server")
+        logging.basicConfig(format="%(asctime)s %(message)s",
+                            datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
+        self.logger = logging.getLogger("distributed_frontera.messagebus"
+                                        ".zeromq.broker.Server")
+        self.logger.info("Using socket: {}:{}".format(socket_config.ip_addr,
+                                                      socket_config.base_port))
 
     def start(self):
         self.logger.info("Distributed Frontera ZeroMQ broker is started.")
@@ -138,21 +145,30 @@ class Server(object):
 
 
 def main():
+    """
+    Parse arguments, set configuration values, then start the broker
+    """
     parser = ArgumentParser(description="Crawl frontier worker.")
-    parser.add_argument('--config', type=str,
-                        help='Settings module name, should be accessible by import.')
-    parser.add_argument('--hostname', type=str,
-                        help='Hostname or IP address to bind. Default is 127.0.0.1')
-    parser.add_argument('--log-level', '-L', type=str, default='INFO',
-                        help='Log level, for ex. DEBUG, INFO, WARN, ERROR, FATAL. Default is INFO.')
-    parser.add_argument('--port', type=int,
-                        help='Base port number, server will bind to 6 ports starting from base. Default is 5550')
+    parser.add_argument(
+        '--config', type=str,
+        help='Settings module name, should be accessible by import.')
+    parser.add_argument(
+        '--address', type=str,
+        help='Hostname, IP address or Wildcard * to bind. Default is 127.0.0.1')
+    parser.add_argument(
+        '--log-level', '-L', type=str, default='INFO',
+        help='Log level, for ex. DEBUG, INFO, WARN, ERROR, FATAL. Default is'
+        ' INFO.')
+    parser.add_argument(
+        '--port', type=int,
+        help='Base port number, server will bind to 6 ports starting from base'
+        '. Default is 5550')
     args = parser.parse_args()
 
     settings = Settings(module=args.config)
-    hostname = args.hostname if args.hostname else settings.get("ZMQ_HOSTNAME")
+    address = args.address if args.address else settings.get("ZMQ_ADDRESS")
     port = args.port if args.port else settings.get("ZMQ_BASE_PORT")
-    server = Server(hostname, port)
+    server = Server(address, port)
     server.logger.setLevel(args.log_level)
     server.start()
 

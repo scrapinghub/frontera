@@ -34,8 +34,8 @@ Kafka throughput is key performance issue, make sure that Kafka brokers have eno
 
 Configuring ZeroMQ
 ------------------
-ZeroMQ requires almost no configuration except hostname and base port where to bind it's sockets. Please see
-:setting:`ZMQ_HOSTNAME` and :setting:`ZMQ_BASE_PORT` settings for more detail. ZeroMQ also requires distributed frontera
+ZeroMQ requires almost no configuration except the address and base port where to bind it's sockets. Please see
+:setting:`ZMQ_ADDRESS` and :setting:`ZMQ_BASE_PORT` settings for more detail. ZeroMQ also requires distributed frontera
 broker process running and accessible to connect. See :ref:`running_zeromq_broker`.
 
 

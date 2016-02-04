@@ -201,12 +201,15 @@ class Context(object):
 class MessageBus(BaseMessageBus):
     def __init__(self, settings):
         self.context = Context()
-        self.socket_config = SocketConfig(settings.get('ZMQ_HOSTNAME'), settings.get('ZMQ_BASE_PORT'))
+        self.socket_config = SocketConfig(settings.get('ZMQ_ADDRESS'),
+                                          settings.get('ZMQ_BASE_PORT'))
         self.spider_log_partitions = [i for i in range(settings.get('SPIDER_LOG_PARTITIONS'))]
         self.spider_feed_partitions = [i for i in range(settings.get('SPIDER_FEED_PARTITIONS'))]
         self.spider_feed_sndhwm = int(settings.get('MAX_NEXT_REQUESTS') * len(self.spider_feed_partitions) * 1.2)
         self.spider_feed_rcvhwm = int(settings.get('MAX_NEXT_REQUESTS') * 2.0)
         self.hostname_partitioning = settings.get('QUEUE_HOSTNAME_PARTITIONING')
+        if self.socket_config.is_ipv6:
+            self.context.zeromq.setsockopt(zmq.IPV6, True)
 
     def spider_log(self):
         return SpiderLogStream(self)
