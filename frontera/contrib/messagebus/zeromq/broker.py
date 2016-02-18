@@ -154,7 +154,8 @@ def main():
         help='Settings module name, should be accessible by import.')
     parser.add_argument(
         '--address', type=str,
-        help='Hostname, IP address or Wildcard * to bind. Default is 127.0.0.1')
+        help='Hostname, IP address or Wildcard * to bind. Default is 127.0.0.1'
+        '. When binding to wildcard it defaults to IPv4.')
     parser.add_argument(
         '--log-level', '-L', type=str, default='INFO',
         help='Log level, for ex. DEBUG, INFO, WARN, ERROR, FATAL. Default is'

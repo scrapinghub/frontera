@@ -78,8 +78,8 @@ class IPv6MessageBusTester(MessageBusTester):
     """
     Same as MessageBusTester but with ipv6-localhost
     """
-    # TODO This class should be used for IPv6 testing. Also an IPv6 broker
-    # should be running in order for it to work.
+    # TODO This class should be used for IPv6 testing. Use the broker on port
+    # 5570 for this test.
     def __init__(self):
         settings = Settings()
         settings.set('ZMQ_ADDRESS', '::1')

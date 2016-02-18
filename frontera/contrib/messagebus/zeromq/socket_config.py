@@ -27,7 +27,7 @@ class SocketConfig(object):
 
     def spiders_in(self):
         """
-        TCP socket for ingoing spider messages
+        TCP socket for incoming spider messages
         """
         return 'tcp://%s:%d' % (self.ip_addr, self.base_port)
 
@@ -39,7 +39,7 @@ class SocketConfig(object):
 
     def sw_in(self):
         """
-        TCP socket for ingoing SW messages
+        TCP socket for incoming SW messages
         """
         return 'tcp://%s:%d' % (self.ip_addr, self.base_port + 2)
 
@@ -51,7 +51,7 @@ class SocketConfig(object):
 
     def db_in(self):
         """
-        TCP socket for ingoing messages
+        TCP socket for incoming messages
         """
         return 'tcp://%s:%d' % (self.ip_addr, self.base_port + 4)
 

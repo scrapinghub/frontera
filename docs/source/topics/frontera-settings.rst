@@ -540,7 +540,8 @@ ZMQ_ADDRESS
 Default: ``127.0.0.1``
 
 Defines where the ZeroMQ socket should bind or connect. Can be a hostname or an IP
-address.
+address. Right now ZMQ has only been properly tested with IPv4. Proper IPv6
+support will be added in the near future.
 
 .. setting:: ZMQ_BASE_PORT
 
