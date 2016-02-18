@@ -109,6 +109,16 @@ will cause worker to spend more time on every task, but processing more items pe
 other tasks during some fixed time interval. Reducing it will result to running several tasks withing the same time
 interval, but with less overall efficiency. Use it when your consumers too slow, or too fast.
 
+.. setting:: CRAWLING_STRATEGY
+
+CRAWLING_STRATEGY
+-----------------
+
+Default: ``None``
+
+The path to crawling strategy class, instantiated and used in :term:`strategy worker` to prioritize and stop crawling in
+distributed run mode.
+
 .. setting:: DELAY_ON_EMPTY
 
 DELAY_ON_EMPTY

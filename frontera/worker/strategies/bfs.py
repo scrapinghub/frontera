@@ -4,6 +4,11 @@ from frontera.core.components import States, BaseCrawlingStrategy
 
 
 class CrawlingStrategy(BaseCrawlingStrategy):
+
+    @classmethod
+    def from_worker(cls, settings):
+        return cls()
+
     def add_seeds(self, seeds):
         scores = {}
         for seed in seeds:

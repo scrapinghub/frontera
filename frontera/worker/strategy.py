@@ -2,7 +2,6 @@
 from time import asctime
 import logging
 from argparse import ArgumentParser
-from importlib import import_module
 from frontera.utils.misc import load_object
 
 from frontera.core.manager import FrontierManager
@@ -18,7 +17,7 @@ logger = logging.getLogger("strategy-worker")
 
 
 class StrategyWorker(object):
-    def __init__(self, settings, strategy_module):
+    def __init__(self, settings, strategy_class):
         partition_id = settings.get('SCORING_PARTITION_ID')
         if partition_id is None or type(partition_id) != int:
             raise AttributeError("Scoring worker partition id isn't set.")
@@ -35,7 +34,7 @@ class StrategyWorker(object):
         self._encoder = Encoder(self._manager.request_model)
 
         self.consumer_batch_size = settings.get('CONSUMER_BATCH_SIZE')
-        self.strategy = strategy_module.CrawlingStrategy()
+        self.strategy = strategy_class.from_worker(settings)
         self.states = self._manager.backend.states
         self.stats = {}
         self.cache_flush_counter = 0
@@ -131,6 +130,8 @@ class StrategyWorker(object):
         reactor.run()
 
     def stop(self):
+        logger.info("Closing crawling strategy.")
+        self.strategy.close()
         logger.info("Stopping frontier manager.")
         self._manager.stop()
 
@@ -200,13 +201,17 @@ if __name__ == '__main__':
                         help='Settings module name, should be accessible by import')
     parser.add_argument('--log-level', '-L', type=str, default='INFO',
                         help="Log level, for ex. DEBUG, INFO, WARN, ERROR, FATAL")
-    parser.add_argument('--strategy', type=str, required=True,
-                        help='Crawling strategy module name')
+    parser.add_argument('--strategy', type=str,
+                        help='Crawling strategy class path')
 
     args = parser.parse_args()
     logger.setLevel(args.log_level)
     logger.addHandler(CONSOLE)
     settings = Settings(module=args.config)
-    strategy_module = import_module(args.strategy)
-    worker = StrategyWorker(settings, strategy_module)
+    strategy_classpath = args.strategy if args.strategy else settings.get('CRAWLING_STRATEGY')
+    if not strategy_classpath:
+        raise ValueError("Couldn't locate strategy class path. Please supply it either using command line option or "
+                         "settings file.")
+    strategy_class = load_object(strategy_classpath)
+    worker = StrategyWorker(settings, strategy_class)
     worker.run()
