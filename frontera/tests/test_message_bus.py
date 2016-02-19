@@ -7,32 +7,31 @@ from time import sleep
 
 
 class MessageBusTester(object):
-    def __init__(self):
-        settings = Settings()
+    def __init__(self, settings=Settings()):
         settings.set('SPIDER_FEED_PARTITIONS', 1)
         settings.set('QUEUE_HOSTNAME_PARTITIONING', True)
-        self.mb = MessageBus(settings)
-        sl = self.mb.spider_log()
+        self.messagebus = MessageBus(settings)
+        spiderlog = self.messagebus.spider_log()
 
         # sw
-        self.sw_sl_c = sl.consumer(partition_id=0, type='sw')
-        us = self.mb.scoring_log()
-        self.sw_us_p = us.producer()
+        self.sw_sl_c = spiderlog.consumer(partition_id=0, type='sw')
+        scoring_log = self.messagebus.scoring_log()
+        self.sw_us_p = scoring_log.producer()
 
         sleep(0.1)
 
         # db
-        self.db_sl_c = sl.consumer(partition_id=None, type='db')
-        self.db_us_c = us.consumer()
+        self.db_sl_c = spiderlog.consumer(partition_id=None, type='db')
+        self.db_us_c = scoring_log.consumer()
 
-        sf = self.mb.spider_feed()
-        self.db_sf_p = sf.producer()
+        spider_feed = self.messagebus.spider_feed()
+        self.db_sf_p = spider_feed.producer()
 
         sleep(0.1)
 
         # spider
-        self.sp_sl_p = sl.producer()
-        self.sp_sf_c = sf.consumer(0)
+        self.sp_sl_p = spiderlog.producer()
+        self.sp_sf_c = spider_feed.consumer(0)
 
         sleep(0.1)
 
@@ -75,8 +74,24 @@ class MessageBusTester(object):
         return (sl_c, us_c)
 
 
+class IPv6MessageBusTester(MessageBusTester):
+    """
+    Same as MessageBusTester but with ipv6-localhost
+    """
+    # TODO This class should be used for IPv6 testing. Use the broker on port
+    # 5570 for this test.
+    def __init__(self):
+        settings = Settings()
+        settings.set('ZMQ_ADDRESS', '::1')
+        super(IPv6MessageBusTester, self).__init__(settings)
+
+
 def test_zmq_message_bus():
+    """
+    Test MessageBus with default settings, IPv6 and Star as ZMQ_ADDRESS
+    """
     tester = MessageBusTester()
+
     tester.spider_log_activity(64)
     assert tester.sw_activity() == 64
     assert tester.db_activity(128) == (64, 32)
