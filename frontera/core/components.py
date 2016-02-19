@@ -284,6 +284,16 @@ class BaseCrawlingStrategy(object):
     """
     __metaclass__ = ABCMeta
 
+    @classmethod
+    def from_worker(cls, settings):
+        """
+        Called on instantiation in strategy worker.
+
+        :param settings: :class:`Settings <frontera.settings.Settings>` instance
+        :return: new instance
+        """
+        raise NotImplementedError
+
     @abstractmethod
     def add_seeds(self, seeds):
         """
@@ -328,3 +338,9 @@ class BaseCrawlingStrategy(object):
         :return: bool
         """
         return False
+
+    def close(self):
+        """
+        Called when strategy worker is about to close crawling strategy.
+        """
+        pass

@@ -166,10 +166,10 @@ to storage is. Here is how to run all in the same process::
 
 Next, let's start strategy worker with sample strategy for crawling the internet in Breadth-first manner.::
 
-    $ python -m frontera.worker.strategy --config frontera.strategy0 --strategy frontera.worker.strategies.bfs
-    $ python -m frontera.worker.strategy --config frontera.strategy1 --strategy frontera.worker.strategies.bfs
+    $ python -m frontera.worker.strategy --config frontera.strategy0 --strategy frontera.worker.strategies.bfs.CrawlingStrategy
+    $ python -m frontera.worker.strategy --config frontera.strategy1 --strategy frontera.worker.strategies.bfs.CrawlingStrategy
     ...
-    $ python -m frontera.worker.strategy --config frontera.strategyN --strategy frontera.worker.strategies.bfs
+    $ python -m frontera.worker.strategy --config frontera.strategyN --strategy frontera.worker.strategies.bfs.CrawlingStrategy
 
 You should notice that all processes are writing messages to the output. It's ok if nothing is written in streams,
 because of absence of seed URLs in the system.

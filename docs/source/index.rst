@@ -6,14 +6,13 @@ Frontera |version| documentation
 
 `Frontera`_ is a web crawling tool box, allowing to build crawlers of any scale and purpose.
 
-`Frontera`_ provides :ref:`Crawl Frontier <crawl-frontier>` framework by managing *when* and *what* to crawl next,
+`Frontera`_ provides :ref:`crawl frontier <crawl-frontier>` framework by managing *when* and *what* to crawl next,
 and checking for *crawling goal* accomplishment.
 
-Frontera also provides replication, sharding and isolation of all parts of Frontera-based crawler to scale and
-distribute it.
+Frontera also provides replication, sharding and isolation of all crawler components to scale and distribute it.
 
 Frontera contain components to allow creation of fully-operational web crawler with `Scrapy`_. Even though it was
-originally designed for Scrapy, it can also be used with any other Crawling framework/system as the framework offers
+originally designed for Scrapy, it can also be used with any other crawling framework/system as the framework offers
 a generic tool box.
 
 
