@@ -7,18 +7,17 @@ from cassandra.cqlengine.models import Model
 class MetadataModel(Model):
     __table_name__ = 'metadata'
 
-    meta_id = columns.UUID(primary_key=True, default=uuid.uuid4)
     fingerprint = columns.Text(primary_key=True)
     url = columns.Text(index=True)
     depth = columns.Integer()
     created_at = columns.DateTime()
     fetched_at = columns.DateTime(required=False)
-    status_code = columns.Text(required=False)
+    status_code = columns.Integer(required=False)
     score = columns.Float(required=False)
     error = columns.Text(required=False)
-    meta = columns.Map(required=False)
-    headers = columns.Map(required=False)
-    cookies = columns.Map(required=False)
+    meta = columns.Map(columns.Text(), columns.Text(), required=False)
+    headers = columns.Map(columns.Text(), columns.Text(), required=False)
+    cookies = columns.Map(columns.Text(), columns.Text(), required=False)
     method = columns.Text(required=False)
 
     @classmethod
@@ -33,8 +32,8 @@ class StateModel(Model):
     __table_name__ = 'states'
 
     state_id = columns.UUID(primary_key=True, default=uuid.uuid4)
-    fingerprint = columns.Text(primary_key=True)
-    state = columns.SmallInt()
+    fingerprint = columns.Text(primary_key=True, index=True)
+    state = columns.SmallInt(index=True)
 
     @classmethod
     def query(cls, session):
@@ -44,23 +43,21 @@ class StateModel(Model):
         return '<State:%s=%d>' % (self.fingerprint, self.state)
 
 
-class QueueModelMixin(object):
+class QueueModel(Model):
+    __table_name__ = 'queue'
+
+    partition_id = columns.Integer(primary_key=True)
+    score = columns.Float(primary_key=True)
+    created_at = columns.BigInt(primary_key=True)
     id = columns.UUID(primary_key=True, default=uuid.uuid4)
-    partition_id = columns.Integer(index=True)
-    score = columns.Float(index=True)
     url = columns.Text()
     fingerprint = columns.Text()
     host_crc32 = columns.Integer()
-    meta = columns.Map(required=False)
-    headers = columns.Map(required=False)
-    cookies = columns.Map(required=False)
+    meta = columns.Map(columns.Text(), columns.Text(), required=False)
+    headers = columns.Map(columns.Text(), columns.Text(), required=False)
+    cookies = columns.Map(columns.Text(), columns.Text(), required=False)
     method = columns.Text(required=False)
-    created_at = columns.BigInt(index=True, required=False)
     depth = columns.SmallInt(required=False)
-
-
-class QueueModel(QueueModelMixin, Model):
-    __table_name__ = 'queue'
 
     @classmethod
     def query(cls, session):

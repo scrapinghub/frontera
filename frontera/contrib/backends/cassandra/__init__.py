@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+import logging
 
 from cassandra.cluster import Cluster
 from cassandra.cqlengine import connection
@@ -21,13 +22,14 @@ class CassandraBackend(CommonBackend):
         drop_all_tables = settings.get('CASSANDRABACKEND_DROP_ALL_TABLES')
         keyspace = settings.get('CASSANDRABACKEND_KEYSPACE')
         keyspace_create = settings.get('CASSANDRABACKEND_CREATE_KEYSPACE_IF_NOT_EXISTS')                # Default: true
-        models = settings.get('CASSANDRA_MODELS')
+        models = settings.get('CASSANDRABACKEND_MODELS')
 
         self.cluster = Cluster(cluster_ips, cluster_port)
         self.models = dict([(name, load_object(klass)) for name, klass in models.items()])
 
         self.session_cls = self.cluster.connect()
         self.session_cls.row_factory = dict_factory
+        self.session_cls.encoder.mapping[dict] = self.session_cls.encoder.cql_encode_map_collection
 
         if keyspace_create:
             query = """CREATE KEYSPACE IF NOT EXISTS \"%s\"
@@ -40,10 +42,10 @@ class CassandraBackend(CommonBackend):
 
         if drop_all_tables:
             for key, value in self.models.iteritems():
-                drop_table(key)
+                drop_table(value)
 
         for key, value in self.models.iteritems():
-            sync_table(key)
+            sync_table(value)
 
         self._metadata = Metadata(self.session_cls, self.models['MetadataModel'],
                                   settings.get('CASSANDRABACKEND_CACHE_SIZE'))
@@ -52,8 +54,9 @@ class CassandraBackend(CommonBackend):
         self._queue = self._create_queue(settings)
 
     def frontier_stop(self):
-        super(CassandraBackend, self).frontier_stop()
+        self.states.flush()
         self.session_cls.shutdown()
+        # super(CassandraBackend, self).frontier_stop()
 
     def _create_queue(self, settings):
         return Queue(self.session_cls, self.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'))
@@ -80,7 +83,7 @@ class FIFOBackend(CassandraBackend):
 
 
 class LIFOBackend(CassandraBackend):
-    component_name = 'SQLAlchemy LIFO Backend'
+    component_name = 'Cassandra LIFO Backend'
 
     def _create_queue(self, settings):
         return Queue(self.session_cls, self.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'),
@@ -122,7 +125,8 @@ class Distributed(DistributedBackend):
         cluster_port = settings.get('CASSANDRABACKEND_CLUSTER_PORT')
         keyspace = settings.get('CASSANDRABACKEND_KEYSPACE')
         keyspace_create = settings.get('CASSANDRABACKEND_CREATE_KEYSPACE_IF_NOT_EXISTS')                # Default: true
-        models = settings.get('CASSANDRA_MODELS')
+        models = settings.get('CASSANDRABACKEND_MODELS')
+        logging.warning('init_dist_be')
 
         self.cluster = Cluster(cluster_ips, cluster_port)
         self.models = dict([(name, load_object(klass)) for name, klass in models.items()])
@@ -134,9 +138,7 @@ class Distributed(DistributedBackend):
             query = """CREATE KEYSPACE IF NOT EXISTS \"%s\"
                         WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 3}""" % (keyspace, )
             self.session_cls.execute(query)
-
         self.session_cls.set_keyspace(keyspace)
-
         connection.set_session(self.session_cls)
 
         self._metadata = None
@@ -151,8 +153,9 @@ class Distributed(DistributedBackend):
         model = b.models['StateModel']
 
         if drop_all_tables:
-            model.__table__.drop(bind=b.session_cls)
-        model.__table__.create(bind=b.session_cls)
+            drop_table(model)
+
+        sync_table(model)
 
         b._states = States(b.session_cls, model,
                            settings.get('STATE_CACHE_SIZE_LIMIT'))
@@ -167,13 +170,14 @@ class Distributed(DistributedBackend):
         metadata_m = b.models['MetadataModel']
         queue_m = b.models['QueueModel']
         if drop:
-            metadata_m.__table__.drop(bind=b.session_cls)
-            queue_m.__table__.drop(bind=b.session_cls)
-        metadata_m.__table__.create(bind=b.session_cls)
-        queue_m.__table__.create(bind=b.session_cls)
+            drop_table(metadata_m)
+            drop_table(queue_m)
+
+        sync_table(metadata_m)
+        sync_table(queue_m)
 
         b._metadata = Metadata(b.session_cls, metadata_m,
-                               settings.get('SQLALCHEMYBACKEND_CACHE_SIZE'))
+                               settings.get('CASSANDRABACKEND_CACHE_SIZE'))
         b._queue = Queue(b.session_cls, queue_m, settings.get('SPIDER_FEED_PARTITIONS'))
         return b
 
@@ -200,6 +204,7 @@ class Distributed(DistributedBackend):
                 component.frontier_stop()
 
     def add_seeds(self, seeds):
+        logging.warning('add_seeds_top %s' % seeds)
         self.metadata.add_seeds(seeds)
 
     def get_next_requests(self, max_next_requests, **kwargs):

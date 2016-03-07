@@ -1,23 +1,23 @@
 # -*- coding: utf-8 -*-
 import logging
+import json
 from datetime import datetime, timedelta
 from time import time, sleep
 
-from sqlalchemy import Column, DateTime
-
 from frontera import Request
 from frontera.contrib.backends.partitioners import Crc32NamePartitioner
-from frontera.contrib.backends.sqlalchemy import SQLAlchemyBackend
-from frontera.contrib.backends.sqlalchemy.models import QueueModelMixin, DeclarativeBase
+from frontera.contrib.backends.cassandra import CassandraBackend
+from cassandra.cqlengine import columns
+from cassandra.cqlengine.models import Model
 from frontera.core.components import Queue as BaseQueue, States
 from frontera.utils.misc import get_crc32
 from frontera.utils.url import parse_domain_from_url_fast
 
 
-class RevisitingQueueModel(QueueModelMixin, DeclarativeBase):
-    __tablename__ = 'revisiting_queue'
+class RevisitingQueueModel(Model):
+    __table_name__ = 'revisiting_queue'
 
-    crawl_at = Column(DateTime, nullable=False)
+    crawl_at = columns.DateTime(required=True, default=datetime.now(), index=True)
 
 
 def retry_and_rollback(func):
@@ -28,7 +28,6 @@ def retry_and_rollback(func):
                 return func(self, *args, **kwargs)
             except Exception, exc:
                 self.logger.exception(exc)
-                self.session.rollback()
                 sleep(5)
                 tries -= 1
                 if tries > 0:
@@ -48,27 +47,23 @@ class RevisitingQueue(BaseQueue):
         self.partitioner = Crc32NamePartitioner(self.partitions)
 
     def frontier_stop(self):
-        self.session.close()
+        pass
 
     def get_next_requests(self, max_n_requests, partition_id, **kwargs):
         results = []
         try:
-            for item in self.session.query(self.queue_model).\
-                    filter(RevisitingQueueModel.crawl_at <= datetime.utcnow(),
-                           RevisitingQueueModel.partition_id == partition_id).\
+            for item in self.queue_model.objects.filter(crawl_at=datetime.utcnow(), partition_id=partition_id).\
                     limit(max_n_requests):
                 method = 'GET' if not item.method else item.method
-                results.append(Request(item.url, method=method, meta=item.meta, headers=item.headers, cookies=item.cookies))
-                self.session.delete(item)
-            self.session.commit()
+                results.append(Request(item.url, method=method, meta=item.meta, headers=item.headers,
+                                       cookies=item.cookies))
+                item.delete()
         except Exception, exc:
             self.logger.exception(exc)
-            self.session.rollback()
         return results
 
     @retry_and_rollback
     def schedule(self, batch):
-        to_save = []
         for fprint, score, request, schedule_at in batch:
             if schedule_at:
                 _, hostname, _, _, _, _ = parse_domain_from_url_fast(request.url)
@@ -79,21 +74,43 @@ class RevisitingQueue(BaseQueue):
                 else:
                     partition_id = self.partitioner.partition(hostname, self.partitions)
                     host_crc32 = get_crc32(hostname)
-                q = self.queue_model(fingerprint=fprint, score=score, url=request.url, meta=request.meta,
-                                     headers=request.headers, cookies=request.cookies, method=request.method,
-                                     partition_id=partition_id, host_crc32=host_crc32, created_at=time()*1E+6,
-                                     crawl_at=schedule_at)
-                to_save.append(q)
+                created_at = time()*1E+6
+                q = self._create_queue(request, fprint, score, partition_id, host_crc32, created_at)
+
+                q.save()
                 request.meta['state'] = States.QUEUED
-        self.session.bulk_save_objects(to_save)
-        self.session.commit()
+
+    def _create_queue(self, obj, fingerprint, score, partition_id, host_crc32, created_at):
+        db_queue = self.queue_model()
+        db_queue.fingerprint = fingerprint
+        db_queue.score = score
+        db_queue.partition_id = partition_id
+        db_queue.host_crc32 = host_crc32
+        db_queue.url = obj.url
+        db_queue.created_at = created_at
+
+        new_dict = {}
+        for kmeta, vmeta in obj.meta.iteritems():
+            if type(vmeta) is dict:
+                new_dict[kmeta] = json.dumps(vmeta)
+            else:
+                new_dict[kmeta] = str(vmeta)
+
+        db_queue.meta = new_dict
+        db_queue.depth = 0
+
+        db_queue.headers = obj.headers
+        db_queue.method = obj.method
+        db_queue.cookies = obj.cookies
+
+        return db_queue
 
     @retry_and_rollback
     def count(self):
         return self.session.query(self.queue_model).count()
 
 
-class Backend(SQLAlchemyBackend):
+class Backend(CassandraBackend):
 
     def _create_queue(self, settings):
         self.interval = settings.get("SQLALCHEMYBACKEND_REVISIT_INTERVAL")
