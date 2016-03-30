@@ -2,15 +2,15 @@
 import logging
 from datetime import datetime
 from time import time, sleep
-import json
-
 from cachetools import LRUCache
 from frontera.contrib.backends.partitioners import Crc32NamePartitioner
 from frontera.contrib.backends.memory import MemoryStates
 from frontera.core.components import Metadata as BaseMetadata, Queue as BaseQueue
 from frontera.core.models import Request, Response
-from frontera.utils.misc import get_crc32
+from frontera.utils.misc import get_crc32, chunks
 from frontera.utils.url import parse_domain_from_url_fast
+from cassandra.concurrent import execute_concurrent_with_args
+from frontera.contrib.backends.cassandra.models import Meta
 
 
 def retry_and_rollback(func):
@@ -24,7 +24,7 @@ def retry_and_rollback(func):
                 sleep(5)
                 tries -= 1
                 if tries > 0:
-                    self.logger.info("Tries left %i" % tries)
+                    self.logger.info("Tries left %i", tries)
                     continue
                 else:
                     raise exc
@@ -32,65 +32,80 @@ def retry_and_rollback(func):
 
 
 class Metadata(BaseMetadata):
-    def __init__(self, session_cls, model_cls, cache_size):
+    def __init__(self, session_cls, model_cls, cache_size, crawl_id='default'):
         self.session = session_cls
         self.model = model_cls
         self.table = 'MetadataModel'
         self.cache = LRUCache(cache_size)
         self.logger = logging.getLogger("frontera.contrib.backends.cassandra.components.Metadata")
+        self.crawl_id = crawl_id
 
     def frontier_stop(self):
         pass
 
     @retry_and_rollback
     def add_seeds(self, seeds):
+        cql_items = []
         for seed in seeds:
             o = self._create_page(seed)
             self.cache[o.fingerprint] = o
-            o.save()
+
+            query = self.session.prepare(
+                "INSERT INTO metadata (crawl, fingerprint, url, created_at, meta, headers, cookies, method, depth) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+            meta = Meta(domain=seed.meta['domain'], fingerprint=seed.meta['fingerprint'],
+                        origin_is_frontier=seed.meta['origin_is_frontier'],
+                        scrapy_callback=seed.meta['scrapy_callback'], scrapy_errback=seed.meta['scrapy_errback'],
+                        scrapy_meta=seed.meta['scrapy_meta'])
+            cql_i = (self.crawl_id, seed.meta['fingerprint'], seed.url, datetime.utcnow(), meta,
+                     seed.headers, seed.cookies, seed.method, o.depth)
+            cql_items.append(cql_i)
+        if len(seeds) > 0:
+            execute_concurrent_with_args(self.session, query, cql_items, concurrency=400)
+        self.cass_count({"seed_urls": len(seeds)})
 
     @retry_and_rollback
     def request_error(self, page, error):
-        m = self._modify_page(page) if page.meta['fingerprint'] in self.cache else self._create_page(page)
+        m = self._create_page(page)
         m.error = error
         self.cache[m.fingerprint] = m
-        m.update()
+        query_page = self.session.prepare(
+            "UPDATE metadata SET error = ? WHERE fingerprint = ?")
+        self.session.execute(query_page, (error, page.meta['fingerprint']))
+        self.cass_count({"error": 1})
 
     @retry_and_rollback
     def page_crawled(self, response, links):
-        r = self._modify_page(response)
-        self.cache[r.fingerprint] = r
-        r.save()
+        query_page = self.session.prepare(
+            "UPDATE metadata SET fetched_at = ?, headers = ?, method = ?, cookies = ?, status_code = ? "
+            "WHERE crawl= ? AND fingerprint = ?")
+        self.session.execute_async(query_page, (datetime.utcnow(), response.request.headers, response.request.method,
+                                                response.request.cookies, response.status_code, self.crawl_id,
+                                                response.meta['fingerprint']))
+
+        query = self.session.prepare(
+            "INSERT INTO metadata (crawl, fingerprint, created_at, method, url, depth) VALUES (?, ?, ?, ?, ?, ?)")
+        cql_items = []
         for link in links:
             if link.meta['fingerprint'] not in self.cache:
+                link.depth = self.cache[response.meta['fingerprint']].depth+1
                 l = self._create_page(link)
                 self.cache[link.meta['fingerprint']] = l
-                l.save()
-
-    def _modify_page(self, obj):
-        db_page = self.cache[obj.meta['fingerprint']]
-        db_page.fetched_at = datetime.utcnow()
-        if isinstance(obj, Response):
-            db_page.headers = obj.request.headers
-            db_page.method = obj.request.method
-            db_page.cookies = obj.request.cookies
-            db_page.status_code = obj.status_code
-        return db_page
+                cql_i = (self.crawl_id, link.meta['fingerprint'], datetime.utcnow(), link.method, link.url, link.depth)
+                cql_items.append(cql_i)
+        execute_concurrent_with_args(self.session, query, cql_items, concurrency=400)
+        self.cass_count({"pages_crawled": 1, "links_found": len(cql_items)})
 
     def _create_page(self, obj):
         db_page = self.model()
         db_page.fingerprint = obj.meta['fingerprint']
         db_page.url = obj.url
         db_page.created_at = datetime.utcnow()
-        new_dict = {}
-        for kmeta, vmeta in obj.meta.iteritems():
-            if type(vmeta) is dict:
-                new_dict[kmeta] = json.dumps(vmeta)
-            else:
-                new_dict[kmeta] = str(vmeta)
-
-        db_page.meta = new_dict
-        db_page.depth = 0
+        db_page.meta = obj.meta
+        if hasattr(obj, 'depth'):
+            db_page.depth = obj.depth
+        else:
+            db_page.depth = 0
 
         if isinstance(obj, Request):
             db_page.headers = obj.headers
@@ -105,19 +120,29 @@ class Metadata(BaseMetadata):
 
     @retry_and_rollback
     def update_score(self, batch):
+        query = self.session.prepare("UPDATE metadata SET score = ? WHERE fingerprint = ?")
+        cql_items = []
         for fprint, score, request, schedule in batch:
-            m = self.model(fingerprint=fprint, score=score)
-            m.update()
+            cql_i = (score, fprint)
+            cql_items.append(cql_i)
+        execute_concurrent_with_args(self.session, query, cql_items, concurrency=400)
+        self.cass_count({"scored_urls": len(cql_items)})
+
+    def cass_count(self, counts):
+        for row, count in counts.iteritems():
+            count_page = self.session.prepare("UPDATE crawlstats SET "+row+" = "+row+" + ? WHERE crawl= ?")
+            self.session.execute_async(count_page, (count, self.crawl_id))
 
 
 class States(MemoryStates):
 
-    def __init__(self, session_cls, model_cls, cache_size_limit):
+    def __init__(self, session_cls, model_cls, cache_size_limit, crawl_id='default'):
         super(States, self).__init__(cache_size_limit)
         self.session = session_cls
         self.model = model_cls
         self.table = 'StateModel'
         self.logger = logging.getLogger("frontera.contrib.backends.cassandra.components.States")
+        self.crawl_id = crawl_id
 
     @retry_and_rollback
     def frontier_stop(self):
@@ -126,30 +151,33 @@ class States(MemoryStates):
     @retry_and_rollback
     def fetch(self, fingerprints):
         to_fetch = [f for f in fingerprints if f not in self._cache]
-        self.logger.debug("cache size %s" % len(self._cache))
-        self.logger.debug("to fetch %d from %d" % (len(to_fetch), len(fingerprints)))
+        self.logger.debug("cache size %s", len(self._cache))
+        self.logger.debug("to fetch %d from %d", (len(to_fetch), len(fingerprints)))
 
-        for chunk in to_fetch:
-            for state in self.model.objects.filter(fingerprint=chunk):
+        for chunk in chunks(to_fetch, 128):
+            for state in self.model.objects.filter(crawl=self.crawl_id, fingerprint__in=chunk):
                 self._cache[state.fingerprint] = state.state
 
     @retry_and_rollback
     def flush(self, force_clear=False):
+        query = self.session.prepare("INSERT INTO states (crawl, fingerprint, state) VALUES (?, ?, ?)")
+        cql_items = []
         for fingerprint, state_val in self._cache.iteritems():
-            state = self.model(fingerprint=fingerprint, state=state_val)
-            state.save()
-        self.logger.debug("State cache has been flushed.")
+            cql_i = (self.crawl_id, fingerprint, state_val)
+            cql_items.append(cql_i)
+        execute_concurrent_with_args(self.session, query, cql_items, concurrency=20000)
         super(States, self).flush(force_clear)
 
 
 class Queue(BaseQueue):
-    def __init__(self, session_cls, queue_cls, partitions, ordering='default'):
+    def __init__(self, session_cls, queue_cls, partitions, ordering='default', crawl_id='default'):
         self.session = session_cls
         self.queue_model = queue_cls
         self.logger = logging.getLogger("frontera.contrib.backends.cassandra.components.Queue")
         self.partitions = [i for i in range(0, partitions)]
         self.partitioner = Crc32NamePartitioner(self.partitions)
         self.ordering = ordering
+        self.crawl_id = crawl_id
 
     def frontier_stop(self):
         pass
@@ -171,16 +199,41 @@ class Queue(BaseQueue):
         """
         results = []
         try:
-            for item in self.queue_model.objects.filter(partition_id=partition_id).order_by("score", self._order_by()).\
-                    limit(max_n_requests):
-                item.meta = self.gen_meta(item.meta)
+            dequeued_urls = 0
+            cql_ditems = []
+            d_query = self.session.prepare("DELETE FROM queue WHERE crawl = ? AND fingerprint = ? AND partition_id = ? "
+                                           "AND score = ? AND created_at = ?")
+            for item in self.queue_model.objects.filter(partition_id=partition_id, crawl=self.crawl_id).\
+                    order_by("crawl", "score", self._order_by()).limit(max_n_requests):
                 method = 'GET' if not item.method else item.method
-                r = Request(item.url, method=method, meta=item.meta, headers=item.headers, cookies=item.cookies)
+
+                meta_dict2 = dict((name, getattr(item.meta, name)) for name in dir(item.meta) if not name.startswith('__'))
+                # TODO: How the result can be an dict not an object -> Objects get error while encodeing for Message Bus
+                # If I take meta_dict2 direct to Request i get the same error message
+
+                meta_dict = dict()
+                meta_dict["fingerprint"] = meta_dict2["fingerprint"]
+                meta_dict["domain"] = meta_dict2["domain"]
+                meta_dict["origin_is_frontier"] = meta_dict2["origin_is_frontier"]
+                meta_dict["scrapy_callback"] = meta_dict2["scrapy_callback"]
+                meta_dict["scrapy_errback"] = meta_dict2["scrapy_errback"]
+                meta_dict["scrapy_meta"] = meta_dict2["scrapy_meta"]
+                meta_dict["score"] = meta_dict2["score"]
+                meta_dict["jid"] = meta_dict2["jid"]
+
+                r = Request(item.url, method=method, meta=meta_dict, headers=item.headers, cookies=item.cookies)
                 r.meta['fingerprint'] = item.fingerprint
                 r.meta['score'] = item.score
-                self.queue_model.delete(item)
                 results.append(r)
-                item.delete()
+
+                cql_d = (item.crawl, item.fingerprint, item.partition_id, item.score, item.created_at)
+                cql_ditems.append(cql_d)
+                dequeued_urls += 1
+
+            if dequeued_urls > 0:
+                execute_concurrent_with_args(self.session, d_query, cql_ditems, concurrency=200)
+
+            self.cass_count({"dequeued_urls": dequeued_urls})
 
         except Exception, exc:
             self.logger.exception(exc)
@@ -189,6 +242,10 @@ class Queue(BaseQueue):
 
     @retry_and_rollback
     def schedule(self, batch):
+        query = self.session.prepare("INSERT INTO queue (crawl, fingerprint, score, partition_id, host_crc32, url, "
+                                     "created_at, meta, depth, headers, method, cookies) "
+                                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+        cql_items = []
         for fprint, score, request, schedule in batch:
             if schedule:
                 _, hostname, _, _, _, _ = parse_domain_from_url_fast(request.url)
@@ -200,60 +257,45 @@ class Queue(BaseQueue):
                     partition_id = self.partitioner.partition(hostname, self.partitions)
                     host_crc32 = get_crc32(hostname)
                 created_at = time()*1E+6
-                q = self._create_queue(request, fprint, score, partition_id, host_crc32, created_at)
 
-                q.save()
+                if "domain" not in request.meta:
+                    request.meta["domain"] = {}
+                if "origin_is_frontier" not in request.meta:
+                    request.meta["origin_is_frontier"] = ''
+                if "scrapy_callback" not in request.meta:
+                    request.meta["scrapy_callback"] = None
+                if "scrapy_errback" not in request.meta:
+                    request.meta["scrapy_errback"] = None
+                if "scrapy_meta" not in request.meta:
+                    request.meta["scrapy_meta"] = {}
+                if "score" not in request.meta:
+                    request.meta["score"] = 0
+                if "jid" not in request.meta:
+                    request.meta["jid"] = 0
+
+                meta = Meta(domain=request.meta['domain'], fingerprint=fprint,
+                            origin_is_frontier=request.meta['origin_is_frontier'],
+                            scrapy_callback=request.meta['scrapy_callback'],
+                            scrapy_errback=request.meta['scrapy_errback'], scrapy_meta=request.meta['scrapy_meta'])
+
+                cql_i = (self.crawl_id, fprint, score, partition_id, host_crc32, request.url, created_at, meta, 0,
+                         request.headers, request.method, request.cookies)
+                cql_items.append(cql_i)
+
                 request.meta['state'] = States.QUEUED
 
-    def _create_queue(self, obj, fingerprint, score, partition_id, host_crc32, created_at):
-        db_queue = self.queue_model()
-        db_queue.fingerprint = fingerprint
-        db_queue.score = score
-        db_queue.partition_id = partition_id
-        db_queue.host_crc32 = host_crc32
-        db_queue.url = obj.url
-        db_queue.created_at = created_at
-
-        new_dict = {}
-        for kmeta, vmeta in obj.meta.iteritems():
-            if type(vmeta) is dict:
-                new_dict[kmeta] = json.dumps(vmeta)
-            else:
-                new_dict[kmeta] = str(vmeta)
-
-        db_queue.meta = new_dict
-        db_queue.depth = 0
-
-        db_queue.headers = obj.headers
-        db_queue.method = obj.method
-        db_queue.cookies = obj.cookies
-
-        return db_queue
+        execute_concurrent_with_args(self.session, query, cql_items, concurrency=400)
+        self.cass_count({"queued_urls": len(cql_items)})
 
     @retry_and_rollback
     def count(self):
-        return self.queue_model.objects.count()
+        count = self.queue_model.objects.filter(crawl=self.crawl_id).count()
+        return count
 
-    def gen_meta(self, meta):
-        ret_meta = {}
-        for kmeta, vmeta in meta.iteritems():
-            try:
-                json_object = json.loads(vmeta)
-            except ValueError, e:
-                ret_meta[kmeta] = vmeta
-            else:
-                ret_meta[kmeta] = json_object
-
-        if ret_meta['scrapy_callback'] == "None":
-            ret_meta['scrapy_callback'] = None
-        if ret_meta['scrapy_errback'] == "None":
-            ret_meta['scrapy_errback'] = None
-        if ret_meta['state'] == "None":
-            ret_meta['state'] = None
-        if ret_meta['origin_is_frontier'] == "True":
-            ret_meta['origin_is_frontier'] = True
-        ret_meta['depth'] = int(ret_meta['depth'])
-        return ret_meta
+    def cass_count(self, counts):
+        for row, count in counts.iteritems():
+            count_page = self.session.prepare("UPDATE crawlstats SET " + row + " = " + row + " + ? WHERE crawl= ?")
+            self.session.execute_async(count_page, (count, self.crawl_id))
 
 
 class BroadCrawlingQueue(Queue):
@@ -290,9 +332,8 @@ class BroadCrawlingQueue(Queue):
                               (tries, limit, count, len(queue.keys())))
             queue.clear()
             count = 0
-            for item in self.queue_model.objects.filter(partition_id=partition_id).order_by(self._order_by()).\
-                    limit(limit):
-                item.meta = self.gen_meta(item.meta)
+            for item in self.queue_model.objects.filter(crawl=self.crawl_id, partition_id=partition_id).\
+                    order_by("crawl", "score", self._order_by()).limit(limit):
                 if item.host_crc32 not in queue:
                     queue[item.host_crc32] = []
                 if max_requests_per_host is not None and len(queue[item.host_crc32]) > max_requests_per_host:

@@ -1,12 +1,9 @@
 from __future__ import absolute_import
-import logging
-
 from cassandra.cluster import Cluster
 from cassandra.cqlengine import connection
 from cassandra.query import dict_factory
 from cassandra.cqlengine.management import sync_table
 from cassandra.cqlengine.management import drop_table
-
 from frontera.core.components import DistributedBackend
 from frontera.contrib.backends import CommonBackend
 from frontera.contrib.backends.cassandra.components import Metadata, Queue, States
@@ -23,6 +20,7 @@ class CassandraBackend(CommonBackend):
         keyspace = settings.get('CASSANDRABACKEND_KEYSPACE')
         keyspace_create = settings.get('CASSANDRABACKEND_CREATE_KEYSPACE_IF_NOT_EXISTS')                # Default: true
         models = settings.get('CASSANDRABACKEND_MODELS')
+        crawl_id = settings.get('CASSANDRABACKEND_CRAWL_ID')
 
         self.cluster = Cluster(cluster_ips, cluster_port)
         self.models = dict([(name, load_object(klass)) for name, klass in models.items()])
@@ -30,6 +28,7 @@ class CassandraBackend(CommonBackend):
         self.session_cls = self.cluster.connect()
         self.session_cls.row_factory = dict_factory
         self.session_cls.encoder.mapping[dict] = self.session_cls.encoder.cql_encode_map_collection
+        self.crawl_id = crawl_id
 
         if keyspace_create:
             query = """CREATE KEYSPACE IF NOT EXISTS \"%s\"
@@ -48,18 +47,18 @@ class CassandraBackend(CommonBackend):
             sync_table(value)
 
         self._metadata = Metadata(self.session_cls, self.models['MetadataModel'],
-                                  settings.get('CASSANDRABACKEND_CACHE_SIZE'))
+                                  settings.get('CASSANDRABACKEND_CACHE_SIZE'), crawl_id=self.crawl_id)
         self._states = States(self.session_cls, self.models['StateModel'],
-                              settings.get('STATE_CACHE_SIZE_LIMIT'))
+                              settings.get('STATE_CACHE_SIZE_LIMIT'), crawl_id=self.crawl_id)
         self._queue = self._create_queue(settings)
 
     def frontier_stop(self):
         self.states.flush()
         self.session_cls.shutdown()
-        # super(CassandraBackend, self).frontier_stop()
 
     def _create_queue(self, settings):
-        return Queue(self.session_cls, self.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'))
+        return Queue(self.session_cls, self.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'),
+                     crawl_id=self.crawl_id)
 
     @property
     def queue(self):
@@ -89,32 +88,9 @@ class LIFOBackend(CassandraBackend):
         return Queue(self.session_cls, self.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'),
                      ordering='created_desc')
 
-
-class DFSBackend(CassandraBackend):
-    component_name = 'Cassandra DFS Backend'
-
-    def _create_queue(self, settings):
-        return Queue(self.session_cls, self.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'))
-
-    def _get_score(self, obj):
-        return -obj.meta['depth']
-
-
-class BFSBackend(CassandraBackend):
-    component_name = 'Cassandra BFS Backend'
-
-    def _create_queue(self, settings):
-        return Queue(self.session_cls, self.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'))
-
-    def _get_score(self, obj):
-        return obj.meta['depth']
-
-
 BASE = CommonBackend
 LIFO = LIFOBackend
 FIFO = FIFOBackend
-DFS = DFSBackend
-BFS = BFSBackend
 
 
 class Distributed(DistributedBackend):
@@ -126,7 +102,6 @@ class Distributed(DistributedBackend):
         keyspace = settings.get('CASSANDRABACKEND_KEYSPACE')
         keyspace_create = settings.get('CASSANDRABACKEND_CREATE_KEYSPACE_IF_NOT_EXISTS')                # Default: true
         models = settings.get('CASSANDRABACKEND_MODELS')
-        logging.warning('init_dist_be')
 
         self.cluster = Cluster(cluster_ips, cluster_port)
         self.models = dict([(name, load_object(klass)) for name, klass in models.items()])
@@ -169,12 +144,15 @@ class Distributed(DistributedBackend):
 
         metadata_m = b.models['MetadataModel']
         queue_m = b.models['QueueModel']
+        stats_m = b.models['CrawlStatsModel']
         if drop:
             drop_table(metadata_m)
             drop_table(queue_m)
+            drop_table(stats_m)
 
         sync_table(metadata_m)
         sync_table(queue_m)
+        sync_table(stats_m)
 
         b._metadata = Metadata(b.session_cls, metadata_m,
                                settings.get('CASSANDRABACKEND_CACHE_SIZE'))
@@ -204,7 +182,6 @@ class Distributed(DistributedBackend):
                 component.frontier_stop()
 
     def add_seeds(self, seeds):
-        logging.warning('add_seeds_top %s' % seeds)
         self.metadata.add_seeds(seeds)
 
     def get_next_requests(self, max_next_requests, **kwargs):

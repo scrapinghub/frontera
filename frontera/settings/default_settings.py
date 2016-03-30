@@ -52,13 +52,15 @@ CASSANDRABACKEND_DROP_ALL_TABLES = False
 CASSANDRABACKEND_MODELS = {
     'MetadataModel': 'frontera.contrib.backends.cassandra.models.MetadataModel',
     'StateModel': 'frontera.contrib.backends.cassandra.models.StateModel',
-    'QueueModel': 'frontera.contrib.backends.cassandra.models.QueueModel'
+    'QueueModel': 'frontera.contrib.backends.cassandra.models.QueueModel',
+    'CrawlStatsModel': 'frontera.contrib.backends.cassandra.models.CrawlStatsModel'
 }
 CASSANDRABACKEND_REVISIT_INTERVAL = timedelta(days=1)
 CASSANDRABACKEND_CLUSTER_IPS = ['127.0.0.1']
 CASSANDRABACKEND_CLUSTER_PORT = 9042
 CASSANDRABACKEND_KEYSPACE = 'frontera'
 CASSANDRABACKEND_CREATE_KEYSPACE_IF_NOT_EXISTS = True
+CASSANDRABACKEND_CRAWL_ID="default"
 
 
 STATE_CACHE_SIZE = 1000000
