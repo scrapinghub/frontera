@@ -150,7 +150,6 @@ class DBWorker(object):
                             self.spider_feed.mark_busy(partition_id)
             finally:
                 consumed += 1
-
         """
         # TODO: Think how it should be implemented in DB-worker only mode.
         if not self.strategy_enabled and self._backend.finished():

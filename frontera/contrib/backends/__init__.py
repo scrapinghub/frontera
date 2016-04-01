@@ -3,7 +3,6 @@ from collections import OrderedDict
 
 from frontera import Backend
 from frontera.core.components import States
-from time import time
 
 
 class CommonBackend(Backend):
@@ -48,7 +47,6 @@ class CommonBackend(Backend):
         self.metadata.update_score(batch)
         self.queue_size += queue_incr
 
-
     def _get_score(self, obj):
         return obj.meta.get('score', 1.0)
 
@@ -61,7 +59,6 @@ class CommonBackend(Backend):
         return batch
 
     def page_crawled(self, response, links):
-        start = time()
         response.meta['state'] = States.CRAWLED
         self.states.update_cache(response)
         depth = response.meta.get('depth', 0)+1
