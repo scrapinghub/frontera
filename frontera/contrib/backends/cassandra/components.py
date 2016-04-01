@@ -50,8 +50,8 @@ class Metadata(BaseMetadata):
         m.error = error
         self.cache[m.fingerprint] = m
         query_page = self.session.prepare(
-            "UPDATE metadata SET error = ? WHERE fingerprint = ?")
-        self.session.execute(query_page, (error, page.meta['fingerprint']))
+            "UPDATE metadata SET error = ? WHERE crawl = ? AND  fingerprint = ?")
+        self.session.execute(query_page, (error, self.crawl_id, page.meta['fingerprint']))
         self.cass_count({"error": 1})
 
     def page_crawled(self, response, links):
@@ -98,10 +98,10 @@ class Metadata(BaseMetadata):
         return db_page
 
     def update_score(self, batch):
-        query = self.session.prepare("UPDATE metadata SET score = ? WHERE fingerprint = ?")
+        query = self.session.prepare("UPDATE metadata SET score = ? WHERE crawl = ? AND fingerprint = ?")
         cql_items = []
         for fprint, score, request, schedule in batch:
-            cql_i = (score, fprint)
+            cql_i = (score, self.crawl_id, fprint)
             cql_items.append(cql_i)
         execute_concurrent_with_args(self.session, query, cql_items, concurrency=400)
         self.cass_count({"scored_urls": len(cql_items)})
@@ -160,8 +160,6 @@ class Queue(BaseQueue):
     def _order_by(self):
         if self.ordering == 'created':
             return "created_at"
-        if self.ordering == 'created_desc':
-            return "-created_at"
         return "created_at"
 
     def get_next_requests(self, max_n_requests, partition_id, **kwargs):
@@ -178,8 +176,8 @@ class Queue(BaseQueue):
             cql_ditems = []
             d_query = self.session.prepare("DELETE FROM queue WHERE crawl = ? AND fingerprint = ? AND partition_id = ? "
                                            "AND score = ? AND created_at = ?")
-            for item in self.queue_model.objects.filter(partition_id=partition_id, crawl=self.crawl_id).\
-                    order_by("crawl", "score", self._order_by()).limit(max_n_requests):
+            for item in self.queue_model.objects.filter(crawl=self.crawl_id, partition_id=partition_id).\
+                    order_by("partition_id", "score", self._order_by()).limit(max_n_requests):
                 method = 'GET' if not item.method else item.method
 
                 meta_dict2 = dict((name, getattr(item.meta, name)) for name in dir(item.meta)

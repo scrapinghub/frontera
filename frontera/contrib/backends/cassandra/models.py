@@ -58,8 +58,8 @@ class StateModel(Model):
 class QueueModel(Model):
     __table_name__ = 'queue'
 
-    partition_id = Integer(primary_key=True)
     crawl = Text(primary_key=True)
+    partition_id = Integer(primary_key=True)
     score = Float(primary_key=True)
     created_at = BigInt(primary_key=True)
     fingerprint = Text(primary_key=True)

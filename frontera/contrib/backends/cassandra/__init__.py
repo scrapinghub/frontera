@@ -15,11 +15,11 @@ class CassandraBackend(CommonBackend):
     def __init__(self, manager):
         self.manager = manager
         settings = manager.settings
-        cluster_ips = settings.get('CASSANDRABACKEND_CLUSTER_IPS')      # Format: ['192.168.0.1', '192.168.0.2']
+        cluster_ips = settings.get('CASSANDRABACKEND_CLUSTER_IPS')
         cluster_port = settings.get('CASSANDRABACKEND_CLUSTER_PORT')
         drop_all_tables = settings.get('CASSANDRABACKEND_DROP_ALL_TABLES')
         keyspace = settings.get('CASSANDRABACKEND_KEYSPACE')
-        keyspace_create = settings.get('CASSANDRABACKEND_CREATE_KEYSPACE_IF_NOT_EXISTS')                # Default: true
+        keyspace_create = settings.get('CASSANDRABACKEND_CREATE_KEYSPACE_IF_NOT_EXISTS')
         models = settings.get('CASSANDRABACKEND_MODELS')
         crawl_id = settings.get('CASSANDRABACKEND_CRAWL_ID')
 
@@ -80,26 +80,7 @@ class CassandraBackend(CommonBackend):
     def states(self):
         return self._states
 
-
-class FIFOBackend(CassandraBackend):
-    component_name = 'Cassandra FIFO Backend'
-
-    def _create_queue(self, settings):
-        return Queue(self.session, self.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'),
-                     ordering='created')
-
-
-class LIFOBackend(CassandraBackend):
-    component_name = 'Cassandra LIFO Backend'
-
-    def _create_queue(self, settings):
-        return Queue(self.session, self.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'),
-                     ordering='created_desc')
-
-BASE = CommonBackend
-LIFO = LIFOBackend
-FIFO = FIFOBackend
-
+BASE = CassandraBackend
 
 class Distributed(DistributedBackend):
     def __init__(self, manager):
