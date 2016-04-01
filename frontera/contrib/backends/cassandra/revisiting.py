@@ -39,8 +39,8 @@ def retry_and_rollback(func):
 
 
 class RevisitingQueue(BaseQueue):
-    def __init__(self, session_cls, queue_cls, partitions):
-        self.session = session_cls()
+    def __init__(self, session, queue_cls, partitions):
+        self.session = session()
         self.queue_model = queue_cls
         self.logger = logging.getLogger("frontera.contrib.backends.sqlalchemy.revisiting.RevisitingQueue")
         self.partitions = [i for i in range(0, partitions)]
@@ -115,7 +115,7 @@ class Backend(CassandraBackend):
     def _create_queue(self, settings):
         self.interval = settings.get("SQLALCHEMYBACKEND_REVISIT_INTERVAL")
         assert isinstance(self.interval, timedelta)
-        return RevisitingQueue(self.session_cls, RevisitingQueueModel, settings.get('SPIDER_FEED_PARTITIONS'))
+        return RevisitingQueue(self.session, RevisitingQueueModel, settings.get('SPIDER_FEED_PARTITIONS'))
 
     def _schedule(self, requests):
         batch = []

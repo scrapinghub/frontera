@@ -32,8 +32,8 @@ def retry_and_rollback(func):
 
 
 class Metadata(BaseMetadata):
-    def __init__(self, session_cls, model_cls, cache_size, crawl_id='default'):
-        self.session = session_cls
+    def __init__(self, session, model_cls, cache_size, crawl_id='default'):
+        self.session = session
         self.model = model_cls
         self.table = 'MetadataModel'
         self.cache = LRUCache(cache_size)
@@ -136,9 +136,9 @@ class Metadata(BaseMetadata):
 
 class States(MemoryStates):
 
-    def __init__(self, session_cls, model_cls, cache_size_limit, crawl_id='default'):
+    def __init__(self, session, model_cls, cache_size_limit, crawl_id='default'):
         super(States, self).__init__(cache_size_limit)
-        self.session = session_cls
+        self.session = session
         self.model = model_cls
         self.table = 'StateModel'
         self.logger = logging.getLogger("frontera.contrib.backends.cassandra.components.States")
@@ -170,8 +170,8 @@ class States(MemoryStates):
 
 
 class Queue(BaseQueue):
-    def __init__(self, session_cls, queue_cls, partitions, ordering='default', crawl_id='default'):
-        self.session = session_cls
+    def __init__(self, session, queue_cls, partitions, ordering='default', crawl_id='default'):
+        self.session = session
         self.queue_model = queue_cls
         self.logger = logging.getLogger("frontera.contrib.backends.cassandra.components.Queue")
         self.partitions = [i for i in range(0, partitions)]

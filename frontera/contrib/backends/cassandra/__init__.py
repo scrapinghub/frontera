@@ -25,19 +25,19 @@ class CassandraBackend(CommonBackend):
         self.cluster = Cluster(cluster_ips, cluster_port)
         self.models = dict([(name, load_object(klass)) for name, klass in models.items()])
 
-        self.session_cls = self.cluster.connect()
-        self.session_cls.row_factory = dict_factory
-        self.session_cls.encoder.mapping[dict] = self.session_cls.encoder.cql_encode_map_collection
+        self.session = self.cluster.connect()
+        self.session.row_factory = dict_factory
+        self.session.encoder.mapping[dict] = self.session.encoder.cql_encode_map_collection
         self.crawl_id = crawl_id
 
         if keyspace_create:
             query = """CREATE KEYSPACE IF NOT EXISTS \"%s\"
                         WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 3}""" % (keyspace, )
-            self.session_cls.execute(query)
+            self.session.execute(query)
 
-        self.session_cls.set_keyspace(keyspace)
+        self.session.set_keyspace(keyspace)
 
-        connection.set_session(self.session_cls)
+        connection.set_session(self.session)
 
         if drop_all_tables:
             for key, value in self.models.iteritems():
@@ -46,18 +46,18 @@ class CassandraBackend(CommonBackend):
         for key, value in self.models.iteritems():
             sync_table(value)
 
-        self._metadata = Metadata(self.session_cls, self.models['MetadataModel'],
+        self._metadata = Metadata(self.session, self.models['MetadataModel'],
                                   settings.get('CASSANDRABACKEND_CACHE_SIZE'), crawl_id=self.crawl_id)
-        self._states = States(self.session_cls, self.models['StateModel'],
+        self._states = States(self.session, self.models['StateModel'],
                               settings.get('STATE_CACHE_SIZE_LIMIT'), crawl_id=self.crawl_id)
         self._queue = self._create_queue(settings)
 
     def frontier_stop(self):
         self.states.flush()
-        self.session_cls.shutdown()
+        self.session.shutdown()
 
     def _create_queue(self, settings):
-        return Queue(self.session_cls, self.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'),
+        return Queue(self.session, self.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'),
                      crawl_id=self.crawl_id)
 
     @property
@@ -77,7 +77,7 @@ class FIFOBackend(CassandraBackend):
     component_name = 'Cassandra FIFO Backend'
 
     def _create_queue(self, settings):
-        return Queue(self.session_cls, self.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'),
+        return Queue(self.session, self.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'),
                      ordering='created')
 
 
@@ -85,7 +85,7 @@ class LIFOBackend(CassandraBackend):
     component_name = 'Cassandra LIFO Backend'
 
     def _create_queue(self, settings):
-        return Queue(self.session_cls, self.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'),
+        return Queue(self.session, self.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'),
                      ordering='created_desc')
 
 BASE = CommonBackend
@@ -106,15 +106,15 @@ class Distributed(DistributedBackend):
         self.cluster = Cluster(cluster_ips, cluster_port)
         self.models = dict([(name, load_object(klass)) for name, klass in models.items()])
 
-        self.session_cls = self.cluster.connect()
-        self.session_cls.row_factory = dict_factory
+        self.session = self.cluster.connect()
+        self.session.row_factory = dict_factory
 
         if keyspace_create:
             query = """CREATE KEYSPACE IF NOT EXISTS \"%s\"
                         WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 3}""" % (keyspace, )
-            self.session_cls.execute(query)
-        self.session_cls.set_keyspace(keyspace)
-        connection.set_session(self.session_cls)
+            self.session.execute(query)
+        self.session.set_keyspace(keyspace)
+        connection.set_session(self.session)
 
         self._metadata = None
         self._queue = None
@@ -132,7 +132,7 @@ class Distributed(DistributedBackend):
 
         sync_table(model)
 
-        b._states = States(b.session_cls, model,
+        b._states = States(b.session, model,
                            settings.get('STATE_CACHE_SIZE_LIMIT'))
         return b
 
@@ -154,9 +154,9 @@ class Distributed(DistributedBackend):
         sync_table(queue_m)
         sync_table(stats_m)
 
-        b._metadata = Metadata(b.session_cls, metadata_m,
+        b._metadata = Metadata(b.session, metadata_m,
                                settings.get('CASSANDRABACKEND_CACHE_SIZE'))
-        b._queue = Queue(b.session_cls, queue_m, settings.get('SPIDER_FEED_PARTITIONS'))
+        b._queue = Queue(b.session, queue_m, settings.get('SPIDER_FEED_PARTITIONS'))
         return b
 
     @property
