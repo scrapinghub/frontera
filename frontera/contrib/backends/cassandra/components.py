@@ -14,7 +14,7 @@ from frontera.contrib.backends.cassandra.models import Meta
 
 
 class Metadata(BaseMetadata):
-    def __init__(self, session, model_cls, cache_size, crawl_id='default'):
+    def __init__(self, session, model_cls, cache_size, crawl_id):
         self.session = session
         self.model = model_cls
         self.table = 'MetadataModel'
@@ -114,7 +114,7 @@ class Metadata(BaseMetadata):
 
 class States(MemoryStates):
 
-    def __init__(self, session, model_cls, cache_size_limit, crawl_id='default'):
+    def __init__(self, session, model_cls, cache_size_limit, crawl_id):
         super(States, self).__init__(cache_size_limit)
         self.session = session
         self.model = model_cls
@@ -145,7 +145,7 @@ class States(MemoryStates):
 
 
 class Queue(BaseQueue):
-    def __init__(self, session, queue_cls, partitions, ordering='default', crawl_id='default'):
+    def __init__(self, session, queue_cls, partitions, crawl_id, ordering='default'):
         self.session = session
         self.queue_model = queue_cls
         self.logger = logging.getLogger("frontera.contrib.backends.cassandra.components.Queue")

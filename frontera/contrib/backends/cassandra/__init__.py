@@ -55,9 +55,9 @@ class CassandraBackend(CommonBackend):
             sync_table(value)
 
         self._metadata = Metadata(self.session, self.models['MetadataModel'],
-                                  settings.get('CASSANDRABACKEND_CACHE_SIZE'), crawl_id=self.crawl_id)
+                                  settings.get('CASSANDRABACKEND_CACHE_SIZE'), self.crawl_id)
         self._states = States(self.session, self.models['StateModel'],
-                              settings.get('STATE_CACHE_SIZE_LIMIT'), crawl_id=self.crawl_id)
+                              settings.get('STATE_CACHE_SIZE_LIMIT'), self.crawl_id)
         self._queue = self._create_queue(settings)
 
     def frontier_stop(self):
@@ -66,7 +66,7 @@ class CassandraBackend(CommonBackend):
 
     def _create_queue(self, settings):
         return Queue(self.session, self.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'),
-                     crawl_id=self.crawl_id)
+                     self.crawl_id)
 
     @property
     def queue(self):
@@ -114,6 +114,7 @@ class Distributed(DistributedBackend):
         b = cls(manager)
         settings = manager.settings
         drop_all_tables = settings.get('CASSANDRABACKEND_DROP_ALL_TABLES')
+        crawl_id = settings.get('CASSANDRABACKEND_CRAWL_ID')
         model = b.models['StateModel']
 
         if drop_all_tables:
@@ -122,7 +123,7 @@ class Distributed(DistributedBackend):
         sync_table(model)
 
         b._states = States(b.session, model,
-                           settings.get('STATE_CACHE_SIZE_LIMIT'))
+                           settings.get('STATE_CACHE_SIZE_LIMIT'), crawl_id)
         return b
 
     @classmethod
@@ -130,6 +131,7 @@ class Distributed(DistributedBackend):
         b = cls(manager)
         settings = manager.settings
         drop = settings.get('CASSANDRABACKEND_DROP_ALL_TABLES')
+        crawl_id = settings.get('CASSANDRABACKEND_CRAWL_ID')
 
         metadata_m = b.models['MetadataModel']
         queue_m = b.models['QueueModel']
@@ -144,8 +146,8 @@ class Distributed(DistributedBackend):
         sync_table(stats_m)
 
         b._metadata = Metadata(b.session, metadata_m,
-                               settings.get('CASSANDRABACKEND_CACHE_SIZE'))
-        b._queue = Queue(b.session, queue_m, settings.get('SPIDER_FEED_PARTITIONS'))
+                               settings.get('CASSANDRABACKEND_CACHE_SIZE'), crawl_id)
+        b._queue = Queue(b.session, queue_m, settings.get('SPIDER_FEED_PARTITIONS'), crawl_id)
         return b
 
     @property
