@@ -13,24 +13,6 @@ from cassandra.concurrent import execute_concurrent_with_args
 from frontera.contrib.backends.cassandra.models import Meta
 
 
-def retry_and_rollback(func):
-    def func_wrapper(self, *args, **kwargs):
-        tries = 5
-        while True:
-            try:
-                return func(self, *args, **kwargs)
-            except Exception, exc:
-                self.logger.exception(exc)
-                sleep(5)
-                tries -= 1
-                if tries > 0:
-                    self.logger.info("Tries left %i", tries)
-                    continue
-                else:
-                    raise exc
-    return func_wrapper
-
-
 class Metadata(BaseMetadata):
     def __init__(self, session, model_cls, cache_size, crawl_id='default'):
         self.session = session
@@ -43,7 +25,6 @@ class Metadata(BaseMetadata):
     def frontier_stop(self):
         pass
 
-    @retry_and_rollback
     def add_seeds(self, seeds):
         cql_items = []
         for seed in seeds:
@@ -64,7 +45,6 @@ class Metadata(BaseMetadata):
             execute_concurrent_with_args(self.session, query, cql_items, concurrency=400)
         self.cass_count({"seed_urls": len(seeds)})
 
-    @retry_and_rollback
     def request_error(self, page, error):
         m = self._create_page(page)
         m.error = error
@@ -74,7 +54,6 @@ class Metadata(BaseMetadata):
         self.session.execute(query_page, (error, page.meta['fingerprint']))
         self.cass_count({"error": 1})
 
-    @retry_and_rollback
     def page_crawled(self, response, links):
         query_page = self.session.prepare(
             "UPDATE metadata SET fetched_at = ?, headers = ?, method = ?, cookies = ?, status_code = ? "
@@ -118,7 +97,6 @@ class Metadata(BaseMetadata):
             db_page.status_code = obj.status_code
         return db_page
 
-    @retry_and_rollback
     def update_score(self, batch):
         query = self.session.prepare("UPDATE metadata SET score = ? WHERE fingerprint = ?")
         cql_items = []
@@ -144,11 +122,9 @@ class States(MemoryStates):
         self.logger = logging.getLogger("frontera.contrib.backends.cassandra.components.States")
         self.crawl_id = crawl_id
 
-    @retry_and_rollback
     def frontier_stop(self):
         pass
 
-    @retry_and_rollback
     def fetch(self, fingerprints):
         to_fetch = [f for f in fingerprints if f not in self._cache]
         self.logger.debug("cache size %s", len(self._cache))
@@ -158,7 +134,6 @@ class States(MemoryStates):
             for state in self.model.objects.filter(crawl=self.crawl_id, fingerprint__in=chunk):
                 self._cache[state.fingerprint] = state.state
 
-    @retry_and_rollback
     def flush(self, force_clear=False):
         query = self.session.prepare("INSERT INTO states (crawl, fingerprint, state) VALUES (?, ?, ?)")
         cql_items = []
@@ -207,7 +182,8 @@ class Queue(BaseQueue):
                     order_by("crawl", "score", self._order_by()).limit(max_n_requests):
                 method = 'GET' if not item.method else item.method
 
-                meta_dict2 = dict((name, getattr(item.meta, name)) for name in dir(item.meta) if not name.startswith('__'))
+                meta_dict2 = dict((name, getattr(item.meta, name)) for name in dir(item.meta)
+                                  if not name.startswith('__'))
                 # TODO: How the result can be an dict not an object -> Objects get error while encodeing for Message Bus
                 # If I take meta_dict2 direct to Request i get the same error message
 
@@ -240,7 +216,6 @@ class Queue(BaseQueue):
 
         return results
 
-    @retry_and_rollback
     def schedule(self, batch):
         query = self.session.prepare("INSERT INTO queue (crawl, fingerprint, score, partition_id, host_crc32, url, "
                                      "created_at, meta, depth, headers, method, cookies) "
@@ -287,7 +262,6 @@ class Queue(BaseQueue):
         execute_concurrent_with_args(self.session, query, cql_items, concurrency=400)
         self.cass_count({"queued_urls": len(cql_items)})
 
-    @retry_and_rollback
     def count(self):
         count = self.queue_model.objects.filter(crawl=self.crawl_id).count()
         return count
@@ -301,7 +275,6 @@ class Queue(BaseQueue):
 class BroadCrawlingQueue(Queue):
     GET_RETRIES = 3
 
-    @retry_and_rollback
     def get_next_requests(self, max_n_requests, partition_id, **kwargs):
         """
         Dequeues new batch of requests for crawling.

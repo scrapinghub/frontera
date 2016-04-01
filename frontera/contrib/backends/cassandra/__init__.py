@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from cassandra.cluster import Cluster
 from cassandra.cqlengine import connection
 from cassandra.query import dict_factory
+from cassandra.policies import RetryPolicy, ConstantReconnectionPolicy
 from cassandra.cqlengine.management import sync_table
 from cassandra.cqlengine.management import drop_table
 from frontera.core.components import DistributedBackend
@@ -22,8 +23,15 @@ class CassandraBackend(CommonBackend):
         models = settings.get('CASSANDRABACKEND_MODELS')
         crawl_id = settings.get('CASSANDRABACKEND_CRAWL_ID')
 
-        self.cluster = Cluster(cluster_ips, cluster_port)
         self.models = dict([(name, load_object(klass)) for name, klass in models.items()])
+
+        self.cluster = Cluster(
+            contact_points=cluster_ips,
+            port=cluster_port,
+            compression=True,
+            default_retry_policy=RetryPolicy(),
+            reconnection_policy=ConstantReconnectionPolicy(10, 100)
+        )
 
         self.session = self.cluster.connect()
         self.session.row_factory = dict_factory
@@ -199,3 +207,5 @@ class Distributed(DistributedBackend):
 
     def finished(self):
         return NotImplementedError
+
+
