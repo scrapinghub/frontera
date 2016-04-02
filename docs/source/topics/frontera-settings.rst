@@ -459,6 +459,14 @@ Default:: ``9042``
 Set port from Cassandra Cluster / Nodes
 
 
+CASSANDRABACKEND_GENERATE_STATS
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Default:: ``False``
+
+Set this to true if you want to create an extra Table for stats collection. In this table there will be pages crawled, links queued etv. counted up.
+
+
 CASSANDRABACKEND_KEYSPACE
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 

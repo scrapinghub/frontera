@@ -14,13 +14,15 @@ from frontera.contrib.backends.cassandra.models import Meta
 
 
 class Metadata(BaseMetadata):
-    def __init__(self, session, model_cls, cache_size, crawl_id):
+    def __init__(self, session, model_cls, cache_size, crawl_id, generate_stats):
         self.session = session
         self.model = model_cls
         self.table = 'MetadataModel'
         self.cache = LRUCache(cache_size)
         self.logger = logging.getLogger("frontera.contrib.backends.cassandra.components.Metadata")
         self.crawl_id = crawl_id
+        self.generate_stats = generate_stats
+        self.counter_cls = CassandraCount(crawl_id, self.session, generate_stats)
 
     def frontier_stop(self):
         pass
@@ -43,7 +45,7 @@ class Metadata(BaseMetadata):
             cql_items.append(cql_i)
         if len(seeds) > 0:
             execute_concurrent_with_args(self.session, query, cql_items, concurrency=400)
-        self.cass_count({"seed_urls": len(seeds)})
+        self.counter_cls.cass_count({"seed_urls": len(seeds)})
 
     def request_error(self, page, error):
         m = self._create_page(page)
@@ -52,7 +54,7 @@ class Metadata(BaseMetadata):
         query_page = self.session.prepare(
             "UPDATE metadata SET error = ? WHERE crawl = ? AND  fingerprint = ?")
         self.session.execute(query_page, (error, self.crawl_id, page.meta['fingerprint']))
-        self.cass_count({"error": 1})
+        self.counter_cls.cass_count({"error": 1})
 
     def page_crawled(self, response, links):
         query_page = self.session.prepare(
@@ -73,7 +75,7 @@ class Metadata(BaseMetadata):
                 cql_i = (self.crawl_id, link.meta['fingerprint'], datetime.utcnow(), link.method, link.url, link.depth)
                 cql_items.append(cql_i)
         execute_concurrent_with_args(self.session, query, cql_items, concurrency=400)
-        self.cass_count({"pages_crawled": 1, "links_found": len(cql_items)})
+        self.counter_cls.cass_count({"pages_crawled": 1, "links_found": len(cql_items)})
 
     def _create_page(self, obj):
         db_page = self.model()
@@ -104,12 +106,7 @@ class Metadata(BaseMetadata):
             cql_i = (score, self.crawl_id, fprint)
             cql_items.append(cql_i)
         execute_concurrent_with_args(self.session, query, cql_items, concurrency=400)
-        self.cass_count({"scored_urls": len(cql_items)})
-
-    def cass_count(self, counts):
-        for row, count in counts.iteritems():
-            count_page = self.session.prepare("UPDATE crawlstats SET "+row+" = "+row+" + ? WHERE crawl= ?")
-            self.session.execute_async(count_page, (count, self.crawl_id))
+        self.counter_cls.cass_count({"scored_urls": len(cql_items)})
 
 
 class States(MemoryStates):
@@ -145,7 +142,7 @@ class States(MemoryStates):
 
 
 class Queue(BaseQueue):
-    def __init__(self, session, queue_cls, partitions, crawl_id, ordering='default'):
+    def __init__(self, session, queue_cls, partitions, crawl_id, generate_stats, ordering='default'):
         self.session = session
         self.queue_model = queue_cls
         self.logger = logging.getLogger("frontera.contrib.backends.cassandra.components.Queue")
@@ -153,6 +150,7 @@ class Queue(BaseQueue):
         self.partitioner = Crc32NamePartitioner(self.partitions)
         self.ordering = ordering
         self.crawl_id = crawl_id
+        self.counter_cls = CassandraCount(crawl_id, self.session, generate_stats)
 
     def frontier_stop(self):
         pass
@@ -207,7 +205,7 @@ class Queue(BaseQueue):
             if dequeued_urls > 0:
                 execute_concurrent_with_args(self.session, d_query, cql_ditems, concurrency=200)
 
-            self.cass_count({"dequeued_urls": dequeued_urls})
+            self.counter_cls.cass_count({"dequeued_urls": dequeued_urls})
 
         except Exception, exc:
             self.logger.exception(exc)
@@ -258,16 +256,17 @@ class Queue(BaseQueue):
                 request.meta['state'] = States.QUEUED
 
         execute_concurrent_with_args(self.session, query, cql_items, concurrency=400)
-        self.cass_count({"queued_urls": len(cql_items)})
+        self.counter_cls.cass_count({"queued_urls": len(cql_items)})
 
     def count(self):
         count = self.queue_model.objects.filter(crawl=self.crawl_id).count()
         return count
 
-    def cass_count(self, counts):
-        for row, count in counts.iteritems():
-            count_page = self.session.prepare("UPDATE crawlstats SET " + row + " = " + row + " + ? WHERE crawl= ?")
-            self.session.execute_async(count_page, (count, self.crawl_id))
+    def cass_count(self, counts, generate_stats):
+        if generate_stats is True:
+            for row, count in counts.iteritems():
+                count_page = self.session.prepare("UPDATE crawlstats SET "+row+" = "+row+" + ? WHERE crawl= ?")
+                self.session.execute_async(count_page, (count, self.crawl_id))
 
 
 class BroadCrawlingQueue(Queue):
@@ -328,3 +327,17 @@ class BroadCrawlingQueue(Queue):
                                        cookies=item.cookies))
                 item.delete()
         return results
+
+
+class CassandraCount:
+
+    def __init__(self, crawl_id, session, generate_stats):
+        self.generate_stats = generate_stats
+        self.session = session
+        self.crawl_id = crawl_id
+
+    def cass_count(self, counts):
+        if self.generate_stats is True:
+            for row, count in counts.iteritems():
+                count_page = self.session.prepare("UPDATE crawlstats SET "+row+" = "+row+" + ? WHERE crawl= ?")
+                self.session.execute_async(count_page, (count, self.crawl_id))
