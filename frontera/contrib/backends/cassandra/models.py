@@ -2,7 +2,7 @@
 import uuid
 from cassandra.cqlengine.models import Model
 from cassandra.cqlengine.usertype import UserType
-from cassandra.cqlengine.columns import *
+from cassandra.cqlengine.columns import Map, Text, Float, Integer, DateTime, UserDefinedType, Counter, Boolean, SmallInt
 
 
 class Meta(UserType):
@@ -14,6 +14,7 @@ class Meta(UserType):
     scrapy_meta = Map(Text(), Text(), required=False)
     score = Float(required=False)
     jid = Integer(required=False)
+
 
 class MetadataModel(Model):
     __table_name__ = 'metadata'

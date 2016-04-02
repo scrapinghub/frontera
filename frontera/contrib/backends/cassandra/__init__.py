@@ -82,6 +82,7 @@ class CassandraBackend(CommonBackend):
 
 BASE = CassandraBackend
 
+
 class Distributed(DistributedBackend):
     def __init__(self, manager):
         self.manager = manager
