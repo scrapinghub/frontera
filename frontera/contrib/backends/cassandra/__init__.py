@@ -58,8 +58,7 @@ class CassandraBackend(CommonBackend):
             if (self.generate_stats is False and key != 'CrawlStatsModel') or self.generate_stats==True:
                 sync_table(value)
 
-        self._metadata = Metadata(self.session, self.models['MetadataModel'],
-                                  settings.get('CASSANDRABACKEND_CACHE_SIZE'), self.crawl_id, self.generate_stats)
+        self._metadata = Metadata(self.session, self.models['MetadataModel'], self.crawl_id, self.generate_stats)
         self._states = States(self.session, self.models['StateModel'],
                               settings.get('STATE_CACHE_SIZE_LIMIT'), self.crawl_id)
         self._queue = self._create_queue(settings)
@@ -149,11 +148,10 @@ class Distributed(DistributedBackend):
 
         sync_table(metadata_m)
         sync_table(queue_m)
-        if(generate_stats==True):
+        if generate_stats is True:
             sync_table(stats_m)
 
-        b._metadata = Metadata(b.session, metadata_m,
-                               settings.get('CASSANDRABACKEND_CACHE_SIZE'), crawl_id, generate_stats)
+        b._metadata = Metadata(b.session, metadata_m, crawl_id, generate_stats)
         b._queue = Queue(b.session, queue_m, settings.get('SPIDER_FEED_PARTITIONS'), crawl_id, generate_stats)
         return b
 

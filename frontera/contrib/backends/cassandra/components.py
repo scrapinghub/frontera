@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 from datetime import datetime
-from time import time, sleep
-from cachetools import LRUCache
+from time import time
 from frontera.contrib.backends.partitioners import Crc32NamePartitioner
 from frontera.contrib.backends.memory import MemoryStates
 from frontera.core.components import Metadata as BaseMetadata, Queue as BaseQueue
@@ -14,11 +13,10 @@ from frontera.contrib.backends.cassandra.models import Meta
 
 
 class Metadata(BaseMetadata):
-    def __init__(self, session, model_cls, cache_size, crawl_id, generate_stats):
+    def __init__(self, session, model_cls, crawl_id, generate_stats):
         self.session = session
         self.model = model_cls
         self.table = 'MetadataModel'
-        self.cache = LRUCache(cache_size)
         self.logger = logging.getLogger("frontera.contrib.backends.cassandra.components.Metadata")
         self.crawl_id = crawl_id
         self.generate_stats = generate_stats
@@ -30,9 +28,6 @@ class Metadata(BaseMetadata):
     def add_seeds(self, seeds):
         cql_items = []
         for seed in seeds:
-            o = self._create_page(seed)
-            self.cache[o.fingerprint] = o
-
             query = self.session.prepare(
                 "INSERT INTO metadata (crawl, fingerprint, url, created_at, meta, headers, cookies, method, depth) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
@@ -41,16 +36,13 @@ class Metadata(BaseMetadata):
                         scrapy_callback=seed.meta['scrapy_callback'], scrapy_errback=seed.meta['scrapy_errback'],
                         scrapy_meta=seed.meta['scrapy_meta'])
             cql_i = (self.crawl_id, seed.meta['fingerprint'], seed.url, datetime.utcnow(), meta,
-                     seed.headers, seed.cookies, seed.method, o.depth)
+                     seed.headers, seed.cookies, seed.method, 0)
             cql_items.append(cql_i)
         if len(seeds) > 0:
             execute_concurrent_with_args(self.session, query, cql_items, concurrency=400)
         self.counter_cls.cass_count({"seed_urls": len(seeds)})
 
     def request_error(self, page, error):
-        m = self._create_page(page)
-        m.error = error
-        self.cache[m.fingerprint] = m
         query_page = self.session.prepare(
             "UPDATE metadata SET error = ? WHERE crawl = ? AND  fingerprint = ?")
         self.session.execute(query_page, (error, self.crawl_id, page.meta['fingerprint']))
@@ -63,41 +55,20 @@ class Metadata(BaseMetadata):
         self.session.execute_async(query_page, (datetime.utcnow(), response.request.headers, response.request.method,
                                                 response.request.cookies, response.status_code, self.crawl_id,
                                                 response.meta['fingerprint']))
+        depth = 0
+        page_res = self.model.objects.filter(crawl=self.crawl_id, fingerprint=response.meta['fingerprint'])
+        if page_res[0].depth > 0:
+            depth = page_res[0].depth
 
         query = self.session.prepare(
             "INSERT INTO metadata (crawl, fingerprint, created_at, method, url, depth) VALUES (?, ?, ?, ?, ?, ?)")
         cql_items = []
         for link in links:
-            if link.meta['fingerprint'] not in self.cache:
-                link.depth = self.cache[response.meta['fingerprint']].depth+1
-                l = self._create_page(link)
-                self.cache[link.meta['fingerprint']] = l
-                cql_i = (self.crawl_id, link.meta['fingerprint'], datetime.utcnow(), link.method, link.url, link.depth)
+            if response.meta['fingerprint'] != link.meta['fingerprint']:
+                cql_i = (self.crawl_id, link.meta['fingerprint'], datetime.utcnow(), link.method, link.url, depth+1)
                 cql_items.append(cql_i)
         execute_concurrent_with_args(self.session, query, cql_items, concurrency=400)
         self.counter_cls.cass_count({"pages_crawled": 1, "links_found": len(cql_items)})
-
-    def _create_page(self, obj):
-        db_page = self.model()
-        db_page.fingerprint = obj.meta['fingerprint']
-        db_page.url = obj.url
-        db_page.created_at = datetime.utcnow()
-        db_page.meta = obj.meta
-        if hasattr(obj, 'depth'):
-            db_page.depth = obj.depth
-        else:
-            db_page.depth = 0
-
-        if isinstance(obj, Request):
-            db_page.headers = obj.headers
-            db_page.method = obj.method
-            db_page.cookies = obj.cookies
-        elif isinstance(obj, Response):
-            db_page.headers = obj.request.headers
-            db_page.method = obj.request.method
-            db_page.cookies = obj.request.cookies
-            db_page.status_code = obj.status_code
-        return db_page
 
     def update_score(self, batch):
         query = self.session.prepare("UPDATE metadata SET score = ? WHERE crawl = ? AND fingerprint = ?")
