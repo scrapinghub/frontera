@@ -55,7 +55,7 @@ class CassandraBackend(CommonBackend):
                 drop_table(value)
 
         for key, value in self.models.iteritems():
-            if (self.generate_stats is False and key != 'CrawlStatsModel') or self.generate_stats==True:
+            if (self.generate_stats is False and key != 'CrawlStatsModel') or self.generate_stats is True:
                 sync_table(value)
 
         self._metadata = Metadata(self.session, self.models['MetadataModel'], self.crawl_id, self.generate_stats)
