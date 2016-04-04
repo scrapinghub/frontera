@@ -36,20 +36,20 @@ These are basically:
 
 See :doc:`installation`.
 
-2. Integrate your spider with the Frontera
+3. Integrate your spider with the Frontera
 ==========================================
 
 This article about :doc:`integration with Scrapy <scrapy-integration>` explains this step in detail.
 
 
-3. Choose your backend
+4. Choose your backend
 ======================
 
 Configure frontier settings to use a built-in backend like in-memory BFS::
 
     BACKEND = 'frontera.contrib.backends.memory.BFS'
 
-4. Run the spider
+5. Run the spider
 =================
 
 Run your Scrapy spider as usual from the command line::

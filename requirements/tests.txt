@@ -9,4 +9,4 @@ cachetools
 pyzmq
 msgpack-python
 cassandra-driver
-
+kafka-python

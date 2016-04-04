@@ -101,7 +101,7 @@ Writing Scrapy spider
 
 Spider logic
 ------------
-Creation of basic Scrapy spider is described at `Frontier at a glance`_ page.
+Creation of basic Scrapy spider is described at `Quick start single process`_ page.
 
 It's also a good practice to prevent spider from closing because of insufficiency of queued requests transport:::
 
@@ -156,7 +156,7 @@ Auto throttling and concurrency settings for polite and responsible crawling:::
 Check also `Scrapy broad crawling`_ recommendations.
 
 
-.. _`Frontier at a glance`: http://frontera.readthedocs.org/en/latest/topics/frontier-at-a-glance.html
+.. _`Quick start single process`: http://frontera.readthedocs.org/en/latest/topics/quick-start-single.html
 .. _`Scrapy broad crawling`: http://doc.scrapy.org/en/master/topics/broad-crawls.html
 
 

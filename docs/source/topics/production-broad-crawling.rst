@@ -34,8 +34,8 @@ Kafka throughput is key performance issue, make sure that Kafka brokers have eno
 
 Configuring ZeroMQ
 ------------------
-ZeroMQ requires almost no configuration except hostname and base port where to bind it's sockets. Please see
-:setting:`ZMQ_HOSTNAME` and :setting:`ZMQ_BASE_PORT` settings for more detail. ZeroMQ also requires distributed frontera
+ZeroMQ requires almost no configuration except the address and base port where to bind it's sockets. Please see
+:setting:`ZMQ_ADDRESS` and :setting:`ZMQ_BASE_PORT` settings for more detail. ZeroMQ also requires distributed frontera
 broker process running and accessible to connect. See :ref:`running_zeromq_broker`.
 
 
@@ -166,10 +166,10 @@ to storage is. Here is how to run all in the same process::
 
 Next, let's start strategy worker with sample strategy for crawling the internet in Breadth-first manner.::
 
-    $ python -m frontera.worker.strategy --config frontera.strategy0 --strategy frontera.worker.strategies.bfs
-    $ python -m frontera.worker.strategy --config frontera.strategy1 --strategy frontera.worker.strategies.bfs
+    $ python -m frontera.worker.strategy --config frontera.strategy0 --strategy frontera.worker.strategies.bfs.CrawlingStrategy
+    $ python -m frontera.worker.strategy --config frontera.strategy1 --strategy frontera.worker.strategies.bfs.CrawlingStrategy
     ...
-    $ python -m frontera.worker.strategy --config frontera.strategyN --strategy frontera.worker.strategies.bfs
+    $ python -m frontera.worker.strategy --config frontera.strategyN --strategy frontera.worker.strategies.bfs.CrawlingStrategy
 
 You should notice that all processes are writing messages to the output. It's ok if nothing is written in streams,
 because of absence of seed URLs in the system.

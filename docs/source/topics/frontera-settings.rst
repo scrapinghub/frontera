@@ -109,6 +109,16 @@ will cause worker to spend more time on every task, but processing more items pe
 other tasks during some fixed time interval. Reducing it will result to running several tasks withing the same time
 interval, but with less overall efficiency. Use it when your consumers too slow, or too fast.
 
+.. setting:: CRAWLING_STRATEGY
+
+CRAWLING_STRATEGY
+-----------------
+
+Default: ``None``
+
+The path to crawling strategy class, instantiated and used in :term:`strategy worker` to prioritize and stop crawling in
+distributed run mode.
+
 .. setting:: DELAY_ON_EMPTY
 
 DELAY_ON_EMPTY
@@ -595,15 +605,15 @@ Default: ``9090``
 
 HBase Thrift server port
 
-.. setting:: HBASE_USE_COMPACT_PROTOCOL
+.. setting:: HBASE_USE_FRAMED_COMPACT
 
-HBASE_USE_COMPACT_PROTOCOL
+HBASE_USE_FRAMED_COMPACT
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Default: ``False``
 
-Whatever workers should use Thrift compact protocol. Dramatically reduces transmission overhead, but needs to be turned
-on on server too.
+Enabling this option dramatically reduces transmission overhead, but the server needs to be properly configured to use
+Thrifts framed transport and compact protocol.
 
 .. setting:: HBASE_USE_SNAPPY
 
@@ -622,14 +632,16 @@ ZeroMQ message bus settings
 
 The message bus class is ``distributed_frontera.messagebus.zeromq.MessageBus``
 
-.. setting:: ZMQ_HOSTNAME
+.. setting:: ZMQ_ADDRESS
 
-ZMQ_HOSTNAME
+ZMQ_ADDRESS
 ------------
 
 Default: ``127.0.0.1``
 
-Hostname, where ZeroMQ socket should bind or connect.
+Defines where the ZeroMQ socket should bind or connect. Can be a hostname or an IP
+address. Right now ZMQ has only been properly tested with IPv4. Proper IPv6
+support will be added in the near future.
 
 .. setting:: ZMQ_BASE_PORT
 

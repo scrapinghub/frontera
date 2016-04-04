@@ -236,16 +236,6 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
         """
 
         BaseManager.__init__(self, request_model, response_model, logger, settings=settings)
-        ComponentsPipelineMixin.__init__(self, backend=backend, middlewares=middlewares,
-                                         canonicalsolver=canonicalsolver, db_worker=db_worker,
-                                         strategy_worker=strategy_worker)
-
-        # Init frontier components pipeline
-        self._components_pipeline = [
-            ('Middleware', self.middlewares, True),
-            ('CanonicalSolver', self.canonicalsolver, False),
-            ('Backend', self.backend, False)
-        ]
 
         # Log frontier manager starting
         self.logger.manager.debug('-'*80)
@@ -269,6 +259,17 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
         # Load Event log manager
         self.logger.manager.debug("Loading event log manager '%s'" % event_log_manager)
         self._event_log_manager = self._load_object(event_log_manager)
+
+        ComponentsPipelineMixin.__init__(self, backend=backend, middlewares=middlewares,
+                                         canonicalsolver=canonicalsolver, db_worker=db_worker,
+                                         strategy_worker=strategy_worker)
+
+        # Init frontier components pipeline
+        self._components_pipeline = [
+            ('Middleware', self.middlewares, True),
+            ('CanonicalSolver', self.canonicalsolver, False),
+            ('Backend', self.backend, False)
+        ]
 
         # Log frontier manager start
         self.logger.manager.debug('Frontier Manager Started!')
