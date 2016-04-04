@@ -158,11 +158,28 @@ Starting the cluster
 
 First, let's start storage worker. It's recommended to dedicate one worker instance for new batches generation and
 others for the rest. Batch generation instance isn't much dependent on the count of spider instances, but saving
-to storage is. Here is how to run all in the same process::
+to storage is. Here is how to run all DB-Worker tasks in the same process::
 
     # start DB worker, enabling batch generation, DB saving and scoring log consumption
     $ python -m frontera.worker.db --config frontera.worker_settings
 
+
+Here is how to run DB Worker splitted in batch creation and log consumption::
+
+    # Start DB worker to generate batches for spiders to crawl. It's recommended to run only one DB worker who creates batches.
+    $ python -m frontera.worker.db --config frontera.worker_settings --no-incoming
+
+    # Start DB worker which will do the most work - getting status, links etc. from log and save them in the database.
+    $ python -m frontera.worker.db --config frontera.worker_settings --no-batches
+    ...
+    $ python -m frontera.worker.db --config frontera.worker_settings --no-batches
+    $ python -m frontera.worker.db --config frontera.worker_settings --no-batches
+
+
+--no-batches          Disables periodical generation of new batches.
+--no-incoming         Disables periodical incoming topic consumption.
+
+If you run DB Worker in several instances you shouldn't set the DROP_ALL_TABLES Options of the Database because each Process deletes and creates the Tables.
 
 Next, let's start strategy worker with sample strategy for crawling the internet in Breadth-first manner.::
 
