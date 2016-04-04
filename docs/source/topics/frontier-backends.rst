@@ -266,6 +266,34 @@ Current implementation of revisiting backend has no prioritization. During long 
 there are no documents available for crawling, but there are documents waiting for their scheduled revisit time.
 
 
+.. _frontier-backends-cassandra:
+
+Cassandra backends
+^^^^^^^^^^^^^^^^^^
+
+This set of :class:`Backend <frontera.core.components.Backend>` objects will use `Cassandra`_ as storage for
+:ref:`basic algorithms <frontier-backends-basic-algorithms>`.
+
+Cassandra is a NoSQL Colum-Store Database with Linear scalability and a SQL-Like Query Language.
+
+If you need to use your own `declarative cassandra models`_, you can do it by using the
+:setting:`CASSANDRABACKEND_MODELS` setting.
+
+This setting uses a dictionary where ``key`` represents the name of the model to define and ``value`` the model to use.
+
+For a complete list of all settings used for Cassandra backends check the :doc:`settings <frontera-settings>` section.
+
+.. class:: frontera.contrib.backends.cassandra.BASE
+
+    Base class for Cassandra :class:`Backend <frontera.core.components.Backend>` objects.
+    It runs cassandra in multi-spider one worker mode with the FIFO algorithm.
+
+.. class:: frontera.contrib.backends.cassandra.Distributed
+
+    Cassandra :class:`Backend <frontera.core.components.Backend>` implementation of the distributed Backend.
+
+
+
 HBase backend
 ^^^^^^^^^^^^^
 

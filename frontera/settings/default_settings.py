@@ -45,6 +45,23 @@ SQLALCHEMYBACKEND_MODELS = {
     'QueueModel': 'frontera.contrib.backends.sqlalchemy.models.QueueModel'
 }
 SQLALCHEMYBACKEND_REVISIT_INTERVAL = timedelta(days=1)
+
+CASSANDRABACKEND_CACHE_SIZE = 10000
+CASSANDRABACKEND_DROP_ALL_TABLES = False
+CASSANDRABACKEND_MODELS = {
+    'MetadataModel': 'frontera.contrib.backends.cassandra.models.MetadataModel',
+    'StateModel': 'frontera.contrib.backends.cassandra.models.StateModel',
+    'QueueModel': 'frontera.contrib.backends.cassandra.models.QueueModel',
+    'CrawlStatsModel': 'frontera.contrib.backends.cassandra.models.CrawlStatsModel'
+}
+CASSANDRABACKEND_REVISIT_INTERVAL = timedelta(days=1)
+CASSANDRABACKEND_CLUSTER_IPS = ['127.0.0.1']
+CASSANDRABACKEND_CLUSTER_PORT = 9042
+CASSANDRABACKEND_KEYSPACE = 'frontera'
+CASSANDRABACKEND_CREATE_KEYSPACE_IF_NOT_EXISTS = True
+CASSANDRABACKEND_CRAWL_ID = "default"
+CASSANDRABACKEND_GENERATE_STATS = False
+
 STATE_CACHE_SIZE = 1000000
 STORE_CONTENT = False
 TEST_MODE = False

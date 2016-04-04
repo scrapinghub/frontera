@@ -437,6 +437,96 @@ Default: ``timedelta(days=1)``
 Time between document visits, expressed in ``datetime.timedelta`` objects. Changing of this setting will only affect
 documents scheduled after the change. All previously queued documents will be crawled with old periodicity.
 
+.. _cassandra-settings:
+
+Cassandra
+---------
+
+
+.. setting:: CASSANDRABACKEND_DROP_ALL_TABLES
+
+CASSANDRABACKEND_DROP_ALL_TABLES
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Default: ``False``
+
+Set to ``True`` if you need to drop of all DB tables on backend instantiation (e.g. every Scrapy spider run).
+
+.. setting:: SQLALCHEMYBACKEND_ENGINE
+
+CASSANDRABACKEND_CLUSTER_IPS
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Default:: ``['127.0.0.1']``
+
+Set IPs from Cassandra Cluster. Default is localhost. To assign more than one IP use this Syntax: ``['192.168.0.1', '192.168.0.2']``
+
+CASSANDRABACKEND_CLUSTER_PORT
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Default:: ``9042``
+
+Set port from Cassandra Cluster / Nodes
+
+
+CASSANDRABACKEND_GENERATE_STATS
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Default:: ``False``
+
+Set this to true if you want to create an extra Table for stats collection. In this table there will be pages crawled, links queued etv. counted up.
+
+
+CASSANDRABACKEND_KEYSPACE
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Default:: ``frontera``
+
+Set cassandra Keyspace
+
+CASSANDRABACKEND_CREATE_KEYSPACE_IF_NOT_EXISTS
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Default:: ``True``
+
+Creates Keyspace if it not exist. Set to false if you frontera shouldn't check on every startup.
+
+
+CASSANDRABACKEND_CRAWL_ID
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Default:: ``default``
+
+Sets an ID in each table for the actual crawl. If you want to run another crawl from begining in same Table set to another Crawl ID. Its an Text field.
+
+
+CASSANDRABACKEND_MODELS
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Default::
+
+    {
+        'MetadataModel': 'frontera.contrib.backends.cassandra.models.MetadataModel',
+        'StateModel': 'frontera.contrib.backends.cassandra.models.StateModel',
+        'QueueModel': 'frontera.contrib.backends.cassandra.models.QueueModel',
+        'CrawlStatsModel': 'frontera.contrib.backends.cassandra.models.CrawlStatsModel'
+    }
+
+This is mapping with Cassandra models used by backends. It is mainly used for customization.
+
+
+Revisiting backend
+------------------
+
+.. setting:: CASSANDRABACKEND_REVISIT_INTERVAL
+
+CASSANDRABACKEND_REVISIT_INTERVAL
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Default: ``timedelta(days=1)``
+
+Time between document visits, expressed in ``datetime.timedelta`` objects. Changing of this setting will only affect
+documents scheduled after the change. All previously queued documents will be crawled with old periodicity.
 
 .. _hbase-settings:
 
