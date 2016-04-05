@@ -266,6 +266,11 @@ Current implementation of revisiting backend has no prioritization. During long 
 there are no documents available for crawling, but there are documents waiting for their scheduled revisit time.
 
 
+.. class:: frontera.contrib.backends.sqlalchemy.revisiting.Backend
+
+    Base class for SQLAlchemy :class:`Backend <frontera.core.components.Backend>` implementation of revisiting back-end.
+
+
 HBase backend
 ^^^^^^^^^^^^^
 
