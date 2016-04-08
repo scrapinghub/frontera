@@ -7,8 +7,9 @@ class CallLaterOnce(object):
     """Schedule a function to be called in the next reactor loop, but only if
     it hasn't been already scheduled since the last time it run.
     """
-    def __init__(self, func, *a, **kw):
+    def __init__(self, func, reactor=reactor, *a, **kw):
         self._func = func
+        self._reactor = reactor
         self._a = a
         self._kw = kw
         self._call = None
@@ -27,7 +28,7 @@ class CallLaterOnce(object):
             d.addCallback(self)
             if self._errfunc:
                 d.addErrback(self.error)
-            self._call = reactor.callLater(delay, d.callback, None)
+            self._call = self._reactor.callLater(delay, d.callback, None)
 
     def cancel(self):
         if self._call:
@@ -44,11 +45,11 @@ class CallLaterOnce(object):
         return f
 
 
-def listen_tcp(portrange, host, factory):
+def listen_tcp(portrange, host, factory, reactor=reactor):
     """Like reactor.listenTCP but tries different ports in a range."""
-    assert len(portrange) <= 2, "invalid portrange: %s" % portrange
-    if not hasattr(portrange, '__iter__'):
+    if isinstance(portrange, int):
         return reactor.listenTCP(portrange, factory, interface=host)
+    assert len(portrange) <= 2, "invalid portrange: %s" % portrange
     if not portrange:
         return reactor.listenTCP(0, factory, interface=host)
     if len(portrange) == 1:
