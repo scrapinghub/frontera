@@ -54,7 +54,7 @@ class TestListenTCP(object):
 
     host = '127.0.0.1'
     port = 6023
-    portrange = [6023,6073]
+    portrange = [6023, 6073]
 
     def test_listen_tcp_integer(self):
         reactor = MemoryReactor()
