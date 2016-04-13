@@ -33,6 +33,7 @@ class CommonBackend(Backend):
         self.states.fetch([seed.meta['fingerprint'] for seed in seeds])
         self.states.set_states(seeds)
         self._schedule(seeds)
+        self.states.update_cache(seeds)
 
     def _schedule(self, requests):
         batch = []
