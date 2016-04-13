@@ -58,7 +58,8 @@ class TestListenTCP(object):
 
     def test_listen_tcp_integer(self):
         reactor = MemoryReactor()
-        listen_tcp(self.port, self.host, Factory, reactor=reactor)
+        result = listen_tcp(self.port, self.host, Factory, reactor=reactor)
+        assert result.getHost().port == self.port
         assert reactor.tcpServers[0][0] == self.port
 
     def test_listen_tcp_invalid_port_range(self):
@@ -69,16 +70,19 @@ class TestListenTCP(object):
 
     def test_listen_tcp_default(self):
         reactor = MemoryReactor()
-        listen_tcp([], self.host, Factory, reactor=reactor)
+        result = listen_tcp([], self.host, Factory, reactor=reactor)
+        assert result.getHost().port == 0
         assert reactor.tcpServers[0][0] == 0
 
     def test_listen_tcp_range_length_one(self):
         reactor = MemoryReactor()
-        listen_tcp([self.port], self.host, Factory, reactor=reactor)
+        result = listen_tcp([self.port], self.host, Factory, reactor=reactor)
+        assert result.getHost().port == self.port
         assert reactor.tcpServers[0][0] == self.port
 
     def test_listen_tcp_full_range(self):
         reactor = MemoryReactor()
-        listen_tcp(self.portrange, self.host, Factory, reactor=reactor)
+        result = listen_tcp(self.portrange, self.host, Factory, reactor=reactor)
+        assert self.portrange[0] <= result.getHost().port <= self.portrange[1]
         assert len(reactor.tcpServers) == 1
         assert self.portrange[0] <= reactor.tcpServers[0][0] <= self.portrange[1]
