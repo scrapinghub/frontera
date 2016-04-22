@@ -38,6 +38,7 @@ class Consumer(BaseStreamConsumer):
                     partitions=self._partition_ids,
                     buffer_size=1048576,
                     max_buffer_size=10485760)
+                self._cons.seek(0, 2)
             except BrokerResponseError:
                 self._cons = None
                 logger.warning("Could not connect consumer to Kafka server")
@@ -131,6 +132,7 @@ class KeyedProducer(BaseStreamProducer):
     def flush(self):
         if self._prod is not None:
             self._prod.stop()
+            self._connect_producer()
 
     def get_offset(self, partition_id):
         # Kafka has it's own offset management
