@@ -5,5 +5,5 @@ happybase
 w3lib
 msgpack-python
 pyzmq
-kafka-python
+kafka-python<=0.9.5
 pytest>=2.6.4

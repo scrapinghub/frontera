@@ -62,7 +62,7 @@ setup(
             'msgpack-python'
         ],
         'kafka': [
-            'kafka-python',
+            'kafka-python<=0.9.5',
             'python-snappy'
         ],
         'distributed': [
