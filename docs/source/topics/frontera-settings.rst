@@ -570,6 +570,16 @@ KAFKA_LOCATION
 
 Hostname and port of kafka broker, separated with :. Can be a string with hostname:port pair separated with commas(,).
 
+.. setting:: KAFKA_CODEC
+
+KAFKA_CODEC
+___________
+
+Default:: ``CODEC_NONE``
+
+Kafka protocol compression codec, see kafka-python documentation for more details. Please use symbols from kafka-python
+package.
+
 .. setting:: FRONTIER_GROUP
 
 FRONTIER_GROUP
@@ -613,6 +623,8 @@ A group used by strategy workers for spider log reading. Needs to be different t
 
 SCORING_TOPIC
 -------------
+
+Default: ``frontier-score``
 
 Kafka topic used for :term:`scoring log` stream.
 
