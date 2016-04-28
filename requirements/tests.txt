@@ -8,5 +8,5 @@ SQLAlchemy>=1.0.0
 cachetools
 pyzmq
 msgpack-python
-kafka-python<=0.9.5
+kafka-python>=1.0.0
 
