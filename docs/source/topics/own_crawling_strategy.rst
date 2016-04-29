@@ -5,16 +5,16 @@ Crawling strategy
 Use ``frontera.worker.strategies.bfs`` module for reference. In general, you need to write a crawling strategy class
 implementing the interface:
 
-.. autoclass:: frontera.core.components.BaseCrawlingStrategy
+.. autoclass:: frontera.worker.strategies.BaseCrawlingStrategy
 
     **Methods**
 
-    .. automethod:: frontera.core.components.BaseCrawlingStrategy.from_worker
-    .. automethod:: frontera.core.components.BaseCrawlingStrategy.add_seeds
-    .. automethod:: frontera.core.components.BaseCrawlingStrategy.page_crawled
-    .. automethod:: frontera.core.components.BaseCrawlingStrategy.page_error
-    .. automethod:: frontera.core.components.BaseCrawlingStrategy.finished
-    .. automethod:: frontera.core.components.BaseCrawlingStrategy.close
+    .. automethod:: frontera.worker.strategies.BaseCrawlingStrategy.from_worker
+    .. automethod:: frontera.worker.strategies.BaseCrawlingStrategy.add_seeds
+    .. automethod:: frontera.worker.strategies.BaseCrawlingStrategy.page_crawled
+    .. automethod:: frontera.worker.strategies.BaseCrawlingStrategy.page_error
+    .. automethod:: frontera.worker.strategies.BaseCrawlingStrategy.finished
+    .. automethod:: frontera.worker.strategies.BaseCrawlingStrategy.close
 
 
 The class can be put in any module and passed to :term:`strategy worker` using command line option or
