@@ -16,14 +16,14 @@ from frontera.contrib.backends.remote.codecs.msgpack import Decoder, Encoder
 logger = logging.getLogger("strategy-worker")
 
 
-class MessageBusScheduler(object):
+class UpdateScoreStream(object):
     def __init__(self, encoder, scoring_log_producer, size):
         self._encoder = encoder
         self._buffer = []
         self._producer = scoring_log_producer
         self._size = size
 
-    def schedule(self, url, fingerprint, score=1.0, dont_queue=False):
+    def send(self, url, fingerprint, score=1.0, dont_queue=False):
         encoded = self._encoder.encode_update_score(
             fingerprint,
             score,
@@ -56,10 +56,10 @@ class StrategyWorker(object):
         self._decoder = Decoder(self._manager.request_model, self._manager.response_model)
         self._encoder = Encoder(self._manager.request_model)
 
-        self.mb_scheduler = MessageBusScheduler(self._encoder, self.scoring_log_producer, 1024)
+        self.update_score = UpdateScoreStream(self._encoder, self.scoring_log_producer, 1024)
 
         self.consumer_batch_size = settings.get('CONSUMER_BATCH_SIZE')
-        self.strategy = strategy_class.from_worker(self._manager, self.mb_scheduler)
+        self.strategy = strategy_class.from_worker(self._manager, self.update_score)
         self.states = self._manager.backend.states
         self.stats = {}
         self.cache_flush_counter = 0
@@ -130,7 +130,7 @@ class StrategyWorker(object):
                 self.on_request_error(request, error)
                 continue
 
-        self.mb_scheduler.flush()
+        self.update_score.flush()
 
         # Flushing states cache if needed
         if self.cache_flush_counter == 30:
@@ -143,7 +143,10 @@ class StrategyWorker(object):
 
         # Exiting, if crawl is finished
         if self.strategy.finished():
-            logger.info("Successfully reached the crawling goal. Exiting.")
+            logger.info("Successfully reached the crawling goal.")
+            logger.info("Closing crawling strategy.")
+            self.strategy.close()
+            logger.info("Exiting.")
             exit(0)
 
         logger.info("Consumed %d items.", consumed)
@@ -157,7 +160,7 @@ class StrategyWorker(object):
 
     def stop(self):
         logger.info("Flushing message bus scheduler.")
-        self.mb_scheduler.flush()
+        self.update_score.flush()
         logger.info("Closing crawling strategy.")
         self.strategy.close()
         logger.info("Stopping frontier manager.")

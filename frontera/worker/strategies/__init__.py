@@ -14,8 +14,8 @@ class BaseCrawlingStrategy(object):
     """
     __metaclass__ = ABCMeta
 
-    def __init__(self, mb_scheduler):
-        self._mb_scheduler = mb_scheduler
+    def __init__(self, mb_stream):
+        self._mb_stream = mb_stream
 
     @classmethod
     def from_worker(cls, manager, mb_scheduler):
@@ -23,7 +23,7 @@ class BaseCrawlingStrategy(object):
         Called on instantiation in strategy worker.
 
         :param manager: :class: `Backend <frontera.core.manager.FrontierManager>` instance
-        :param mb_scheduler: :class: `MessageBusScheduler <frontera.worker.strategy.MessageBusScheduler>` instance
+        :param mb_scheduler: :class: `UpdateScoreStream <frontera.worker.strategy.UpdateScoreStream>` instance
         :return: new instance
         """
         raise cls(mb_scheduler)
@@ -73,14 +73,12 @@ class BaseCrawlingStrategy(object):
         """
         pass
 
-    def schedule(self, url, fingerprint, score=1.0, dont_queue=False):
+    def schedule(self, request, score=1.0, dont_queue=False):
         """
         Schedule document for crawling with specified score.
 
-        :param url: str URL of document
-        :param fingerprint: str with fingerprint
+        :param request: A :class:`Request <frontera.core.models.Request>` object.
         :param score: float from 0.0 to 1.0
         :param dont_queue: bool, True - if no need to schedule, only update the score
-        :return:
         """
-        self._mb_scheduler.schedule(fingerprint, score, url, dont_queue)
+        self._mb_stream.send(request.url, request.meta['fingerprint'], score, dont_queue)

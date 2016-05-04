@@ -10,18 +10,18 @@ class CrawlingStrategy(BaseCrawlingStrategy):
         for seed in seeds:
             if seed.meta['state'] is None:
                 seed.meta['state'] = States.QUEUED
-                self.schedule(seed.url, seed.meta['fingerprint'])
+                self.schedule(seed)
 
     def page_crawled(self, response, links):
         response.meta['state'] = States.CRAWLED
         for link in links:
             if link.meta['state'] is None:
                 link.meta['state'] = States.QUEUED
-                self.schedule(link.url, link.meta['fingerprint'], self.get_score(link.url))
+                self.schedule(link, self.get_score(link.url))
 
     def page_error(self, request, error):
         request.meta['state'] = States.ERROR
-        self.schedule(request.url, request.meta['fingerprint'], score=0.0, dont_queue=True)
+        self.schedule(request, score=0.0, dont_queue=True)
 
     def get_score(self, url):
         url_parts = urlparse(url)
