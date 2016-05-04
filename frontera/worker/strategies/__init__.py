@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+from frontera.core.models import Request
+from frontera.contrib.middlewares.fingerprint import UrlFingerprintMiddleware
+
 from abc import ABCMeta, abstractmethod
 
 
@@ -14,19 +17,21 @@ class BaseCrawlingStrategy(object):
     """
     __metaclass__ = ABCMeta
 
-    def __init__(self, mb_stream):
+    def __init__(self, manager, mb_stream, states_context):
         self._mb_stream = mb_stream
+        self._states_context = states_context
+        self.url_mw = UrlFingerprintMiddleware(manager)
 
     @classmethod
-    def from_worker(cls, manager, mb_scheduler):
+    def from_worker(cls, manager, mb_stream, states_context):
         """
         Called on instantiation in strategy worker.
 
         :param manager: :class: `Backend <frontera.core.manager.FrontierManager>` instance
-        :param mb_scheduler: :class: `UpdateScoreStream <frontera.worker.strategy.UpdateScoreStream>` instance
+        :param mb_stream: :class: `UpdateScoreStream <frontera.worker.strategy.UpdateScoreStream>` instance
         :return: new instance
         """
-        raise cls(mb_scheduler)
+        raise cls(manager, mb_stream, states_context)
 
     @abstractmethod
     def add_seeds(self, seeds):
@@ -71,7 +76,8 @@ class BaseCrawlingStrategy(object):
         """
         Called when strategy worker is about to close crawling strategy.
         """
-        pass
+        self._mb_stream.flush()
+        self._states_context.release()
 
     def schedule(self, request, score=1.0, dont_queue=False):
         """
@@ -82,3 +88,20 @@ class BaseCrawlingStrategy(object):
         :param dont_queue: bool, True - if no need to schedule, only update the score
         """
         self._mb_stream.send(request.url, request.meta['fingerprint'], score, dont_queue)
+
+    def create_request(self, url, method='GET', headers=None, cookies=None, meta=None, body=''):
+        """
+        Creates request with specified fields, with state fetched from backend.
+
+        :param url: str
+        :param method: str
+        :param headers: dict
+        :param cookies: dict
+        :param meta: dict
+        :param body: str
+        :return: :class:`Request <frontera.core.models.Request>`
+        """
+        r = Request(url, method=method, headers=headers, cookies=cookies, meta=meta, body=body)
+        self.url_mw._add_fingerprint(r)
+        self._states_context.refresh_and_keep(r)
+        return r

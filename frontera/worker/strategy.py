@@ -11,6 +11,7 @@ from twisted.internet import reactor
 
 from frontera.settings import Settings
 from frontera.contrib.backends.remote.codecs.msgpack import Decoder, Encoder
+from collections import Sequence
 
 
 logger = logging.getLogger("strategy-worker")
@@ -39,6 +40,43 @@ class UpdateScoreStream(object):
         self._buffer = []
 
 
+class StatesContext(object):
+
+    def __init__(self, states):
+        self._requests = []
+        self._states = states
+        self._fingerprints = set()
+        self.cache_flush_counter = 0
+
+    def to_fetch(self, requests):
+        if isinstance(requests, Sequence):
+            self._fingerprints.update(map(lambda x: x.meta['fingerprint'], requests))
+            return
+        self._fingerprints.add(requests.meta['fingerprint'])
+
+    def fetch(self):
+        self._states.fetch(self._fingerprints)
+        self._fingerprints.clear()
+
+    def refresh_and_keep(self, request):
+        self._states.fetch([request.meta['fingerprint']])
+        self._states.set_states(request)
+        self._requests.append(request)
+
+    def release(self):
+        self._states.update_cache(self._requests)
+        self._requests = []
+
+        # Flushing states cache if needed
+        if self.cache_flush_counter == 30:
+            logger.info("Flushing states")
+            self._states.flush(force_clear=False)
+            logger.info("Flushing states finished")
+            self.cache_flush_counter = 0
+
+        self.cache_flush_counter += 1
+
+
 class StrategyWorker(object):
     def __init__(self, settings, strategy_class):
         partition_id = settings.get('SCORING_PARTITION_ID')
@@ -57,12 +95,12 @@ class StrategyWorker(object):
         self._encoder = Encoder(self._manager.request_model)
 
         self.update_score = UpdateScoreStream(self._encoder, self.scoring_log_producer, 1024)
+        self.states_context = StatesContext(self._manager.backend.states)
 
         self.consumer_batch_size = settings.get('CONSUMER_BATCH_SIZE')
-        self.strategy = strategy_class.from_worker(self._manager, self.update_score)
+        self.strategy = strategy_class.from_worker(self._manager, self.update_score, self.states_context)
         self.states = self._manager.backend.states
         self.stats = {}
-        self.cache_flush_counter = 0
         self.job_id = 0
         self.task = LoopingCall(self.work)
 
@@ -70,7 +108,6 @@ class StrategyWorker(object):
         # Collecting batch to process
         consumed = 0
         batch = []
-        fingerprints = set()
         for m in self.consumer.get_messages(count=self.consumer_batch_size, timeout=1.0):
             try:
                 msg = self._decoder.decode(m)
@@ -82,18 +119,18 @@ class StrategyWorker(object):
                 batch.append(msg)
                 if type == 'add_seeds':
                     _, seeds = msg
-                    fingerprints.update(map(lambda x: x.meta['fingerprint'], seeds))
+                    self.states_context.to_fetch(seeds)
                     continue
 
                 if type == 'page_crawled':
                     _, response, links = msg
-                    fingerprints.add(response.meta['fingerprint'])
-                    fingerprints.update(map(lambda x: x.meta['fingerprint'], links))
+                    self.states_context.to_fetch(response)
+                    self.states_context.to_fetch(links)
                     continue
 
                 if type == 'request_error':
                     _, request, error = msg
-                    fingerprints.add(request.meta['fingerprint'])
+                    self.states_context.to_fetch(request)
                     continue
 
                 if type == 'offset':
@@ -103,8 +140,7 @@ class StrategyWorker(object):
                 consumed += 1
 
         # Fetching states
-        self.states.fetch(fingerprints)
-        fingerprints.clear()
+        self.states_context.fetch()
 
         # Batch processing
         for msg in batch:
@@ -131,15 +167,7 @@ class StrategyWorker(object):
                 continue
 
         self.update_score.flush()
-
-        # Flushing states cache if needed
-        if self.cache_flush_counter == 30:
-            logger.info("Flushing states")
-            self.states.flush(force_clear=False)
-            logger.info("Flushing states finished")
-            self.cache_flush_counter = 0
-
-        self.cache_flush_counter += 1
+        self.states_context.release()
 
         # Exiting, if crawl is finished
         if self.strategy.finished():
@@ -159,8 +187,6 @@ class StrategyWorker(object):
         reactor.run()
 
     def stop(self):
-        logger.info("Flushing message bus scheduler.")
-        self.update_score.flush()
         logger.info("Closing crawling strategy.")
         self.strategy.close()
         logger.info("Stopping frontier manager.")
@@ -181,6 +207,7 @@ class StrategyWorker(object):
         self.states.update_cache(objs_list)
 
     def on_request_error(self, request, error):
+        logger.debug("Page error %s (%s)", request.url, error)
         self.states.set_states(request)
         self.strategy.page_error(request, error)
         self.states.update_cache(request)
