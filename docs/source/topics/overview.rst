@@ -24,10 +24,11 @@ Use cases
 ---------
 
 Here are few cases, external crawl frontier can be suitable for:
-- URL ordering/queueing isolation from the spider (e.g. distributed cluster of spiders, need of remote management of
+
+* URL ordering/queueing isolation from the spider (e.g. distributed cluster of spiders, need of remote management of
 ordering/queueing),
-- URL (meta)data storage is needed (e.g. to demonstrate it's contents somewhere),
-- advanced URL ordering logic is needed, when it's hard to maintain code within spider/fetcher.
+* URL (meta)data storage is needed (e.g. to demonstrate it's contents somewhere),
+* advanced URL ordering logic is needed, when it's hard to maintain code within spider/fetcher.
 
 
 One-time crawl, few websites
