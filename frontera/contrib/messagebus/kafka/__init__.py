@@ -3,15 +3,16 @@ from __future__ import absolute_import
 from collections import namedtuple
 from logging import getLogger
 
-from kafka.common import OffsetRequest, check_error, OffsetFetchRequest, UnknownTopicOrPartitionError
+from kafka import KafkaClient
+from kafka.common import OffsetRequestPayload, check_error, OffsetFetchRequestPayload, UnknownTopicOrPartitionError
 
 logger = getLogger("offset-fetcher")
 OffsetsStruct = namedtuple("OffsetsStruct", ["commit", "produced"])
 
 
 class OffsetsFetcher(object):
-    def __init__(self, client, topic, group_id):
-        self._client = client
+    def __init__(self, location, topic, group_id):
+        self._client = KafkaClient(location)
         self._topic = topic
         self._group_id = group_id
         self._client.load_metadata_for_topics()
@@ -30,7 +31,7 @@ class OffsetsFetcher(object):
                 the earliest offset will always return you a single element.
         """
         for partition in self._client.get_partition_ids_for_topic(self._topic):
-            reqs = [OffsetRequest(self._topic, partition, -1, 1)]
+            reqs = [OffsetRequestPayload(self._topic, partition, -1, 1)]
 
             (resp,) = self._client.send_offset_request(reqs)
 
@@ -44,11 +45,12 @@ class OffsetsFetcher(object):
         for partition in self._client.get_partition_ids_for_topic(self._topic):
             (resp,) = self._client.send_offset_fetch_request(
                 self._group_id,
-                [OffsetFetchRequest(self._topic, partition)],
+                [OffsetFetchRequestPayload(self._topic, partition)],
                 fail_on_error=False)
             try:
                 check_error(resp)
-            except UnknownTopicOrPartitionError:
+            except Exception, exc:
+                logger.error(exc)
                 pass
 
             if resp.offset == -1:
@@ -67,5 +69,6 @@ class OffsetsFetcher(object):
         for partition in self._client.get_partition_ids_for_topic(self._topic):
             produced = self._offsets.produced[partition]
             lag = produced - self._offsets.commit[partition] if self._offsets.commit[partition] else 0.0
+            logger.debug("%s (%s): %s, %s, %s", self._topic, partition, produced, self._offsets.commit[partition], lag)
             lags[partition] = lag
         return lags
