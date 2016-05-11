@@ -19,7 +19,6 @@ HBASE_USE_FRAMED_COMPACT = False
 HBASE_BATCH_SIZE = 9216
 HBASE_STATE_CACHE_SIZE_LIMIT = 3000000
 HBASE_QUEUE_TABLE = 'queue'
-KAFKA_CODEC = None
 KAFKA_GET_TIMEOUT = 5.0
 LOGGING_CONFIG = 'logging.conf'
 MAX_NEXT_REQUESTS = 64
@@ -60,7 +59,7 @@ ZMQ_BASE_PORT = 5550
 #--------------------------------------------------------
 # Kafka
 #--------------------------------------------------------
-
+KAFKA_COMPRESSION = None
 OUTGOING_TOPIC = "frontier-todo"
 INCOMING_TOPIC = "frontier-done"
 SCORING_TOPIC = "frontier-score"

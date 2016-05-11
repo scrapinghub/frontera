@@ -46,6 +46,7 @@ class MessageBusTester(object):
                 self.sp_sl_p.send(sha1(str(randint(1, 1000))), 'http://helloworld.com/way/to/the/sun/' + str(0))
             else:
                 self.sp_sl_p.send(sha1(str(randint(1, 1000))), 'http://way.to.the.sun' + str(0))
+        self.sp_sl_p.flush()
 
     def spider_feed_activity(self):
         sf_c = 0
@@ -78,7 +79,7 @@ class MessageBusTester(object):
                 self.db_sf_p.send("newhost", "http://newhost/new/url/to/crawl")
             else:
                 self.db_sf_p.send("someotherhost", "http://newhost223/new/url/to/crawl")
-
+        self.db_sf_p.flush()
         return (sl_c, us_c)
 
 
@@ -108,9 +109,9 @@ def test_zmq_message_bus():
 class KafkaMessageBusTestCase(KafkaIntegrationTestCase):
     @classmethod
     def setUpClass(cls):
-        logging.basicConfig(level=logging.DEBUG)
-        logger = logging.getLogger("frontera.tests.kafka_utils.service")
-        logger.addHandler(logging.StreamHandler())
+        #logging.basicConfig(level=logging.DEBUG)
+        #logger = logging.getLogger("frontera.tests.kafka_utils.service")
+        #logger.addHandler(logging.StreamHandler())
         if not os.environ.get('KAFKA_VERSION'):
             return
 
@@ -127,7 +128,7 @@ class KafkaMessageBusTestCase(KafkaIntegrationTestCase):
         cls.server.close()
         cls.zk.close()
 
-    def test_kafka_message_bus(self):
+    def test_kafka_message_bus_integration(self):
         """
         Test MessageBus with default settings, IPv6 and Star as ZMQ_ADDRESS
         """

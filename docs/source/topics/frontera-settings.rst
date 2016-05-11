@@ -570,15 +570,14 @@ KAFKA_LOCATION
 
 Hostname and port of kafka broker, separated with :. Can be a string with hostname:port pair separated with commas(,).
 
-.. setting:: KAFKA_CODEC
+.. setting:: KAFKA_COMPRESSION
 
-KAFKA_CODEC
-___________
+KAFKA_COMPRESSION
+-----------------
 
-Default:: ``CODEC_NONE``
+Default:: ``None``
 
-Kafka protocol compression codec, see kafka-python documentation for more details. Please use symbols from kafka-python
-package.
+Kafka's producer compression type string, see `kafka-python documentation`_ for more details.
 
 .. setting:: FRONTIER_GROUP
 
@@ -635,3 +634,5 @@ Default settings
 If no settings are specified, frontier will use the built-in default ones. For a complete list of default values see:
 :ref:`Built-in settings reference <frontier-built-in-frontier-settings>`. All default settings can be overridden.
 
+
+.. _`kafka-python documentation`: http://kafka-python.readthedocs.io/en/1.1.1/apidoc/KafkaProducer.html
