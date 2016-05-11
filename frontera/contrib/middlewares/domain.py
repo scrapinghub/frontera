@@ -5,6 +5,7 @@ from frontera.utils.url import parse_domain_from_url_fast, parse_domain_from_url
 
 # TODO: Why not to put the whole url_parse result here in meta?
 
+
 class DomainMiddleware(Middleware):
     """
     This :class:`Middleware <frontera.core.components.Middleware>` will add a ``domain`` info field for every

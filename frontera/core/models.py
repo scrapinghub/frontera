@@ -74,7 +74,9 @@ class Request(FrontierObject):
         return self._body
 
     def __str__(self):
-        return "<%s at 0x%0x %s>" % (type(self).__name__, id(self), self.url)
+        return "<%s at 0x%0x %s meta=%s body=%s... cookies=%s, headers=%s>" % (type(self).__name__, id(self), self.url,
+                                                                               str(self.meta), str(self.body[:20]),
+                                                                               str(self.cookies), str(self.headers))
 
     __repr__ = __str__
 
@@ -149,6 +151,9 @@ class Response(FrontierObject):
                                  "is not tied to any request")
 
     def __str__(self):
-        return "<%s at 0x%0x %s %s>" % (type(self).__name__, id(self), self.status_code, self.url)
+        return "<%s at 0x%0x %s %s meta=%s body=%s... headers=%s>" % (type(self).__name__,
+                                                                      id(self), self.status_code,
+                                                                      self.url, str(self.meta),
+                                                                      str(self.body[:20]), str(self.headers))
 
     __repr__ = __str__
