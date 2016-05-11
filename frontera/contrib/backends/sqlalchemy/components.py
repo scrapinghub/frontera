@@ -125,7 +125,7 @@ class States(MemoryStates):
 
         for chunk in chunks(to_fetch, 128):
             for state in self.session.query(self.model).filter(self.model.fingerprint.in_(chunk)):
-                self._cache[state.fingerprint] = state.state
+                self._cache[str(state.fingerprint)] = state.state
 
     @retry_and_rollback
     def flush(self, force_clear=False):
@@ -169,9 +169,9 @@ class Queue(BaseQueue):
         try:
             for item in self._order_by(self.session.query(self.queue_model).filter_by(partition_id=partition_id)).\
                     limit(max_n_requests):
-                method = 'GET' if not item.method else item.method
+                method = 'GET' if not item.method else str(item.method)
                 r = Request(item.url, method=method, meta=item.meta, headers=item.headers, cookies=item.cookies)
-                r.meta['fingerprint'] = item.fingerprint
+                r.meta['fingerprint'] = str(item.fingerprint)
                 r.meta['score'] = item.score
                 results.append(r)
                 self.session.delete(item)
@@ -262,8 +262,9 @@ class BroadCrawlingQueue(Queue):
         results = []
         for items in queue.itervalues():
             for item in items:
-                method = 'GET' if not item.method else item.method
-                results.append(Request(item.url, method=method, meta=item.meta, headers=item.headers, cookies=item.cookies))
+                method = 'GET' if not item.method else str(item.method)
+                results.append(Request(item.url, method=method,
+                                       meta=item.meta, headers=item.headers, cookies=item.cookies))
                 self.session.delete(item)
         self.session.commit()
         return results
