@@ -204,7 +204,8 @@ class StrategyWorker(object):
         objs_list.extend(links)
         self.states.set_states(objs_list)
         self.strategy.page_crawled(response, links)
-        self.states.update_cache(objs_list)
+        self.states.update_cache(links)
+        self.states.update_cache(response)
 
     def on_request_error(self, request, error):
         logger.debug("Page error %s (%s)", request.url, error)
