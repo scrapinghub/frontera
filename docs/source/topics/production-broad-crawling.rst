@@ -53,7 +53,7 @@ Strategy worker is reading :term:`spider log`, calculating score, deciding if UR
 update_score events to :term:`scoring log`.
 
 Before setting it up you have to decide how many spider instances you need. One spider is able to download and parse
-about 700 pages/minute in average. Therefore if you want to fetch 1K per second you probably need about 10 spiders. For
+about 100 pages/minute in average. Therefore if you want to fetch 1K per second you probably need about 10 spiders. For
 each 4 spiders you would need one pair of workers (strategy and DB). If your strategy worker is lightweight (not
 processing content for example) then 1 strategy worker per 15 spider instances could be enough.
 
