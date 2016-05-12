@@ -96,6 +96,7 @@ class States(StartStopMixin):
     QUEUED = 1
     CRAWLED = 2
     ERROR = 3
+    DEFAULT = NOT_CRAWLED
 
     @abstractmethod
     def update_cache(self, objs):

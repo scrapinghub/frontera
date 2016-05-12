@@ -8,14 +8,14 @@ class CrawlingStrategy(BaseCrawlingStrategy):
 
     def add_seeds(self, seeds):
         for seed in seeds:
-            if seed.meta['state'] is None:
+            if seed.meta['state'] is States.NOT_CRAWLED:
                 seed.meta['state'] = States.QUEUED
                 self.schedule(seed)
 
     def page_crawled(self, response, links):
         response.meta['state'] = States.CRAWLED
         for link in links:
-            if link.meta['state'] is None:
+            if link.meta['state'] is States.NOT_CRAWLED:
                 link.meta['state'] = States.QUEUED
                 self.schedule(link, self.get_score(link.url))
 
