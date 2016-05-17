@@ -104,7 +104,7 @@ class Backend(SQLAlchemyBackend):
         batch = []
         queue_incr = 0
         for request in requests:
-            if request.meta['state'] in [States.NOT_CRAWLED, None]:
+            if request.meta['state'] in [States.NOT_CRAWLED]:
                 schedule_at = datetime.utcnow()
             elif request.meta['state'] in [States.CRAWLED, States.ERROR]:
                 schedule_at = datetime.utcnow() + self.interval

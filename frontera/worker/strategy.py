@@ -11,9 +11,70 @@ from twisted.internet import reactor
 
 from frontera.settings import Settings
 from frontera.contrib.backends.remote.codecs.msgpack import Decoder, Encoder
+from collections import Sequence
 
 
 logger = logging.getLogger("strategy-worker")
+
+
+class UpdateScoreStream(object):
+    def __init__(self, encoder, scoring_log_producer, size):
+        self._encoder = encoder
+        self._buffer = []
+        self._producer = scoring_log_producer
+        self._size = size
+
+    def send(self, url, fingerprint, score=1.0, dont_queue=False):
+        encoded = self._encoder.encode_update_score(
+            fingerprint,
+            score,
+            url,
+            not dont_queue
+        )
+        self._buffer.append(encoded)
+        if len(self._buffer) > self._size:
+            self.flush()
+
+    def flush(self):
+        self._producer.send(None, *self._buffer)
+        self._buffer = []
+
+
+class StatesContext(object):
+
+    def __init__(self, states):
+        self._requests = []
+        self._states = states
+        self._fingerprints = set()
+        self.cache_flush_counter = 0
+
+    def to_fetch(self, requests):
+        if isinstance(requests, Sequence):
+            self._fingerprints.update(map(lambda x: x.meta['fingerprint'], requests))
+            return
+        self._fingerprints.add(requests.meta['fingerprint'])
+
+    def fetch(self):
+        self._states.fetch(self._fingerprints)
+        self._fingerprints.clear()
+
+    def refresh_and_keep(self, request):
+        self._states.fetch([request.meta['fingerprint']])
+        self._states.set_states(request)
+        self._requests.append(request)
+
+    def release(self):
+        self._states.update_cache(self._requests)
+        self._requests = []
+
+        # Flushing states cache if needed
+        if self.cache_flush_counter == 30:
+            logger.info("Flushing states")
+            self._states.flush(force_clear=False)
+            logger.info("Flushing states finished")
+            self.cache_flush_counter = 0
+
+        self.cache_flush_counter += 1
 
 
 class StrategyWorker(object):
@@ -33,18 +94,20 @@ class StrategyWorker(object):
         self._decoder = Decoder(self._manager.request_model, self._manager.response_model)
         self._encoder = Encoder(self._manager.request_model)
 
+        self.update_score = UpdateScoreStream(self._encoder, self.scoring_log_producer, 1024)
+        self.states_context = StatesContext(self._manager.backend.states)
+
         self.consumer_batch_size = settings.get('CONSUMER_BATCH_SIZE')
-        self.strategy = strategy_class.from_worker(settings)
+        self.strategy = strategy_class.from_worker(self._manager, self.update_score, self.states_context)
         self.states = self._manager.backend.states
         self.stats = {}
-        self.cache_flush_counter = 0
         self.job_id = 0
         self.task = LoopingCall(self.work)
 
     def work(self):
+        # Collecting batch to process
         consumed = 0
         batch = []
-        fingerprints = set()
         for m in self.consumer.get_messages(count=self.consumer_batch_size, timeout=1.0):
             try:
                 msg = self._decoder.decode(m)
@@ -56,18 +119,18 @@ class StrategyWorker(object):
                 batch.append(msg)
                 if type == 'add_seeds':
                     _, seeds = msg
-                    fingerprints.update(map(lambda x: x.meta['fingerprint'], seeds))
+                    self.states_context.to_fetch(seeds)
                     continue
 
                 if type == 'page_crawled':
                     _, response, links = msg
-                    fingerprints.add(response.meta['fingerprint'])
-                    fingerprints.update(map(lambda x: x.meta['fingerprint'], links))
+                    self.states_context.to_fetch(response)
+                    self.states_context.to_fetch(links)
                     continue
 
                 if type == 'request_error':
                     _, request, error = msg
-                    fingerprints.add(request.meta['fingerprint'])
+                    self.states_context.to_fetch(request)
                     continue
 
                 if type == 'offset':
@@ -76,48 +139,42 @@ class StrategyWorker(object):
             finally:
                 consumed += 1
 
-        self.states.fetch(fingerprints)
-        fingerprints.clear()
-        results = []
-        for msg in batch:
-            if len(results) > 1024:
-                self.scoring_log_producer.send(None, *results)
-                results = []
+        # Fetching states
+        self.states_context.fetch()
 
+        # Batch processing
+        for msg in batch:
             type = msg[0]
             if type == 'add_seeds':
                 _, seeds = msg
                 for seed in seeds:
                     seed.meta['jid'] = self.job_id
-                results.extend(self.on_add_seeds(seeds))
+                self.on_add_seeds(seeds)
                 continue
 
             if type == 'page_crawled':
                 _, response, links = msg
                 if response.meta['jid'] != self.job_id:
                     continue
-                results.extend(self.on_page_crawled(response, links))
+                self.on_page_crawled(response, links)
                 continue
 
             if type == 'request_error':
                 _, request, error = msg
                 if request.meta['jid'] != self.job_id:
                     continue
-                results.extend(self.on_request_error(request, error))
+                self.on_request_error(request, error)
                 continue
-        if len(results):
-            self.scoring_log_producer.send(None, *results)
 
-        if self.cache_flush_counter == 30:
-            logger.info("Flushing states")
-            self.states.flush(force_clear=False)
-            logger.info("Flushing states finished")
-            self.cache_flush_counter = 0
+        self.update_score.flush()
+        self.states_context.release()
 
-        self.cache_flush_counter += 1
-
+        # Exiting, if crawl is finished
         if self.strategy.finished():
-            logger.info("Successfully reached the crawling goal. Exiting.")
+            logger.info("Successfully reached the crawling goal.")
+            logger.info("Closing crawling strategy.")
+            self.strategy.close()
+            logger.info("Exiting.")
             exit(0)
 
         logger.info("Consumed %d items.", consumed)
@@ -137,62 +194,24 @@ class StrategyWorker(object):
 
     def on_add_seeds(self, seeds):
         logger.info('Adding %i seeds', len(seeds))
-        seed_map = dict(map(lambda seed: (seed.meta['fingerprint'], seed), seeds))
         self.states.set_states(seeds)
-        scores = self.strategy.add_seeds(seeds)
+        self.strategy.add_seeds(seeds)
         self.states.update_cache(seeds)
-
-        output = []
-        for fingerprint, score in scores.iteritems():
-            seed = seed_map[fingerprint]
-            logger.debug('URL: %s', seed.url)
-            if score is not None:
-                encoded = self._encoder.encode_update_score(
-                    seed.meta['fingerprint'],
-                    score,
-                    seed.url,
-                    True
-                )
-                output.append(encoded)
-        return output
 
     def on_page_crawled(self, response, links):
         logger.debug("Page crawled %s", response.url)
         objs_list = [response]
         objs_list.extend(links)
-        objs = dict(map(lambda obj: (obj.meta['fingerprint'], obj), objs_list))
         self.states.set_states(objs_list)
-        scores = self.strategy.page_crawled(response, links)
-        self.states.update_cache(objs_list)
-
-        output = []
-        for fingerprint, score in scores.iteritems():
-            obj = objs[fingerprint]
-            if score is not None:
-                encoded = self._encoder.encode_update_score(
-                    obj.meta['fingerprint'],
-                    score,
-                    obj.url,
-                    True
-                )
-                output.append(encoded)
-        return output
+        self.strategy.page_crawled(response, links)
+        self.states.update_cache(links)
+        self.states.update_cache(response)
 
     def on_request_error(self, request, error):
+        logger.debug("Page error %s (%s)", request.url, error)
         self.states.set_states(request)
-        scores = self.strategy.page_error(request, error)
+        self.strategy.page_error(request, error)
         self.states.update_cache(request)
-        assert len(scores) == 1
-        fingerprint, score = scores.popitem()
-        if score is not None:
-            encoded = self._encoder.encode_update_score(
-                request.meta['fingerprint'],
-                score,
-                request.url,
-                False
-            )
-            return [encoded]
-        return []
 
 
 if __name__ == '__main__':

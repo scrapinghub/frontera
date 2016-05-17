@@ -120,12 +120,11 @@ class MemoryStates(States):
         self.logger = logging.getLogger("frontera.contrib.backends.memory.MemoryStates")
 
     def _put(self, obj):
-        if obj.meta['state'] is not None:
-            self._cache[obj.meta['fingerprint']] = obj.meta['state']
+        self._cache[obj.meta['fingerprint']] = obj.meta['state']
 
     def _get(self, obj):
         fprint = obj.meta['fingerprint']
-        obj.meta['state'] = self._cache[fprint] if fprint in self._cache else None
+        obj.meta['state'] = self._cache[fprint] if fprint in self._cache else States.DEFAULT
 
     def update_cache(self, objs):
         objs = objs if type(objs) in [list, tuple] else [objs]

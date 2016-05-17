@@ -1,34 +1,27 @@
 # -*- coding: utf-8 -*-
 from urlparse import urlparse
-from frontera.core.components import States, BaseCrawlingStrategy
+from frontera.core.components import States
+from frontera.worker.strategies import BaseCrawlingStrategy
 
 
 class CrawlingStrategy(BaseCrawlingStrategy):
 
-    @classmethod
-    def from_worker(cls, settings):
-        return cls()
-
     def add_seeds(self, seeds):
-        scores = {}
         for seed in seeds:
-            if seed.meta['state'] is None:
-                scores[seed.meta['fingerprint']] = 1.0
+            if seed.meta['state'] is States.NOT_CRAWLED:
                 seed.meta['state'] = States.QUEUED
-        return scores
+                self.schedule(seed)
 
     def page_crawled(self, response, links):
-        scores = {}
         response.meta['state'] = States.CRAWLED
         for link in links:
-            if link.meta['state'] is None:
-                scores[link.meta['fingerprint']] = self.get_score(link.url)
+            if link.meta['state'] is States.NOT_CRAWLED:
                 link.meta['state'] = States.QUEUED
-        return scores
+                self.schedule(link, self.get_score(link.url))
 
     def page_error(self, request, error):
         request.meta['state'] = States.ERROR
-        return {request.meta['fingerprint']: 0.0}
+        self.schedule(request, score=0.0, dont_queue=True)
 
     def get_score(self, url):
         url_parts = urlparse(url)
