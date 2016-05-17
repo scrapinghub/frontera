@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 import logging
+from logging.config import fileConfig
 from argparse import ArgumentParser
 from time import asctime
+from os.path import exists
 
-from twisted.internet import reactor
+from twisted.internet import reactor, task
 from frontera.core.models import Request
 from frontera.core.components import DistributedBackend
 from frontera.core.manager import FrontierManager
@@ -85,19 +87,29 @@ class DBWorker(object):
         self.slot = Slot(self.new_batch, self.consume_incoming, self.consume_scoring, no_batches,
                          self.strategy_enabled, settings.get('NEW_BATCH_DELAY'), no_incoming)
         self.job_id = 0
-        self.stats = {}
+        self.stats = {
+            'consumed_since_start': 0,
+            'consumed_scoring_since_start': 0,
+            'pushed_since_start': 0
+        }
+        self._logging_task = task.LoopingCall(self.log_status)
 
     def set_process_info(self, process_info):
         self.process_info = process_info
 
     def run(self):
         self.slot.schedule(on_start=True)
+        self._logging_task.start(30)
         reactor.addSystemEventTrigger('before', 'shutdown', self.stop)
         reactor.run()
 
     def stop(self):
         logger.info("Stopping frontier manager.")
         self._manager.stop()
+
+    def log_status(self):
+        for k, v in self.stats.iteritems():
+            logger.info("%s=%s", k, v)
 
     def disable_new_batches(self):
         self.slot.disable_new_batches = True
@@ -119,7 +131,7 @@ class DBWorker(object):
                     _, seeds = msg
                     logger.info('Adding %i seeds', len(seeds))
                     for seed in seeds:
-                        logger.debug('URL: ', seed.url)
+                        logger.debug('URL: %s', seed.url)
                     self._backend.add_seeds(seeds)
                 if type == 'page_crawled':
                     _, response, links = msg
@@ -131,7 +143,7 @@ class DBWorker(object):
                     _, request, error = msg
                     if request.meta['jid'] != self.job_id:
                         continue
-                    logger.info("Request error %s", request.url)
+                    logger.debug("Request error %s", request.url)
                     self._backend.request_error(request, error)
                 if type == 'offset':
                     _, partition_id, offset = msg
@@ -156,7 +168,7 @@ class DBWorker(object):
             logger.info("Crawling is finished.")
             reactor.stop()
         """
-        logger.info("Consumed %d items.", consumed)
+        self.stats['consumed_since_start'] += consumed
         self.stats['last_consumed'] = consumed
         self.stats['last_consumption_run'] = asctime()
         self.slot.schedule()
@@ -184,7 +196,7 @@ class DBWorker(object):
                 consumed += 1
         self.queue.schedule(batch)
 
-        logger.info("Consumed %d items during scoring consumption.", consumed)
+        self.stats['consumed_scoring_since_start'] += consumed
         self.stats['last_consumed_scoring'] = consumed
         self.stats['last_consumption_run_scoring'] = asctime()
         self.slot.schedule()
@@ -228,7 +240,8 @@ class DBWorker(object):
             finally:
                 count += 1
             self.spider_feed_producer.send(get_key(request), eo)
-        logger.info("Pushed new batch of %d items", count)
+
+        self.stats['pushed_since_start'] += count
         self.stats['last_batch_size'] = count
         self.stats.setdefault('batches_after_start', 0)
         self.stats['batches_after_start'] += 1
@@ -248,12 +261,18 @@ if __name__ == '__main__':
                         help="Log level, for ex. DEBUG, INFO, WARN, ERROR, FATAL.")
     parser.add_argument('--port', type=int, help="Json Rpc service port to listen.")
     args = parser.parse_args()
-    logger.setLevel(args.log_level)
-    logger.addHandler(CONSOLE)
 
     settings = Settings(module=args.config)
     if args.port:
         settings.set("JSONRPC_PORT", [args.port])
+
+    logging_config_path = settings.get("LOGGING_CONFIG")
+    if logging_config_path and exists(logging_config_path):
+        fileConfig(logging_config_path)
+    else:
+        logging.basicConfig(level=args.log_level)
+        logger.setLevel(args.log_level)
+        logger.addHandler(CONSOLE)
 
     worker = DBWorker(settings, args.no_batches, args.no_incoming)
     server = WorkerJsonRpcService(worker, settings)

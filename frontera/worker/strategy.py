@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 from time import asctime
 import logging
+from logging.config import fileConfig
 from argparse import ArgumentParser
+from os.path import exists
 from frontera.utils.misc import load_object
 
 from frontera.core.manager import FrontierManager
@@ -224,13 +226,19 @@ if __name__ == '__main__':
                         help='Crawling strategy class path')
 
     args = parser.parse_args()
-    logger.setLevel(args.log_level)
-    logger.addHandler(CONSOLE)
     settings = Settings(module=args.config)
     strategy_classpath = args.strategy if args.strategy else settings.get('CRAWLING_STRATEGY')
     if not strategy_classpath:
         raise ValueError("Couldn't locate strategy class path. Please supply it either using command line option or "
                          "settings file.")
     strategy_class = load_object(strategy_classpath)
+
+    logging_config_path = settings.get("LOGGING_CONFIG")
+    if logging_config_path and exists(logging_config_path):
+        fileConfig(logging_config_path)
+    else:
+        logging.basicConfig(level=args.log_level)
+        logger.setLevel(args.log_level)
+        logger.addHandler(CONSOLE)
     worker = StrategyWorker(settings, strategy_class)
     worker.run()

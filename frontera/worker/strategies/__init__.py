@@ -31,7 +31,7 @@ class BaseCrawlingStrategy(object):
         :param mb_stream: :class: `UpdateScoreStream <frontera.worker.strategy.UpdateScoreStream>` instance
         :return: new instance
         """
-        raise cls(manager, mb_stream, states_context)
+        return cls(manager, mb_stream, states_context)
 
     @abstractmethod
     def add_seeds(self, seeds):

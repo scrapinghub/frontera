@@ -53,35 +53,4 @@ URL_FINGERPRINT_FUNCTION = 'frontera.utils.fingerprint.sha1'
 ZMQ_ADDRESS = '127.0.0.1'
 ZMQ_BASE_PORT = 5550
 
-#--------------------------------------------------------
-# Logging
-#--------------------------------------------------------
-LOGGING_ENABLED = True
-
-LOGGING_EVENTS_ENABLED = False
-LOGGING_EVENTS_INCLUDE_METADATA = True
-LOGGING_EVENTS_INCLUDE_DOMAIN = True
-LOGGING_EVENTS_INCLUDE_DOMAIN_FIELDS = ['name', 'netloc', 'scheme', 'sld', 'tld', 'subdomain']
-LOGGING_EVENTS_HANDLERS = [
-    "frontera.logger.handlers.EVENTS",
-]
-
-LOGGING_MANAGER_ENABLED = False
-LOGGING_MANAGER_LOGLEVEL = logging.DEBUG
-LOGGING_MANAGER_HANDLERS = [
-    "frontera.logger.handlers.CONSOLE_MANAGER",
-]
-
-LOGGING_BACKEND_ENABLED = False
-LOGGING_BACKEND_LOGLEVEL = logging.DEBUG
-LOGGING_BACKEND_HANDLERS = [
-    "frontera.logger.handlers.CONSOLE_BACKEND",
-]
-
-LOGGING_DEBUGGING_ENABLED = False
-LOGGING_DEBUGGING_LOGLEVEL = logging.DEBUG
-LOGGING_DEBUGGING_HANDLERS = [
-    "frontera.logger.handlers.CONSOLE_DEBUGGING",
-]
-
-
+LOGGER_CONFIG = 'logger.conf'

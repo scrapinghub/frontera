@@ -140,6 +140,16 @@ Default: ``5.0``
 
 Time process should block until requested amount of data will be received from message bus.
 
+.. setting:: LOGGING_CONFIG
+
+LOGGING_CONFIG
+--------------
+
+Default: None
+
+The path to a file with logging module configuration. See
+https://docs.python.org/2/library/logging.config.html#logging-config-fileformat
+
 .. setting:: MAX_NEXT_REQUESTS
 
 MAX_NEXT_REQUESTS
