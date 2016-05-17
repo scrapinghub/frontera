@@ -102,9 +102,12 @@ class StrategyWorker(object):
         self.consumer_batch_size = settings.get('CONSUMER_BATCH_SIZE')
         self.strategy = strategy_class.from_worker(self._manager, self.update_score, self.states_context)
         self.states = self._manager.backend.states
-        self.stats = {}
+        self.stats = {
+            'consumed_since_start': 0
+        }
         self.job_id = 0
         self.task = LoopingCall(self.work)
+        self._logging_task = LoopingCall(self.log_status)
 
     def work(self):
         # Collecting batch to process
@@ -179,14 +182,19 @@ class StrategyWorker(object):
             logger.info("Exiting.")
             exit(0)
 
-        logger.info("Consumed %d items.", consumed)
         self.stats['last_consumed'] = consumed
         self.stats['last_consumption_run'] = asctime()
+        self.stats['consumed_since_start'] += consumed
 
     def run(self):
         self.task.start(interval=0)
+        self._logging_task.start(interval=30)
         reactor.addSystemEventTrigger('before', 'shutdown', self.stop)
         reactor.run()
+
+    def log_status(self):
+        for k, v in self.stats.iteritems():
+            logger.info("%s=%s", k, v)
 
     def stop(self):
         logger.info("Closing crawling strategy.")
