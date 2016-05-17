@@ -43,7 +43,7 @@ class RevisitingQueue(BaseQueue):
     def __init__(self, session_cls, queue_cls, partitions):
         self.session = session_cls()
         self.queue_model = queue_cls
-        self.logger = logging.getLogger("frontera.contrib.backends.sqlalchemy.revisiting.RevisitingQueue")
+        self.logger = logging.getLogger("sqlalchemy.revisiting.queue")
         self.partitions = [i for i in range(0, partitions)]
         self.partitioner = Crc32NamePartitioner(self.partitions)
 
