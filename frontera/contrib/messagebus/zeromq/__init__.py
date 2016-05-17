@@ -143,7 +143,7 @@ class UpdateScoreProducer(Producer):
         self.counters[0] = counter
 
 
-class ScorinLogStream(BaseScoringLogStream):
+class ScoringLogStream(BaseScoringLogStream):
     def __init__(self, messagebus):
         self.context = messagebus.context
         self.in_location = messagebus.socket_config.sw_out()
@@ -215,7 +215,7 @@ class MessageBus(BaseMessageBus):
         return SpiderLogStream(self)
 
     def scoring_log(self):
-        return ScorinLogStream(self)
+        return ScoringLogStream(self)
 
     def spider_feed(self):
         return SpiderFeedStream(self)

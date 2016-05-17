@@ -3,12 +3,12 @@ from frontera import Backend
 from frontera.core import OverusedBuffer
 from codecs.msgpack import Encoder, Decoder
 from frontera.utils.misc import load_object
+import logging
 
 
 class MessageBusBackend(Backend):
     def __init__(self, manager):
-        self._manager = manager
-        settings = self._manager.settings
+        settings = manager.settings
         messagebus = load_object(settings.get('MESSAGE_BUS'))
         self.mb = messagebus(settings)
         store_content = settings.get('STORE_CONTENT')
@@ -21,6 +21,7 @@ class MessageBusBackend(Backend):
         self._get_timeout = float(settings.get('KAFKA_GET_TIMEOUT'))
         self._buffer = OverusedBuffer(self._get_next_requests,
                                       manager.logger.manager.debug)
+        self._logger = logging.getLogger("messagebus-backend")
 
     @classmethod
     def from_manager(clas, manager):
@@ -47,8 +48,7 @@ class MessageBusBackend(Backend):
             try:
                 request = self._decoder.decode_request(encoded)
             except Exception, exc:
-                self._manager.logger.backend.warning("Could not decode message: {0}, error {1}".format(encoded,
-                                                                                                       str(exc)))
+                self._logger.warning("Could not decode message: {0}, error {1}".format(encoded, str(exc)))
             else:
                 requests.append(request)
         self.spider_log_producer.send('0123456789abcdef0123456789abcdef012345678',

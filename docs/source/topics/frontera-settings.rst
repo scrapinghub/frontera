@@ -131,16 +131,6 @@ Delay between calls to backend for new batches in Scrapy scheduler, when queue s
 without hitting backend on every request. Increase it if calls to your backend is taking too long, and decrease
 if you need a fast spider bootstrap from seeds.
 
-
-.. setting:: EVENT_LOGGER
-
-EVENT_LOGGER
-------------
-
-Default: ``'frontera.logger.events.EventLogManager'``
-
-The EventLoggerManager class to be used by the Frontier.
-
 .. setting:: KAFKA_GET_TIMEOUT
 
 KAFKA_GET_TIMEOUT
@@ -149,15 +139,6 @@ KAFKA_GET_TIMEOUT
 Default: ``5.0``
 
 Time process should block until requested amount of data will be received from message bus.
-
-.. setting:: LOGGER
-
-LOGGER
-------
-
-Default: ``'frontera.logger.FrontierLogger'``
-
-The Logger class to be used by the Frontier.
 
 .. setting:: MAX_NEXT_REQUESTS
 
@@ -638,7 +619,6 @@ Logging default settings
 
 Values::
 
-    LOGGER = 'frontera.logger.FrontierLogger'
     LOGGING_ENABLED = True
 
     LOGGING_EVENTS_ENABLED = False
@@ -666,6 +646,4 @@ Values::
     LOGGING_DEBUGGING_HANDLERS = [
         "frontera.logger.handlers.COLOR_CONSOLE_DEBUGGING",
     ]
-
-    EVENT_LOG_MANAGER = 'frontera.logger.events.EventLogManager'
 

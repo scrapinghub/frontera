@@ -12,7 +12,7 @@ from frontera.contrib.messagebus.kafka import OffsetsFetcher
 from logging import getLogger
 from time import sleep
 
-logger = getLogger("kafkabus")
+logger = getLogger("messagebus.kafka")
 
 
 class Consumer(BaseStreamConsumer):

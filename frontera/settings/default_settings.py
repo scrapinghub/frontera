@@ -7,7 +7,6 @@ CANONICAL_SOLVER = 'frontera.contrib.canonicalsolvers.Basic'
 CONSUMER_BATCH_SIZE = 512
 DELAY_ON_EMPTY = 5.0
 DOMAIN_FINGERPRINT_FUNCTION = 'frontera.utils.fingerprint.sha1'
-EVENT_LOG_MANAGER = 'frontera.logger.events.EventLogManager'
 
 HBASE_THRIFT_HOST = 'localhost'
 HBASE_THRIFT_PORT = 9090
@@ -57,7 +56,6 @@ ZMQ_BASE_PORT = 5550
 #--------------------------------------------------------
 # Logging
 #--------------------------------------------------------
-LOGGER = 'frontera.logger.FrontierLogger'
 LOGGING_ENABLED = True
 
 LOGGING_EVENTS_ENABLED = False
