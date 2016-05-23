@@ -69,13 +69,16 @@ class Consumer(BaseStreamConsumer):
 
 
 class SimpleProducer(BaseStreamProducer):
-    def __init__(self, connection, topic):
+    def __init__(self, connection, topic, use_snappy):
         self._connection = connection
         self._topic = topic
         self._create()
 
     def _create(self):
-        self._producer = KafkaSimpleProducer(self._connection, codec=CODEC_SNAPPY)
+        if use_snappy:
+            self._producer = KafkaSimpleProducer(self._connection, codec=CODEC_SNAPPY)
+        else:
+            self._producer = KafkaSimpleProducer(self._connection)
 
     def send(self, key, *messages):
         self._producer.send_messages(self._topic, *messages)
@@ -91,7 +94,7 @@ class SimpleProducer(BaseStreamProducer):
 
 
 class KeyedProducer(BaseStreamProducer):
-    def __init__(self, connection, topic_done, partitioner_cls):
+    def __init__(self, connection, topic_done, partitioner_cls, use_snappy):
         self._prod = None
         self._conn = connection
         self._topic_done = topic_done
@@ -100,7 +103,10 @@ class KeyedProducer(BaseStreamProducer):
     def _connect_producer(self):
         if self._prod is None:
             try:
-                self._prod = KafkaKeyedProducer(self._conn, partitioner=self._partitioner_cls, codec=CODEC_SNAPPY)
+                if use_snappy:
+                    self._prod = KafkaKeyedProducer(self._conn, partitioner=self._partitioner_cls, codec=CODEC_SNAPPY)
+                else:
+                    self._prod = KafkaKeyedProducer(self._conn, partitioner=self._partitioner_cls)
             except BrokerResponseError:
                 self._prod = None
                 logger.warning("Could not connect producer to Kafka server")
