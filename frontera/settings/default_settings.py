@@ -53,4 +53,4 @@ URL_FINGERPRINT_FUNCTION = 'frontera.utils.fingerprint.sha1'
 ZMQ_ADDRESS = '127.0.0.1'
 ZMQ_BASE_PORT = 5550
 
-LOGGER_CONFIG = 'logger.conf'
+LOGGING_CONFIG = 'logging.conf'

@@ -145,10 +145,12 @@ Time process should block until requested amount of data will be received from m
 LOGGING_CONFIG
 --------------
 
-Default: None
+Default: ``logging.conf``
 
 The path to a file with logging module configuration. See
-https://docs.python.org/2/library/logging.config.html#logging-config-fileformat
+https://docs.python.org/2/library/logging.config.html#logging-config-fileformat If file is absent, the logging system
+will be initialized with ``logging.basicConfig()`` and CONSOLE handler will be used. This option is used only in
+:term:`db worker` and :term:`strategy worker`.
 
 .. setting:: MAX_NEXT_REQUESTS
 
@@ -509,7 +511,7 @@ HBase Thrift server port
 .. setting:: HBASE_USE_FRAMED_COMPACT
 
 HBASE_USE_FRAMED_COMPACT
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 Default: ``False``
 
@@ -536,7 +538,7 @@ The message bus class is ``distributed_frontera.messagebus.zeromq.MessageBus``
 .. setting:: ZMQ_ADDRESS
 
 ZMQ_ADDRESS
-------------
+-----------
 
 Default: ``127.0.0.1``
 
@@ -615,45 +617,9 @@ SCORING_TOPIC
 Kafka topic used for :term:`scoring log` stream.
 
 
-
-
 Default settings
 ================
 
 If no settings are specified, frontier will use the built-in default ones. For a complete list of default values see:
 :ref:`Built-in settings reference <frontier-built-in-frontier-settings>`. All default settings can be overridden.
-
-
-Logging default settings
-------------------------
-
-Values::
-
-    LOGGING_ENABLED = True
-
-    LOGGING_EVENTS_ENABLED = False
-    LOGGING_EVENTS_INCLUDE_METADATA = True
-    LOGGING_EVENTS_INCLUDE_DOMAIN = True
-    LOGGING_EVENTS_INCLUDE_DOMAIN_FIELDS = ['name', 'netloc', 'scheme', 'sld', 'tld', 'subdomain']
-    LOGGING_EVENTS_HANDLERS = [
-        "frontera.logger.handlers.COLOR_EVENTS",
-    ]
-
-    LOGGING_MANAGER_ENABLED = False
-    LOGGING_MANAGER_LOGLEVEL = logging.DEBUG
-    LOGGING_MANAGER_HANDLERS = [
-        "frontera.logger.handlers.COLOR_CONSOLE_MANAGER",
-    ]
-
-    LOGGING_BACKEND_ENABLED = False
-    LOGGING_BACKEND_LOGLEVEL = logging.DEBUG
-    LOGGING_BACKEND_HANDLERS = [
-        "frontera.logger.handlers.COLOR_CONSOLE_BACKEND",
-    ]
-
-    LOGGING_DEBUGGING_ENABLED = False
-    LOGGING_DEBUGGING_LOGLEVEL = logging.DEBUG
-    LOGGING_DEBUGGING_HANDLERS = [
-        "frontera.logger.handlers.COLOR_CONSOLE_DEBUGGING",
-    ]
 

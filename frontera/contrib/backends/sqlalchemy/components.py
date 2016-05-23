@@ -120,8 +120,8 @@ class States(MemoryStates):
     @retry_and_rollback
     def fetch(self, fingerprints):
         to_fetch = [f for f in fingerprints if f not in self._cache]
-        self.logger.debug("cache size %s",  len(self._cache))
-        self.logger.debug("to fetch %d from %d",  len(to_fetch), len(fingerprints))
+        self.logger.debug("cache size %s", len(self._cache))
+        self.logger.debug("to fetch %d from %d", len(to_fetch), len(fingerprints))
 
         for chunk in chunks(to_fetch, 128):
             for state in self.session.query(self.model).filter(self.model.fingerprint.in_(chunk)):

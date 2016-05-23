@@ -90,8 +90,8 @@ class ComponentsPipelineMixin(object):
                     return_obj = result
                 if check_response and obj and not return_obj:
                     self._logger.warning("Object '%s' filtered in '%s' by '%s'",
-                        obj.__class__.__name__, method_name, component.__class__.__name__
-                    )
+                                         obj.__class__.__name__, method_name, component.__class__.__name__
+                                         )
                     return
         return return_obj
 
@@ -223,7 +223,6 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
 
         BaseManager.__init__(self, request_model, response_model, settings=settings)
 
-
         # Test mode
         self._test_mode = test_mode
         self._logger.debug('Test mode %s' % ("ENABLED" if self.test_mode else "DISABLED"))
@@ -281,14 +280,6 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
                                canonicalsolver=manager_settings.CANONICAL_SOLVER,
                                db_worker=db_worker,
                                strategy_worker=strategy_worker)
-
-    @property
-    def event_log_manager(self):
-        """
-        The :class:`EventLogger` object to be used by the frontier. \
-        Can be defined with :setting:`EVENT_LOGGER` setting.
-        """
-        return self._event_log_manager
 
     @property
     def test_mode(self):
@@ -355,7 +346,6 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
         :return: None.
         """
         assert not self._started, 'Frontier already started!'
-        #self.event_log_manager.frontier_start()
         self._logger.debug('START')
         self._process_components(method_name='frontier_start')
         self._started = True
@@ -371,7 +361,6 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
         self._logger.debug('STOP')
         self._process_components(method_name='frontier_stop')
         self._stopped = True
-        #self.event_log_manager.frontier_stop()
 
     def add_seeds(self, seeds):
         """
@@ -387,7 +376,6 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
         for seed in seeds:
             assert isinstance(seed, self._request_model), "Seed objects must subclass '%s', '%s' found" % \
                                                           (self._request_model.__name__, type(seed).__name__)
-        #self.event_log_manager.add_seeds(seeds)
         self._logger.debug('ADD_SEEDS urls_length=%d', len(seeds))
         self._process_components(method_name='add_seeds',
                                  obj=seeds,
@@ -432,7 +420,7 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
         # Increment requests counter
         self._n_requests += len(next_requests)
 
-        # Increment Iteration and log event
+        # Increment iteration
         if next_requests:
             self._iteration += 1
 
