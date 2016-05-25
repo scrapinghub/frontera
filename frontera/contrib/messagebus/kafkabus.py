@@ -79,28 +79,34 @@ class Consumer(BaseStreamConsumer):
         self._location = location
         self._group = group
         self._topic = topic
-        self._partition_ids = [partition_id] if partition_id is not None else None
-
         self._consumer = KafkaConsumer(
             bootstrap_servers=self._location,
             group_id=self._group,
-            max_partition_fetch_bytes=10485760)
-        if self._partition_ids:
-            self._consumer.assign([TopicPartition(self._topic, pid) for pid in self._partition_ids])
+            max_partition_fetch_bytes=10485760,
+            consumer_timeout_ms=100,
+            client_id="%s-%s" % (self._topic, str(partition_id) if partition_id else "all")
+        )
+        if partition_id:
+            self._partition_ids = [TopicPartition(self._topic, partition_id)]
+            self._consumer.assign(self._partition_ids)
         else:
-            self._consumer.subscribe(self._topic)
+            self._partition_ids = [TopicPartition(self._topic, pid) for pid in self._consumer.partitions_for_topic(self._topic)]
+            self._consumer.subscribe(topics=[self._topic])
+
+        for tp in self._partition_ids:
+            self._consumer.committed(tp)
+        self._consumer._update_fetch_positions(self._partition_ids)
 
     def get_messages(self, timeout=0.1, count=1):
-        while True:
+        result = []
+        while count > 0:
             try:
-                batch = self._consumer.poll(timeout_ms=timeout)
-                for _, records in batch.iteritems():
-                    for record in records:
-                        yield record.value
-            except Exception, err:
-                logger.warning("Error %s" % err)
-            finally:
+                m = next(self._consumer)
+                result.append(m.value)
+                count -= 1
+            except StopIteration:
                 break
+        return result
 
     def get_offset(self):
         return 0
@@ -163,7 +169,8 @@ class SpiderLogStream(BaseSpiderLogStream):
         :return:
         """
         group = self._sw_group if type == 'sw' else self._db_group
-        return DeprecatedConsumer(self._location, self._topic_done, group, partition_id)
+        #return DeprecatedConsumer(self._location, self._topic_done, group, partition_id)
+        return Consumer(self._location, self._topic_done, group, partition_id)
 
 
 class SpiderFeedStream(BaseSpiderFeedStream):
@@ -178,7 +185,8 @@ class SpiderFeedStream(BaseSpiderFeedStream):
         self._partitions = messagebus.spider_feed_partitions
 
     def consumer(self, partition_id):
-        return DeprecatedConsumer(self._location, self._topic, self._general_group, partition_id)
+        #return DeprecatedConsumer(self._location, self._topic, self._general_group, partition_id)
+        return Consumer(self._location, self._topic, self._general_group, partition_id)
 
     def available_partitions(self):
         partitions = []
@@ -202,7 +210,9 @@ class ScoringLogStream(BaseScoringLogStream):
         self._compression_type = messagebus.compression_type
 
     def consumer(self):
-        return DeprecatedConsumer(self._location, self._topic, self._group, partition_id=None)
+        #return DeprecatedConsumer(self._location, self._topic, self._group, partition_id=None)
+        return Consumer(self._location, self._topic, self._group, partition_id=None)
+
 
     def producer(self):
         return SimpleProducer(self._location, self._topic, self._compression_type)
