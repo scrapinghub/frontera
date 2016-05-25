@@ -166,7 +166,7 @@ class BaseMessageBus(object):
     def scoring_log(self):
         """
         Create or return scoring log stream.
-        :return: instance of ScorinLogStream
+        :return: instance of ScoringLogStream
         """
         raise NotImplementedError
 

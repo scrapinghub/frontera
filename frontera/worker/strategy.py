@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 from time import asctime
 import logging
+from logging.config import fileConfig
 from argparse import ArgumentParser
+from os.path import exists
 from frontera.utils.misc import load_object
 
 from frontera.core.manager import FrontierManager
@@ -100,9 +102,12 @@ class StrategyWorker(object):
         self.consumer_batch_size = settings.get('CONSUMER_BATCH_SIZE')
         self.strategy = strategy_class.from_worker(self._manager, self.update_score, self.states_context)
         self.states = self._manager.backend.states
-        self.stats = {}
+        self.stats = {
+            'consumed_since_start': 0
+        }
         self.job_id = 0
         self.task = LoopingCall(self.work)
+        self._logging_task = LoopingCall(self.log_status)
 
     def work(self):
         # Collecting batch to process
@@ -177,14 +182,19 @@ class StrategyWorker(object):
             logger.info("Exiting.")
             exit(0)
 
-        logger.info("Consumed %d items.", consumed)
         self.stats['last_consumed'] = consumed
         self.stats['last_consumption_run'] = asctime()
+        self.stats['consumed_since_start'] += consumed
 
     def run(self):
         self.task.start(interval=0)
+        self._logging_task.start(interval=30)
         reactor.addSystemEventTrigger('before', 'shutdown', self.stop)
         reactor.run()
+
+    def log_status(self):
+        for k, v in self.stats.iteritems():
+            logger.info("%s=%s", k, v)
 
     def stop(self):
         logger.info("Closing crawling strategy.")
@@ -224,13 +234,19 @@ if __name__ == '__main__':
                         help='Crawling strategy class path')
 
     args = parser.parse_args()
-    logger.setLevel(args.log_level)
-    logger.addHandler(CONSOLE)
     settings = Settings(module=args.config)
     strategy_classpath = args.strategy if args.strategy else settings.get('CRAWLING_STRATEGY')
     if not strategy_classpath:
         raise ValueError("Couldn't locate strategy class path. Please supply it either using command line option or "
                          "settings file.")
     strategy_class = load_object(strategy_classpath)
+
+    logging_config_path = settings.get("LOGGING_CONFIG")
+    if logging_config_path and exists(logging_config_path):
+        fileConfig(logging_config_path)
+    else:
+        logging.basicConfig(level=args.log_level)
+        logger.setLevel(args.log_level)
+        logger.addHandler(CONSOLE)
     worker = StrategyWorker(settings, strategy_class)
     worker.run()

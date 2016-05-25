@@ -38,7 +38,7 @@ class Metadata(BaseMetadata):
         self.model = model_cls
         self.table = DeclarativeBase.metadata.tables['metadata']
         self.cache = LRUCache(cache_size)
-        self.logger = logging.getLogger("frontera.contrib.backends.sqlalchemy.components.Metadata")
+        self.logger = logging.getLogger("sqlalchemy.metadata")
 
     def frontier_stop(self):
         self.session.close()
@@ -110,7 +110,7 @@ class States(MemoryStates):
         self.session = session_cls()
         self.model = model_cls
         self.table = DeclarativeBase.metadata.tables['states']
-        self.logger = logging.getLogger("frontera.contrib.backends.sqlalchemy.components.States")
+        self.logger = logging.getLogger("sqlalchemy.states")
 
     @retry_and_rollback
     def frontier_stop(self):
@@ -120,8 +120,8 @@ class States(MemoryStates):
     @retry_and_rollback
     def fetch(self, fingerprints):
         to_fetch = [f for f in fingerprints if f not in self._cache]
-        self.logger.debug("cache size %s" % len(self._cache))
-        self.logger.debug("to fetch %d from %d" % (len(to_fetch), len(fingerprints)))
+        self.logger.debug("cache size %s", len(self._cache))
+        self.logger.debug("to fetch %d from %d", len(to_fetch), len(fingerprints))
 
         for chunk in chunks(to_fetch, 128):
             for state in self.session.query(self.model).filter(self.model.fingerprint.in_(chunk)):
@@ -141,7 +141,7 @@ class Queue(BaseQueue):
     def __init__(self, session_cls, queue_cls, partitions, ordering='default'):
         self.session = session_cls()
         self.queue_model = queue_cls
-        self.logger = logging.getLogger("frontera.contrib.backends.sqlalchemy.components.Queue")
+        self.logger = logging.getLogger("sqlalchemy.queue")
         self.partitions = [i for i in range(0, partitions)]
         self.partitioner = Crc32NamePartitioner(self.partitions)
         self.ordering = ordering
@@ -238,8 +238,8 @@ class BroadCrawlingQueue(Queue):
         while tries < self.GET_RETRIES:
             tries += 1
             limit *= 5.5 if tries > 1 else 1.0
-            self.logger.debug("Try %d, limit %d, last attempt: requests %d, hosts %d" %
-                              (tries, limit, count, len(queue.keys())))
+            self.logger.debug("Try %d, limit %d, last attempt: requests %d, hosts %d",
+                              tries, limit, count, len(queue.keys()))
             queue.clear()
             count = 0
             for item in self._order_by(self.session.query(self.queue_model).filter_by(partition_id=partition_id)).\
@@ -257,7 +257,7 @@ class BroadCrawlingQueue(Queue):
             if min_requests is not None and count < min_requests:
                 continue
             break
-        self.logger.debug("Finished: tries %d, hosts %d, requests %d" % (tries, len(queue.keys()), count))
+        self.logger.debug("Finished: tries %d, hosts %d, requests %d", tries, len(queue.keys()), count)
 
         results = []
         for items in queue.itervalues():

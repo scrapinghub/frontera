@@ -4,8 +4,8 @@ from frontera.exceptions import NotConfigured
 from frontera.utils.misc import load_object
 from frontera.settings import Settings, BaseSettings
 from frontera.core.components import Backend, DistributedBackend, Middleware, CanonicalSolver
-from frontera.logger import FrontierLogger
 from frontera.core import models
+import logging
 
 
 class ComponentsPipelineMixin(object):
@@ -14,13 +14,13 @@ class ComponentsPipelineMixin(object):
         self._middlewares = self._load_middlewares(middlewares)
 
         # Load canonical solver
-        self.logger.manager.debug("Loading canonical url solver '%s'" % canonicalsolver)
+        self._logger.debug("Loading canonical url solver '%s'", canonicalsolver)
         self._canonicalsolver = self._load_object(canonicalsolver)
         assert isinstance(self.canonicalsolver, CanonicalSolver), \
             "canonical solver '%s' must subclass CanonicalSolver" % self.canonicalsolver.__class__.__name__
 
         # Load backend
-        self.logger.manager.debug("Loading backend '%s'" % backend)
+        self._logger.debug("Loading backend '%s'", backend)
         self._backend = self._load_backend(backend, db_worker, strategy_worker)
 
     @property
@@ -67,14 +67,14 @@ class ComponentsPipelineMixin(object):
         # TO-DO: Use dict for middleware ordering
         mws = []
         for mw_name in middleware_names or []:
-            self.logger.manager.debug("Loading middleware '%s'" % mw_name)
+            self._logger.debug("Loading middleware '%s'", mw_name)
             try:
                 mw = self._load_object(mw_name, silent=False)
                 assert isinstance(mw, Middleware), "middleware '%s' must subclass Middleware" % mw.__class__.__name__
                 if mw:
                     mws.append(mw)
             except NotConfigured:
-                self.logger.manager.warning("middleware '%s' disabled!" % mw_name)
+                self._logger.warning("middleware '%s' disabled!", mw_name)
 
         return mws
 
@@ -89,15 +89,15 @@ class ComponentsPipelineMixin(object):
                 if check_response:
                     return_obj = result
                 if check_response and obj and not return_obj:
-                    self.logger.manager.warning("Object '%s' filtered in '%s' by '%s'" % (
-                        obj.__class__.__name__, method_name, component.__class__.__name__
-                    ))
+                    self._logger.warning("Object '%s' filtered in '%s' by '%s'",
+                                         obj.__class__.__name__, method_name, component.__class__.__name__
+                                         )
                     return
         return return_obj
 
     def _process_component(self, component, method_name, component_category, obj, return_classes, **kwargs):
-        debug_msg = "processing '%s' '%s.%s' %s" % (method_name, component_category, component.__class__.__name__, obj)
-        self.logger.debugging.debug(debug_msg)
+        self._logger.debug("processing '%s' '%s.%s' %s",
+                           method_name, component_category, component.__class__.__name__, obj)
         return_obj = getattr(component, method_name)(*([obj] if obj else []), **kwargs)
         assert return_obj is None or isinstance(return_obj, return_classes), \
             "%s '%s.%s' must return None or %s, Got '%s'" % \
@@ -110,19 +110,17 @@ class ComponentsPipelineMixin(object):
 
 
 class BaseManager(object):
-    def __init__(self, request_model, response_model, logger, settings=None):
+    def __init__(self, request_model, response_model, settings=None):
 
         # Settings
         self._settings = settings or Settings()
 
         # Logger
-        self._logger = load_object(logger)(self._settings)
-        assert isinstance(self._logger, FrontierLogger), "logger '%s' must subclass FrontierLogger" % \
-                                                         self._logger.__class__.__name__
+        self._logger = logging.getLogger("manager")
 
         # Log frontier manager starting
-        self.logger.manager.debug('-'*80)
-        self.logger.manager.debug('Starting Frontier Manager...')
+        self._logger.info('-'*80)
+        self._logger.info('Starting Frontier Manager...')
 
         # Load request model
         self._request_model = load_object(request_model)
@@ -139,7 +137,6 @@ class BaseManager(object):
         manager_settings = Settings(settings)
         return BaseManager(request_model=manager_settings.REQUEST_MODEL,
                            response_model=manager_settings.RESPONSE_MODEL,
-                           logger=manager_settings.LOGGER,
                            settings=manager_settings)
 
     def _load_object(self, obj_class_name, silent=False):
@@ -173,13 +170,6 @@ class BaseManager(object):
         return self._response_model
 
     @property
-    def logger(self):
-        """
-        The :class:`Logger` object to be used by the frontier. Can be defined with :setting:`LOGGER` setting.
-        """
-        return self._logger
-
-    @property
     def settings(self):
         """
         The :class:`Settings <frontera.settings.Settings>` object used by the frontier.
@@ -193,9 +183,9 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
     providing an API to interact with. It's also responsible of loading and communicating all different frontier
     components.
     """
-    def __init__(self, request_model, response_model, backend, logger, event_log_manager, middlewares=None,
-                 test_mode=False, max_requests=0, max_next_requests=0, auto_start=True, settings=None,
-                 canonicalsolver=None, db_worker=False, strategy_worker=False):
+    def __init__(self, request_model, response_model, backend, middlewares=None, test_mode=False, max_requests=0,
+                 max_next_requests=0, auto_start=True, settings=None, canonicalsolver=None, db_worker=False,
+                 strategy_worker=False):
         """
         :param object/string request_model: The :class:`Request <frontera.core.models.Request>` object to be \
             used by the frontier.
@@ -205,10 +195,6 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
 
         :param object/string backend: The :class:`Backend <frontera.core.components.Backend>` object to be \
             used by the frontier.
-
-        :param object/string logger: The :class:`Logger` object to be used by the frontier.
-
-        :param object/string event_log_manager: The :class:`EventLogger` object to be used by the frontier.
 
         :param list middlewares: A list of :class:`Middleware <frontera.core.components.Middleware>` \
             objects to be used by the frontier.
@@ -235,15 +221,11 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
         :param bool strategy_worker: True if class is instantiated in strategy worker environment
         """
 
-        BaseManager.__init__(self, request_model, response_model, logger, settings=settings)
-
-        # Log frontier manager starting
-        self.logger.manager.debug('-'*80)
-        self.logger.manager.debug('Starting Frontier Manager...')
+        BaseManager.__init__(self, request_model, response_model, settings=settings)
 
         # Test mode
         self._test_mode = test_mode
-        self.logger.manager.debug('Test mode %s' % ("ENABLED" if self.test_mode else "DISABLED"))
+        self._logger.debug('Test mode %s' % ("ENABLED" if self.test_mode else "DISABLED"))
 
         # Page counters
         self._max_requests = max_requests
@@ -255,10 +237,6 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
 
         # Manager finished flag
         self._finished = False
-
-        # Load Event log manager
-        self.logger.manager.debug("Loading event log manager '%s'" % event_log_manager)
-        self._event_log_manager = self._load_object(event_log_manager)
 
         ComponentsPipelineMixin.__init__(self, backend=backend, middlewares=middlewares,
                                          canonicalsolver=canonicalsolver, db_worker=db_worker,
@@ -272,8 +250,8 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
         ]
 
         # Log frontier manager start
-        self.logger.manager.debug('Frontier Manager Started!')
-        self.logger.manager.debug('-'*80)
+        self._logger.info('Frontier Manager Started!')
+        self._logger.info('-'*80)
 
         # start/stop
         self._started = False
@@ -293,8 +271,6 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
         return FrontierManager(request_model=manager_settings.REQUEST_MODEL,
                                response_model=manager_settings.RESPONSE_MODEL,
                                backend=manager_settings.BACKEND,
-                               logger=manager_settings.LOGGER,
-                               event_log_manager=manager_settings.EVENT_LOG_MANAGER,
                                middlewares=manager_settings.MIDDLEWARES,
                                test_mode=manager_settings.TEST_MODE,
                                max_requests=manager_settings.MAX_REQUESTS,
@@ -304,14 +280,6 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
                                canonicalsolver=manager_settings.CANONICAL_SOLVER,
                                db_worker=db_worker,
                                strategy_worker=strategy_worker)
-
-    @property
-    def event_log_manager(self):
-        """
-        The :class:`EventLogger` object to be used by the frontier. \
-        Can be defined with :setting:`EVENT_LOGGER` setting.
-        """
-        return self._event_log_manager
 
     @property
     def test_mode(self):
@@ -378,8 +346,7 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
         :return: None.
         """
         assert not self._started, 'Frontier already started!'
-        #self.event_log_manager.frontier_start()
-        self.logger.manager.debug(self._msg('START'))
+        self._logger.debug('START')
         self._process_components(method_name='frontier_start')
         self._started = True
 
@@ -391,10 +358,9 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
         :return: None.
         """
         self._check_startstop()
-        self.logger.manager.debug(self._msg('STOP'))
+        self._logger.debug('STOP')
         self._process_components(method_name='frontier_stop')
         self._stopped = True
-        #self.event_log_manager.frontier_stop()
 
     def add_seeds(self, seeds):
         """
@@ -410,8 +376,7 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
         for seed in seeds:
             assert isinstance(seed, self._request_model), "Seed objects must subclass '%s', '%s' found" % \
                                                           (self._request_model.__name__, type(seed).__name__)
-        #self.event_log_manager.add_seeds(seeds)
-        self.logger.manager.debug(self._msg('ADD_SEEDS urls_length=%s' % len(seeds)))
+        self._logger.debug('ADD_SEEDS urls_length=%d', len(seeds))
         self._process_components(method_name='add_seeds',
                                  obj=seeds,
                                  return_classes=(list,))  # TODO: Dar vuelta
@@ -432,7 +397,7 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
 
         # End condition check
         if self.max_requests and self.n_requests >= self.max_requests:
-            self.logger.manager.warning(self._msg('MAX PAGES REACHED! (%s/%s)' % (self.n_requests, self.max_requests)))
+            self._logger.info('MAX PAGES REACHED! (%s/%s)', self.n_requests, self.max_requests)
             self._finished = True
             return []
 
@@ -446,8 +411,8 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
                     max_next_requests = self.max_requests - self.n_requests
 
         # log (in)
-        self.logger.manager.debug(self._msg('GET_NEXT_REQUESTS(in) max_next_requests=%s n_requests=%s/%s' %
-                                            (max_next_requests, self.n_requests, self.max_requests or '-')))
+        self._logger.debug('GET_NEXT_REQUESTS(in) max_next_requests=%s n_requests=%s/%s',
+                           max_next_requests, self.n_requests, self.max_requests or '-')
 
         # get next requests
         next_requests = self.backend.get_next_requests(max_next_requests, **kwargs)
@@ -455,16 +420,13 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
         # Increment requests counter
         self._n_requests += len(next_requests)
 
-        # Increment Iteration and log event
+        # Increment iteration
         if next_requests:
             self._iteration += 1
-            self.event_log_manager.get_next_requests(max_next_requests, next_requests)
 
         # log (out)
-        self.logger.manager.debug(self._msg('GET_NEXT_REQUESTS(out) returned_requests=%s n_requests=%s/%s' %
-                                            (len(next_requests), self.n_requests, self.max_requests or '-')))
-
-        # Return next requests
+        self._logger.debug('GET_NEXT_REQUESTS(out) returned_requests=%s n_requests=%s/%s',
+                           len(next_requests), self.n_requests, self.max_requests or '-')
         return next_requests
 
     def page_crawled(self, response, links=None):
@@ -478,8 +440,8 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
         :return: None.
         """
         self._check_startstop()
-        self.logger.manager.debug(self._msg('PAGE_CRAWLED url=%s status=%s links=%s' %
-                                            (response.url, response.status_code, len(links) if links else 0)))
+        self._logger.debug('PAGE_CRAWLED url=%s status=%s links=%d', response.url, response.status_code,
+                           len(links) if links else 0)
         assert isinstance(response, self.response_model), "Response object must subclass '%s', '%s' found" % \
                                                           (self.response_model.__name__, type(response).__name__)
         assert hasattr(response, 'request') and response.request, "Empty response request"
@@ -508,25 +470,13 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
         :return: None.
         """
         self._check_startstop()
-        self.logger.manager.error(self._msg('PAGE_REQUEST_ERROR url=%s error=%s' % (request.url, error)))
+        self._logger.debug('PAGE_REQUEST_ERROR url=%s error=%s', request.url, error)
         processed_page = self._process_components(method_name='request_error',
                                                   obj=request,
                                                   return_classes=self.request_model,
                                                   error=error)
-        #self.event_log_manager.page_crawled_error(processed_page, error)
         return processed_page
-
-    def _msg(self, msg):
-        return '(%s) %s' % (self.iteration, msg)
 
     def _check_startstop(self):
         assert self._started, "Frontier not started!"
         assert not self._stopped, "Call to stopped frontier!"
-
-    def _log_event(self, event, params=None):
-        event_params = OrderedDict()
-        event_params['job_id'] = self.job_id
-        event_params['iteration'] = self.iteration
-        if params:
-            event_params.update(params)
-        self.logger.events.event(event=event, params=event_params)
