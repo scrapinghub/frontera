@@ -148,7 +148,7 @@ class DBWorker(object):
                 if type == 'offset':
                     _, partition_id, offset = msg
                     producer_offset = self.spider_feed_producer.get_offset(partition_id)
-                    if producer_offset == None:
+                    if producer_offset is None:
                         continue
                     else:
                         lag = producer_offset - offset
