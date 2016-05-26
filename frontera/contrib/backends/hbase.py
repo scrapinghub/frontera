@@ -4,7 +4,6 @@ from datetime import datetime
 from calendar import timegm
 from time import time
 from binascii import hexlify, unhexlify
-from zlib import crc32
 from io import BytesIO
 from random import choice
 
@@ -16,7 +15,7 @@ from frontera import DistributedBackend
 from frontera.core.components import Metadata, Queue, States
 from frontera.core.models import Request
 from frontera.contrib.backends.partitioners import Crc32NamePartitioner
-from frontera.utils.misc import chunks
+from frontera.utils.misc import chunks, get_crc32
 import logging
 
 
@@ -113,9 +112,6 @@ class HBaseQueue(Queue):
         :param batch: list of tuples(score, fingerprint, domain, url)
         :return:
         """
-        def get_crc32(name):
-            return crc32(name) if type(name) is str else crc32(name.encode('utf-8', 'ignore'))
-
         def get_interval(score, resolution):
             if score < 0.0 or score > 1.0:
                 raise OverflowError
