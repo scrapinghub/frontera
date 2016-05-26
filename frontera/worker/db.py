@@ -147,9 +147,8 @@ class DBWorker(object):
                     self._backend.request_error(request, error)
                 if type == 'offset':
                     _, partition_id, offset = msg
-                    try:
-                        producer_offset = self.spider_feed_producer.get_offset(partition_id)
-                    except KeyError:
+                    producer_offset = self.spider_feed_producer.get_offset(partition_id)
+                    if producer_offset == None:
                         continue
                     else:
                         lag = producer_offset - offset

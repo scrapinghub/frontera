@@ -6,7 +6,6 @@ from logging import getLogger
 from kafka import KafkaClient, SimpleConsumer
 from kafka import KafkaConsumer, KafkaProducer, TopicPartition
 from kafka.common import BrokerResponseError
-from kafka.protocol import CODEC_NONE
 
 from frontera.contrib.backends.partitioners import FingerprintPartitioner, Crc32NamePartitioner
 from frontera.contrib.messagebus.kafka import OffsetsFetcher
@@ -147,6 +146,9 @@ class KeyedProducer(BaseStreamProducer):
     def flush(self):
         self._producer.flush()
 
+    def get_offset(self, partition_id):
+        pass
+
 
 class SpiderLogStream(BaseSpiderLogStream):
     def __init__(self, messagebus):
@@ -156,6 +158,7 @@ class SpiderLogStream(BaseSpiderLogStream):
         self._topic_done = messagebus.topic_done
         self._compression_type = messagebus.compression_type
         self._partitions = messagebus.spider_log_partitions
+        self._consumer_cls = DeprecatedConsumer if messagebus.use_simple_consumer else Consumer
 
     def producer(self):
         return KeyedProducer(self._location, self._topic_done, FingerprintPartitioner(self._partitions),
@@ -169,8 +172,7 @@ class SpiderLogStream(BaseSpiderLogStream):
         :return:
         """
         group = self._sw_group if type == 'sw' else self._db_group
-        #return DeprecatedConsumer(self._location, self._topic_done, group, partition_id)
-        return Consumer(self._location, self._topic_done, group, partition_id)
+        return self._consumer_cls(self._location, self._topic_done, group, partition_id)
 
 
 class SpiderFeedStream(BaseSpiderFeedStream):
@@ -183,10 +185,10 @@ class SpiderFeedStream(BaseSpiderFeedStream):
         self._offset_fetcher = OffsetsFetcher(self._location, self._topic, self._general_group)
         self._compression_type = messagebus.compression_type
         self._partitions = messagebus.spider_feed_partitions
+        self._consumer_cls = DeprecatedConsumer if messagebus.use_simple_consumer else Consumer
 
     def consumer(self, partition_id):
-        #return DeprecatedConsumer(self._location, self._topic, self._general_group, partition_id)
-        return Consumer(self._location, self._topic, self._general_group, partition_id)
+        return self._consumer_cls(self._location, self._topic, self._general_group, partition_id)
 
     def available_partitions(self):
         partitions = []
@@ -208,11 +210,10 @@ class ScoringLogStream(BaseScoringLogStream):
         self._group = messagebus.general_group
         self._location = messagebus.kafka_location
         self._compression_type = messagebus.compression_type
+        self._consumer_cls = DeprecatedConsumer if messagebus.use_simple_consumer else Consumer
 
     def consumer(self):
-        #return DeprecatedConsumer(self._location, self._topic, self._group, partition_id=None)
-        return Consumer(self._location, self._topic, self._group, partition_id=None)
-
+        return self._consumer_cls(self._location, self._topic, self._group, partition_id=None)
 
     def producer(self):
         return SimpleProducer(self._location, self._topic, self._compression_type)
@@ -232,6 +233,7 @@ class MessageBus(BaseMessageBus):
         self.kafka_location = settings.get('KAFKA_LOCATION')
         self.spider_log_partitions = settings.get('SPIDER_LOG_PARTITIONS')
         self.spider_feed_partitions = settings.get('SPIDER_FEED_PARTITIONS')
+        self.use_simple_consumer = settings.get('KAFKA_USE_SIMPLE_CONSUMER')
 
     def spider_log(self):
         return SpiderLogStream(self)

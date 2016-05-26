@@ -65,3 +65,4 @@ INCOMING_TOPIC = "frontier-done"
 SCORING_TOPIC = "frontier-score"
 FRONTIER_GROUP = "general"
 SCORING_GROUP = "strategy-workers"
+KAFKA_USE_SIMPLE_CONSUMER = False
