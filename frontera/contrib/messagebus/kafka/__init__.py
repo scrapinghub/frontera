@@ -48,7 +48,8 @@ class OffsetsFetcher(object):
                 fail_on_error=False)
             try:
                 check_error(resp)
-            except UnknownTopicOrPartitionError:
+            except Exception, exc:
+                logger.error(exc)
                 pass
 
             if resp.offset == -1:
@@ -67,5 +68,6 @@ class OffsetsFetcher(object):
         for partition in self._client.get_partition_ids_for_topic(self._topic):
             produced = self._offsets.produced[partition]
             lag = produced - self._offsets.commit[partition] if self._offsets.commit[partition] else 0.0
+            logger.debug("%s (%s): %s, %s, %s", self._topic, partition, produced, self._offsets.commit[partition], lag)
             lags[partition] = lag
         return lags
