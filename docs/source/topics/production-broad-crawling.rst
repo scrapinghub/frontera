@@ -58,7 +58,8 @@ each 4 spiders you would need one pair of workers (strategy and DB). If your str
 processing content for example) then 1 strategy worker per 15 spider instances could be enough.
 
 Your spider log stream should have as much partitions as *strategy workers* you need. Each
-strategy worker is assigned to specific partition using option :setting:`SCORING_PARTITION_ID`.
+strategy worker is assigned to specific partition using command line option ``--partition-id`` or
+:setting:`SCORING_PARTITION_ID` config setting.
 
 Your spider feed stream, containing new batches should have as much partitions as *spiders* you will have in your
 cluster.
@@ -130,9 +131,6 @@ options in common module, and import it's contents from each instance-specific c
 It is recommended to run spiders on a dedicated machines, they quite likely to consume lots of CPU and network
 bandwidth.
 
-The same thing have to be done for strategy workers, each strategy worker should have it's own partition id
-(see :setting:`SCORING_PARTITION_ID`) assigned in config files named ``strategyN.py``.
-
 
 Configuring MAX_NEXT_REQUESTS
 =============================
@@ -166,10 +164,10 @@ to storage is. Here is how to run all in the same process::
 
 Next, let's start strategy worker with sample strategy for crawling the internet in Breadth-first manner.::
 
-    $ python -m frontera.worker.strategy --config frontera.strategy0 --strategy frontera.worker.strategies.bfs.CrawlingStrategy
-    $ python -m frontera.worker.strategy --config frontera.strategy1 --strategy frontera.worker.strategies.bfs.CrawlingStrategy
+    $ python -m frontera.worker.strategy --config frontera.worker_settings --partition-id 0 --strategy frontera.worker.strategies.bfs.CrawlingStrategy
+    $ python -m frontera.worker.strategy --config frontera.worker_settings --partition-id 1 --strategy frontera.worker.strategies.bfs.CrawlingStrategy
     ...
-    $ python -m frontera.worker.strategy --config frontera.strategyN --strategy frontera.worker.strategies.bfs.CrawlingStrategy
+    $ python -m frontera.worker.strategy --config frontera.worker_settings --partition-id N --strategy frontera.worker.strategies.bfs.CrawlingStrategy
 
 You should notice that all processes are writing messages to the output. It's ok if nothing is written in streams,
 because of absence of seed URLs in the system.

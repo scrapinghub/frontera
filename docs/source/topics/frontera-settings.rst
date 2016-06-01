@@ -244,6 +244,8 @@ The :class:`Response <frontera.core.models.Response>` model to be used by the fr
 SCORING_PARTITION_ID
 --------------------
 
+Default: ``0``
+
 Used by strategy worker, and represents partition startegy worker assigned to.
 
 

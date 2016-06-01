@@ -108,6 +108,7 @@ class StrategyWorker(object):
         self.job_id = 0
         self.task = LoopingCall(self.work)
         self._logging_task = LoopingCall(self.log_status)
+        logger.info("Strategy worker is initialized and consuming partition %d", partition_id)
 
     def work(self):
         # Collecting batch to process
@@ -232,7 +233,8 @@ if __name__ == '__main__':
                         help="Log level, for ex. DEBUG, INFO, WARN, ERROR, FATAL")
     parser.add_argument('--strategy', type=str,
                         help='Crawling strategy class path')
-
+    parser.add_argument('--partition-id', type=int,
+                        help="Instance partition id.")
     args = parser.parse_args()
     settings = Settings(module=args.config)
     strategy_classpath = args.strategy if args.strategy else settings.get('CRAWLING_STRATEGY')
@@ -240,6 +242,12 @@ if __name__ == '__main__':
         raise ValueError("Couldn't locate strategy class path. Please supply it either using command line option or "
                          "settings file.")
     strategy_class = load_object(strategy_classpath)
+
+    partition_id = args.partition_id if args.partition_id is not None else settings.get('SCORING_PARTITION_ID')
+    if partition_id >= settings.get('SPIDER_LOG_PARTITIONS') or partition_id < 0:
+        raise ValueError("Partition id (%d) cannot be less than zero or more than SPIDER_LOG_PARTITIONS." %
+                         partition_id)
+    settings.set('SCORING_PARTITION_ID', partition_id)
 
     logging_config_path = settings.get("LOGGING_CONFIG")
     if logging_config_path and exists(logging_config_path):
