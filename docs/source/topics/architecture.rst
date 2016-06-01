@@ -95,7 +95,7 @@ abstractions, so one can plug it's own transport. Distributed backend run mode h
     from content.
 - **Strategy workers** (sharded).
     Run the crawling strategy code: scoring the links, deciding if link needs to be scheduled and when to stop crawling.
-- **DB workers** (replicated).
+- **DB workers** (sharded).
     Store all the metadata, including scores and content, and generating new batches for downloading by spiders.
 
 Where *sharded* means component consumes messages of assigned partition only, e.g. processes certain share of the
