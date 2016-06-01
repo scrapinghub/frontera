@@ -29,6 +29,8 @@ Create a Frontera ``settings.py`` file and add it to your Scrapy settings::
 
     FRONTERA_SETTINGS = 'tutorial.frontera.settings'
 
+Another option is to put these settings right into Scrapy settings module.
+
 
 
 Organizing files

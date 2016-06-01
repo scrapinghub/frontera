@@ -13,7 +13,7 @@ MIDDLEWARES.extend([
 # Crawl frontier backend
 #--------------------------------------------------------
 BACKEND = 'frontera.contrib.backends.remote.messagebus.MessageBusBackend'
-
+SPIDER_FEED_PARTITIONS = 2
 
 
 

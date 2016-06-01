@@ -61,8 +61,8 @@ There are Spanish (.es zone) internet URLs from DMOZ directory in general spider
 seeds to bootstrap crawling.
 Starting the spiders: ::
 
-    $ scrapy crawl general -L INFO -s FRONTERA_SETTINGS=frontier.spider0 -s SEEDS_SOURCE=seeds_es_smp.txt
-    $ scrapy crawl general -L INFO -s FRONTERA_SETTINGS=frontier.spider1
+    $ scrapy crawl general -L INFO -s FRONTERA_SETTINGS=frontier.spider_settings -s SEEDS_SOURCE=seeds_es_smp.txt -s SPIDER_PARTITION_ID=0
+    $ scrapy crawl general -L INFO -s FRONTERA_SETTINGS=frontier.spider_settings -s SPIDER_PARTITION_ID=1
 
 
 You should end up with 2 spider processes running. Each should read it's own Frontera config, and first one is using

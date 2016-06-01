@@ -275,6 +275,8 @@ assigned to it's own partition.
 SPIDER_PARTITION_ID
 -------------------
 
+Default: ``0``
+
 Per-spider setting, pointing spider to it's assigned partition.
 
 .. setting:: STATE_CACHE_SIZE

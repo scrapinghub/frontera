@@ -96,8 +96,7 @@ You should add there settings related to message bus you have chosen. Default is
 
 Configure Frontera spiders
 ==========================
-Next step is to create own Frontera settings file for every spider instance. Often it's a good idea to name
-settings file according to partition ids assigned. E.g. ``settingsN.py``. ::
+Next step is to create Frontera settings file and point Scrapy to it.::
 
     from distributed_frontera.settings.default_settings import MIDDLEWARES
 
@@ -112,7 +111,6 @@ settings file according to partition ids assigned. E.g. ``settingsN.py``. ::
     # Crawl frontier backend
     #--------------------------------------------------------
     BACKEND = 'distributed_frontera.backends.remote.KafkaOverusedBackend'
-    SPIDER_PARTITION_ID = 0                 # Partition ID assigned
 
     #--------------------------------------------------------
     # Logging
@@ -125,10 +123,11 @@ settings file according to partition ids assigned. E.g. ``settingsN.py``. ::
 
 Again, add message bus related options.
 
-You should end up having as much settings files as spider instances your system will have. You can also store permanent
-options in common module, and import it's contents from each instance-specific config file.
+After that it's needed to point Scrapy where Frontera settings are located. This could be done by means of
+``FRONTERA_SETTINGS`` setting in Scrapy settings module or all Frontera related to options can be put into
+Scrapy settings module.
 
-It is recommended to run spiders on a dedicated machines, they quite likely to consume lots of CPU and network
+It is recommended to run spiders on a dedicated machines, they are quite likely to consume lots of CPU and network
 bandwidth.
 
 
@@ -169,22 +168,22 @@ Next, let's start strategy worker with sample strategy for crawling the internet
     ...
     $ python -m frontera.worker.strategy --config frontera.worker_settings --partition-id N --strategy frontera.worker.strategies.bfs.CrawlingStrategy
 
-You should notice that all processes are writing messages to the output. It's ok if nothing is written in streams,
+You should notice that all processes are writing messages to the log. It's ok if nothing is written in streams,
 because of absence of seed URLs in the system.
 
 Let's put our seeds in text file, one URL per line.
 Starting the spiders:::
 
-    $ scrapy crawl tutorial -L INFO -s FRONTERA_SETTINGS=frontera.settings0 -s SEEDS_SOURCE = 'seeds.txt'
+    $ scrapy crawl tutorial -L INFO -s  -s SEEDS_SOURCE = 'seeds.txt' -s SPIDER_PARTITION_ID=0
     ...
-    $ scrapy crawl tutorial -L INFO -s FRONTERA_SETTINGS=frontera.settings1
-    $ scrapy crawl tutorial -L INFO -s FRONTERA_SETTINGS=frontera.settings2
-    $ scrapy crawl tutorial -L INFO -s FRONTERA_SETTINGS=frontera.settings3
+    $ scrapy crawl tutorial -L INFO -s FRONTERA_SETTINGS=frontera.settings -s SPIDER_PARTITION_ID=1
+    $ scrapy crawl tutorial -L INFO -s FRONTERA_SETTINGS=frontera.settings -s SPIDER_PARTITION_ID=2
     ...
-    $ scrapy crawl tutorial -L INFO -s FRONTERA_SETTINGS=frontera.settingsN
+    $ scrapy crawl tutorial -L INFO -s FRONTERA_SETTINGS=frontera.settings -s SPIDER_PARTITION_ID=N
 
-You should end up with N spider processes running. Each should read it's own Frontera config, and first one is using
-``SEEDS_SOURCE`` variable to pass seeds to Frontera cluster.
+You should end up with N spider processes running. Usually it's enough for a single instance to read seeds from
+``SEEDS_SOURCE`` variable to pass seeds to Frontera cluster. Seeds are only read if queue is empty.
+::setting:`SPIDER_PARTITION_ID` can be read from config file also.
 
 After some time seeds will pass the streams and get scheduled for downloading by workers. Crawler is bootstrapped.
 

@@ -17,11 +17,14 @@ class MessageBusBackend(Backend):
         self.spider_log_producer = self.mb.spider_log().producer()
         spider_feed = self.mb.spider_feed()
         self.partition_id = int(settings.get('SPIDER_PARTITION_ID'))
+        if self.partition_id < 0 or self.partition_id >= settings.get('SPIDER_FEED_PARTITIONS'):
+            raise ValueError("Spider partition id cannot be less than 0 or more than SPIDER_FEED_PARTITIONS.")
         self.consumer = spider_feed.consumer(partition_id=self.partition_id)
         self._get_timeout = float(settings.get('KAFKA_GET_TIMEOUT'))
         self._logger = logging.getLogger("messagebus-backend")
         self._buffer = OverusedBuffer(self._get_next_requests,
                                       self._logger.debug)
+        self._logger.info("Consuming from partition id %d", self.partition_id)
 
     @classmethod
     def from_manager(clas, manager):
