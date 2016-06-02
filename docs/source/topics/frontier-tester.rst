@@ -13,7 +13,8 @@ Creating a Frontier Tester
 FrontierTester needs a :doc:`Graph Manager <graph-manager>` and a
 :class:`FrontierManager <frontera.core.manager.FrontierManager>` instances::
 
-    >>> from frontera import FrontierManager, FrontierTester, graphs
+    >>> from frontera import FrontierManager, FrontierTester
+    >>> from frontera.utils import graphs
     >>> graph = graphs.Manager('sqlite:///graph.db')  # Crawl fake data loading
     >>> frontier = FrontierManager.from_settings()  # Create frontier from default settings
     >>> tester = FrontierTester(frontier, graph)
