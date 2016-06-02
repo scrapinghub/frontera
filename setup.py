@@ -47,6 +47,7 @@ setup(
         'graphs': [
             'pyparsing==1.5.7',
             'pydot==1.0.28',
+            'SQLAlchemy'
         ],
         'logging': [
             'colorlog>=2.4.0',
