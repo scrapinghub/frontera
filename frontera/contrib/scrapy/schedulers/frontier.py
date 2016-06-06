@@ -71,13 +71,13 @@ class StatsManager(object):
 
 class FronteraScheduler(Scheduler):
 
-    def __init__(self, crawler):
+    def __init__(self, crawler, manager=None):
         self.crawler = crawler
         self.stats_manager = StatsManager(crawler.stats)
         self._pending_requests = deque()
         self.redirect_enabled = crawler.settings.get('REDIRECT_ENABLED')
         settings = ScrapySettingsAdapter(crawler.settings)
-        self.frontier = ScrapyFrontierManager(settings)
+        self.frontier = ScrapyFrontierManager(settings, manager)
         self._delay_on_empty = self.frontier.manager.settings.get('DELAY_ON_EMPTY')
         self._delay_next_call = 0.0
         self.logger = getLogger('frontera.contrib.scrapy.schedulers.FronteraScheduler')
