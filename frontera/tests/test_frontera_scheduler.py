@@ -92,7 +92,7 @@ class TestFronteraScheduler(object):
     def test_next_request_overused_keys_info(self):
         settings = Settings()
         settings['CONCURRENT_REQUESTS_PER_DOMAIN'] = 0
-        settings['CONCURRENT_REQUESTS_PER_IP'] = 1
+        settings['CONCURRENT_REQUESTS_PER_IP'] = 5
         crawler = FakeCrawler(settings)
         # the keys in the slot_dict are ip's, the first value in the pair is the
         # slot.active list(only it's length is needed) and the second value is slot.concurrency.
