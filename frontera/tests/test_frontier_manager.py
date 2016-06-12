@@ -1,7 +1,6 @@
 from frontera.core.manager import FrontierManager
 from frontera.settings import Settings
 from frontera.core.models import Request, Response
-from frontera.utils.misc import load_object
 
 
 r1 = Request('http://www.example.com')
@@ -11,8 +10,8 @@ r3 = Request('http://example1.com')
 
 class TestFrontierManager(object):
 
-    def setup_frontier_manager(self):
-        settings = Settings()
+    def setup_frontier_manager(self, settings=None):
+        settings = settings or Settings()
         settings.BACKEND = 'frontera.tests.mocks.components.FakeBackend'
         settings.MIDDLEWARES = ['frontera.tests.mocks.components.FakeMiddleware',
                                 'frontera.tests.mocks.components.FakeMiddlewareModifySeeds',
@@ -77,6 +76,8 @@ class TestFrontierManager(object):
         fm = self.setup_frontier_manager()
         fm.backend.put_requests([r1, r2, r3])
         assert set(fm.get_next_requests(3)) == set([r1, r2, r3])
+        assert fm.iteration == 1
+        assert fm.n_requests == 3
 
     def test_request_error(self):
         fm = self.setup_frontier_manager()
@@ -84,6 +85,16 @@ class TestFrontierManager(object):
         assert fm.backend.errors.pop() == (r1, 'error')
         assert [mw.errors.pop() for mw in fm.middlewares] == [(r1, 'error')]*4
         assert fm.canonicalsolver.errors.pop() == (r1, 'error')
+
+    def test_max_requests_reached(self):
+        settings = Settings()
+        settings.MAX_REQUESTS = 2
+        fm = self.setup_frontier_manager(settings)
+        fm.backend.put_requests([r1, r2, r3])
+        requests = set(fm.get_next_requests(10))
+        assert requests == set([r1, r2]) or requests == set([r2, r3]) or requests == set([r1, r3])
+        assert fm.get_next_requests(10) == []
+        assert fm.finished is True
 
     def test_blocking_middleware(self):
         settings = Settings()
