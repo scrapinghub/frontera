@@ -4,8 +4,9 @@ from converters import BaseRequestConverter, BaseResponseConverter
 
 class FrontierManagerWrapper(object):
 
-    def __init__(self, settings):
-        self.manager = FrontierManager.from_settings(settings)
+    def __init__(self, settings, manager=None):
+        manager = manager or FrontierManager
+        self.manager = manager.from_settings(settings)
 
     def start(self):
         if not hasattr(self, 'request_converter'):
