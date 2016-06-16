@@ -132,7 +132,7 @@ class Distributed(DistributedBackend):
         if drop_all_tables:
             if model.__table__.name in inspector.get_table_names():
                 model.__table__.drop(bind=b.engine)
-        model.__table__.create(bind=b.engine)
+        model.__table__.create(bind=b.engine, checkfirst=True)
 
         if clear_content:
             session = b.session_cls()
@@ -158,8 +158,8 @@ class Distributed(DistributedBackend):
                 metadata_m.__table__.drop(bind=b.engine)
             if queue_m.__table__.name in existing:
                 queue_m.__table__.drop(bind=b.engine)
-        metadata_m.__table__.create(bind=b.engine)
-        queue_m.__table__.create(bind=b.engine)
+        metadata_m.__table__.create(bind=b.engine, checkfirst=True)
+        queue_m.__table__.create(bind=b.engine, checkfirst=True)
 
         if clear_content:
             session = b.session_cls()
