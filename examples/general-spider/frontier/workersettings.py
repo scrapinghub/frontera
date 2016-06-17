@@ -9,8 +9,8 @@ SPIDER_LOG_PARTITIONS = 1
 # Url storage
 #--------------------------------------------------------
 
-#BACKEND = 'frontera.contrib.backends.sqlalchemy.SQLAlchemyBackend'
-BACKEND = 'frontera.contrib.backends.sqlalchemy.Distributed'
+BACKEND = 'frontera.contrib.backends.sqlalchemy.SQLAlchemyBackend'
+#BACKEND = 'frontera.contrib.backends.sqlalchemy.Distributed'
 
 
 SQLALCHEMYBACKEND_ENGINE = 'sqlite:///url_storage_dist.sqlite'
