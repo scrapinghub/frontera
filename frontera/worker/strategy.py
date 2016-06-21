@@ -14,6 +14,7 @@ from twisted.internet import reactor
 from frontera.settings import Settings
 from frontera.contrib.backends.remote.codecs.msgpack import Decoder, Encoder
 from collections import Sequence
+from binascii import hexlify
 
 
 logger = logging.getLogger("strategy-worker")
@@ -118,30 +119,36 @@ class StrategyWorker(object):
             try:
                 msg = self._decoder.decode(m)
             except (KeyError, TypeError), e:
-                logger.error("Decoding error: %s", e)
+                logger.error("Decoding error:")
+                logger.exception(e)
+                logger.debug("Message %s", hexlify(m))
                 continue
             else:
                 type = msg[0]
                 batch.append(msg)
-                if type == 'add_seeds':
-                    _, seeds = msg
-                    self.states_context.to_fetch(seeds)
-                    continue
+                try:
+                    if type == 'add_seeds':
+                        _, seeds = msg
+                        self.states_context.to_fetch(seeds)
+                        continue
 
-                if type == 'page_crawled':
-                    _, response, links = msg
-                    self.states_context.to_fetch(response)
-                    self.states_context.to_fetch(links)
-                    continue
+                    if type == 'page_crawled':
+                        _, response, links = msg
+                        self.states_context.to_fetch(response)
+                        self.states_context.to_fetch(links)
+                        continue
 
-                if type == 'request_error':
-                    _, request, error = msg
-                    self.states_context.to_fetch(request)
-                    continue
+                    if type == 'request_error':
+                        _, request, error = msg
+                        self.states_context.to_fetch(request)
+                        continue
 
-                if type == 'offset':
-                    continue
-                raise TypeError('Unknown message type %s' % type)
+                    if type == 'offset':
+                        continue
+                    raise TypeError('Unknown message type %s' % type)
+                except Exception, exc:
+                    logger.exception(exc)
+                    pass
             finally:
                 consumed += 1
 
@@ -151,26 +158,30 @@ class StrategyWorker(object):
         # Batch processing
         for msg in batch:
             type = msg[0]
-            if type == 'add_seeds':
-                _, seeds = msg
-                for seed in seeds:
-                    seed.meta['jid'] = self.job_id
-                self.on_add_seeds(seeds)
-                continue
-
-            if type == 'page_crawled':
-                _, response, links = msg
-                if response.meta['jid'] != self.job_id:
+            try:
+                if type == 'add_seeds':
+                    _, seeds = msg
+                    for seed in seeds:
+                        seed.meta['jid'] = self.job_id
+                    self.on_add_seeds(seeds)
                     continue
-                self.on_page_crawled(response, links)
-                continue
 
-            if type == 'request_error':
-                _, request, error = msg
-                if request.meta['jid'] != self.job_id:
+                if type == 'page_crawled':
+                    _, response, links = msg
+                    if response.meta['jid'] != self.job_id:
+                        continue
+                    self.on_page_crawled(response, links)
                     continue
-                self.on_request_error(request, error)
-                continue
+
+                if type == 'request_error':
+                    _, request, error = msg
+                    if request.meta['jid'] != self.job_id:
+                        continue
+                    self.on_request_error(request, error)
+                    continue
+            except Exception, exc:
+                logger.exception(exc)
+                pass
 
         self.update_score.flush()
         self.states_context.release()
@@ -188,7 +199,10 @@ class StrategyWorker(object):
         self.stats['consumed_since_start'] += consumed
 
     def run(self):
-        self.task.start(interval=0)
+        def errback(failure):
+            logger.exception(failure.value)
+            self.task.start(interval=0).addErrback(errback)
+        self.task.start(interval=0).addErrback(errback)
         self._logging_task.start(interval=30)
         reactor.addSystemEventTrigger('before', 'shutdown', self.stop)
         reactor.run()
@@ -204,7 +218,7 @@ class StrategyWorker(object):
         self._manager.stop()
 
     def on_add_seeds(self, seeds):
-        logger.info('Adding %i seeds', len(seeds))
+        logger.debug('Adding %i seeds', len(seeds))
         self.states.set_states(seeds)
         self.strategy.add_seeds(seeds)
         self.states.update_cache(seeds)
