@@ -46,7 +46,7 @@ class MemoryQueue(Queue):
     def __init__(self, partitions):
         self.partitions = [i for i in range(0, partitions)]
         self.partitioner = Crc32NamePartitioner(self.partitions)
-        self.logger = logging.getLogger("frontera.contrib.backends.memory.MemoryQueue")
+        self.logger = logging.getLogger("memory.queue")
         self.heap = {}
         for partition in self.partitions:
             self.heap[partition] = Heap(self._compare_pages)
@@ -63,7 +63,7 @@ class MemoryQueue(Queue):
                 request.meta['_scr'] = score
                 _, hostname, _, _, _, _ = parse_domain_from_url_fast(request.url)
                 if not hostname:
-                    self.logger.error("Can't get hostname for URL %s, fingerprint %s" % (request.url, fprint))
+                    self.logger.error("Can't get hostname for URL %s, fingerprint %s", request.url, fprint)
                     partition_id = self.partitions[0]
                 else:
                     partition_id = self.partitioner.partition(hostname, self.partitions)
@@ -82,7 +82,7 @@ class MemoryDequeQueue(Queue):
         """
         self.partitions = [i for i in range(0, partitions)]
         self.partitioner = Crc32NamePartitioner(self.partitions)
-        self.logger = logging.getLogger("frontera.contrib.backends.memory.MemoryDequeQueue")
+        self.logger = logging.getLogger("memory.dequequeue")
         self.queues = {}
         self.is_fifo = is_fifo
         for partition in self.partitions:
@@ -105,7 +105,7 @@ class MemoryDequeQueue(Queue):
                 request.meta['_scr'] = score
                 _, hostname, _, _, _, _ = parse_domain_from_url_fast(request.url)
                 if not hostname:
-                    self.logger.error("Can't get hostname for URL %s, fingerprint %s" % (request.url, fprint))
+                    self.logger.error("Can't get hostname for URL %s, fingerprint %s", request.url, fprint)
                     partition_id = self.partitions[0]
                 else:
                     partition_id = self.partitioner.partition(hostname, self.partitions)
@@ -117,15 +117,14 @@ class MemoryStates(States):
     def __init__(self, cache_size_limit):
         self._cache = dict()
         self._cache_size_limit = cache_size_limit
-        self.logger = logging.getLogger("frontera.contrib.backends.memory.MemoryStates")
+        self.logger = logging.getLogger("memory.states")
 
     def _put(self, obj):
-        if obj.meta['state'] is not None:
-            self._cache[obj.meta['fingerprint']] = obj.meta['state']
+        self._cache[obj.meta['fingerprint']] = obj.meta['state']
 
     def _get(self, obj):
         fprint = obj.meta['fingerprint']
-        obj.meta['state'] = self._cache[fprint] if fprint in self._cache else None
+        obj.meta['state'] = self._cache[fprint] if fprint in self._cache else States.DEFAULT
 
     def update_cache(self, objs):
         objs = objs if type(objs) in [list, tuple] else [objs]
@@ -142,7 +141,7 @@ class MemoryStates(States):
         if len(self._cache) > self._cache_size_limit:
             force_clear = True
         if force_clear:
-            self.logger.debug("Cache has %d items, clearing" % len(self._cache))
+            self.logger.debug("Cache has %d items, clearing", len(self._cache))
             self._cache.clear()
 
 

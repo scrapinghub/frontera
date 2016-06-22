@@ -3,6 +3,8 @@ import re
 from frontera.core.components import Middleware
 from frontera.utils.url import parse_domain_from_url_fast, parse_domain_from_url
 
+# TODO: Why not to put the whole url_parse result here in meta?
+
 
 class DomainMiddleware(Middleware):
     """

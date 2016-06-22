@@ -54,8 +54,6 @@ Frontier Manager
     .. autoattribute:: frontera.core.manager.FrontierManager.request_model
     .. autoattribute:: frontera.core.manager.FrontierManager.response_model
     .. autoattribute:: frontera.core.manager.FrontierManager.backend
-    .. autoattribute:: frontera.core.manager.FrontierManager.logger
-    .. autoattribute:: frontera.core.manager.FrontierManager.event_log_manager
     .. autoattribute:: frontera.core.manager.FrontierManager.middlewares
     .. autoattribute:: frontera.core.manager.FrontierManager.test_mode
     .. autoattribute:: frontera.core.manager.FrontierManager.max_requests

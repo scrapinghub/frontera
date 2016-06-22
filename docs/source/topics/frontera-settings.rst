@@ -131,16 +131,6 @@ Delay between calls to backend for new batches in Scrapy scheduler, when queue s
 without hitting backend on every request. Increase it if calls to your backend is taking too long, and decrease
 if you need a fast spider bootstrap from seeds.
 
-
-.. setting:: EVENT_LOGGER
-
-EVENT_LOGGER
-------------
-
-Default: ``'frontera.logger.events.EventLogManager'``
-
-The EventLoggerManager class to be used by the Frontier.
-
 .. setting:: KAFKA_GET_TIMEOUT
 
 KAFKA_GET_TIMEOUT
@@ -150,14 +140,17 @@ Default: ``5.0``
 
 Time process should block until requested amount of data will be received from message bus.
 
-.. setting:: LOGGER
+.. setting:: LOGGING_CONFIG
 
-LOGGER
-------
+LOGGING_CONFIG
+--------------
 
-Default: ``'frontera.logger.FrontierLogger'``
+Default: ``logging.conf``
 
-The Logger class to be used by the Frontier.
+The path to a file with logging module configuration. See
+https://docs.python.org/2/library/logging.config.html#logging-config-fileformat If file is absent, the logging system
+will be initialized with ``logging.basicConfig()`` and CONSOLE handler will be used. This option is used only in
+:term:`db worker` and :term:`strategy worker`.
 
 .. setting:: MAX_NEXT_REQUESTS
 
@@ -251,6 +244,8 @@ The :class:`Response <frontera.core.models.Response>` model to be used by the fr
 SCORING_PARTITION_ID
 --------------------
 
+Default: ``0``
+
 Used by strategy worker, and represents partition startegy worker assigned to.
 
 
@@ -279,6 +274,8 @@ assigned to it's own partition.
 
 SPIDER_PARTITION_ID
 -------------------
+
+Default: ``0``
 
 Per-spider setting, pointing spider to it's assigned partition.
 
@@ -518,7 +515,7 @@ HBase Thrift server port
 .. setting:: HBASE_USE_FRAMED_COMPACT
 
 HBASE_USE_FRAMED_COMPACT
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 Default: ``False``
 
@@ -545,7 +542,7 @@ The message bus class is ``distributed_frontera.messagebus.zeromq.MessageBus``
 .. setting:: ZMQ_ADDRESS
 
 ZMQ_ADDRESS
-------------
+-----------
 
 Default: ``127.0.0.1``
 
@@ -624,48 +621,9 @@ SCORING_TOPIC
 Kafka topic used for :term:`scoring log` stream.
 
 
-
-
 Default settings
 ================
 
 If no settings are specified, frontier will use the built-in default ones. For a complete list of default values see:
 :ref:`Built-in settings reference <frontier-built-in-frontier-settings>`. All default settings can be overridden.
-
-
-Logging default settings
-------------------------
-
-Values::
-
-    LOGGER = 'frontera.logger.FrontierLogger'
-    LOGGING_ENABLED = True
-
-    LOGGING_EVENTS_ENABLED = False
-    LOGGING_EVENTS_INCLUDE_METADATA = True
-    LOGGING_EVENTS_INCLUDE_DOMAIN = True
-    LOGGING_EVENTS_INCLUDE_DOMAIN_FIELDS = ['name', 'netloc', 'scheme', 'sld', 'tld', 'subdomain']
-    LOGGING_EVENTS_HANDLERS = [
-        "frontera.logger.handlers.COLOR_EVENTS",
-    ]
-
-    LOGGING_MANAGER_ENABLED = False
-    LOGGING_MANAGER_LOGLEVEL = logging.DEBUG
-    LOGGING_MANAGER_HANDLERS = [
-        "frontera.logger.handlers.COLOR_CONSOLE_MANAGER",
-    ]
-
-    LOGGING_BACKEND_ENABLED = False
-    LOGGING_BACKEND_LOGLEVEL = logging.DEBUG
-    LOGGING_BACKEND_HANDLERS = [
-        "frontera.logger.handlers.COLOR_CONSOLE_BACKEND",
-    ]
-
-    LOGGING_DEBUGGING_ENABLED = False
-    LOGGING_DEBUGGING_LOGLEVEL = logging.DEBUG
-    LOGGING_DEBUGGING_HANDLERS = [
-        "frontera.logger.handlers.COLOR_CONSOLE_DEBUGGING",
-    ]
-
-    EVENT_LOG_MANAGER = 'frontera.logger.events.EventLogManager'
 

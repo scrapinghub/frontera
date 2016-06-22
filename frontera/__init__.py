@@ -2,7 +2,6 @@ from core.manager import FrontierManager
 from core.models import Request, Response
 from core.components import Backend, DistributedBackend, Middleware
 from settings import Settings
-from utils import graphs
 from utils.tester import FrontierTester
 
 from ._version import get_versions

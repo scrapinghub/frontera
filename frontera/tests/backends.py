@@ -1,6 +1,7 @@
 import pytest
 
-from frontera import FrontierManager, Settings, FrontierTester, graphs
+from frontera import FrontierManager, Settings, FrontierTester
+from frontera.utils import graphs
 from frontera.utils.tester import BaseDownloaderSimulator
 
 

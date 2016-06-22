@@ -7,7 +7,6 @@ CANONICAL_SOLVER = 'frontera.contrib.canonicalsolvers.Basic'
 CONSUMER_BATCH_SIZE = 512
 DELAY_ON_EMPTY = 5.0
 DOMAIN_FINGERPRINT_FUNCTION = 'frontera.utils.fingerprint.sha1'
-EVENT_LOG_MANAGER = 'frontera.logger.events.EventLogManager'
 
 HBASE_THRIFT_HOST = 'localhost'
 HBASE_THRIFT_PORT = 9090
@@ -32,8 +31,10 @@ QUEUE_HOSTNAME_PARTITIONING = False
 REQUEST_MODEL = 'frontera.core.models.Request'
 RESPONSE_MODEL = 'frontera.core.models.Response'
 
+SCORING_PARTITION_ID = 0
 SPIDER_LOG_PARTITIONS = 1
 SPIDER_FEED_PARTITIONS = 1
+SPIDER_PARTITION_ID = 0
 SQLALCHEMYBACKEND_CACHE_SIZE = 10000
 SQLALCHEMYBACKEND_CLEAR_CONTENT = True
 SQLALCHEMYBACKEND_DROP_ALL_TABLES = True
@@ -54,36 +55,4 @@ URL_FINGERPRINT_FUNCTION = 'frontera.utils.fingerprint.sha1'
 ZMQ_ADDRESS = '127.0.0.1'
 ZMQ_BASE_PORT = 5550
 
-#--------------------------------------------------------
-# Logging
-#--------------------------------------------------------
-LOGGER = 'frontera.logger.FrontierLogger'
-LOGGING_ENABLED = True
-
-LOGGING_EVENTS_ENABLED = False
-LOGGING_EVENTS_INCLUDE_METADATA = True
-LOGGING_EVENTS_INCLUDE_DOMAIN = True
-LOGGING_EVENTS_INCLUDE_DOMAIN_FIELDS = ['name', 'netloc', 'scheme', 'sld', 'tld', 'subdomain']
-LOGGING_EVENTS_HANDLERS = [
-    "frontera.logger.handlers.EVENTS",
-]
-
-LOGGING_MANAGER_ENABLED = False
-LOGGING_MANAGER_LOGLEVEL = logging.DEBUG
-LOGGING_MANAGER_HANDLERS = [
-    "frontera.logger.handlers.CONSOLE_MANAGER",
-]
-
-LOGGING_BACKEND_ENABLED = False
-LOGGING_BACKEND_LOGLEVEL = logging.DEBUG
-LOGGING_BACKEND_HANDLERS = [
-    "frontera.logger.handlers.CONSOLE_BACKEND",
-]
-
-LOGGING_DEBUGGING_ENABLED = False
-LOGGING_DEBUGGING_LOGLEVEL = logging.DEBUG
-LOGGING_DEBUGGING_HANDLERS = [
-    "frontera.logger.handlers.CONSOLE_DEBUGGING",
-]
-
-
+LOGGING_CONFIG = 'logging.conf'

@@ -4,7 +4,6 @@ from datetime import datetime
 from calendar import timegm
 from time import time
 from binascii import hexlify, unhexlify
-from zlib import crc32
 from io import BytesIO
 from random import choice
 
@@ -16,7 +15,8 @@ from frontera import DistributedBackend
 from frontera.core.components import Metadata, Queue, States
 from frontera.core.models import Request
 from frontera.contrib.backends.partitioners import Crc32NamePartitioner
-from frontera.utils.misc import chunks
+from frontera.utils.misc import chunks, get_crc32
+import logging
 
 
 _pack_functions = {
@@ -60,11 +60,11 @@ class HBaseQueue(Queue):
 
     GET_RETRIES = 3
 
-    def __init__(self, connection, partitions, logger, table_name, drop=False):
+    def __init__(self, connection, partitions, table_name, drop=False):
         self.connection = connection
         self.partitions = [i for i in range(0, partitions)]
         self.partitioner = Crc32NamePartitioner(self.partitions)
-        self.logger = logger
+        self.logger = logging.getLogger("hbase.queue")
         self.table_name = table_name
 
         tables = set(self.connection.tables())
@@ -88,7 +88,7 @@ class HBaseQueue(Queue):
                 if 'domain' not in request.meta:
                     _, hostname, _, _, _, _ = parse_domain_from_url_fast(request.url)
                     if not hostname:
-                        self.logger.error("Can't get hostname for URL %s, fingerprint %s" % (request.url, fprint))
+                        self.logger.error("Can't get hostname for URL %s, fingerprint %s", request.url, fprint)
                     request.meta['domain'] = {'name': hostname}
                 to_schedule.append((score, fprint, request.meta['domain'], request.url))
         self._schedule(to_schedule)
@@ -112,9 +112,6 @@ class HBaseQueue(Queue):
         :param batch: list of tuples(score, fingerprint, domain, url)
         :return:
         """
-        def get_crc32(name):
-            return crc32(name) if type(name) is str else crc32(name.encode('utf-8', 'ignore'))
-
         def get_interval(score, resolution):
             if score < 0.0 or score > 1.0:
                 raise OverflowError
@@ -183,7 +180,8 @@ class HBaseQueue(Queue):
         while tries < self.GET_RETRIES:
             tries += 1
             limit *= 5.5 if tries > 1 else 1.0
-            self.logger.debug("Try %d, limit %d, last attempt: requests %d, hosts %d" % (tries, limit, count, len(queue.keys())))
+            self.logger.debug("Try %d, limit %d, last attempt: requests %d, hosts %d",
+                              tries, limit, count, len(queue.keys()))
             meta_map.clear()
             queue.clear()
             count = 0
@@ -213,7 +211,7 @@ class HBaseQueue(Queue):
                 continue
             break
 
-        self.logger.debug("Finished: tries %d, hosts %d, requests %d" % (tries, len(queue.keys()), count))
+        self.logger.debug("Finished: tries %d, hosts %d, requests %d", tries, len(queue.keys()), count)
 
         # For every fingerprint collect it's row keys and return all fingerprints from them
         fprint_map = {}
@@ -241,7 +239,7 @@ class HBaseQueue(Queue):
         with table.batch(transaction=True) as b:
             for rk in trash_can:
                 b.delete(rk)
-        self.logger.debug("%d row keys removed" % (len(trash_can)))
+        self.logger.debug("%d row keys removed", len(trash_can))
         return results
 
     def count(self):
@@ -250,10 +248,10 @@ class HBaseQueue(Queue):
 
 class HBaseState(States):
 
-    def __init__(self, connection, table_name, logger, cache_size_limit):
+    def __init__(self, connection, table_name, cache_size_limit):
         self.connection = connection
         self._table_name = table_name
-        self.logger = logger
+        self.logger = logging.getLogger("hbase.states")
         self._state_cache = {}
         self._cache_size_limit = cache_size_limit
 
@@ -261,8 +259,7 @@ class HBaseState(States):
         objs = objs if type(objs) in [list, tuple] else [objs]
 
         def put(obj):
-            if obj.meta['state'] is not None:
-                self._state_cache[obj.meta['fingerprint']] = obj.meta['state']
+            self._state_cache[obj.meta['fingerprint']] = obj.meta['state']
         map(put, objs)
 
     def set_states(self, objs):
@@ -270,7 +267,7 @@ class HBaseState(States):
 
         def get(obj):
             fprint = obj.meta['fingerprint']
-            obj.meta['state'] = self._state_cache[fprint] if fprint in self._state_cache else None
+            obj.meta['state'] = self._state_cache[fprint] if fprint in self._state_cache else States.DEFAULT
         map(get, objs)
 
     def flush(self, force_clear):
@@ -374,7 +371,7 @@ class HBaseBackend(DistributedBackend):
 
     def __init__(self, manager):
         self.manager = manager
-        self.logger = manager.logger.backend
+        self.logger = logging.getLogger("hbase.backend")
         settings = manager.settings
         port = settings.get('HBASE_THRIFT_PORT')
         hosts = settings.get('HBASE_THRIFT_HOST')
@@ -401,7 +398,7 @@ class HBaseBackend(DistributedBackend):
     def strategy_worker(cls, manager):
         o = cls(manager)
         settings = manager.settings
-        o._states = HBaseState(o.connection, settings.get('HBASE_METADATA_TABLE'), o.manager.logger.backend,
+        o._states = HBaseState(o.connection, settings.get('HBASE_METADATA_TABLE'),
                                settings.get('HBASE_STATE_CACHE_SIZE_LIMIT'))
         return o
 
@@ -410,7 +407,7 @@ class HBaseBackend(DistributedBackend):
         o = cls(manager)
         settings = manager.settings
         drop_all_tables = settings.get('HBASE_DROP_ALL_TABLES')
-        o._queue = HBaseQueue(o.connection, o.queue_partitions, o.manager.logger.backend,
+        o._queue = HBaseQueue(o.connection, o.queue_partitions,
                               settings.get('HBASE_QUEUE_TABLE'), drop=drop_all_tables)
         o._metadata = HBaseMetadata(o.connection, settings.get('HBASE_METADATA_TABLE'), drop_all_tables,
                                     settings.get('HBASE_USE_SNAPPY'), settings.get('HBASE_BATCH_SIZE'),
@@ -462,5 +459,5 @@ class HBaseBackend(DistributedBackend):
             results = self.queue.get_next_requests(max_next_requests, partition_id, min_requests=64,
                                                    min_hosts=24, max_requests_per_host=128)
             next_pages.extend(results)
-            self.logger.debug("Got %d requests for partition id %d" % (len(results), partition_id))
+            self.logger.debug("Got %d requests for partition id %d", len(results), partition_id)
         return next_pages

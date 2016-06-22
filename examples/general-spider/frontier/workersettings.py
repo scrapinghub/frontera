@@ -26,12 +26,6 @@ MIDDLEWARES.extend([
     'frontera.contrib.middlewares.fingerprint.DomainFingerprintMiddleware'
 ])
 
-#--------------------------------------------------------
-# Logging
-#--------------------------------------------------------
-LOGGING_EVENTS_ENABLED = False
-LOGGING_MANAGER_ENABLED = True
-LOGGING_BACKEND_ENABLED = True
-LOGGING_DEBUGGING_ENABLED = False
+LOGGING_CONFIG='logging.conf'
 
 

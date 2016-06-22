@@ -13,14 +13,7 @@ MIDDLEWARES.extend([
 # Crawl frontier backend
 #--------------------------------------------------------
 BACKEND = 'frontera.contrib.backends.remote.messagebus.MessageBusBackend'
+SPIDER_FEED_PARTITIONS = 2
 
-#--------------------------------------------------------
-# Logging
-#--------------------------------------------------------
-LOGGING_ENABLED = True
-LOGGING_EVENTS_ENABLED = False
-LOGGING_MANAGER_ENABLED = False
-LOGGING_BACKEND_ENABLED = False
-LOGGING_DEBUGGING_ENABLED = False
 
 
