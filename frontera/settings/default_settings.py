@@ -7,6 +7,7 @@ CANONICAL_SOLVER = 'frontera.contrib.canonicalsolvers.Basic'
 CONSUMER_BATCH_SIZE = 512
 DELAY_ON_EMPTY = 5.0
 DOMAIN_FINGERPRINT_FUNCTION = 'frontera.utils.fingerprint.sha1'
+EVENT_LOG_MANAGER = 'frontera.logger.events.EventLogManager'
 
 HBASE_THRIFT_HOST = 'localhost'
 HBASE_THRIFT_PORT = 9090
@@ -19,6 +20,7 @@ HBASE_BATCH_SIZE = 9216
 HBASE_STATE_CACHE_SIZE_LIMIT = 3000000
 HBASE_QUEUE_TABLE = 'queue'
 KAFKA_GET_TIMEOUT = 5.0
+LOGGING_CONFIG = 'logging.conf'
 MAX_NEXT_REQUESTS = 64
 MAX_REQUESTS = 0
 MESSAGE_BUS = 'frontera.contrib.messagebus.zeromq.MessageBus'
@@ -55,4 +57,14 @@ URL_FINGERPRINT_FUNCTION = 'frontera.utils.fingerprint.sha1'
 ZMQ_ADDRESS = '127.0.0.1'
 ZMQ_BASE_PORT = 5550
 
-LOGGING_CONFIG = 'logging.conf'
+
+#--------------------------------------------------------
+# Kafka
+#--------------------------------------------------------
+KAFKA_COMPRESSION = None
+OUTGOING_TOPIC = "frontier-todo"
+INCOMING_TOPIC = "frontier-done"
+SCORING_TOPIC = "frontier-score"
+FRONTIER_GROUP = "general"
+SCORING_GROUP = "strategy-workers"
+KAFKA_USE_SIMPLE_CONSUMER = False

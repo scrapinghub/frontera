@@ -38,7 +38,6 @@ class BaseStreamProducer(object):
         """
         raise NotImplementedError
 
-    @abstractmethod
     def flush(self):
         """
         Flushes all internal buffers.
@@ -46,7 +45,6 @@ class BaseStreamProducer(object):
         """
         raise NotImplementedError
 
-    @abstractmethod
     def get_offset(self, partition_id):
         """
         Returns producer offset for partition. Raises KeyError, if partition isn't available or doesn't exist.

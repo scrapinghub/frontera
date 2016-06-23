@@ -1,8 +1,10 @@
 language: python
 python: 2.7
 env:
-  - TOXENV=py27
+  - TOXENV=py27 KAFKA_VERSION=0.8.2.2
   - TOXENV=flake8
+before_install:
+  - frontera/tests/kafka_integration.sh
 install:
   - pip install -U tox wheel
   - pip install -r requirements/tests.txt
@@ -12,6 +14,10 @@ before_script:
   - mysql -u root -e "set global innodb_file_per_table=true;"
   - frontera/tests/run_zmq_broker.sh
 script: tox
+cache:
+  directories:
+    - $HOME/.cache/pip
+    - servers/
 deploy:
   provider: pypi
   distributions: sdist bdist_wheel
