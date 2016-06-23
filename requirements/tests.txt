@@ -9,4 +9,4 @@ cachetools
 pyzmq
 msgpack-python
 kafka-python<=0.9.5
-
+pytest-cov
