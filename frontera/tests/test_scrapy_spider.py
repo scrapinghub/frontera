@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from twisted.internet import reactor
 from scrapy.crawler import Crawler
-from scrapy import log, signals
+from scrapy import signals
 from scrapy.settings import Settings
 from scrapy_spider.spiders.example import MySpider
 
