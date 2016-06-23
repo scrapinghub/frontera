@@ -10,7 +10,7 @@ before_script:
   - mysql -u root -e "set global innodb_large_prefix=1;"
   - mysql -u root -e "set global innodb_file_format='Barracuda';"
   - mysql -u root -e "set global innodb_file_per_table=true;"
-  - frontera/tests/run_zmq_broker.sh
+  - tests/run_zmq_broker.sh
 script: tox
 deploy:
   provider: pypi
