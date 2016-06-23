@@ -1,0 +1,95 @@
+{
+    "kind": "Deployment",
+    "apiVersion": "extensions/v1beta1",
+    "metadata": {
+        "name": "frontera-single-mode-deployment"
+    },
+    "spec": {
+        "replicas": 1,
+        "template": {
+            "metadata": {
+                "labels": {
+                    "app": "frontera"
+                }
+            },
+            "spec": {
+                "containers": [
+                    {
+                        "name": "zmq",
+                        "image": "tmrts/frontera",
+                        "command": [ "python" ],
+                        "args": [
+                            "-m", "frontera.contrib.messagebus.zeromq.broker"
+                        ]
+                    },
+                    {
+                        "name": "db-worker",
+                        "image": "tmrts/frontera",
+                        "volumeMounts": [
+                            {
+                                "name": "frontera-configuration",
+                                "mountPath": "/project"
+                            }
+                        ],
+                        "workingDir": "/project/frontera/examples/general-spider",
+                        "command": [ "python" ],
+                        "args": [
+                            "-m", "frontera.worker.db",
+                            "--config", "frontier.workersettings"
+                        ]
+                    },
+                    {
+                        "name": "spider1",
+                        "image": "tmrts/frontera",
+                        "volumeMounts": [
+                            {
+                                "name": "frontera-configuration",
+                                "mountPath": "/project"
+                            }
+                        ],
+                        "workingDir": "/project/frontera/examples/general-spider",
+                        "command": [ "scrapy", "crawl", "general" ],
+                        "args": [
+                            "-L", "INFO",
+                            "-s", "FRONTERA_SETTINGS=frontier.spider_settings",
+                            "-s", "SEEDS_SOURCE=./seeds_es_smp.txt",
+                            "-s", "SPIDER_PARTITION_ID=0"
+                        ],
+                        "env": [
+                            {
+                                "name": "SEED_FILE",
+                                "value": "./seeds_es_smp.txt"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "spider2",
+                        "image": "tmrts/frontera",
+                        "volumeMounts": [
+                            {
+                                "name": "frontera-configuration",
+                                "mountPath": "/project"
+                            }
+                        ],
+                        "workingDir": "/project/frontera/examples/general-spider",
+                        "command": [ "scrapy", "crawl", "general" ],
+                        "args": [
+                            "-L", "INFO",
+                            "-s", "FRONTERA_SETTINGS=frontier.spider_settings",
+                            "-s", "SPIDER_PARTITION_ID=1"
+                        ]
+                    }
+                ],
+                "volumes": [
+                    {
+                        "name": "frontera-configuration",
+                        "gitRepo": {
+                            "repository": "https://github.com/scrapinghub/frontera",
+                            "revision": "ff891abd2be29bb75cf55bc200738f3d1cff248a"
+                        }
+                    }
+                ]
+            }
+        }
+    }
+}
