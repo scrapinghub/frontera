@@ -1,0 +1,4 @@
+[run]
+branch = true
+source = frontera
+omit = frontera/tests/*
