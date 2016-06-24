@@ -29,19 +29,19 @@ class TestChunks(object):
 class TestLoadObject(object):
 
     def test_load_class(self):
-        obj = load_object('frontera.tests.mocks.load_objects.MockClass')
+        obj = load_object('tests.mocks.load_objects.MockClass')
         assert obj.val == 10
 
     def test_load_instance(self):
-        obj = load_object('frontera.tests.mocks.load_objects.mock_instance')
+        obj = load_object('tests.mocks.load_objects.mock_instance')
         assert obj.val == 5
 
     def test_load_variable(self):
-        obj = load_object('frontera.tests.mocks.load_objects.mock_variable')
+        obj = load_object('tests.mocks.load_objects.mock_variable')
         assert obj == 'test'
 
     def test_load_function(self):
-        obj = load_object('frontera.tests.mocks.load_objects.mock_function')
+        obj = load_object('tests.mocks.load_objects.mock_function')
         assert obj() == 2
 
     def test_value_error(self):
@@ -57,6 +57,6 @@ class TestLoadObject(object):
 
     def test_name_error(self):
         with pytest.raises(NameError) as info:
-            load_object('frontera.tests.mocks.load_objects.non_existent_object')
-        assert info.value.message == ("Module 'frontera.tests.mocks.load_objects' doesn't define"
+            load_object('tests.mocks.load_objects.non_existent_object')
+        assert info.value.message == ("Module 'tests.mocks.load_objects' doesn't define"
                                       " any object named 'non_existent_object'")

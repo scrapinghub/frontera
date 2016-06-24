@@ -12,12 +12,12 @@ class TestFrontierManager(object):
 
     def setup_frontier_manager(self, settings=None):
         settings = settings or Settings()
-        settings.BACKEND = 'frontera.tests.mocks.components.FakeBackend'
-        settings.MIDDLEWARES = ['frontera.tests.mocks.components.FakeMiddleware',
-                                'frontera.tests.mocks.components.FakeMiddlewareModifySeeds',
-                                'frontera.tests.mocks.components.FakeMiddlewareModifyResponse',
-                                'frontera.tests.mocks.components.FakeMiddlewareModifyLinks']
-        settings.CANONICAL_SOLVER = 'frontera.tests.mocks.components.FakeCanonicalSolver'
+        settings.BACKEND = 'tests.mocks.components.FakeBackend'
+        settings.MIDDLEWARES = ['tests.mocks.components.FakeMiddleware',
+                                'tests.mocks.components.FakeMiddlewareModifySeeds',
+                                'tests.mocks.components.FakeMiddlewareModifyResponse',
+                                'tests.mocks.components.FakeMiddlewareModifyLinks']
+        settings.CANONICAL_SOLVER = 'tests.mocks.components.FakeCanonicalSolver'
         return FrontierManager.from_settings(settings)
 
     def test_start(self):
@@ -98,13 +98,13 @@ class TestFrontierManager(object):
 
     def test_blocking_middleware(self):
         settings = Settings()
-        settings.BACKEND = 'frontera.tests.mocks.components.FakeBackend'
-        settings.MIDDLEWARES = ['frontera.tests.mocks.components.FakeMiddleware',
-                                'frontera.tests.mocks.components.FakeMiddlewareModifySeeds',
-                                'frontera.tests.mocks.components.FakeMiddlewareBlocking',
-                                'frontera.tests.mocks.components.FakeMiddlewareModifyResponse',
-                                'frontera.tests.mocks.components.FakeMiddlewareModifyLinks']
-        settings.CANONICAL_SOLVER = 'frontera.tests.mocks.components.FakeCanonicalSolver'
+        settings.BACKEND = 'tests.mocks.components.FakeBackend'
+        settings.MIDDLEWARES = ['tests.mocks.components.FakeMiddleware',
+                                'tests.mocks.components.FakeMiddlewareModifySeeds',
+                                'tests.mocks.components.FakeMiddlewareBlocking',
+                                'tests.mocks.components.FakeMiddlewareModifyResponse',
+                                'tests.mocks.components.FakeMiddlewareModifyLinks']
+        settings.CANONICAL_SOLVER = 'tests.mocks.components.FakeCanonicalSolver'
         fm = FrontierManager.from_settings(settings)
         fm.add_seeds([r1, r2, r3])
         response = Response(r1.url, request=r1)

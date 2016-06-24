@@ -1,6 +1,6 @@
 from frontera.contrib.scrapy.schedulers.frontier import FronteraScheduler
-from frontera.tests.mocks.frontier_manager import FakeFrontierManager
-from frontera.tests.mocks.crawler import FakeCrawler
+from tests.mocks.frontier_manager import FakeFrontierManager
+from tests.mocks.crawler import FakeCrawler
 from frontera.core.models import Request as FRequest
 from frontera.core.models import Response as FResponse
 from scrapy.http import Request, Response
