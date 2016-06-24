@@ -5,7 +5,6 @@ from frontera.core.messagebus import BaseMessageBus, BaseSpiderLogStream, BaseSp
 
 from kafka import KafkaClient, SimpleConsumer, KeyedProducer as KafkaKeyedProducer, SimpleProducer as KafkaSimpleProducer
 from kafka.common import BrokerResponseError, MessageSizeTooLargeError
-from kafka.protocol import CODEC_SNAPPY
 
 from frontera.contrib.backends.partitioners import FingerprintPartitioner, Crc32NamePartitioner
 from frontera.contrib.messagebus.kafka import OffsetsFetcher
@@ -69,13 +68,14 @@ class Consumer(BaseStreamConsumer):
 
 
 class SimpleProducer(BaseStreamProducer):
-    def __init__(self, connection, topic):
+    def __init__(self, connection, topic, codec):
         self._connection = connection
         self._topic = topic
+        self._codec = codec
         self._create()
 
     def _create(self):
-        self._producer = KafkaSimpleProducer(self._connection, codec=CODEC_SNAPPY)
+        self._producer = KafkaSimpleProducer(self._connection, codec=self._codec)
 
     def send(self, key, *messages):
         self._producer.send_messages(self._topic, *messages)
@@ -91,16 +91,17 @@ class SimpleProducer(BaseStreamProducer):
 
 
 class KeyedProducer(BaseStreamProducer):
-    def __init__(self, connection, topic_done, partitioner_cls):
+    def __init__(self, connection, topic_done, partitioner_cls, codec):
         self._prod = None
         self._conn = connection
         self._topic_done = topic_done
         self._partitioner_cls = partitioner_cls
+        self._codec = codec
 
     def _connect_producer(self):
         if self._prod is None:
             try:
-                self._prod = KafkaKeyedProducer(self._conn, partitioner=self._partitioner_cls, codec=CODEC_SNAPPY)
+                self._prod = KafkaKeyedProducer(self._conn, partitioner=self._partitioner_cls, codec=self._codec)
             except BrokerResponseError:
                 self._prod = None
                 logger.warning("Could not connect producer to Kafka server")
@@ -143,9 +144,10 @@ class SpiderLogStream(BaseSpiderLogStream):
         self._db_group = messagebus.general_group
         self._sw_group = messagebus.sw_group
         self._topic_done = messagebus.topic_done
+        self._codec = messagebus.codec
 
     def producer(self):
-        return KeyedProducer(self._conn, self._topic_done, FingerprintPartitioner)
+        return KeyedProducer(self._conn, self._topic_done, FingerprintPartitioner, self._codec)
 
     def consumer(self, partition_id, type):
         """
@@ -166,6 +168,7 @@ class SpiderFeedStream(BaseSpiderFeedStream):
         self._max_next_requests = messagebus.max_next_requests
         self._hostname_partitioning = messagebus.hostname_partitioning
         self._offset_fetcher = OffsetsFetcher(self._conn, self._topic, self._general_group)
+        self._codec = messagebus.codec
 
     def consumer(self, partition_id):
         return Consumer(self._conn, self._topic, self._general_group, partition_id)
@@ -180,7 +183,7 @@ class SpiderFeedStream(BaseSpiderFeedStream):
 
     def producer(self):
         partitioner = Crc32NamePartitioner if self._hostname_partitioning else FingerprintPartitioner
-        return KeyedProducer(self._conn, self._topic, partitioner)
+        return KeyedProducer(self._conn, self._topic, partitioner, self._codec)
 
 
 class ScoringLogStream(BaseScoringLogStream):
@@ -188,12 +191,13 @@ class ScoringLogStream(BaseScoringLogStream):
         self._topic = messagebus.topic_scoring
         self._group = messagebus.general_group
         self._conn = messagebus.conn
+        self._codec = messagebus.codec
 
     def consumer(self):
         return Consumer(self._conn, self._topic, self._group, partition_id=None)
 
     def producer(self):
-        return SimpleProducer(self._conn, self._topic)
+        return SimpleProducer(self._conn, self._topic, self._codec)
 
 
 class MessageBus(BaseMessageBus):
@@ -207,6 +211,7 @@ class MessageBus(BaseMessageBus):
         self.spider_partition_id = settings.get('SPIDER_PARTITION_ID')
         self.max_next_requests = settings.MAX_NEXT_REQUESTS
         self.hostname_partitioning = settings.get('QUEUE_HOSTNAME_PARTITIONING')
+        self.codec = settings.get('KAFKA_CODEC_LEGACY')
 
         self.conn = KafkaClient(server)
 

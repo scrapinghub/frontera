@@ -73,7 +73,7 @@ Now, let's create a Frontera workers settings file under ``frontera`` subfolder 
     #--------------------------------------------------------
     # Url storage
     #--------------------------------------------------------
-    BACKEND = 'distributed_frontera.contrib.backends.hbase.HBaseBackend'
+    BACKEND = 'frontera.contrib.backends.hbase.HBaseBackend'
     HBASE_DROP_ALL_TABLES = False
     HBASE_THRIFT_PORT = 9090
     HBASE_THRIFT_HOST = 'localhost'
@@ -98,7 +98,7 @@ Configure Frontera spiders
 ==========================
 Next step is to create Frontera settings file and point Scrapy to it.::
 
-    from distributed_frontera.settings.default_settings import MIDDLEWARES
+    from frontera.settings.default_settings import MIDDLEWARES
 
     MAX_NEXT_REQUESTS = 256
 
@@ -110,7 +110,7 @@ Next step is to create Frontera settings file and point Scrapy to it.::
     #--------------------------------------------------------
     # Crawl frontier backend
     #--------------------------------------------------------
-    BACKEND = 'distributed_frontera.backends.remote.KafkaOverusedBackend'
+    BACKEND = 'frontera.backends.remote.messagebus.MessageBusBackend'
 
     #--------------------------------------------------------
     # Logging
