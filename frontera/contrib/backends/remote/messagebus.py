@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 from frontera import Backend
 from frontera.core import OverusedBuffer
-from codecs.msgpack import Encoder, Decoder
+from .codecs.msgpack import Encoder, Decoder
 from frontera.utils.misc import load_object
 import logging
 
@@ -50,7 +51,7 @@ class MessageBusBackend(Backend):
         for encoded in self.consumer.get_messages(count=max_n_requests, timeout=self._get_timeout):
             try:
                 request = self._decoder.decode_request(encoded)
-            except Exception, exc:
+            except Exception as exc:
                 self._logger.warning("Could not decode message: {0}, error {1}".format(encoded, str(exc)))
             else:
                 requests.append(request)

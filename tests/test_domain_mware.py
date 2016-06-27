@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import unittest
 from frontera.contrib.middlewares.domain import DomainMiddleware
 from frontera.core.manager import FrontierManager

@@ -1,4 +1,7 @@
+from __future__ import absolute_import
 import copy
+from w3lib.util import to_native_str
+from w3lib.url import safe_url_string
 
 
 class FrontierObject(object):
@@ -22,7 +25,7 @@ class Request(FrontierObject):
         :param dict meta: dictionary that contains arbitrary metadata for this request.
         """
         self._url = url
-        self._method = str(method).upper()
+        self._method = to_native_str(method or 'GET').upper()
         self._headers = headers or {}
         self._cookies = cookies or {}
         self._meta = meta or {'scrapy_meta': {}}

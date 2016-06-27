@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from frontera.contrib.scrapy.schedulers.frontier import FronteraScheduler
 from tests.mocks.frontier_manager import FakeFrontierManager
 from tests.mocks.crawler import FakeCrawler
@@ -6,6 +7,7 @@ from frontera.core.models import Response as FResponse
 from scrapy.http import Request, Response
 from scrapy.spiders import Spider
 from scrapy.settings import Settings
+from six.moves import range
 
 
 # test requests
@@ -116,7 +118,8 @@ class TestFronteraScheduler(object):
         crawler = FakeCrawler()
         fs = FronteraScheduler(crawler, manager=FakeFrontierManager)
         fs.open(Spider)
-        assert sorted(list(fs.process_spider_output(resp, result, Spider))) == sorted([i1, i2])
+        assert sorted(list(fs.process_spider_output(resp, result, Spider)), key=lambda i: sorted(i['item'])) == \
+            sorted([i1, i2], key=lambda i: sorted(i['item']))
         assert isinstance(fs.frontier.manager.responses[0], FResponse)
         assert fs.frontier.manager.responses[0].url == resp.url
         assert set([request.url for request in fs.frontier.manager.links]) == set([r1.url, r2.url, r3.url])

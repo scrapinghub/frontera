@@ -1,5 +1,8 @@
+from __future__ import absolute_import
 from importlib import import_module
 from zlib import crc32
+from six.moves import range
+from w3lib.util import to_bytes
 
 
 def load_object(path):
@@ -29,11 +32,11 @@ def load_object(path):
 
 
 def get_crc32(name):
-    return crc32(name) if type(name) is str else crc32(name.encode('utf-8', 'ignore'))
+    return crc32(to_bytes(name, 'utf-8', 'ignore'))
 
 
 def chunks(l, n):
-    for i in xrange(0, len(l), n):
+    for i in range(0, len(l), n):
         yield l[i:i+n]
 
 

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from urlparse import urlparse
+from __future__ import absolute_import
+from six.moves.urllib.parse import urlparse
 from frontera.core.components import States
 from frontera.worker.strategies import BaseCrawlingStrategy
 

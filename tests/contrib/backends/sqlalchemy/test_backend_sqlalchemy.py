@@ -141,7 +141,7 @@ class DBBackendTest(object):
 #----------------------------------------------------
 class Mysql(DBBackendTest):
 
-    DB_ENGINE = 'mysql://root:@localhost/backend_test'
+    DB_ENGINE = 'mysql+pymysql://root:@localhost/backend_test'
     DB_HOST = 'localhost'
     DB_USER = 'root'
     DB_PASSWORD = ''

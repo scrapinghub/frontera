@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 import logging
 from traceback import format_stack
 from signal import signal, SIGUSR1
@@ -18,7 +19,9 @@ from frontera.contrib.backends.remote.codecs.msgpack import Decoder, Encoder
 from frontera.settings import Settings
 from frontera.utils.misc import load_object
 from frontera.utils.async import CallLaterOnce
-from server import WorkerJsonRpcService
+from .server import WorkerJsonRpcService
+import six
+from six.moves import map
 
 logger = logging.getLogger("db-worker")
 
@@ -116,7 +119,7 @@ class DBWorker(object):
         self._manager.stop()
 
     def log_status(self):
-        for k, v in self.stats.iteritems():
+        for k, v in six.iteritems(self.stats):
             logger.info("%s=%s", k, v)
 
     def disable_new_batches(self):
@@ -130,7 +133,7 @@ class DBWorker(object):
         for m in self.spider_log_consumer.get_messages(timeout=1.0, count=self.spider_log_consumer_batch_size):
             try:
                 msg = self._decoder.decode(m)
-            except (KeyError, TypeError), e:
+            except (KeyError, TypeError) as e:
                 logger.error("Decoding error: %s", e)
                 continue
             else:
@@ -189,7 +192,7 @@ class DBWorker(object):
         for m in self.scoring_log_consumer.get_messages(count=self.scoring_log_consumer_batch_size):
             try:
                 msg = self._decoder.decode(m)
-            except (KeyError, TypeError), e:
+            except (KeyError, TypeError) as e:
                 logger.error("Decoding error: %s", e)
                 continue
             else:
@@ -213,7 +216,7 @@ class DBWorker(object):
         def get_hostname(request):
             try:
                 netloc, name, scheme, sld, tld, subdomain = parse_domain_from_url_fast(request.url)
-            except Exception, e:
+            except Exception as e:
                 logger.error("URL parsing error %s, fingerprint %s, url %s" % (e, request.meta['fingerprint'],
                                                                                request.url))
                 return None
@@ -240,7 +243,7 @@ class DBWorker(object):
             try:
                 request.meta['jid'] = self.job_id
                 eo = self._encoder.encode_request(request)
-            except Exception, e:
+            except Exception as e:
                 logger.error("Encoding error, %s, fingerprint: %s, url: %s" % (e,
                                                                                request.meta['fingerprint'],
                                                                                request.url))

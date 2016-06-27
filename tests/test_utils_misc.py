@@ -1,5 +1,7 @@
+from __future__ import absolute_import
 import pytest
 from frontera.utils.misc import load_object, get_crc32, chunks
+import six
 
 
 class TestGetCRC32(object):
@@ -12,6 +14,9 @@ class TestGetCRC32(object):
 
     def test_non_ascii_unicode(self):
         assert get_crc32(u'example\u5000') == 1259721235
+
+    def test_non_ascii_bytes(self):
+        assert get_crc32(u'example\u5000'.encode('utf8')) == 1259721235
 
 
 class TestChunks(object):
@@ -47,16 +52,20 @@ class TestLoadObject(object):
     def test_value_error(self):
         with pytest.raises(ValueError) as info:
             load_object('frontera')
-        assert info.value.message == "Error loading object 'frontera': not a full path"
+        assert str(info.value) == "Error loading object 'frontera': not a full path"
 
     def test_import_error(self):
         with pytest.raises(ImportError) as info:
             load_object('frontera.non_existent_module.object')
-        assert info.value.message == ("Error loading object 'frontera.non_existent_module.object'"
-                                      ": No module named non_existent_module")
+        if six.PY2:
+            assert str(info.value) == ("Error loading object 'frontera.non_existent_module.object'"
+                                       ": No module named non_existent_module")
+        else:
+            assert str(info.value) == ("Error loading object 'frontera.non_existent_module.object'"
+                                       ": No module named 'frontera.non_existent_module'")
 
     def test_name_error(self):
         with pytest.raises(NameError) as info:
             load_object('tests.mocks.load_objects.non_existent_object')
-        assert info.value.message == ("Module 'tests.mocks.load_objects' doesn't define"
-                                      " any object named 'non_existent_object'")
+        assert str(info.value) == ("Module 'tests.mocks.load_objects' doesn't define"
+                                   " any object named 'non_existent_object'")

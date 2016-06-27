@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 import logging
 import random
-from collections import deque
+from collections import deque, Iterable
 
 from frontera.contrib.backends import CommonBackend
 from frontera.core.components import Metadata, Queue, States
@@ -9,6 +9,13 @@ from frontera.core import OverusedBuffer
 from frontera.utils.heap import Heap
 from frontera.contrib.backends.partitioners import Crc32NamePartitioner
 from frontera.utils.url import parse_domain_from_url_fast
+import six
+from six.moves import map
+from six.moves import range
+
+
+def cmp(a, b):
+    return (a > b) - (a < b)
 
 
 class MemoryMetadata(Metadata):
@@ -52,7 +59,7 @@ class MemoryQueue(Queue):
             self.heap[partition] = Heap(self._compare_pages)
 
     def count(self):
-        return sum(map(lambda h: len(h.heap), self.heap.itervalues()))
+        return sum([len(h.heap) for h in six.itervalues(self.heap)])
 
     def get_next_requests(self, max_n_requests, partition_id, **kwargs):
         return self.heap[partition_id].pop(max_n_requests)
@@ -89,7 +96,7 @@ class MemoryDequeQueue(Queue):
             self.queues[partition] = deque()
 
     def count(self):
-        return sum(map(lambda h: len(h), self.queues.itervalues()))
+        return sum([len(h) for h in six.itervalues(self.queues)])
 
     def get_next_requests(self, max_n_requests, partition_id, **kwargs):
         batch = []
@@ -127,12 +134,12 @@ class MemoryStates(States):
         obj.meta['state'] = self._cache[fprint] if fprint in self._cache else States.DEFAULT
 
     def update_cache(self, objs):
-        objs = objs if type(objs) in [list, tuple] else [objs]
-        map(self._put, objs)
+        objs = objs if isinstance(objs, Iterable) else [objs]
+        [self._put(obj) for obj in objs]
 
     def set_states(self, objs):
-        objs = objs if type(objs) in [list, tuple] else [objs]
-        map(self._get, objs)
+        objs = objs if isinstance(objs, Iterable) else [objs]
+        [self._get(obj) for obj in objs]
 
     def fetch(self, fingerprints):
         pass

@@ -1,4 +1,9 @@
+from __future__ import absolute_import
 from frontera.utils.heap import Heap
+
+
+def cmp(a, b):
+    return (a > b) - (a < b)
 
 
 class TestHeap(object):

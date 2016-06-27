@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 import logging
 from datetime import datetime, timedelta
 from time import time, sleep
@@ -12,6 +13,7 @@ from frontera.contrib.backends.sqlalchemy.models import QueueModelMixin, Declara
 from frontera.core.components import Queue as BaseQueue, States
 from frontera.utils.misc import get_crc32
 from frontera.utils.url import parse_domain_from_url_fast
+from six.moves import range
 
 
 class RevisitingQueueModel(QueueModelMixin, DeclarativeBase):
@@ -26,7 +28,7 @@ def retry_and_rollback(func):
         while True:
             try:
                 return func(self, *args, **kwargs)
-            except Exception, exc:
+            except Exception as exc:
                 self.logger.exception(exc)
                 self.session.rollback()
                 sleep(5)
@@ -61,7 +63,7 @@ class RevisitingQueue(BaseQueue):
                 results.append(Request(item.url, method=method, meta=item.meta, headers=item.headers, cookies=item.cookies))
                 self.session.delete(item)
             self.session.commit()
-        except Exception, exc:
+        except Exception as exc:
             self.logger.exception(exc)
             self.session.rollback()
         return results

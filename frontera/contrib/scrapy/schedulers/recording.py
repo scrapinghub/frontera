@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import pprint
 
 from scrapy.core.scheduler import Scheduler

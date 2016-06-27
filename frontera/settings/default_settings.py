@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from datetime import timedelta
 
 
@@ -52,6 +53,7 @@ SQLALCHEMYBACKEND_MODELS = {
 }
 SQLALCHEMYBACKEND_REVISIT_INTERVAL = timedelta(days=1)
 STATE_CACHE_SIZE = 1000000
+STATE_CACHE_SIZE_LIMIT = 0
 STORE_CONTENT = False
 TEST_MODE = False
 TLDEXTRACT_DOMAIN_INFO = False

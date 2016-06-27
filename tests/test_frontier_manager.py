@@ -1,6 +1,8 @@
+from __future__ import absolute_import
 from frontera.core.manager import FrontierManager
 from frontera.settings import Settings
 from frontera.core.models import Request, Response
+from six.moves import range
 
 
 r1 = Request('http://www.example.com')
