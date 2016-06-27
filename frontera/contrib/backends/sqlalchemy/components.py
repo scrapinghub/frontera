@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 import logging
 from datetime import datetime
 from time import time, sleep
@@ -11,6 +12,8 @@ from frontera.core.components import Metadata as BaseMetadata, Queue as BaseQueu
 from frontera.core.models import Request, Response
 from frontera.utils.misc import get_crc32, chunks
 from frontera.utils.url import parse_domain_from_url_fast
+import six
+from six.moves import range
 
 
 def retry_and_rollback(func):
@@ -19,7 +22,7 @@ def retry_and_rollback(func):
         while True:
             try:
                 return func(self, *args, **kwargs)
-            except Exception, exc:
+            except Exception as exc:
                 self.logger.exception(exc)
                 self.session.rollback()
                 sleep(5)
@@ -129,7 +132,7 @@ class States(MemoryStates):
 
     @retry_and_rollback
     def flush(self, force_clear=False):
-        for fingerprint, state_val in self._cache.iteritems():
+        for fingerprint, state_val in six.iteritems(self._cache):
             state = self.model(fingerprint=fingerprint, state=state_val)
             self.session.merge(state)
         self.session.commit()
@@ -176,7 +179,7 @@ class Queue(BaseQueue):
                 results.append(r)
                 self.session.delete(item)
             self.session.commit()
-        except Exception, exc:
+        except Exception as exc:
             self.logger.exception(exc)
             self.session.rollback()
         return results
@@ -239,7 +242,7 @@ class BroadCrawlingQueue(Queue):
             tries += 1
             limit *= 5.5 if tries > 1 else 1.0
             self.logger.debug("Try %d, limit %d, last attempt: requests %d, hosts %d",
-                              tries, limit, count, len(queue.keys()))
+                              tries, limit, count, len(list(queue.keys())))
             queue.clear()
             count = 0
             for item in self._order_by(self.session.query(self.queue_model).filter_by(partition_id=partition_id)).\
@@ -252,15 +255,15 @@ class BroadCrawlingQueue(Queue):
                 count += 1
                 if count > max_n_requests:
                     break
-            if min_hosts is not None and len(queue.keys()) < min_hosts:
+            if min_hosts is not None and len(list(queue.keys())) < min_hosts:
                 continue
             if min_requests is not None and count < min_requests:
                 continue
             break
-        self.logger.debug("Finished: tries %d, hosts %d, requests %d", tries, len(queue.keys()), count)
+        self.logger.debug("Finished: tries %d, hosts %d, requests %d", tries, len(list(queue.keys())), count)
 
         results = []
-        for items in queue.itervalues():
+        for items in six.itervalues(queue):
             for item in items:
                 method = 'GET' if not item.method else str(item.method)
                 results.append(Request(item.url, method=method,

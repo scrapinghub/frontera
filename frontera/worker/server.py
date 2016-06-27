@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 from logging import getLogger
 from json import JSONDecoder, JSONEncoder
 from sys import exc_info
@@ -98,12 +99,12 @@ class JsonRpcResource(JsonResource):
         try:
             try:
                 return self.process_request(method, jrequest)
-            except Exception, err:
+            except Exception as err:
                 if isinstance(err, JsonRpcError):
                     raise err
                 trace_lines = format_exception(*exc_info())
                 raise JsonRpcError(500, "Error processing request: %s" % (str("").join(trace_lines)))
-        except JsonRpcError, err:
+        except JsonRpcError as err:
             return err(jrequest['id'])
 
 
@@ -127,7 +128,7 @@ class WorkerJsonRpcResource(JsonRpcResource):
 class RootResource(JsonResource):
 
     def render_GET(self, txrequest):
-        return {'resources': self.children.keys()}
+        return {'resources': list(self.children.keys())}
 
     def getChild(self, name, txrequest):
         if name == '':

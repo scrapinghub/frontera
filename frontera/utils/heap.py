@@ -1,11 +1,13 @@
+from __future__ import absolute_import
+from __future__ import print_function
 import heapq
 import math
-from cStringIO import StringIO
+from io import StringIO
 
 
 def show_tree(tree, total_width=80, fill=' '):
     """Pretty-print a tree."""
-    print '-' * total_width
+    print('-' * total_width)
     output = StringIO()
     last_row = -1
     for i, n in enumerate(tree):
@@ -19,9 +21,9 @@ def show_tree(tree, total_width=80, fill=' '):
         col_width = int(math.floor((total_width * 1.0) / columns))
         output.write(str(n).center(col_width, fill))
         last_row = row
-    print output.getvalue()
-    print '-' * total_width
-    print
+    print(output.getvalue())
+    print('-' * total_width)
+    print()
     return
 
 

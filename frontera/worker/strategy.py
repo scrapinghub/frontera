@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 from time import asctime
 import logging
 from traceback import format_stack
@@ -17,6 +18,7 @@ from frontera.settings import Settings
 from frontera.contrib.backends.remote.codecs.msgpack import Decoder, Encoder
 from collections import Sequence
 from binascii import hexlify
+import six
 
 
 logger = logging.getLogger("strategy-worker")
@@ -55,7 +57,7 @@ class StatesContext(object):
 
     def to_fetch(self, requests):
         if isinstance(requests, Sequence):
-            self._fingerprints.update(map(lambda x: x.meta['fingerprint'], requests))
+            self._fingerprints.update([x.meta['fingerprint'] for x in requests])
             return
         self._fingerprints.add(requests.meta['fingerprint'])
 
@@ -120,7 +122,7 @@ class StrategyWorker(object):
         for m in self.consumer.get_messages(count=self.consumer_batch_size, timeout=1.0):
             try:
                 msg = self._decoder.decode(m)
-            except (KeyError, TypeError), e:
+            except (KeyError, TypeError) as e:
                 logger.error("Decoding error:")
                 logger.exception(e)
                 logger.debug("Message %s", hexlify(m))
@@ -148,7 +150,7 @@ class StrategyWorker(object):
                     if type == 'offset':
                         continue
                     raise TypeError('Unknown message type %s' % type)
-                except Exception, exc:
+                except Exception as exc:
                     logger.exception(exc)
                     pass
             finally:
@@ -181,7 +183,7 @@ class StrategyWorker(object):
                         continue
                     self.on_request_error(request, error)
                     continue
-            except Exception, exc:
+            except Exception as exc:
                 logger.exception(exc)
                 pass
 
@@ -216,7 +218,7 @@ class StrategyWorker(object):
         reactor.run()
 
     def log_status(self):
-        for k, v in self.stats.iteritems():
+        for k, v in six.iteritems(self.stats):
             logger.info("%s=%s", k, v)
 
     def stop(self):

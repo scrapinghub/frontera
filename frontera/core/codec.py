@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 from abc import ABCMeta, abstractmethod
+import six
 
 
-class BaseDecoder(object):
-    __metaclass__ = ABCMeta
-
+class BaseDecoder(six.with_metaclass(ABCMeta, object)):
     @abstractmethod
     def decode(self, buffer):
         """
@@ -26,9 +26,7 @@ class BaseDecoder(object):
         pass
 
 
-class BaseEncoder(object):
-    __metaclass__ = ABCMeta
-
+class BaseEncoder(six.with_metaclass(ABCMeta, object)):
     @abstractmethod
     def encode_add_seeds(self, seeds):
         """

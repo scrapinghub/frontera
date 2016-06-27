@@ -9,6 +9,9 @@ from frontera.core import OverusedBuffer
 from frontera.utils.heap import Heap
 from frontera.contrib.backends.partitioners import Crc32NamePartitioner
 from frontera.utils.url import parse_domain_from_url_fast
+import six
+from six.moves import map
+from six.moves import range
 
 
 class MemoryMetadata(Metadata):
@@ -52,7 +55,7 @@ class MemoryQueue(Queue):
             self.heap[partition] = Heap(self._compare_pages)
 
     def count(self):
-        return sum(map(lambda h: len(h.heap), self.heap.itervalues()))
+        return sum([len(h.heap) for h in six.itervalues(self.heap)])
 
     def get_next_requests(self, max_n_requests, partition_id, **kwargs):
         return self.heap[partition_id].pop(max_n_requests)
@@ -89,7 +92,7 @@ class MemoryDequeQueue(Queue):
             self.queues[partition] = deque()
 
     def count(self):
-        return sum(map(lambda h: len(h), self.queues.itervalues()))
+        return sum([len(h) for h in six.itervalues(self.queues)])
 
     def get_next_requests(self, max_n_requests, partition_id, **kwargs):
         batch = []
@@ -128,11 +131,11 @@ class MemoryStates(States):
 
     def update_cache(self, objs):
         objs = objs if type(objs) in [list, tuple] else [objs]
-        map(self._put, objs)
+        list(map(self._put, objs))
 
     def set_states(self, objs):
         objs = objs if type(objs) in [list, tuple] else [objs]
-        map(self._get, objs)
+        list(map(self._get, objs))
 
     def fetch(self, fingerprints):
         pass

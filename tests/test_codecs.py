@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
 from frontera.contrib.backends.remote.codecs.json import Encoder as JsonEncoder, Decoder as JsonDecoder
 from frontera.contrib.backends.remote.codecs.msgpack import Encoder as MsgPackEncoder, Decoder as MsgPackDecoder
 from frontera.core.models import Request, Response
@@ -33,14 +34,14 @@ def test_codec(encoder, decoder):
 
     it = iter(msgs)
 
-    o = dec.decode(it.next())
+    o = dec.decode(next(it))
     assert o[0] == 'add_seeds'
     assert type(o[1]) == list
     req_d = o[1][0]
     check_request(req_d, req)
     assert type(req_d) == Request
 
-    o = dec.decode(it.next())
+    o = dec.decode(next(it))
     assert o[0] == 'page_crawled'
     assert type(o[1]) == Response
     assert o[1].url == req.url and o[1].body == 'SOME CONTENT' and o[1].meta == req.meta
@@ -50,26 +51,26 @@ def test_codec(encoder, decoder):
     assert type(req_d) == Request
     assert req_d.url == req2.url
 
-    o_type, o_req, o_error = dec.decode(it.next())
+    o_type, o_req, o_error = dec.decode(next(it))
     assert o_type == 'request_error'
     check_request(o_req, req)
     assert o_error == "Host not found"
 
-    o_type, fprint, score, url, schedule = dec.decode(it.next())
+    o_type, fprint, score, url, schedule = dec.decode(next(it))
     assert o_type == 'update_score'
     assert fprint == "1be68ff556fd0bbe5802d1a100850da29f7f15b1"
     assert score == 0.51
     assert url == "http://yandex.ru"
     assert schedule is True
 
-    o_type, job_id = dec.decode(it.next())
+    o_type, job_id = dec.decode(next(it))
     assert o_type == 'new_job_id'
     assert job_id == 1
 
-    o_type, partition_id, offset = dec.decode(it.next())
+    o_type, partition_id, offset = dec.decode(next(it))
     assert o_type == 'offset'
     assert partition_id == 0
     assert offset == 28796
 
-    o = dec.decode_request(it.next())
+    o = dec.decode_request(next(it))
     check_request(o, req)

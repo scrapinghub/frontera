@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 from abc import ABCMeta, abstractmethod
+import six
 
 
-class BaseStreamConsumer(object):
-    __metaclass__ = ABCMeta
-
+class BaseStreamConsumer(six.with_metaclass(ABCMeta, object)):
     @abstractmethod
     def get_messages(self, timeout=0.1, count=1):
         """
@@ -26,9 +26,7 @@ class BaseStreamConsumer(object):
         raise NotImplementedError
 
 
-class BaseStreamProducer(object):
-    __metaclass__ = ABCMeta
-
+class BaseStreamProducer(six.with_metaclass(ABCMeta, object)):
     @abstractmethod
     def send(self, key, *messages):
         """
@@ -56,13 +54,12 @@ class BaseStreamProducer(object):
         raise NotImplementedError
 
 
-class BaseSpiderLogStream(object):
+class BaseSpiderLogStream(six.with_metaclass(ABCMeta, object)):
     """
     Spider Log Stream base class. This stream transfers results from spiders to Strategy and DB workers. Any producer
     can write to any partition of this stream. Consumers can be bound to specific partition (SW worker) or not
     bounded (DB worker) to any partition.
     """
-    __metaclass__ = ABCMeta
 
     @abstractmethod
     def producer(self):
@@ -83,12 +80,11 @@ class BaseSpiderLogStream(object):
         raise NotImplementedError
 
 
-class BaseScoringLogStream(object):
+class BaseScoringLogStream(six.with_metaclass(ABCMeta, object)):
     """
     Scoring log stream base class. This stream is transfering score and scheduling information from Strategy workers to
     DB Workers. This type of stream isn't requiring any partitioning.
     """
-    __metaclass__ = ABCMeta
 
     @abstractmethod
     def consumer(self):
@@ -105,13 +101,12 @@ class BaseScoringLogStream(object):
         raise NotImplementedError
 
 
-class BaseSpiderFeedStream(object):
+class BaseSpiderFeedStream(six.with_metaclass(ABCMeta, object)):
     """
     Spider Feed Stream base class. This stream transfers new batches from DB worker to spiders. Every consumer is
     strictly bounded to specific partition, and producer could write to any partition. This class also has methods
     for reporting of busy/available partitions. DB worker is pushing new batches only to available partitions.
     """
-    __metaclass__ = ABCMeta
 
     @abstractmethod
     def consumer(self, partition_id):
@@ -156,11 +151,10 @@ class BaseSpiderFeedStream(object):
         pass
 
 
-class BaseMessageBus(object):
+class BaseMessageBus(six.with_metaclass(ABCMeta, object)):
     """
     Main message bus class, encapsulating message bus context. Serving as a factory for stream-specific objects.
     """
-    __metaclass__ = ABCMeta
 
     @abstractmethod
     def scoring_log(self):

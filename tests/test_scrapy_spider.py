@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 from twisted.internet import reactor
 from scrapy.crawler import Crawler
 from scrapy import signals

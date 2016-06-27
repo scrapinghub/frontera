@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from scrapy.linkextractors import LinkExtractor
 from scrapy.linkextractors.regex import RegexLinkExtractor
 from scrapy.spiders import CrawlSpider, Rule

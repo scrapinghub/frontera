@@ -1,5 +1,7 @@
+from __future__ import absolute_import
 from importlib import import_module
 from zlib import crc32
+from six.moves import range
 
 
 def load_object(path):
@@ -33,7 +35,7 @@ def get_crc32(name):
 
 
 def chunks(l, n):
-    for i in xrange(0, len(l), n):
+    for i in range(0, len(l), n):
         yield l[i:i+n]
 
 

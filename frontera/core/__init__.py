@@ -1,6 +1,8 @@
-from urlparse import urlparse
+from __future__ import absolute_import
+from six.moves.urllib.parse import urlparse
 from socket import getaddrinfo
 from collections import deque
+import six
 
 
 def get_slot_key(request, type):  # TODO: Probably use caching here
@@ -44,7 +46,7 @@ class OverusedBuffer(object):
         try:
             while True:
                 left = 0
-                for key, pending in self._pending.iteritems():
+                for key, pending in six.iteritems(self._pending):
                     if key in overused_set:
                         continue
 
@@ -66,7 +68,7 @@ class OverusedBuffer(object):
     def get_next_requests(self, max_n_requests, **kwargs):
         if self._log:
             self._log("Overused keys: %s" % str(kwargs['overused_keys']))
-            self._log("Pending: %i" % (sum([len(pending) for pending in self._pending.itervalues()])))
+            self._log("Pending: %i" % (sum([len(pending) for pending in six.itervalues(self._pending)])))
 
         overused_set = set(kwargs['overused_keys'])
         requests = self._get_pending(max_n_requests, overused_set)

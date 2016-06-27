@@ -4,12 +4,14 @@ from __future__ import absolute_import
 from msgpack import packb, unpackb
 
 from frontera.core.codec import BaseDecoder, BaseEncoder
+import six
+from six.moves import map
 
 
 def _prepare_request_message(request):
     def serialize(obj):
         """Recursively walk object's hierarchy."""
-        if isinstance(obj, (bool, int, long, float, basestring)):
+        if isinstance(obj, (bool, int, float, six.string_types)):
             return obj
         elif isinstance(obj, dict):
             obj = obj.copy()
@@ -36,10 +38,10 @@ class Encoder(BaseEncoder):
         self.send_body = True if 'send_body' in kw and kw['send_body'] else False
 
     def encode_add_seeds(self, seeds):
-        return packb(['as', map(_prepare_request_message, seeds)])
+        return packb(['as', list(map(_prepare_request_message, seeds))])
 
     def encode_page_crawled(self, response, links):
-        return packb(['pc', _prepare_response_message(response, self.send_body), map(_prepare_request_message, links)])
+        return packb(['pc', _prepare_response_message(response, self.send_body), list(map(_prepare_request_message, links))])
 
     def encode_request_error(self, request, error):
         return packb(['re', _prepare_request_message(request), str(error)])
@@ -80,13 +82,13 @@ class Decoder(BaseDecoder):
         if obj[0] == 'pc':
             return ('page_crawled',
                     self._response_from_object(obj[1]),
-                    map(self._request_from_object, obj[2]))
+                    list(map(self._request_from_object, obj[2])))
         if obj[0] == 'us':
             return ('update_score', str(obj[1]), obj[2], str(obj[3]), obj[4])
         if obj[0] == 're':
             return ('request_error', self._request_from_object(obj[1]), obj[2])
         if obj[0] == 'as':
-            return ('add_seeds', map(self._request_from_object, obj[1]))
+            return ('add_seeds', list(map(self._request_from_object, obj[1])))
         if obj[0] == 'njid':
             return ('new_job_id', int(obj[1]))
         if obj[0] == 'of':
