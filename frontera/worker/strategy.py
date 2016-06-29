@@ -191,8 +191,8 @@ class StrategyWorker(object):
             logger.info("Successfully reached the crawling goal.")
             logger.info("Closing crawling strategy.")
             self.strategy.close()
-            logger.info("Exiting.")
-            exit(0)
+            logger.info("Finishing.")
+            reactor.callFromThread(reactor.stop)
 
         self.stats['last_consumed'] = consumed
         self.stats['last_consumption_run'] = asctime()
