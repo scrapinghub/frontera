@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from time import asctime
 import logging
+from traceback import format_stack
+from signal import signal, SIGUSR1
 from logging.config import fileConfig
 from argparse import ArgumentParser
 from os.path import exists
@@ -202,8 +204,14 @@ class StrategyWorker(object):
         def errback(failure):
             logger.exception(failure.value)
             self.task.start(interval=0).addErrback(errback)
+
+        def debug(sig, frame):
+            logger.critical("Signal received: printing stack trace")
+            logger.critical(str("").join(format_stack(frame)))
+
         self.task.start(interval=0).addErrback(errback)
         self._logging_task.start(interval=30)
+        signal(SIGUSR1, debug)
         reactor.addSystemEventTrigger('before', 'shutdown', self.stop)
         reactor.run()
 

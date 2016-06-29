@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
+from traceback import format_stack
+from signal import signal, SIGUSR1
 from logging.config import fileConfig
 from argparse import ArgumentParser
 from time import asctime
@@ -99,8 +101,13 @@ class DBWorker(object):
         self.process_info = process_info
 
     def run(self):
+        def debug(sig, frame):
+            logger.critical("Signal received: printing stack trace")
+            logger.critical(str("").join(format_stack(frame)))
+
         self.slot.schedule(on_start=True)
         self._logging_task.start(30)
+        signal(SIGUSR1, debug)
         reactor.addSystemEventTrigger('before', 'shutdown', self.stop)
         reactor.run()
 
