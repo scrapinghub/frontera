@@ -81,7 +81,8 @@ class DBWorker(object):
         else:
             self.strategy_enabled = False
 
-        self.consumer_batch_size = settings.get('CONSUMER_BATCH_SIZE')
+        self.spider_log_consumer_batch_size = settings.get('SPIDER_LOG_CONSUMER_BATCH_SIZE')
+        self.scoring_log_consumer_batch_size = settings.get('SCORING_LOG_CONSUMER_BATCH_SIZE')
         self.spider_feed_partitioning = 'fingerprint' if not settings.get('QUEUE_HOSTNAME_PARTITIONING') else 'hostname'
         self.max_next_requests = settings.MAX_NEXT_REQUESTS
         self.slot = Slot(self.new_batch, self.consume_incoming, self.consume_scoring, no_batches,
@@ -119,7 +120,7 @@ class DBWorker(object):
 
     def consume_incoming(self, *args, **kwargs):
         consumed = 0
-        for m in self.spider_log_consumer.get_messages(timeout=1.0, count=self.consumer_batch_size):
+        for m in self.spider_log_consumer.get_messages(timeout=1.0, count=self.spider_log_consumer_batch_size):
             try:
                 msg = self._decoder.decode(m)
             except (KeyError, TypeError), e:
@@ -178,7 +179,7 @@ class DBWorker(object):
         consumed = 0
         seen = set()
         batch = []
-        for m in self.scoring_log_consumer.get_messages(count=self.consumer_batch_size):
+        for m in self.scoring_log_consumer.get_messages(count=self.scoring_log_consumer_batch_size):
             try:
                 msg = self._decoder.decode(m)
             except (KeyError, TypeError), e:

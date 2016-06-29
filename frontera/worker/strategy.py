@@ -100,7 +100,7 @@ class StrategyWorker(object):
         self.update_score = UpdateScoreStream(self._encoder, self.scoring_log_producer, 1024)
         self.states_context = StatesContext(self._manager.backend.states)
 
-        self.consumer_batch_size = settings.get('CONSUMER_BATCH_SIZE')
+        self.consumer_batch_size = settings.get('SPIDER_LOG_CONSUMER_BATCH_SIZE')
         self.strategy = strategy_class.from_worker(self._manager, self.update_score, self.states_context)
         self.states = self._manager.backend.states
         self.stats = {
