@@ -1,7 +1,6 @@
-from scrapy.contrib.linkextractors.lxmlhtml import LxmlLinkExtractor
-from scrapy.contrib.linkextractors.sgml import SgmlLinkExtractor
-from scrapy.contrib.linkextractors.regex import RegexLinkExtractor
-from scrapy.contrib.spiders import CrawlSpider, Rule
+from scrapy.linkextractors import LinkExtractor
+from scrapy.linkextractors.regex import RegexLinkExtractor
+from scrapy.spiders import CrawlSpider, Rule
 
 
 DOMAIN = 'diffeo.com'
@@ -26,8 +25,7 @@ class MySpider(CrawlSpider):
     allowed_domains = [DOMAIN]
 
     rules = [Rule(FallbackLinkExtractor([
-        LxmlLinkExtractor(allow=ALLOWED_RE),
-        SgmlLinkExtractor(allow=ALLOWED_RE),
+        LinkExtractor(allow=ALLOWED_RE),
         RegexLinkExtractor(allow=ALLOWED_RE),
     ]), callback='parse_page', follow=True)]
 

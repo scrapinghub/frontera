@@ -1,17 +1,25 @@
 language: python
 python: 2.7
+
 env:
   - TOXENV=py27
   - TOXENV=flake8
+
 install:
-  - pip install -U tox wheel
+  - pip install -U tox wheel codecov
   - pip install -r requirements/tests.txt
+
 before_script:
   - mysql -u root -e "set global innodb_large_prefix=1;"
   - mysql -u root -e "set global innodb_file_format='Barracuda';"
   - mysql -u root -e "set global innodb_file_per_table=true;"
-  - frontera/tests/run_zmq_broker.sh
+  - tests/run_zmq_broker.sh
+
 script: tox
+
+after_success:
+  - codecov
+
 deploy:
   provider: pypi
   distributions: sdist bdist_wheel

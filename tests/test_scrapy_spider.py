@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 from twisted.internet import reactor
 from scrapy.crawler import Crawler
-from scrapy import log, signals
+from scrapy import signals
 from scrapy.settings import Settings
-from scrapy_spider.spiders.example import MySpider
+from tests.scrapy_spider.spiders.example import MySpider
 
 
 def test_scrapy_spider():
     settings = Settings()
-    settings.setmodule("frontera.tests.scrapy_spider.settings")
+    settings.setmodule("tests.scrapy_spider.settings")
     crawler = Crawler(MySpider, settings=settings)
     crawler.signals.connect(reactor.stop, signal=signals.spider_closed)
     crawler.crawl()

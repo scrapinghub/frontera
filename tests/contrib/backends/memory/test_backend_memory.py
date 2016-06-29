@@ -1,5 +1,5 @@
-from frontera.tests.test_overused_buffer import DFSOverusedBackendTest
-from frontera.tests import backends
+from tests.test_overused_buffer import DFSOverusedBackendTest
+from tests import backends
 
 
 class TestFIFO(backends.FIFOBackendTest):

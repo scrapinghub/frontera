@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from frontera.tests.backends import BackendSequenceTest, TEST_SITES
+from tests.backends import BackendSequenceTest, TEST_SITES
 from frontera.utils.tester import DownloaderSimulator, BaseDownloaderSimulator
 from urlparse import urlparse
 

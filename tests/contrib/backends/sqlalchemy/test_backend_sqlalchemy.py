@@ -4,8 +4,8 @@ import pymysql
 from psycopg2 import connect
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
-from frontera.tests import backends
-from frontera.tests.test_revisiting_backend import RevisitingBackendTest
+from tests import backends
+from tests.test_revisiting_backend import RevisitingBackendTest
 
 
 #----------------------------------------------------

@@ -3,8 +3,8 @@
 #--------------------------------------------------------------------------
 BOT_NAME = 'scrapy_spider'
 
-SPIDER_MODULES = ['frontera.tests.scrapy_spider.spiders']
-NEWSPIDER_MODULE = 'frontera.tests.scrapy_spider.spiders'
+SPIDER_MODULES = ['tests.scrapy_spider.spiders']
+NEWSPIDER_MODULE = 'tests.scrapy_spider.spiders'
 
 HTTPCACHE_ENABLED = False
 REDIRECT_ENABLED = True
@@ -30,7 +30,7 @@ DOWNLOADER_MIDDLEWARES.update(
     {'frontera.contrib.scrapy.middlewares.schedulers.SchedulerDownloaderMiddleware': 999}
 )
 SCHEDULER = 'frontera.contrib.scrapy.schedulers.frontier.FronteraScheduler'
-FRONTERA_SETTINGS = 'frontera.tests.scrapy_spider.frontera.settings'
+FRONTERA_SETTINGS = 'tests.scrapy_spider.frontera.settings'
 
 
 #--------------------------------------------------------------------------

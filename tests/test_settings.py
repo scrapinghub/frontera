@@ -4,7 +4,7 @@ from frontera.settings import Settings, BaseSettings
 
 
 def test_settings_on_a_python_module_are_loaded():
-    settings = Settings('frontera.tests.scrapy_spider.frontera.settings')
+    settings = Settings('tests.scrapy_spider.frontera.settings')
     assert settings.get('MAX_REQUESTS') == 5
 
 
@@ -30,7 +30,7 @@ def test_settings_attributes_can_be_assigned():
 
 
 def test_object_from_loads_settings_from_a_module():
-    module = 'frontera.tests.scrapy_spider.frontera.settings'
+    module = 'tests.scrapy_spider.frontera.settings'
     settings = BaseSettings.object_from(module)
     assert settings.get('MAX_REQUESTS') == 5
 
