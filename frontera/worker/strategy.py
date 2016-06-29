@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from time import asctime
 import logging
+from traceback import format_stack
+from signal import signal, SIGUSR1
 from logging.config import fileConfig
 from argparse import ArgumentParser
 from os.path import exists
@@ -100,7 +102,7 @@ class StrategyWorker(object):
         self.update_score = UpdateScoreStream(self._encoder, self.scoring_log_producer, 1024)
         self.states_context = StatesContext(self._manager.backend.states)
 
-        self.consumer_batch_size = settings.get('CONSUMER_BATCH_SIZE')
+        self.consumer_batch_size = settings.get('SPIDER_LOG_CONSUMER_BATCH_SIZE')
         self.strategy = strategy_class.from_worker(self._manager, self.update_score, self.states_context)
         self.states = self._manager.backend.states
         self.stats = {
@@ -191,8 +193,8 @@ class StrategyWorker(object):
             logger.info("Successfully reached the crawling goal.")
             logger.info("Closing crawling strategy.")
             self.strategy.close()
-            logger.info("Exiting.")
-            exit(0)
+            logger.info("Finishing.")
+            reactor.callFromThread(reactor.stop)
 
         self.stats['last_consumed'] = consumed
         self.stats['last_consumption_run'] = asctime()
@@ -202,8 +204,14 @@ class StrategyWorker(object):
         def errback(failure):
             logger.exception(failure.value)
             self.task.start(interval=0).addErrback(errback)
+
+        def debug(sig, frame):
+            logger.critical("Signal received: printing stack trace")
+            logger.critical(str("").join(format_stack(frame)))
+
         self.task.start(interval=0).addErrback(errback)
         self._logging_task.start(interval=30)
+        signal(SIGUSR1, debug)
         reactor.addSystemEventTrigger('before', 'shutdown', self.stop)
         reactor.run()
 

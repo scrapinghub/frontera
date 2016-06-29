@@ -5,7 +5,6 @@ from kafka.protocol import CODEC_NONE
 AUTO_START = True
 BACKEND = 'frontera.contrib.backends.memory.FIFO'
 CANONICAL_SOLVER = 'frontera.contrib.canonicalsolvers.Basic'
-CONSUMER_BATCH_SIZE = 512
 DELAY_ON_EMPTY = 5.0
 DOMAIN_FINGERPRINT_FUNCTION = 'frontera.utils.fingerprint.sha1'
 
@@ -34,6 +33,8 @@ REQUEST_MODEL = 'frontera.core.models.Request'
 RESPONSE_MODEL = 'frontera.core.models.Response'
 
 SCORING_PARTITION_ID = 0
+SCORING_LOG_CONSUMER_BATCH_SIZE = 512
+SPIDER_LOG_CONSUMER_BATCH_SIZE = 512
 SPIDER_LOG_PARTITIONS = 1
 SPIDER_FEED_PARTITIONS = 1
 SPIDER_PARTITION_ID = 0

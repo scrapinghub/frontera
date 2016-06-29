@@ -97,17 +97,28 @@ Default: ``frontera.contrib.canonicalsolvers.Basic``
 The :class:`CanonicalSolver <frontera.core.components.CanonicalSolver>` to be used by the frontier for resolving
 canonical URLs. For more info see :ref:`Canonical URL Solver <canonical-url-solver>`.
 
-.. setting:: CONSUMER_BATCH_SIZE
+.. setting:: SPIDER_LOG_CONSUMER_BATCH_SIZE
 
-CONSUMER_BATCH_SIZE
--------------------
+SPIDER_LOG_CONSUMER_BATCH_SIZE
+------------------------------
 
 Default: ``512``
 
-This is a batch size used by strategy and db workers for consuming of spider log and scoring log streams. Increasing it
+This is a batch size used by strategy and db workers for consuming of spider log stream. Increasing it
 will cause worker to spend more time on every task, but processing more items per task, therefore leaving less time for
 other tasks during some fixed time interval. Reducing it will result to running several tasks withing the same time
 interval, but with less overall efficiency. Use it when your consumers too slow, or too fast.
+
+.. setting:: SCORING_LOG_CONSUMER_BATCH_SIZE
+
+SCORING_LOG_CONSUMER_BATCH_SIZE
+-------------------------------
+
+Default: ``512``
+
+This is a batch size used by db worker for consuming of scoring log stream. Use it when you need to adjust scoring log
+consumption speed.
+
 
 .. setting:: CRAWLING_STRATEGY
 
