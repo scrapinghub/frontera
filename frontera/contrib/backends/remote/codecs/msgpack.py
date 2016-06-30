@@ -11,7 +11,7 @@ from six.moves import map
 def _prepare_request_message(request):
     def serialize(obj):
         """Recursively walk object's hierarchy."""
-        if isinstance(obj, (bool, int, float, six.string_types)):
+        if isinstance(obj, (bool, six.integer_types, float, six.string_types)):
             return obj
         elif isinstance(obj, dict):
             obj = obj.copy()
