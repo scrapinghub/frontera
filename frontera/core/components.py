@@ -17,7 +17,8 @@ class StartStopMixin(object):
         pass
 
 
-class Metadata(six.with_metaclass(ABCMeta, StartStopMixin)):
+@six.add_metaclass(ABCMeta)
+class Metadata(StartStopMixin):
     """Interface definition for a frontier metadata class. This class is responsible for storing documents metadata,
     including content and optimized for write-only data flow."""
 
@@ -52,7 +53,8 @@ class Metadata(six.with_metaclass(ABCMeta, StartStopMixin)):
         pass
 
 
-class Queue(six.with_metaclass(ABCMeta, StartStopMixin)):
+@six.add_metaclass(ABCMeta)
+class Queue(StartStopMixin):
     """Interface definition for a frontier queue class. The queue has priorities and partitions."""
 
     @abstractmethod
@@ -87,7 +89,8 @@ class Queue(six.with_metaclass(ABCMeta, StartStopMixin)):
         raise NotImplementedError
 
 
-class States(six.with_metaclass(ABCMeta, StartStopMixin)):
+@six.add_metaclass(ABCMeta)
+class States(StartStopMixin):
     """Interface definition for a document states management class. This class is responsible for providing actual
     documents state, and persist the state changes in batch-oriented manner."""
 
@@ -133,7 +136,8 @@ class States(six.with_metaclass(ABCMeta, StartStopMixin)):
         raise NotImplementedError
 
 
-class Component(six.with_metaclass(ABCMeta, Metadata)):
+@six.add_metaclass(ABCMeta)
+class Component(Metadata):
     """
     Interface definition for a frontier component
     The :class:`Component <frontera.core.components.Component>` object is the base class for frontier
@@ -172,12 +176,14 @@ class Component(six.with_metaclass(ABCMeta, Metadata)):
         return cls()
 
 
-class Middleware(six.with_metaclass(ABCMeta, Component)):
+@six.add_metaclass(ABCMeta)
+class Middleware(Component):
     """Interface definition for a Frontier Middlewares"""
     component_name = 'Base Middleware'
 
 
-class CanonicalSolver(six.with_metaclass(ABCMeta, Middleware)):
+@six.add_metaclass(ABCMeta)
+class CanonicalSolver(Middleware):
     """Interface definition for a Frontera Canonical Solver"""
     component_name = 'Base CanonicalSolver'
 
@@ -205,7 +211,8 @@ class PropertiesMixin(object):
         raise NotImplementedError
 
 
-class Backend(six.with_metaclass(ABCMeta, PropertiesMixin, Component)):
+@six.add_metaclass(ABCMeta)
+class Backend(PropertiesMixin, Component):
     """Interface definition for frontier backend."""
 
     @abstractmethod
@@ -230,7 +237,8 @@ class Backend(six.with_metaclass(ABCMeta, PropertiesMixin, Component)):
         raise NotImplementedError
 
 
-class DistributedBackend(six.with_metaclass(ABCMeta, Backend)):
+@six.add_metaclass(ABCMeta)
+class DistributedBackend(Backend):
     """Interface definition for distributed frontier backend. Implies using in strategy worker and DB worker."""
 
     @classmethod

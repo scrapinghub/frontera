@@ -4,7 +4,9 @@ from abc import ABCMeta, abstractmethod
 import six
 
 
-class BaseStreamConsumer(six.with_metaclass(ABCMeta, object)):
+@six.add_metaclass(ABCMeta)
+class BaseStreamConsumer(object):
+
     @abstractmethod
     def get_messages(self, timeout=0.1, count=1):
         """
@@ -26,7 +28,9 @@ class BaseStreamConsumer(six.with_metaclass(ABCMeta, object)):
         raise NotImplementedError
 
 
-class BaseStreamProducer(six.with_metaclass(ABCMeta, object)):
+@six.add_metaclass(ABCMeta)
+class BaseStreamProducer(object):
+
     @abstractmethod
     def send(self, key, *messages):
         """
@@ -54,7 +58,8 @@ class BaseStreamProducer(six.with_metaclass(ABCMeta, object)):
         raise NotImplementedError
 
 
-class BaseSpiderLogStream(six.with_metaclass(ABCMeta, object)):
+@six.add_metaclass(ABCMeta)
+class BaseSpiderLogStream(object):
     """
     Spider Log Stream base class. This stream transfers results from spiders to Strategy and DB workers. Any producer
     can write to any partition of this stream. Consumers can be bound to specific partition (SW worker) or not
@@ -80,7 +85,8 @@ class BaseSpiderLogStream(six.with_metaclass(ABCMeta, object)):
         raise NotImplementedError
 
 
-class BaseScoringLogStream(six.with_metaclass(ABCMeta, object)):
+@six.add_metaclass(ABCMeta)
+class BaseScoringLogStream(object):
     """
     Scoring log stream base class. This stream is transfering score and scheduling information from Strategy workers to
     DB Workers. This type of stream isn't requiring any partitioning.
@@ -101,7 +107,8 @@ class BaseScoringLogStream(six.with_metaclass(ABCMeta, object)):
         raise NotImplementedError
 
 
-class BaseSpiderFeedStream(six.with_metaclass(ABCMeta, object)):
+@six.add_metaclass(ABCMeta)
+class BaseSpiderFeedStream(object):
     """
     Spider Feed Stream base class. This stream transfers new batches from DB worker to spiders. Every consumer is
     strictly bounded to specific partition, and producer could write to any partition. This class also has methods
@@ -151,7 +158,8 @@ class BaseSpiderFeedStream(six.with_metaclass(ABCMeta, object)):
         pass
 
 
-class BaseMessageBus(six.with_metaclass(ABCMeta, object)):
+@six.add_metaclass(ABCMeta)
+class BaseMessageBus(object):
     """
     Main message bus class, encapsulating message bus context. Serving as a factory for stream-specific objects.
     """

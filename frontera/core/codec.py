@@ -4,7 +4,9 @@ from abc import ABCMeta, abstractmethod
 import six
 
 
-class BaseDecoder(six.with_metaclass(ABCMeta, object)):
+@six.add_metaclass(ABCMeta)
+class BaseDecoder(object):
+
     @abstractmethod
     def decode(self, buffer):
         """
@@ -26,7 +28,9 @@ class BaseDecoder(six.with_metaclass(ABCMeta, object)):
         pass
 
 
-class BaseEncoder(six.with_metaclass(ABCMeta, object)):
+@six.add_metaclass(ABCMeta)
+class BaseEncoder(object):
+
     @abstractmethod
     def encode_add_seeds(self, seeds):
         """
