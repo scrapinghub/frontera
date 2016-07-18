@@ -158,8 +158,7 @@ KAFKA_CODEC_LEGACY
 
 Default: ``KAFKA_CODEC_LEGACY``
 
-Kafka-python 0.x version codec, could be one of ``CODEC_NONE``, ``CODEC_SNAPPY`` or ``CODEC_GZIP``,
-imported from ``kafka.protocol``.
+Kafka-python 0.x version compression codec to use, is a string and could be one of ``none``, ``snappy`` or ``gzip``.
 
 
 .. setting:: LOGGING_CONFIG
