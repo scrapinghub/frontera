@@ -1,5 +1,4 @@
 from datetime import timedelta
-from kafka.protocol import CODEC_NONE
 
 
 AUTO_START = True
@@ -19,7 +18,7 @@ HBASE_BATCH_SIZE = 9216
 HBASE_STATE_CACHE_SIZE_LIMIT = 3000000
 HBASE_QUEUE_TABLE = 'queue'
 KAFKA_GET_TIMEOUT = 5.0
-KAFKA_CODEC_LEGACY = CODEC_NONE
+KAFKA_CODEC_LEGACY = "none"
 MAX_NEXT_REQUESTS = 64
 MAX_REQUESTS = 0
 MESSAGE_BUS = 'frontera.contrib.messagebus.zeromq.MessageBus'

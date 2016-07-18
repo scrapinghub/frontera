@@ -211,7 +211,20 @@ class MessageBus(BaseMessageBus):
         self.spider_partition_id = settings.get('SPIDER_PARTITION_ID')
         self.max_next_requests = settings.MAX_NEXT_REQUESTS
         self.hostname_partitioning = settings.get('QUEUE_HOSTNAME_PARTITIONING')
-        self.codec = settings.get('KAFKA_CODEC_LEGACY')
+
+        self.codec = None
+        codec = settings.get('KAFKA_CODEC_LEGACY')
+        if codec == 'none':
+            from kafka.protocol import CODEC_NONE
+            self.codec = CODEC_NONE
+        if codec == 'snappy':
+            from kafka.protocol import CODEC_SNAPPY
+            self.codec = CODEC_SNAPPY
+        if codec == 'gzip':
+            from kafka.protocol import CODEC_GZIP
+            self.codec = CODEC_GZIP
+        if not self.codec:
+            raise NameError("Non-existent Kafka compression codec.")
 
         self.conn = KafkaClient(server)
 

@@ -224,3 +224,7 @@ class KafkaOverusedBackend(KafkaBackend):
 
     def get_next_requests(self, max_n_requests, **kwargs):
         return self._buffer.get_next_requests(max_n_requests, **kwargs)
+
+
+raise DeprecationWarning("KafkaBackend and KafkaOverusedBackend is deprecated, and will be removed soon please use "
+                         "MessageBusBackend instead")
