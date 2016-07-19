@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from scrapy.http.request import Request as ScrapyRequest
 from scrapy.http.response import Response as ScrapyResponse
 
@@ -16,7 +17,7 @@ class RequestConverter(BaseRequestConverter):
         if isinstance(scrapy_request.cookies, dict):
             cookies = scrapy_request.cookies
         else:
-            cookies = dict(sum([d.items() for d in scrapy_request.cookies], []))
+            cookies = dict(sum([list(d.items()) for d in scrapy_request.cookies], []))
         cb = scrapy_request.callback
         if callable(cb):
             cb = _find_method(self.spider, cb)
@@ -98,8 +99,8 @@ class ResponseConverter(BaseResponseConverter):
 
 
 def _find_method(obj, func):
-    if obj and hasattr(func, 'im_self') and func.im_self is obj:
-        return func.im_func.__name__
+    if obj and hasattr(func, '__self__') and func.__self__ is obj:
+        return func.__func__.__name__
     else:
         raise ValueError("Function %s is not a method of: %s" % (func, obj))
 

@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import pytest
 from frontera.utils.misc import load_object, get_crc32, chunks
 

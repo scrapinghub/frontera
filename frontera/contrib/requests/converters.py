@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from requests.models import Request as RequestsRequest
 from requests.models import Response as RequestsResponse
 

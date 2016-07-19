@@ -1,4 +1,6 @@
+from __future__ import absolute_import
 from frontera.settings import Settings
+from six.moves import range
 
 
 class FakeFrontierManager(object):

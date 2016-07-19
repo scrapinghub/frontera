@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from frontera.contrib.scrapy.schedulers.frontier import FronteraScheduler
 from tests.mocks.frontier_manager import FakeFrontierManager
 from tests.mocks.crawler import FakeCrawler
@@ -6,6 +7,7 @@ from frontera.core.models import Response as FResponse
 from scrapy.http import Request, Response
 from scrapy.spiders import Spider
 from scrapy.settings import Settings
+from six.moves import range
 
 
 # test requests

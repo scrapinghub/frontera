@@ -1,7 +1,9 @@
 from __future__ import absolute_import
 
 from collections import OrderedDict, deque
-from urlparse import urlparse
+from six.moves.urllib.parse import urlparse
+import six
+from six.moves import range
 
 
 class FrontierTester(object):
@@ -113,7 +115,7 @@ class DownloaderSimulator(BaseDownloaderSimulator):
     def download(self):
         output = []
         _trash_can = []
-        for key, requests in self.slots.iteritems():
+        for key, requests in six.iteritems(self.slots):
             for i in range(min(len(requests), self._requests_per_slot)):
                 output.append(requests.popleft())
             if not requests:
@@ -128,7 +130,7 @@ class DownloaderSimulator(BaseDownloaderSimulator):
             'key_type': 'domain',
             'overused_keys': []
         }
-        for key, requests in self.slots.iteritems():
+        for key, requests in six.iteritems(self.slots):
             if len(requests) > self._requests_per_slot:
                 info['overused_keys'].append(key)
         return info

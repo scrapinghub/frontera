@@ -1,4 +1,6 @@
+from __future__ import absolute_import
 from frontera.core.components import Backend, Middleware, CanonicalSolver
+from six.moves import range
 
 
 class FakeMiddleware(Middleware):

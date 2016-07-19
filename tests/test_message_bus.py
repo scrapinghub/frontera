@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 from frontera.settings import Settings
 from frontera.contrib.messagebus.zeromq import MessageBus
 from frontera.utils.fingerprint import sha1
 from random import randint
 from time import sleep
+from six.moves import range
 
 
 class MessageBusTester(object):

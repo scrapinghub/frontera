@@ -1,8 +1,10 @@
+from __future__ import absolute_import
 from sqlalchemy import Column, String, Integer, Boolean, ForeignKey
 from sqlalchemy.orm import relation
 from sqlalchemy import UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import types
+import six
 
 Base = declarative_base()
 
@@ -12,7 +14,7 @@ class Choice(types.TypeDecorator):
 
     def __init__(self, choices, default, **kwargs):
         self.choices = dict(choices)
-        values = [k for k, v in self.choices.iteritems()]
+        values = [k for k, v in six.iteritems(self.choices)]
         if default not in values:
             raise ValueError("default value '%s' not found in choices %s" % (default, values))
         self.default = default
