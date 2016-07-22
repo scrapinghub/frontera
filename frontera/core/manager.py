@@ -92,14 +92,13 @@ class ComponentsPipelineMixin(object):
                     return_obj = result
                 if check_response and obj and not return_obj:
                     self._logger_components.warning("Object '%s' filtered in '%s' by '%s'",
-                                         obj.__class__.__name__, method_name, component.__class__.__name__
-                                         )
+                                                    obj.__class__.__name__, method_name, component.__class__.__name__)
                     return
         return return_obj
 
     def _process_component(self, component, method_name, component_category, obj, return_classes, **kwargs):
         self._logger_components.debug("processing '%s' '%s.%s' %s",
-                           method_name, component_category, component.__class__.__name__, obj)
+                                      method_name, component_category, component.__class__.__name__, obj)
         return_obj = getattr(component, method_name)(*([obj] if obj else []), **kwargs)
         assert return_obj is None or isinstance(return_obj, return_classes), \
             "%s '%s.%s' must return None or %s, Got '%s'" % \
