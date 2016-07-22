@@ -376,6 +376,10 @@ class HBaseBackend(DistributedBackend):
         port = settings.get('HBASE_THRIFT_PORT')
         hosts = settings.get('HBASE_THRIFT_HOST')
         namespace = settings.get('HBASE_NAMESPACE')
+        self._min_requests = settings.get('BC_MIN_REQUESTS')
+        self._min_hosts = settings.get('BC_MIN_HOSTS')
+        self._max_requests_per_host = settings.get('BC_MAX_REQUESTS_PER_HOST')
+
         self.queue_partitions = settings.get('SPIDER_FEED_PARTITIONS')
         host = choice(hosts) if type(hosts) in [list, tuple] else hosts
         kwargs = {
@@ -456,8 +460,10 @@ class HBaseBackend(DistributedBackend):
         for partition_id in range(0, self.queue_partitions):
             if partition_id not in partitions:
                 continue
-            results = self.queue.get_next_requests(max_next_requests, partition_id, min_requests=64,
-                                                   min_hosts=24, max_requests_per_host=128)
+            results = self.queue.get_next_requests(max_next_requests, partition_id,
+                                                   min_requests=self._min_requests,
+                                                   min_hosts=self._min_hosts,
+                                                   max_requests_per_host=self._max_requests_per_host)
             next_pages.extend(results)
             self.logger.debug("Got %d requests for partition id %d", len(results), partition_id)
         return next_pages

@@ -87,6 +87,37 @@ Default: ``'frontera.contrib.backends.memory.FIFO'``
 The :class:`Backend <frontera.core.components.Backend>` to be used by the frontier. For more info see
 :ref:`Activating a backend <frontier-activating-backend>`.
 
+
+.. setting:: BC_MIN_REQUESTS
+
+BC_MIN_REQUESTS
+---------------
+
+Default: ``64``
+
+Broad crawling queue get operation will keep retrying until specified number of requests is collected. Maximum number
+of retries is hard-coded to 3.
+
+.. setting:: BC_MIN_HOSTS
+
+BC_MIN_HOSTS
+------------
+
+Default: ``24``
+
+Keep retyring when getting requests from queue, until there are requests for specified minimum number of hosts
+collected. Maximum number of retries is hard-coded and equals 3.
+
+.. setting:: BC_MAX_REQUESTS_PER_HOST
+
+BC_MAX_REQUESTS_PER_HOST
+------------------------
+
+Default:: ``128``
+
+Don't include (if possible) batches of requests containing requests for specific host if there are already more then
+specified count of maximum requests per host. This is a suggestion for broad crawling queue get algorithm.
+
 .. setting:: CANONICAL_SOLVER
 
 CANONICAL_SOLVER
