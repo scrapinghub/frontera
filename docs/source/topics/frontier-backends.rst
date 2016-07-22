@@ -283,6 +283,12 @@ tunning a block cache to fit states within one block for average size website. T
 to achieve documents closeness within the same host. This function can be selected with :setting:`URL_FINGERPRINT_FUNCTION`
 setting.
 
+..  TODO: document details of block cache tuning,
+    BC* settings and queue get operation concept,
+    hbase tables schema and data flow
+    Queue exploration
+    shuffling with MR jobs
+
 .. _FIFO: http://en.wikipedia.org/wiki/FIFO
 .. _LIFO: http://en.wikipedia.org/wiki/LIFO_(computing)
 .. _DFS: http://en.wikipedia.org/wiki/Depth-first_search

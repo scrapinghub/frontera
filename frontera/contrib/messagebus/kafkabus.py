@@ -223,7 +223,7 @@ class MessageBus(BaseMessageBus):
         if codec == 'gzip':
             from kafka.protocol import CODEC_GZIP
             self.codec = CODEC_GZIP
-        if not self.codec:
+        if self.codec is None:
             raise NameError("Non-existent Kafka compression codec.")
 
         self.conn = KafkaClient(server)

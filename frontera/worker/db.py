@@ -144,12 +144,12 @@ class DBWorker(object):
                 if type == 'page_crawled':
                     _, response, links = msg
                     logger.debug("Page crawled %s", response.url)
-                    if response.meta['jid'] != self.job_id:
+                    if 'jid' not in response.meta or response.meta['jid'] != self.job_id:
                         continue
                     self._backend.page_crawled(response, links)
                 if type == 'request_error':
                     _, request, error = msg
-                    if request.meta['jid'] != self.job_id:
+                    if 'jid' not in request.meta or request.meta['jid'] != self.job_id:
                         continue
                     logger.debug("Request error %s", request.url)
                     self._backend.request_error(request, error)

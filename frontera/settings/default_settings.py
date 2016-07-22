@@ -3,6 +3,9 @@ from datetime import timedelta
 
 AUTO_START = True
 BACKEND = 'frontera.contrib.backends.memory.FIFO'
+BC_MIN_REQUESTS = 64
+BC_MIN_HOSTS = 24
+BC_MAX_REQUESTS_PER_HOST = 128
 CANONICAL_SOLVER = 'frontera.contrib.canonicalsolvers.Basic'
 DELAY_ON_EMPTY = 5.0
 DOMAIN_FINGERPRINT_FUNCTION = 'frontera.utils.fingerprint.sha1'

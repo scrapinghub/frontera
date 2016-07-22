@@ -10,17 +10,19 @@ import logging
 
 class ComponentsPipelineMixin(object):
     def __init__(self, backend, middlewares=None, canonicalsolver=None, db_worker=False, strategy_worker=False):
+        self._logger_components = logging.getLogger("manager.components")
+
         # Load middlewares
         self._middlewares = self._load_middlewares(middlewares)
 
         # Load canonical solver
-        self._logger.debug("Loading canonical url solver '%s'", canonicalsolver)
+        self._logger_components.debug("Loading canonical url solver '%s'", canonicalsolver)
         self._canonicalsolver = self._load_object(canonicalsolver)
         assert isinstance(self.canonicalsolver, CanonicalSolver), \
             "canonical solver '%s' must subclass CanonicalSolver" % self.canonicalsolver.__class__.__name__
 
         # Load backend
-        self._logger.debug("Loading backend '%s'", backend)
+        self._logger_components.debug("Loading backend '%s'", backend)
         self._backend = self._load_backend(backend, db_worker, strategy_worker)
 
     @property
@@ -67,14 +69,14 @@ class ComponentsPipelineMixin(object):
         # TO-DO: Use dict for middleware ordering
         mws = []
         for mw_name in middleware_names or []:
-            self._logger.debug("Loading middleware '%s'", mw_name)
+            self._logger_components.debug("Loading middleware '%s'", mw_name)
             try:
                 mw = self._load_object(mw_name, silent=False)
                 assert isinstance(mw, Middleware), "middleware '%s' must subclass Middleware" % mw.__class__.__name__
                 if mw:
                     mws.append(mw)
             except NotConfigured:
-                self._logger.warning("middleware '%s' disabled!", mw_name)
+                self._logger_components.warning("middleware '%s' disabled!", mw_name)
 
         return mws
 
@@ -89,15 +91,14 @@ class ComponentsPipelineMixin(object):
                 if check_response:
                     return_obj = result
                 if check_response and obj and not return_obj:
-                    self._logger.warning("Object '%s' filtered in '%s' by '%s'",
-                                         obj.__class__.__name__, method_name, component.__class__.__name__
-                                         )
+                    self._logger_components.warning("Object '%s' filtered in '%s' by '%s'",
+                                                    obj.__class__.__name__, method_name, component.__class__.__name__)
                     return
         return return_obj
 
     def _process_component(self, component, method_name, component_category, obj, return_classes, **kwargs):
-        self._logger.debug("processing '%s' '%s.%s' %s",
-                           method_name, component_category, component.__class__.__name__, obj)
+        self._logger_components.debug("processing '%s' '%s.%s' %s",
+                                      method_name, component_category, component.__class__.__name__, obj)
         return_obj = getattr(component, method_name)(*([obj] if obj else []), **kwargs)
         assert return_obj is None or isinstance(return_obj, return_classes), \
             "%s '%s.%s' must return None or %s, Got '%s'" % \
