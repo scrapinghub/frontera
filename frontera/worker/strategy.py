@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from time import asctime
 import logging
-from traceback import format_stack
+from traceback import format_stack, format_tb
 from signal import signal, SIGUSR1
 from logging.config import fileConfig
 from argparse import ArgumentParser
@@ -170,14 +170,14 @@ class StrategyWorker(object):
 
                 if type == 'page_crawled':
                     _, response, links = msg
-                    if response.meta['jid'] != self.job_id:
+                    if 'jid' not in response.meta or response.meta['jid'] != self.job_id:
                         continue
                     self.on_page_crawled(response, links)
                     continue
 
                 if type == 'request_error':
                     _, request, error = msg
-                    if request.meta['jid'] != self.job_id:
+                    if 'jid' not in request.meta or request.meta['jid'] != self.job_id:
                         continue
                     self.on_request_error(request, error)
                     continue
@@ -203,6 +203,8 @@ class StrategyWorker(object):
     def run(self):
         def errback(failure):
             logger.exception(failure.value)
+            if failure.frames:
+                logger.critical(str("").join(format_tb(failure.getTracebackObject())))
             self.task.start(interval=0).addErrback(errback)
 
         def debug(sig, frame):
