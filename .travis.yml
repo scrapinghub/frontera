@@ -20,6 +20,9 @@ matrix:
         - mysql
         - postgresql
 
+services:
+  - docker
+
 install:
   - pip install -U tox wheel codecov
   - pip install -r requirements/tests.txt
@@ -37,6 +40,8 @@ before_script:
   - mysql -u root -e "set global innodb_file_format='Barracuda';"
   - mysql -u root -e "set global innodb_file_per_table=true;"
   - tests/run_zmq_broker.sh
+  - docker compose -d -f tests/kafka/docker-compose.yml
+  - docker ps -a
 
 script: tox
 
