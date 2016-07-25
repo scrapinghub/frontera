@@ -15,7 +15,7 @@ class FallbackLinkExtractor(object):
 
 class MySpider(CrawlSpider):
     name = 'example'
-    start_urls = ['http://scrapinghub.com']
+    start_urls = ['http://www.dmoz.org']
     callback_calls = 0
 
     rules = [Rule(FallbackLinkExtractor([
