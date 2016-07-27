@@ -142,8 +142,12 @@ class StrategyWorker(object):
                         self.states_context.to_fetch(seeds)
                         continue
                     if type == 'page_crawled':
-                        _, response, links = msg
+                        _, response = msg
                         self.states_context.to_fetch(response)
+                        continue
+                    if type == 'links_extracted':
+                        _, request, links = msg
+                        self.states_context.to_fetch(request)
                         self.states_context.to_fetch(links)
                         continue
                     if type == 'request_error':
@@ -171,10 +175,17 @@ class StrategyWorker(object):
                     self.on_add_seeds(seeds)
                     continue
                 if type == 'page_crawled':
-                    _, response, links = msg
+                    _, response = msg
                     if b'jid' not in response.meta or response.meta[b'jid'] != self.job_id:
                         continue
-                    self.on_page_crawled(response, links)
+                    self.on_page_crawled(response)
+                    continue
+
+                if type == 'links_extracted':
+                    _, request, links = msg
+                    if 'jid' not in request.meta or request.meta['jid'] != self.job_id:
+                        continue
+                    self.on_links_extracted(request, links)
                     continue
                 if type == 'request_error':
                     _, request, error = msg
@@ -239,14 +250,17 @@ class StrategyWorker(object):
         self.strategy.add_seeds(seeds)
         self.states.update_cache(seeds)
 
-    def on_page_crawled(self, response, links):
+    def on_page_crawled(self, response):
         logger.debug("Page crawled %s", response.url)
-        objs_list = [response]
-        objs_list.extend(links)
-        self.states.set_states(objs_list)
-        self.strategy.page_crawled(response, links)
-        self.states.update_cache(links)
+        self.states.set_states([response])
+        self.strategy.page_crawled(response)
         self.states.update_cache(response)
+
+    def on_links_extracted(self, request, links):
+        logger.debug("Links extracted %s (%d)", request.url, len(links))
+        self.states.set_states(links)
+        self.strategy.links_extracted(request, links)
+        self.states.update_cache(links)
 
     def on_request_error(self, request, error):
         logger.debug("Page error %s (%s)", request.url, error)

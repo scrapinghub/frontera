@@ -42,10 +42,9 @@ class BaseCrawlingStrategy(object):
 
         :param list seeds: A list of :class:`Request <frontera.core.models.Request>` objects.
         """
-        return {}
 
     @abstractmethod
-    def page_crawled(self, response, links):
+    def page_crawled(self, response):
         """
         Called every time document was successfully crawled, and receiving page_crawled event from spider log.
 
@@ -53,7 +52,16 @@ class BaseCrawlingStrategy(object):
         :param list links: A list of :class:`Request <frontera.core.models.Request>` objects generated from \
         the links extracted for the crawled page.
         """
-        return {}
+
+    @abstractmethod
+    def links_extracted(self, request, links):
+        """
+        Called every time document was successfully crawled, and receiving page_crawled event from spider log.
+
+        :param object request: The :class:`Request <frontera.core.models.Request>` object for the crawled page.
+        :param list links: A list of :class:`Request <frontera.core.models.Request>` objects generated from \
+        the links extracted for the crawled page.
+        """
 
     @abstractmethod
     def page_error(self, request, error):
@@ -63,7 +71,6 @@ class BaseCrawlingStrategy(object):
         :param object request: The fetched with error :class:`Request <frontera.core.models.Request>` object.
         :param str error: A string identifier for the error.
         """
-        return {}
 
     def finished(self):
         """

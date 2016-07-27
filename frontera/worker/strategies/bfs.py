@@ -15,6 +15,8 @@ class CrawlingStrategy(BaseCrawlingStrategy):
 
     def page_crawled(self, response, links):
         response.meta[b'state'] = States.CRAWLED
+
+    def links_extracted(self, request, links):
         for link in links:
             if link.meta[b'state'] is States.NOT_CRAWLED:
                 link.meta[b'state'] = States.QUEUED
