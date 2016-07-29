@@ -112,8 +112,8 @@ class FronteraScheduler(Scheduler):
                 links.append(element)
             else:
                 yield element
-        self.frontier.page_crawled(response=response,
-                                   links=links)
+        self.frontier.page_crawled(response)
+        self.frontier.links_extracted(response.request, links)
         self.stats_manager.add_crawled_page(response.status, len(links))
 
     def process_exception(self, request, exception, spider):

@@ -142,7 +142,7 @@ class StrategyWorker(object):
                         self.states_context.to_fetch(seeds)
                         continue
                     if type == 'page_crawled':
-                        _, response = msg
+                        _, response, _ = msg
                         self.states_context.to_fetch(response)
                         continue
                     if type == 'links_extracted':

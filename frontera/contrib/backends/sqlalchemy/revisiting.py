@@ -125,8 +125,8 @@ class Backend(SQLAlchemyBackend):
         self.metadata.update_score(batch)
         self.queue_size += len(batch)
 
-    def page_crawled(self, response, links):
-        super(Backend, self).page_crawled(response, links)
+    def page_crawled(self, response):
+        super(Backend, self).page_crawled(response)
         self.states.set_states(response.request)
         self._schedule([response.request])
         self.states.update_cache(response.request)

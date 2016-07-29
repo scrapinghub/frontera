@@ -32,20 +32,28 @@ class Metadata(StartStopMixin):
         pass
 
     @abstractmethod
-    def page_crawled(self, response, links):
+    def page_crawled(self, response):
         """
-        This method is called each time a page has been crawled.
+        This method is called every time a page has been crawled.
 
         :param object response: The :class:`Response <frontera.core.models.Response>` object for the crawled page.
-        :param list links: A list of :class:`Request <frontera.core.models.Request>` objects generated from \
-        the links extracted for the crawled page.
+        """
+        pass
+
+    @abstractmethod
+    def links_extracted(self, request, links):
+        """
+        This method is called every time a links extracted from a document.
+
+        :param object request: The original :class:`Request <frontera.core.models.Request>` object for the crawled page.
+        :param list links: A list of :class:`Request <frontera.core.models.Request>` objects containing extracted links.
         """
         pass
 
     @abstractmethod
     def request_error(self, page, error):
         """
-        This method is called each time an error occurs when crawling a page
+        This method is called each time an error occurs when crawling a page.
 
         :param object request: The crawled with error :class:`Request <frontera.core.models.Request>` object.
         :param string error: A string identifier for the error.

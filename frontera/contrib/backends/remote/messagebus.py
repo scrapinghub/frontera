@@ -4,6 +4,7 @@ from frontera import Backend
 from frontera.core import OverusedBuffer
 from frontera.utils.misc import load_object
 import logging
+import six
 
 
 class MessageBusBackend(Backend):
@@ -42,8 +43,21 @@ class MessageBusBackend(Backend):
     def add_seeds(self, seeds):
         self.spider_log_producer.send(seeds[0].meta[b'fingerprint'], self._encoder.encode_add_seeds(seeds))
 
-    def page_crawled(self, response, links):
-        self.spider_log_producer.send(response.meta[b'fingerprint'], self._encoder.encode_page_crawled(response, links))
+    def page_crawled(self, response):
+        self.spider_log_producer.send(response.meta[b'fingerprint'], self._encoder.encode_page_crawled(response))
+
+    def links_extracted(self, request, links):
+        per_host = dict()
+        for link in links:
+            if b'fingerprint' not in link.meta[b'domain']:
+                continue
+            host_fprint = link.meta[b'domain'][b'fingerprint']
+            if host_fprint not in per_host:
+                per_host[host_fprint] = []
+            per_host[host_fprint].append(link)
+        for host_fprint, host_links in six.iteritems(per_host):
+            self.spider_log_producer.send(host_fprint,
+                                          self._encoder.encode_links_extracted(request, host_links))
 
     def request_error(self, page, error):
         self.spider_log_producer.send(page.meta[b'fingerprint'], self._encoder.encode_request_error(page, error))

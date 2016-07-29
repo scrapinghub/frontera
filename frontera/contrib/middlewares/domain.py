@@ -79,10 +79,13 @@ class DomainMiddleware(Middleware):
             self._add_domain(seed)
         return seeds
 
-    def page_crawled(self, response, links):
+    def page_crawled(self, response):
+        return self._add_domain(response)
+
+    def links_extracted(self, request, links):
         for link in links:
             self._add_domain(link)
-        return self._add_domain(response)
+        return request
 
     def request_error(self, request, error):
         return self._add_domain(request)

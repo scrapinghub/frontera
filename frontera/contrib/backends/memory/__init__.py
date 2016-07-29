@@ -26,8 +26,10 @@ class MemoryMetadata(Metadata):
         request.meta[b'error'] = error
         self._get_or_create_request(request)
 
-    def page_crawled(self, response, links):
+    def page_crawled(self, response):
         self._get_or_create_request(response.request)
+
+    def links_extracted(self, request, links):
         for link in links:
             self._get_or_create_request(link)
 
@@ -191,11 +193,11 @@ class MemoryBaseBackend(CommonBackend):
             self._id += 1
         super(MemoryBaseBackend, self).add_seeds(seeds)
 
-    def page_crawled(self, response, links):
+    def links_extracted(self, request, links):
         for link in links:
             link.meta[b'id'] = self._id
             self._id += 1
-        super(MemoryBaseBackend, self).page_crawled(response, links)
+        super(MemoryBaseBackend, self).links_extracted(request, links)
 
     def finished(self):
         return self.queue.count() == 0

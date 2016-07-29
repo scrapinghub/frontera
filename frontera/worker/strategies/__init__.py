@@ -49,8 +49,6 @@ class BaseCrawlingStrategy(object):
         Called every time document was successfully crawled, and receiving page_crawled event from spider log.
 
         :param object response: The :class:`Response <frontera.core.models.Response>` object for the crawled page.
-        :param list links: A list of :class:`Request <frontera.core.models.Request>` objects generated from \
-        the links extracted for the crawled page.
         """
 
     @abstractmethod

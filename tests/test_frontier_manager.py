@@ -63,11 +63,16 @@ class TestFrontierManager(object):
     def test_page_crawled(self):
         fm = self.setup_frontier_manager()
         response = Response(r1.url, request=r1)
-        fm.page_crawled(response, links=[r2, r3])
+        fm.page_crawled(response)
         assert fm.backend.responses.pop() == response
         assert [mw.responses.pop() for mw in fm.middlewares] == [response]*4
         assert fm.canonicalsolver.responses.pop() == response
         assert response.meta[b'test_response'] == 'test'
+
+    def test_links_extracted(self):
+        fm = self.setup_frontier_manager()
+        response = Response(r1.url, request=r1)
+        fm.links_extracted(r1, links=[r2, r3])
         assert set([link for link in fm.backend.links]) == set([r2, r3])
         assert set([link for link in fm.canonicalsolver.links]) == set([r2, r3])
         assert [set([link for link in mw.links]) for mw in fm.middlewares] == [set([r2, r3])]*4
@@ -110,7 +115,8 @@ class TestFrontierManager(object):
         fm = FrontierManager.from_settings(settings)
         fm.add_seeds([r1, r2, r3])
         response = Response(r1.url, request=r1)
-        fm.page_crawled(response, links=[r2])
+        fm.page_crawled(response)
+        fm.links_extracted(r1, links=[r2])
         fm.request_error(r3, 'error')
 
         #the seeds, responses, links and errors have not reached the backend.

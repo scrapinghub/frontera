@@ -47,7 +47,6 @@ class BaseEncoder(object):
         Encodes a page_crawled message
 
         :param object response: A frontier Response object
-        :param list links: A list of Request objects
 
         :return: bytes encoded message
         """
