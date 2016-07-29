@@ -42,11 +42,23 @@ class BaseEncoder(object):
         pass
 
     @abstractmethod
-    def encode_page_crawled(self, response, links):
+    def encode_page_crawled(self, response):
         """
         Encodes a page_crawled message
 
         :param object response: A frontier Response object
+        :param list links: A list of Request objects
+
+        :return: bytes encoded message
+        """
+        pass
+
+    @abstractmethod
+    def encode_links_extracted(self, request, links):
+        """
+        Encodes a links_extracted message
+
+        :param object request: A frontier Request object
         :param list links: A list of Request objects
 
         :return: bytes encoded message
