@@ -142,7 +142,7 @@ class StrategyWorker(object):
                         self.states_context.to_fetch(seeds)
                         continue
                     if type == 'page_crawled':
-                        _, response, _ = msg
+                        _, response = msg
                         self.states_context.to_fetch(response)
                         continue
                     if type == 'links_extracted':
@@ -246,6 +246,8 @@ class StrategyWorker(object):
 
     def on_add_seeds(self, seeds):
         logger.debug('Adding %i seeds', len(seeds))
+        for seed in seeds:
+            logger.debug("URL: %s", seed.url)
         self.states.set_states(seeds)
         self.strategy.add_seeds(seeds)
         self.states.update_cache(seeds)
@@ -258,6 +260,8 @@ class StrategyWorker(object):
 
     def on_links_extracted(self, request, links):
         logger.debug("Links extracted %s (%d)", request.url, len(links))
+        for link in links:
+            logger.debug("URL: %s", link.url)
         self.states.set_states(links)
         self.strategy.links_extracted(request, links)
         self.states.update_cache(links)
