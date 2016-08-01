@@ -2,12 +2,24 @@ language: python
 python: 2.7
 
 env:
-  - TOXENV=py27
-  - TOXENV=flake8
+  matrix:
+    - TOXENV=py27
+    - TOXENV=flake8
+
+services:
+  - docker
+  - mysql
+  - postgresql
 
 install:
   - pip install -U tox wheel codecov
   - pip install -r requirements/tests.txt
+
+before_install:
+  - git clone https://github.com/dajobe/hbase-docker
+  - docker pull dajobe/hbase
+  - mkdir data
+  - ./hbase-docker/start-hbase.sh
 
 before_script:
   - mysql -u root -e "set global innodb_large_prefix=1;"
