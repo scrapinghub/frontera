@@ -69,8 +69,9 @@ class FrontierTester(object):
                 response = self._make_response(url=page_to_crawl.url,
                                                status_code=crawled_page.status,
                                                request=page_to_crawl)
-                self.frontier.page_crawled(response=response,
-                                           links=[self._make_request(link.url) for link in crawled_page.links])
+                self.frontier.page_crawled(response=response)
+                self.frontier.links_extracted(request=response.request,
+                                              links=[self._make_request(link.url) for link in crawled_page.links])
             else:
                 self.frontier.request_error(request=page_to_crawl,
                                             error=crawled_page.status)

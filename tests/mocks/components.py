@@ -39,7 +39,7 @@ class FakeMiddleware(Middleware):
     def links_extracted(self, request, links):
         for link in links:
             self.links.append(link)
-        return links
+        return request
 
     def request_error(self, request, error):
         self.errors.append((request, error))
@@ -147,7 +147,7 @@ class FakeMiddlewareModifyResponse(FakeMiddleware):
     def links_extracted(self, request, links):
         for link in links:
             self.links.append(link)
-        return links
+        return request
 
 
 class FakeMiddlewareModifyLinks(FakeMiddleware):
@@ -160,7 +160,7 @@ class FakeMiddlewareModifyLinks(FakeMiddleware):
         for link in links:
             self.links.append(link)
             link.meta[b'test_links'] = self.test_value
-        return links
+        return request
 
 class FakeCanonicalSolver(CanonicalSolver, FakeMiddleware):
 
@@ -178,4 +178,4 @@ class FakeCanonicalSolver(CanonicalSolver, FakeMiddleware):
         for link in links:
             self.links.append(link)
             link.meta[b'test_links_canonical_solver'] = self.test_value
-        return links
+        return request
