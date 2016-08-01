@@ -36,7 +36,7 @@ class BaseFingerprintMiddleware(Middleware):
     def links_extracted(self, request, links):
         for link in links:
             self._add_fingerprint(link)
-        return request
+        return self._add_fingerprint(request)
 
     def request_error(self, request, error):
         return self._add_fingerprint(request)

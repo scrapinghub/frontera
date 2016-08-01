@@ -85,7 +85,7 @@ class DomainMiddleware(Middleware):
     def links_extracted(self, request, links):
         for link in links:
             self._add_domain(link)
-        return request
+        return self._add_domain(request)
 
     def request_error(self, request, error):
         return self._add_domain(request)
