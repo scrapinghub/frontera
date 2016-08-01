@@ -112,7 +112,10 @@ class FronteraScheduler(Scheduler):
                 links.append(element)
             else:
                 yield element
-        self.frontier.page_crawled(response)
+        frontier_request = response.meta['frontier_request']
+        self.frontier.page_crawled(response)  # removed frontier part from .meta
+        # putting it back, to persist .meta from original request
+        response.meta['frontier_request'] = frontier_request
         self.frontier.links_extracted(response.request, links)
         self.stats_manager.add_crawled_page(response.status, len(links))
 
