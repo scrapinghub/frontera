@@ -82,13 +82,13 @@ class Decoder(BaseDecoder):
         if obj[0] == 'pc':
             return ('page_crawled',
                     self._response_from_object(obj[1]),
-                    [self._request_from_object(obj) for obj in obj[2]])
+                    [self._request_from_object(x) for x in obj[2]])
         if obj[0] == 'us':
             return ('update_score', str(obj[1]), obj[2], str(obj[3]), obj[4])
         if obj[0] == 're':
             return ('request_error', self._request_from_object(obj[1]), obj[2])
         if obj[0] == 'as':
-            return ('add_seeds', [self._request_from_object(obj) for obj in obj[1]])
+            return ('add_seeds', [self._request_from_object(x) for x in obj[1]])
         if obj[0] == 'njid':
             return ('new_job_id', int(obj[1]))
         if obj[0] == 'of':
