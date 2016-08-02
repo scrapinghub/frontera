@@ -32,7 +32,19 @@ def load_object(path):
 
 
 def get_crc32(name):
-    return crc32(to_bytes(name, 'utf-8', 'ignore'))
+    """ signed crc32 of bytes or unicode.
+    In python 3, return the same number as in python 2, converting to
+    [-2**31, 2**31-1] range. This is done to maintain backwards compatibility
+    with python 2, since checksums are stored in the database, so this allows
+    to keep the same database schema.
+    """
+    return to_signed32(crc32(to_bytes(name, 'utf-8', 'ignore')))
+
+
+def to_signed32(x):
+    """ If x is an usigned 32-bit int, convert it to a signed 32-bit.
+    """
+    return x - 0x100000000 if x > 0x7fffffff else x
 
 
 def chunks(l, n):

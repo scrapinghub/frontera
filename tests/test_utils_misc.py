@@ -1,6 +1,7 @@
 from __future__ import absolute_import
+import hashlib
 import pytest
-from frontera.utils.misc import load_object, get_crc32, chunks
+from frontera.utils.misc import load_object, get_crc32, chunks, to_signed32
 import six
 
 
@@ -17,6 +18,17 @@ class TestGetCRC32(object):
 
     def test_non_ascii_bytes(self):
         assert get_crc32(u'example\u5000'.encode('utf8')) == 1259721235
+
+    def test_negative_crc32(self):
+        assert get_crc32(b'1') == -2082672713
+
+    def test_crc32_range(self):
+        left, right = -2**31, 2**31 - 1
+        for x in range(10000):
+            assert left <= get_crc32(hashlib.md5(str(x)).hexdigest()) <= right
+        for x in [left, left + 1, right - 1, right, right + 1,
+                  2**32 - 2, 2**32 - 1]:
+            assert left <= to_signed32(x) <= right
 
 
 class TestChunks(object):
