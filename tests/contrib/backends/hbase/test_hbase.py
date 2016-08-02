@@ -2,6 +2,7 @@ from happybase import Connection
 from frontera.contrib.backends.hbase import HBaseState, HBaseMetadata, HBaseQueue
 from frontera.core.models import Request, Response
 from frontera.core.components import States
+from binascii import unhexlify
 
 
 r1 = Request('https://www.example.com', meta={'fingerprint': '10',
@@ -15,7 +16,13 @@ r4 = r3.copy()
 
 class TestHBaseBackend(object):
 
-    def test_metadata(object):
+    def delete_rows(self, table, row_keys):
+        batch = table.batch()
+        for key in row_keys:
+            batch.delete(unhexlify(key))
+        batch.send()
+
+    def test_metadata(self):
         connection = Connection(host='hbase-docker', port=9090)
         metadata = HBaseMetadata(connection, 'metadata', True, False, 300000, True)
         metadata.add_seeds([r1, r2, r3])
@@ -23,8 +30,12 @@ class TestHBaseBackend(object):
         metadata.page_crawled(resp, [r2, r3])
         metadata.request_error(r4, 'error')
         metadata.frontier_stop()
+        table = connection.table('metadata')
+        assert set([data['m:url'] for _, data in table.scan()]) == \
+            set([r1.url, r2.url, r3.url])
+        self.delete_rows(table, ['10', '11', '12'])
 
-    def test_queue(object):
+    def test_queue(self):
         connection = Connection(host='hbase-docker', port=9090)
         queue = HBaseQueue(connection, 1, 'queue', True)
         batch = [('10', 0.5, r1, True), ('11', 0.6, r2, True),
