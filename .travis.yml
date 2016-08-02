@@ -22,7 +22,7 @@ install:
 
 before_install:
   - sudo apt-get update
-  - sudo apt-get -y --force-yes -o Dpkg::Options::="--force-confold" install docker-engine mysql-server
+  - sudo apt-get -y --force-yes -o Dpkg::Options::="--force-confold" install mysql-server
   - git clone https://github.com/dajobe/hbase-docker
   - docker pull dajobe/hbase
   - mkdir data
