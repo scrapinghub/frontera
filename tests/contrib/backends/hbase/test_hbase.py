@@ -1,6 +1,7 @@
 from happybase import Connection
 from frontera.contrib.backends.hbase import HBaseState, HBaseMetadata, HBaseQueue
 from frontera.core.models import Request, Response
+from frontera.core.components import States
 
 
 r1 = Request('https://www.example.com', meta={'fingerprint': '10',
@@ -36,19 +37,23 @@ class TestHBaseBackend(object):
         connection = Connection(host='hbase-docker', port=9090)
         state = HBaseState(connection, 'metadata', 300000)
         state.set_states([r1, r2, r3])
-        assert set([r.meta['state'] for r in [r1, r2, r3]]) == set([0, 0, 0])
+        assert [r.meta['state'] for r in [r1, r2, r3]] == [States.NOT_CRAWLED]*3
         state.update_cache([r1, r2, r3])
-        assert state._state_cache == {'10': 0, '11': 0, '12': 0}
-        r1.meta['state'] = 2
-        r2.meta['state'] = 2
-        r3.meta['state'] = 2
+        assert state._state_cache == {'10': States.NOT_CRAWLED,
+                                      '11': States.NOT_CRAWLED,
+                                      '12': States.NOT_CRAWLED}
+        r1.meta['state'] = States.CRAWLED
+        r2.meta['state'] = States.CRAWLED
+        r3.meta['state'] = States.CRAWLED
         state.update_cache([r1, r2, r3])
         state.flush(True)
         assert state._state_cache == {}
         state.fetch(['10', '11', '12'])
-        assert state._state_cache == {'10': 2, '11': 2, '12': 2}
-        r4.meta['state'] = 3
+        assert state._state_cache == {'10': States.CRAWLED,
+                                      '11': States.CRAWLED,
+                                      '12': States.CRAWLED}
+        r4.meta['state'] = States.ERROR
         state.set_states([r1, r2, r4])
-        assert r4.meta['state'] == 2
+        assert r4.meta['state'] == States.CRAWLED
         state.flush(True)
         assert state._state_cache == {}
