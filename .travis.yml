@@ -15,6 +15,10 @@ matrix:
   include:
     - python: 3.5
       env: TOXENV=py35
+      services:
+        - docker
+        - mysql
+        - postgresql
 
 install:
   - pip install -U tox wheel codecov
@@ -22,7 +26,7 @@ install:
 
 before_install:
   - sudo apt-get update
-  - sudo apt-get -y --force-yes -o Dpkg::Options::="--force-confold" install mysql-server
+  - sudo apt-get -y --force-yes -o Dpkg::Options::="--force-confold" install docker-engine mysql-server
   - git clone https://github.com/dajobe/hbase-docker
   - docker pull dajobe/hbase
   - mkdir data
