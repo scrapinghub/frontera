@@ -1,6 +1,8 @@
 from __future__ import absolute_import
-from frontera.core.components import Backend, Middleware, CanonicalSolver
+from frontera.core.components import Backend, Middleware, CanonicalSolver, \
+    DistributedBackend, Queue
 from six.moves import range
+from frontera.core.models import Request
 
 
 class FakeMiddleware(Middleware):
@@ -41,13 +43,10 @@ class FakeMiddleware(Middleware):
         return request
 
 
-class FakeBackend(FakeMiddleware, Backend):
+class FakeQueue(Queue):
 
-    _finished = False
-    requests = []
-
-    def finished(self):
-        return self._finished
+    def __init__(self):
+        self.requests = []
 
     def put_requests(self, requests):
         for request in requests:
@@ -59,6 +58,51 @@ class FakeBackend(FakeMiddleware, Backend):
             if self.requests:
                 lst.append(self.requests.pop())
         return lst
+
+    def count(self):
+        return len(self.requests)
+
+    def schedule(self, batch):
+        for obj in batch:
+            if obj[3]:
+                self.requests.append(Request(obj[2].url, meta={'fingerprint': obj[0], 'score': obj[1]}))
+
+
+class FakeBackend(FakeMiddleware, Backend):
+
+    _finished = False
+    queue = FakeQueue()
+
+    def finished(self):
+        return self._finished
+
+    def put_requests(self, requests):
+        self.queue.put_requests(requests)
+
+    def get_next_requests(self, max_next_requests, **kwargs):
+        return self.queue.get_next_requests(max_next_requests, **kwargs)
+
+
+class FakeDistributedBackend(FakeBackend, DistributedBackend):
+
+    def __init__(self):
+        FakeBackend.__init__(self)
+        self._queue = FakeQueue()
+
+    @classmethod
+    def db_worker(cls, manager):
+        return cls()
+
+    @classmethod
+    def strategy_worker(cls, manager):
+        return cls()
+
+    @property
+    def queue(self):
+        return self._queue
+
+    def get_next_requests(self, max_next_request, **kwargs):
+        return self._queue.get_next_requests(max_next_request)
 
 
 class FakeMiddlewareBlocking(FakeMiddleware):
