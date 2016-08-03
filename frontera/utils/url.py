@@ -1,20 +1,6 @@
 from __future__ import absolute_import
-import cgi
-import hashlib
 from six.moves.urllib import parse
-from w3lib.util import to_native_str, to_bytes
-
-
-# Python 2.x urllib.always_safe become private in Python 3.x;
-# its content is copied here
-_ALWAYS_SAFE_BYTES = (b'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-                      b'abcdefghijklmnopqrstuvwxyz'
-                      b'0123456789' b'_.-')
-
-
-_reserved = b';/?:@&=+$|,#'  # RFC 3986 (Generic Syntax)
-_unreserved_marks = b"-_.!~*'()"  # RFC 3986 sec 2.3
-_safe_chars = _ALWAYS_SAFE_BYTES + b'%' + _reserved + _unreserved_marks
+from w3lib.util import to_native_str
 
 
 def parse_url(url, encoding=None):
@@ -56,55 +42,3 @@ def parse_domain_from_url_fast(url):
     """
     result = parse_url(url)
     return result.netloc, result.hostname, result.scheme, "", "", ""
-
-
-def safe_url_string(url, encoding='utf8'):
-    """Convert the given url into a legal URL by escaping unsafe characters
-    according to RFC-3986.
-
-    If a unicode url is given, it is first converted to str using the given
-    encoding (which defaults to 'utf-8'). When passing a encoding, you should
-    use the encoding of the original page (the page from which the url was
-    extracted from).
-
-    Calling this function on an already "safe" url will return the url
-    unmodified.
-
-    Always returns a str.
-    """
-    s = to_bytes(url, encoding)
-    return parse.quote(s, _safe_chars)
-
-
-def _unquotepath(path):
-    for reserved in ('2f', '2F', '3f', '3F'):
-        path = path.replace('%' + reserved, '%25' + reserved.upper())
-    return parse.unquote(path)
-
-
-def canonicalize_url(url, keep_blank_values=True, keep_fragments=False):
-    """Canonicalize the given url by applying the following procedures:
-
-    - sort query arguments, first by key, then by value
-    - percent encode paths and query arguments. non-ASCII characters are
-      percent-encoded using UTF-8 (RFC-3986)
-    - normalize all spaces (in query arguments) '+' (plus symbol)
-    - normalize percent encodings case (%2f -> %2F)
-    - remove query arguments with blank values (unless keep_blank_values is True)
-    - remove fragments (unless keep_fragments is True)
-
-    The url passed can be a str or unicode, while the url returned is always a
-    str.
-
-    For examples see the tests in scrapy.tests.test_utils_url
-    """
-
-    scheme, netloc, path, params, query, fragment = parse_url(url)
-    keyvals = cgi.parse_qsl(query, keep_blank_values)
-    keyvals.sort()
-    query = parse.urlencode(keyvals)
-    path = safe_url_string(_unquotepath(path)) or '/'
-    fragment = '' if not keep_fragments else fragment
-    return parse.urlunparse((scheme, netloc.lower(), path, params, query, fragment))
-
-
