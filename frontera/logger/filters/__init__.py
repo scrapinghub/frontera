@@ -1,8 +1,10 @@
+from __future__ import absolute_import
 import logging
+import six
 
 
 def format_str(s):
-    if isinstance(s, unicode):
+    if isinstance(s, six.text_type):
         return s.encode('ascii', 'ignore')
     return str(s)
 

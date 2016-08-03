@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 from zlib import crc32
 from struct import unpack
 from binascii import unhexlify
 
 from frontera.core.components import Partitioner
+from frontera.utils.misc import get_crc32
 
 
 class Crc32NamePartitioner(Partitioner):
     def partition(self, key, partitions=None):
         if key is None:
             return self.partitions[0]
-        value = crc32(key) if type(key) is str else crc32(key.encode('utf-8', 'ignore'))
+        value = get_crc32(key)
         return self.partition_by_hash(value, partitions if partitions else self.partitions)
 
     def partition_by_hash(self, value, partitions):

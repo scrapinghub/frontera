@@ -1,15 +1,24 @@
 language: python
 python: 2.7
 
+services:
+  - docker
+  - mysql
+  - postgresql
+
 env:
   matrix:
     - TOXENV=py27
     - TOXENV=flake8
 
-services:
-  - docker
-  - mysql
-  - postgresql
+matrix:
+  include:
+    - python: 3.5
+      env: TOXENV=py35
+      services:
+        - docker
+        - mysql
+        - postgresql
 
 install:
   - pip install -U tox wheel codecov

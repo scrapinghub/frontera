@@ -2,6 +2,7 @@
 """
 Contains the SocketConfig class
 """
+from __future__ import absolute_import
 from socket import getaddrinfo, gaierror
 
 

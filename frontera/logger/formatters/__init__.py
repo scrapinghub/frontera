@@ -1,12 +1,13 @@
+from __future__ import absolute_import
 import logging
 
-from text import DETAILED, SHORT
+from .text import DETAILED, SHORT
 
 LOG_FORMAT = "[%(name)s] %(message)s"
 LOG_EVENT_FORMAT = "%(asctime)s %(event)-16s %(message)s"
 
 try:
-    from color import ColorFormatter
+    from .color import ColorFormatter
 
     LOG_COLOR_FORMAT = "%(log_color)s"+LOG_FORMAT
     COLORS = {

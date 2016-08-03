@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from happybase import Connection
 from frontera.contrib.backends.hbase import HBaseState, HBaseMetadata, HBaseQueue
 from frontera.core.models import Request, Response

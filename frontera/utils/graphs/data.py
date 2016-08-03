@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+from six.moves import range
+
+
 def create_test_site(prefix, max_depth, n_links_per_page, self_link=False, site=None, depth=0):
     if not site:
         site = []

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 import pytest
 from twisted.test.proto_helpers import MemoryReactor
 from twisted.internet.protocol import Factory
@@ -66,7 +67,7 @@ class TestListenTCP(object):
         reactor = MemoryReactor()
         with pytest.raises(Exception) as info:
             listen_tcp([1, 2, 3], self.host, Factory, reactor=reactor)
-        assert info.value.message == 'invalid portrange: [1, 2, 3]'
+        assert str(info.value) == 'invalid portrange: [1, 2, 3]'
 
     def test_listen_tcp_default(self):
         reactor = MemoryReactor()

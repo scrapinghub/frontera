@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 from frontera.core.models import Request
 from frontera.contrib.middlewares.fingerprint import UrlFingerprintMiddleware
 
 from abc import ABCMeta, abstractmethod
+import six
 
 
+@six.add_metaclass(ABCMeta)
 class BaseCrawlingStrategy(object):
     """
     Interface definition for a crawling strategy.
@@ -15,7 +18,6 @@ class BaseCrawlingStrategy(object):
 
     After exiting from all of these methods states from meta field are passed back and stored in the backend.
     """
-    __metaclass__ = ABCMeta
 
     def __init__(self, manager, mb_stream, states_context):
         self._mb_stream = mb_stream

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
 from frontera.contrib.scrapy.settings_adapter import ScrapySettingsAdapter
 
 

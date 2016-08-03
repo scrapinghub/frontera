@@ -1,4 +1,6 @@
+from __future__ import absolute_import
 from abc import ABCMeta, abstractmethod, abstractproperty
+import six
 
 
 class StartStopMixin(object):
@@ -15,10 +17,10 @@ class StartStopMixin(object):
         pass
 
 
+@six.add_metaclass(ABCMeta)
 class Metadata(StartStopMixin):
     """Interface definition for a frontier metadata class. This class is responsible for storing documents metadata,
     including content and optimized for write-only data flow."""
-    __metaclass__ = ABCMeta
 
     @abstractmethod
     def add_seeds(self, seeds):
@@ -51,9 +53,9 @@ class Metadata(StartStopMixin):
         pass
 
 
+@six.add_metaclass(ABCMeta)
 class Queue(StartStopMixin):
     """Interface definition for a frontier queue class. The queue has priorities and partitions."""
-    __metaclass__ = ABCMeta
 
     @abstractmethod
     def get_next_requests(self, max_n_requests, partition_id, **kwargs):
@@ -87,10 +89,10 @@ class Queue(StartStopMixin):
         raise NotImplementedError
 
 
+@six.add_metaclass(ABCMeta)
 class States(StartStopMixin):
     """Interface definition for a document states management class. This class is responsible for providing actual
     documents state, and persist the state changes in batch-oriented manner."""
-    __metaclass__ = ABCMeta
 
     NOT_CRAWLED = 0
     QUEUED = 1
@@ -134,6 +136,7 @@ class States(StartStopMixin):
         raise NotImplementedError
 
 
+@six.add_metaclass(ABCMeta)
 class Component(Metadata):
     """
     Interface definition for a frontier component
@@ -149,7 +152,6 @@ class Component(Metadata):
     but in their corresponding section.
 
     """
-    __metaclass__ = ABCMeta
     component_name = 'Base Component'
 
     @property
@@ -174,15 +176,15 @@ class Component(Metadata):
         return cls()
 
 
+@six.add_metaclass(ABCMeta)
 class Middleware(Component):
     """Interface definition for a Frontier Middlewares"""
-    __metaclass__ = ABCMeta
     component_name = 'Base Middleware'
 
 
+@six.add_metaclass(ABCMeta)
 class CanonicalSolver(Middleware):
     """Interface definition for a Frontera Canonical Solver"""
-    __metaclass__ = ABCMeta
     component_name = 'Base CanonicalSolver'
 
 
@@ -209,9 +211,9 @@ class PropertiesMixin(object):
         raise NotImplementedError
 
 
+@six.add_metaclass(ABCMeta)
 class Backend(PropertiesMixin, Component):
     """Interface definition for frontier backend."""
-    __metaclass__ = ABCMeta
 
     @abstractmethod
     def finished(self):
@@ -235,9 +237,9 @@ class Backend(PropertiesMixin, Component):
         raise NotImplementedError
 
 
+@six.add_metaclass(ABCMeta)
 class DistributedBackend(Backend):
     """Interface definition for distributed frontier backend. Implies using in strategy worker and DB worker."""
-    __metaclass__ = ABCMeta
 
     @classmethod
     def strategy_worker(cls, manager):
