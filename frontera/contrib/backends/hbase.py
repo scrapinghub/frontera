@@ -96,12 +96,12 @@ class HBaseQueue(Queue):
                         self.logger.error("Can't get hostname for URL %s, fingerprint %s", request.url, fprint)
                     request.meta['domain'] = {'name': hostname}
                 to_schedule.append((score, fprint, request.meta['domain'], request.url))
-        self._schedule(to_schedule)
+        self._schedule(to_schedule, timestamp=int(time()))
 
-    def _schedule(self, batch):
+    def _schedule(self, batch, timestamp):
         """
         Row - portion of the queue for each partition id created at some point in time
-        Row Key - partition id + score interval + timestamp
+        Row Key - partition id + score interval + random_str
         Column Qualifier - discrete score (first three digits after dot, e.g. 0.001_0.002, 0.002_0.003, ...)
         Value - QueueCell msgpack blob
 
@@ -112,7 +112,7 @@ class HBaseQueue(Queue):
           [0.03-0.04)
          ...
           [0.99-1.00]
-        timestamp - the time when links was scheduled for retrieval.
+        random_str - the time when links was scheduled for retrieval, microsecs
 
         :param batch: list of tuples(score, fingerprint, domain, url)
         :return:
@@ -126,7 +126,7 @@ class HBaseQueue(Queue):
                 i = i - 1  # last interval is inclusive from right
             return (i * resolution, (i + 1) * resolution)
 
-        timestamp = int(time() * 1E+6)
+        random_str = int(time() * 1E+6)
         data = dict()
         for score, fingerprint, domain, url in batch:
             if type(domain) == dict:
@@ -139,7 +139,7 @@ class HBaseQueue(Queue):
                 raise TypeError("domain of unknown type.")
             item = (unhexlify(fingerprint), host_crc32, url, score)
             score = 1 - score  # because of lexicographical sort in HBase
-            rk = "%d_%s_%d" % (partition_id, "%0.2f_%0.2f" % get_interval(score, 0.01), timestamp)
+            rk = "%d_%s_%d" % (partition_id, "%0.2f_%0.2f" % get_interval(score, 0.01), random_str)
             data.setdefault(rk, []).append((score, item))
 
         table = self.connection.table(self.table_name)
@@ -157,6 +157,7 @@ class HBaseQueue(Queue):
                     for item in items:
                         stream.write(packer.pack(item))
                     final[column] = stream.getvalue()
+                final['f:t'] = str(timestamp)
                 b.put(rk, final)
 
     def get_next_requests(self, max_n_requests, partition_id, **kwargs):
@@ -182,6 +183,9 @@ class HBaseQueue(Queue):
         limit = min_requests
         tries = 0
         count = 0
+        prefix = '%d_' % partition_id
+        now_ts = int(time())
+        filter = "PrefixFilter ('%s') AND SingleColumnValueFilter ('f', 't', >=, 'binary:%d')" % (prefix, now_ts)
         while tries < self.GET_RETRIES:
             tries += 1
             limit *= 5.5 if tries > 1 else 1.0
@@ -190,8 +194,11 @@ class HBaseQueue(Queue):
             meta_map.clear()
             queue.clear()
             count = 0
-            for rk, data in table.scan(row_prefix='%d_' % partition_id, limit=int(limit), batch_size=256):
+            for rk, data in table.scan(row_prefix=prefix, limit=int(limit), batch_size=256,
+                                       filter=filter):
                 for cq, buf in six.iteritems(data):
+                    if cq == 'f:t':
+                        continue
                     stream = BytesIO(buf)
                     unpacker = Unpacker(stream)
                     for item in unpacker:
