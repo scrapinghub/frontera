@@ -76,11 +76,11 @@ class BaseEncoder(object):
         pass
 
     @abstractmethod
-    def encode_update_score(self, fingerprint, score, url, schedule):
+    def encode_update_score(self, request, score, schedule):
         """
         Encodes update_score messages for scoring log stream.
 
-        :param str fingerprint: fingerprint in hex form
+        :param object request: Frontera Request object
         :param float score: score
         :param str url: A document url
         :param bool schedule: True if document needs to be scheduled for download
