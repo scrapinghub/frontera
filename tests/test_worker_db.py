@@ -13,6 +13,7 @@ class TestDBWorker(object):
 
     def dbw_setup(self, distributed=False):
         settings = Settings()
+        settings.MAX_NEXT_REQUESTS = 64
         settings.MESSAGE_BUS = 'tests.mocks.message_bus.FakeMessageBus'
         if distributed:
             settings.BACKEND = 'tests.mocks.components.FakeDistributedBackend'
@@ -62,3 +63,20 @@ class TestDBWorker(object):
         assert dbw.new_batch() == 3
         assert set(dbw.spider_feed_producer.messages) == \
             set([dbw._encoder.encode_request(r) for r in [r1, r2, r3]])
+
+    def test_offset(self):
+        dbw = self.dbw_setup(True)
+        msg = dbw._encoder.encode_offset(2, 50)
+        dbw.spider_log_consumer.put_messages([msg])
+        dbw.spider_feed_producer.offset = 100
+        dbw.consume_incoming()
+        assert 2 in dbw.spider_feed.ready_partitions
+        msg1 = dbw._encoder.encode_offset(2, 20)
+        msg2 = dbw._encoder.encode_offset(3, 0)
+        dbw.spider_log_consumer.put_messages([msg1, msg2])
+        dbw.consume_incoming()
+        assert 3 in dbw.spider_feed.ready_partitions
+        assert 2 not in dbw.spider_feed.ready_partitions
+        dbw._backend.queue.put_requests([r1, r2, r3])
+        assert dbw.new_batch() == 3
+        assert 3 in dbw._backend.partitions

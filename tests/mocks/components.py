@@ -88,6 +88,7 @@ class FakeDistributedBackend(FakeBackend, DistributedBackend):
     def __init__(self):
         FakeBackend.__init__(self)
         self._queue = FakeQueue()
+        self.partitions = set()
 
     @classmethod
     def db_worker(cls, manager):
@@ -101,7 +102,9 @@ class FakeDistributedBackend(FakeBackend, DistributedBackend):
     def queue(self):
         return self._queue
 
-    def get_next_requests(self, max_next_request, **kwargs):
+    def get_next_requests(self, max_next_request, partitions, **kwargs):
+        for partition in partitions:
+            self.partitions.add(partition)
         return self._queue.get_next_requests(max_next_request)
 
 
