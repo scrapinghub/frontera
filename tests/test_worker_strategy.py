@@ -38,6 +38,7 @@ class TestStrategyWorker(object):
         msg = sw._encoder.encode_page_crawled(resp, [r2, r3, r4])
         sw.consumer.put_messages([msg])
         sw.work()
+        # response should be skipped if it's jid doesn't match the strategy worker's
         assert sw.scoring_log_producer.messages == []
         sw.job_id = 1
         r2.meta['state'] = States.QUEUED
