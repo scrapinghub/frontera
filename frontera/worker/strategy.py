@@ -31,11 +31,10 @@ class UpdateScoreStream(object):
         self._producer = scoring_log_producer
         self._size = size
 
-    def send(self, url, fingerprint, score=1.0, dont_queue=False):
+    def send(self, request, score=1.0, dont_queue=False):
         encoded = self._encoder.encode_update_score(
-            fingerprint,
+            request,
             score,
-            url,
             not dont_queue
         )
         self._buffer.append(encoded)

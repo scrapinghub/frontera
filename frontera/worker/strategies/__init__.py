@@ -89,7 +89,7 @@ class BaseCrawlingStrategy(object):
         :param score: float from 0.0 to 1.0
         :param dont_queue: bool, True - if no need to schedule, only update the score
         """
-        self._mb_stream.send(request.url, request.meta['fingerprint'], score, dont_queue)
+        self._mb_stream.send(request, score, dont_queue)
 
     def create_request(self, url, method='GET', headers=None, cookies=None, meta=None, body=''):
         """

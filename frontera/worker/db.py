@@ -197,10 +197,10 @@ class DBWorker(object):
                 continue
             else:
                 if msg[0] == 'update_score':
-                    _, fprint, score, url, schedule = msg
-                    if fprint not in seen:
-                        batch.append((fprint, score, Request(url), schedule))
-                    seen.add(fprint)
+                    _, request, score, schedule = msg
+                    if request.meta['fingerprint'] not in seen:
+                        batch.append((request.meta['fingerprint'], score, request, schedule))
+                        seen.add(request.meta['fingerprint'])
                 if msg[0] == 'new_job_id':
                     self.job_id = msg[1]
             finally:
