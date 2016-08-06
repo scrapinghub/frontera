@@ -137,7 +137,7 @@ Default: ``512``
 
 This is a batch size used by strategy and db workers for consuming of spider log stream. Increasing it
 will cause worker to spend more time on every task, but processing more items per task, therefore leaving less time for
-other tasks during some fixed time interval. Reducing it will result to running several tasks withing the same time
+other tasks during some fixed time interval. Reducing it will result to running several tasks within the same time
 interval, but with less overall efficiency. Use it when your consumers too slow, or too fast.
 
 .. setting:: SCORING_LOG_CONSUMER_BATCH_SIZE
