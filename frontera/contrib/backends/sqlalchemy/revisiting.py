@@ -71,8 +71,8 @@ class RevisitingQueue(BaseQueue):
     @retry_and_rollback
     def schedule(self, batch):
         to_save = []
-        for fprint, score, request, schedule_at in batch:
-            if schedule_at:
+        for fprint, score, request, schedule in batch:
+            if schedule:
                 _, hostname, _, _, _, _ = parse_domain_from_url_fast(request.url)
                 if not hostname:
                     self.logger.error("Can't get hostname for URL %s, fingerprint %s" % (request.url, fprint))
@@ -81,6 +81,7 @@ class RevisitingQueue(BaseQueue):
                 else:
                     partition_id = self.partitioner.partition(hostname, self.partitions)
                     host_crc32 = get_crc32(hostname)
+                schedule_at = request.meta['crawl_at']
                 q = self.queue_model(fingerprint=fprint, score=score, url=request.url, meta=request.meta,
                                      headers=request.headers, cookies=request.cookies, method=request.method,
                                      partition_id=partition_id, host_crc32=host_crc32, created_at=time()*1E+6,
@@ -104,20 +105,18 @@ class Backend(SQLAlchemyBackend):
 
     def _schedule(self, requests):
         batch = []
-        queue_incr = 0
         for request in requests:
             if request.meta['state'] in [States.NOT_CRAWLED]:
-                schedule_at = datetime.utcnow()
+                request.meta['crawl_at'] = datetime.utcnow()
             elif request.meta['state'] in [States.CRAWLED, States.ERROR]:
-                schedule_at = datetime.utcnow() + self.interval
-            else:  # QUEUED
-                schedule_at = None
-            batch.append((request.meta['fingerprint'], self._get_score(request), request, schedule_at))
-            if schedule_at:
-                queue_incr += 1
+                request.meta['crawl_at'] = datetime.utcnow() + self.interval
+            else:
+                pass    # QUEUED
+            if 'crawl_at' in request.meta:
+                batch.append((request.meta['fingerprint'], self._get_score(request), request, True))
         self.queue.schedule(batch)
         self.metadata.update_score(batch)
-        self.queue_size += queue_incr
+        self.queue_size += len(batch)
 
     def page_crawled(self, response, links):
         super(Backend, self).page_crawled(response, links)
