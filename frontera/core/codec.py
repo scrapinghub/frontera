@@ -82,7 +82,6 @@ class BaseEncoder(object):
 
         :param object request: Frontera Request object
         :param float score: score
-        :param str url: A document url
         :param bool schedule: True if document needs to be scheduled for download
         :return: bytes encoded message
         """
