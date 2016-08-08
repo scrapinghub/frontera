@@ -4,7 +4,7 @@ from frontera.contrib.backends.hbase import HBaseState, HBaseMetadata, HBaseQueu
 from frontera.core.models import Request, Response
 from frontera.core.components import States
 from binascii import unhexlify
-
+from time import sleep, time
 
 r1 = Request('https://www.example.com', meta={'fingerprint': '10',
              'domain': {'name': 'www.example.com', 'fingerprint': '81'}})
@@ -13,6 +13,7 @@ r2 = Request('http://example.com/some/page/', meta={'fingerprint': '11',
 r3 = Request('http://www.scrapy.org', meta={'fingerprint': '12',
              'domain': {'name': 'www.scrapy.org', 'fingerprint': '83'}})
 r4 = r3.copy()
+
 
 
 class TestHBaseBackend(object):
@@ -46,6 +47,19 @@ class TestHBaseBackend(object):
                    max_requests_per_host=10)]) == set([r3.url])
         assert set([r.url for r in queue.get_next_requests(10, 1, min_requests=3, min_hosts=1,
                    max_requests_per_host=10)]) == set([r1.url, r2.url])
+
+    def test_queue_with_delay(self):
+        connection = Connection(host='hbase-docker', port=9090)
+        queue = HBaseQueue(connection, 1, 'queue', True)
+        r5 = r3.copy()
+        r5.meta['crawl_at'] = int(time()) + 1
+        batch = [(r5.meta['fingerprint'], 0.5, r5, True)]
+        queue.schedule(batch)
+        assert queue.get_next_requests(10, 0, min_requests=3, min_hosts=1,
+                   max_requests_per_host=10) == []
+        sleep(1.0)
+        assert set([r.url for r in queue.get_next_requests(10, 0, min_requests=3, min_hosts=1,
+                   max_requests_per_host=10)]) == set([r5.url])
 
     def test_state(self):
         connection = Connection(host='hbase-docker', port=9090)

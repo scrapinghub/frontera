@@ -97,8 +97,8 @@ class HBaseQueue(Queue):
                     if not hostname:
                         self.logger.error("Can't get hostname for URL %s, fingerprint %s", request.url, fprint)
                     request.meta['domain'] = {'name': hostname}
-                dt = timegm(request.meta['crawl_at'].timetuple()) if 'crawl_at' in request.meta else now
-                to_schedule.setdefault(dt, []).append((request, score))
+                timestamp = request.meta['crawl_at'] if 'crawl_at' in request.meta else now
+                to_schedule.setdefault(timestamp, []).append((request, score))
         for timestamp, batch in to_schedule.iteritems():
             self._schedule(batch, timestamp)
 
@@ -191,7 +191,7 @@ class HBaseQueue(Queue):
         count = 0
         prefix = '%d_' % partition_id
         now_ts = int(time())
-        filter = "PrefixFilter ('%s') AND SingleColumnValueFilter ('f', 't', >=, 'binary:%d')" % (prefix, now_ts)
+        filter = "PrefixFilter ('%s') AND SingleColumnValueFilter ('f', 't', <=, 'binary:%d')" % (prefix, now_ts)
         while tries < self.GET_RETRIES:
             tries += 1
             limit *= 5.5 if tries > 1 else 1.0
@@ -200,8 +200,7 @@ class HBaseQueue(Queue):
             meta_map.clear()
             queue.clear()
             count = 0
-            for rk, data in table.scan(row_prefix=prefix, limit=int(limit), batch_size=256,
-                                       filter=filter):
+            for rk, data in table.scan(limit=int(limit), batch_size=256, filter=filter):
                 for cq, buf in six.iteritems(data):
                     if cq == 'f:t':
                         continue
