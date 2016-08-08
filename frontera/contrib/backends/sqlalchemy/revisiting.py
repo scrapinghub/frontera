@@ -3,8 +3,9 @@ from __future__ import absolute_import
 import logging
 from datetime import datetime, timedelta
 from time import time, sleep
+from calendar import timegm
 
-from sqlalchemy import Column, DateTime
+from sqlalchemy import Column, BigInteger
 
 from frontera import Request
 from frontera.contrib.backends.partitioners import Crc32NamePartitioner
@@ -16,10 +17,15 @@ from frontera.utils.url import parse_domain_from_url_fast
 from six.moves import range
 
 
+def utcnow_timestamp():
+    d = datetime.utcnow()
+    return timegm(d.timetuple())
+
+
 class RevisitingQueueModel(QueueModelMixin, DeclarativeBase):
     __tablename__ = 'revisiting_queue'
 
-    crawl_at = Column(DateTime, nullable=False)
+    crawl_at = Column(BigInteger, nullable=False)
 
 
 def retry_and_rollback(func):
@@ -56,11 +62,12 @@ class RevisitingQueue(BaseQueue):
         results = []
         try:
             for item in self.session.query(self.queue_model).\
-                    filter(RevisitingQueueModel.crawl_at <= datetime.utcnow(),
+                    filter(RevisitingQueueModel.crawl_at <= utcnow_timestamp(),
                            RevisitingQueueModel.partition_id == partition_id).\
                     limit(max_n_requests):
                 method = 'GET' if not item.method else item.method
-                results.append(Request(item.url, method=method, meta=item.meta, headers=item.headers, cookies=item.cookies))
+                results.append(Request(item.url, method=method, meta=item.meta, headers=item.headers,
+                                       cookies=item.cookies))
                 self.session.delete(item)
             self.session.commit()
         except Exception as exc:
@@ -101,6 +108,7 @@ class Backend(SQLAlchemyBackend):
     def _create_queue(self, settings):
         self.interval = settings.get("SQLALCHEMYBACKEND_REVISIT_INTERVAL")
         assert isinstance(self.interval, timedelta)
+        self.interval = self.interval.total_seconds()
         return RevisitingQueue(self.session_cls, RevisitingQueueModel, settings.get('SPIDER_FEED_PARTITIONS'))
 
     def _schedule(self, requests):
@@ -109,7 +117,7 @@ class Backend(SQLAlchemyBackend):
             if request.meta['state'] in [States.NOT_CRAWLED]:
                 request.meta['crawl_at'] = datetime.utcnow()
             elif request.meta['state'] in [States.CRAWLED, States.ERROR]:
-                request.meta['crawl_at'] = datetime.utcnow() + self.interval
+                request.meta['crawl_at'] = utcnow_timestamp() + self.interval
             else:
                 pass    # QUEUED
             if 'crawl_at' in request.meta:
