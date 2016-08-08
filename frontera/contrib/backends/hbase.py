@@ -87,16 +87,20 @@ class HBaseQueue(Queue):
         pass
 
     def schedule(self, batch):
-        to_schedule = []
+        to_schedule = dict()
+        now = int(time())
         for fprint, score, request, schedule in batch:
             if schedule:
-                if 'domain' not in request.meta:
+                if 'domain' not in request.meta:    # TODO: this have to be done always by DomainMiddleware,
+                    # so I propose to require DomainMiddleware by HBaseBackend and remove that code
                     _, hostname, _, _, _, _ = parse_domain_from_url_fast(request.url)
                     if not hostname:
                         self.logger.error("Can't get hostname for URL %s, fingerprint %s", request.url, fprint)
                     request.meta['domain'] = {'name': hostname}
-                to_schedule.append((score, fprint, request.meta['domain'], request.url))
-        self._schedule(to_schedule, timestamp=int(time()))
+                dt = timegm(request.meta['crawl_at'].timetuple()) if 'crawl_at' in request.meta else now
+                to_schedule.setdefault(dt, []).append((request, score))
+        for timestamp, batch in to_schedule.iteritems():
+            self._schedule(batch, timestamp)
 
     def _schedule(self, batch, timestamp):
         """
@@ -114,7 +118,7 @@ class HBaseQueue(Queue):
           [0.99-1.00]
         random_str - the time when links was scheduled for retrieval, microsecs
 
-        :param batch: list of tuples(score, fingerprint, domain, url)
+        :param batch: iterable of Request objects
         :return:
         """
         def get_interval(score, resolution):
@@ -128,7 +132,9 @@ class HBaseQueue(Queue):
 
         random_str = int(time() * 1E+6)
         data = dict()
-        for score, fingerprint, domain, url in batch:
+        for request, score in batch:
+            domain = request.meta['domain']
+            fingerprint = request.meta['fingerprint']
             if type(domain) == dict:
                 partition_id = self.partitioner.partition(domain['name'], self.partitions)
                 host_crc32 = get_crc32(domain['name'])
@@ -137,7 +143,7 @@ class HBaseQueue(Queue):
                 host_crc32 = domain
             else:
                 raise TypeError("domain of unknown type.")
-            item = (unhexlify(fingerprint), host_crc32, url, score)
+            item = (unhexlify(fingerprint), host_crc32, request.url, score)
             score = 1 - score  # because of lexicographical sort in HBase
             rk = "%d_%s_%d" % (partition_id, "%0.2f_%0.2f" % get_interval(score, 0.01), random_str)
             data.setdefault(rk, []).append((score, item))
