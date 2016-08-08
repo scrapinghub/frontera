@@ -115,17 +115,18 @@ class Backend(SQLAlchemyBackend):
         batch = []
         for request in requests:
             if request.meta['state'] in [States.NOT_CRAWLED]:
-                request.meta['crawl_at'] = datetime.utcnow()
+                request.meta['crawl_at'] = utcnow_timestamp()
             elif request.meta['state'] in [States.CRAWLED, States.ERROR]:
                 request.meta['crawl_at'] = utcnow_timestamp() + self.interval
             else:
-                pass    # QUEUED
-            if 'crawl_at' in request.meta:
-                batch.append((request.meta['fingerprint'], self._get_score(request), request, True))
+                continue    # QUEUED
+            batch.append((request.meta['fingerprint'], self._get_score(request), request, True))
         self.queue.schedule(batch)
         self.metadata.update_score(batch)
         self.queue_size += len(batch)
 
     def page_crawled(self, response, links):
         super(Backend, self).page_crawled(response, links)
+        self.states.set_states(response.request)
         self._schedule([response.request])
+        self.states.update_cache(response.request)
