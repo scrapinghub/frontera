@@ -22,19 +22,19 @@ import logging
 import six
 from six.moves import map
 from six.moves import range
-from w3lib.util import to_native_str
+from w3lib.util import to_native_str, to_bytes
 
 
 _pack_functions = {
-    'url': str,
+    'url': to_bytes,
     'depth': lambda x: pack('>I', 0),
     'created_at': lambda x: pack('>Q', x),
     'status_code': lambda x: pack('>H', x),
     'state': lambda x: pack('>B', x),
-    'error': str,
-    'domain_fingerprint': str,
+    'error': to_bytes,
+    'domain_fingerprint': to_bytes,
     'score': lambda x: pack('>f', x),
-    'content': str
+    'content': to_bytes
 }
 
 
@@ -146,7 +146,7 @@ class HBaseQueue(Queue):
                 raise TypeError("domain of unknown type.")
             item = (unhexlify(fingerprint), host_crc32, request.url, score)
             score = 1 - score  # because of lexicographical sort in HBase
-            rk = b"%d_%s_%d" % (partition_id, b"%0.2f_%0.2f" % get_interval(score, 0.01), random_str)
+            rk = "%d_%s_%d" % (partition_id, "%0.2f_%0.2f" % get_interval(score, 0.01), random_str)
             data.setdefault(rk, []).append((score, item))
 
         table = self.connection.table(self.table_name)
@@ -154,7 +154,7 @@ class HBaseQueue(Queue):
             for rk, tuples in six.iteritems(data):
                 obj = dict()
                 for score, item in tuples:
-                    column = b'f:%0.3f_%0.3f' % get_interval(score, 0.001)
+                    column = 'f:%0.3f_%0.3f' % get_interval(score, 0.001)
                     obj.setdefault(column, []).append(item)
 
                 final = dict()
@@ -190,9 +190,9 @@ class HBaseQueue(Queue):
         limit = min_requests
         tries = 0
         count = 0
-        prefix = b'%d_' % partition_id
+        prefix = '%d_' % partition_id
         now_ts = int(time())
-        filter = b"PrefixFilter ('%s') AND SingleColumnValueFilter ('f', 't', <=, 'binary:%d')" % (prefix, now_ts)
+        filter = "PrefixFilter ('%s') AND SingleColumnValueFilter ('f', 't', <=, 'binary:%d')" % (prefix, now_ts)
         while tries < self.GET_RETRIES:
             tries += 1
             limit *= 5.5 if tries > 1 else 1.0
@@ -248,7 +248,7 @@ class HBaseQueue(Queue):
                     for rk_fprint in fprint_map[rk]:
                         _, item = meta_map[rk_fprint][0]
                         _, _, url, score = item
-                        results.append(Request(to_native_str(url, 'utf-8'), meta={
+                        results.append(Request(to_native_str(url), meta={
                             b'fingerprint': hexlify(rk_fprint),
                             b'score': score,
                         }))
