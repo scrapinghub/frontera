@@ -88,7 +88,7 @@ class RevisitingQueue(BaseQueue):
                 else:
                     partition_id = self.partitioner.partition(hostname, self.partitions)
                     host_crc32 = get_crc32(hostname)
-                schedule_at = request.meta['crawl_at']
+                schedule_at = request.meta['crawl_at'] if 'crawl_at' in request.meta else utcnow_timestamp()
                 q = self.queue_model(fingerprint=fprint, score=score, url=request.url, meta=request.meta,
                                      headers=request.headers, cookies=request.cookies, method=request.method,
                                      partition_id=partition_id, host_crc32=host_crc32, created_at=time()*1E+6,
