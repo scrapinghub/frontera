@@ -3,6 +3,7 @@ from importlib import import_module
 from zlib import crc32
 from six.moves import range
 from w3lib.util import to_bytes
+import six
 
 
 def load_object(path):
@@ -40,3 +41,23 @@ def chunks(l, n):
         yield l[i:i+n]
 
 
+def dict_to_bytes(obj):
+    if isinstance(obj, dict):
+        return {dict_to_bytes(k): dict_to_bytes(v) for k, v in six.iteritems(obj)}
+    if isinstance(obj, six.text_type):
+        return obj.encode('utf8')
+    if isinstance(obj, list):
+        return map(dict_to_bytes, obj)
+    else:
+        return obj
+
+
+def dict_to_unicode(obj):
+    if isinstance(obj, dict):
+        return {dict_to_unicode(k): dict_to_unicode(v) for k, v in six.iteritems(obj)}
+    if isinstance(obj, six.binary_type):
+        return obj.decode('utf8')
+    if isinstance(obj, list):
+        return map(dict_to_unicode, obj)
+    else:
+        return obj
