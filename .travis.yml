@@ -33,7 +33,7 @@ before_install:
   - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
   - chmod +x docker-compose
   - sudo mv docker-compose /usr/local/bin
-  - git clone https://github.com/dajobe/hbase-docker
+  - git clone https://github.com/scrapinghub/hbase-docker.git
   - docker pull dajobe/hbase
   - mkdir data
   - ./hbase-docker/start-hbase.sh
