@@ -27,8 +27,12 @@ class TestStrategyWorker(object):
         r2.meta['state'] = States.CRAWLED
         sw.states.update_cache([r2])
         sw.work()
+
+        r1.meta['state'] = States.QUEUED
+        r3.meta['state'] = States.QUEUED
+        r4.meta['state'] = States.QUEUED
         assert set(sw.scoring_log_producer.messages) == \
-            set([sw._encoder.encode_update_score(r.meta['fingerprint'], 1.0, r.url, True)
+            set([sw._encoder.encode_update_score(r, 1.0, True)
                 for r in [r1, r3, r4]])
 
     def test_page_crawled(self):
@@ -45,14 +49,17 @@ class TestStrategyWorker(object):
         sw.states.update_cache([r2])
         sw.consumer.put_messages([msg])
         sw.work()
+
+        r3.meta['state'] = States.QUEUED
+        r4.meta['state'] = States.QUEUED
         assert set(sw.scoring_log_producer.messages) == \
-            set(sw._encoder.encode_update_score(r.meta['fingerprint'],
-                sw.strategy.get_score(r.url), r.url, True) for r in [r3, r4])
+            set(sw._encoder.encode_update_score(r, sw.strategy.get_score(r.url), True) for r in [r3, r4])
 
     def test_request_error(self):
         sw = self.sw_setup()
         msg = sw._encoder.encode_request_error(r4, 'error')
         sw.consumer.put_messages([msg])
         sw.work()
+        r4.meta['state'] = States.ERROR
         assert sw.scoring_log_producer.messages.pop() == \
-            sw._encoder.encode_update_score(r4.meta['fingerprint'], 0.0, r4.url, False)
+            sw._encoder.encode_update_score(r4, 0.0, False)
