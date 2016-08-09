@@ -4,8 +4,6 @@ from .converters import BaseRequestConverter, BaseResponseConverter
 
 
 class FrontierManagerWrapper(object):
-    __metaclass__ = ABCMeta
-
     def __init__(self, settings, manager=None):
         manager = manager or FrontierManager
         self.manager = manager.from_settings(settings)
