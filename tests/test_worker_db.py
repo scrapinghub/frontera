@@ -50,8 +50,8 @@ class TestDBWorker(object):
         dbw.spider_log_consumer.put_messages([msg])
         dbw.consume_incoming()
         assert dbw.new_batch() == 0
-        msg1 = dbw._encoder.encode_update_score('1', 0.5, r1.url, True)
-        msg2 = dbw._encoder.encode_update_score('3', 0.6, r3.url, True)
+        msg1 = dbw._encoder.encode_update_score(r1, 0.5, True)
+        msg2 = dbw._encoder.encode_update_score(r3, 0.6, True)
         dbw.scoring_log_consumer.put_messages([msg1, msg2])
         dbw.consume_scoring()
         assert set([r.url for r in dbw._backend.queue.requests]) == set([r1.url, r3.url])
