@@ -6,6 +6,7 @@ from msgpack import packb, unpackb
 from frontera.core.codec import BaseDecoder, BaseEncoder
 import six
 from six.moves import map
+from w3lib.util import to_native_str
 
 
 def _prepare_request_message(request):

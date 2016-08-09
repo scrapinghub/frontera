@@ -118,7 +118,7 @@ class Decoder(json.JSONDecoder, BaseDecoder):
             request = self._request_from_object(message[b'r'])
             return ('request_error', request, to_native_str(message[b'error']))
         if message[b'type'] == b'update_score':
-            return ('update_score', self._request_from_object(message[b'r'], message[b'score'], message[b'schedule'])
+            return ('update_score', self._request_from_object(message[b'r']), message[b'score'], message[b'schedule'])
         if message[b'type'] == b'add_seeds':
             seeds = []
             for seed in message[b'seeds']:
@@ -133,8 +133,8 @@ class Decoder(json.JSONDecoder, BaseDecoder):
 
     def decode_request(self, message):
         obj = dict_to_bytes(super(Decoder, self).decode(message))
-        return self._request_model(url=obj[b'url'],
-                                   method=obj[b'method'],
+        return self._request_model(url=to_native_str(obj[b'url']),
+                                   method=to_native_str(obj[b'method']),
                                    headers=obj[b'headers'],
                                    cookies=obj[b'cookies'],
                                    meta=obj[b'meta'])
