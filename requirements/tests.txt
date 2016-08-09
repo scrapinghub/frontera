@@ -9,4 +9,5 @@ pyzmq
 msgpack-python
 kafka-python<=0.9.5
 pytest-cov
-happybase; python_version <= '2.7'
+#happybase; python_version <= '2.7'
+git+https://github.com/wbolster/happybase.git

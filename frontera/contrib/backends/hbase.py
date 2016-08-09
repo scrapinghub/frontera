@@ -22,18 +22,19 @@ import logging
 import six
 from six.moves import map
 from six.moves import range
+from w3lib.util import to_native_str, to_bytes
 
 
 _pack_functions = {
-    'url': str,
+    'url': to_bytes,
     'depth': lambda x: pack('>I', 0),
     'created_at': lambda x: pack('>Q', x),
     'status_code': lambda x: pack('>H', x),
     'state': lambda x: pack('>B', x),
-    'error': str,
-    'domain_fingerprint': str,
+    'error': to_bytes,
+    'domain_fingerprint': to_bytes,
     'score': lambda x: pack('>f', x),
-    'content': str
+    'content': to_bytes
 }
 
 
@@ -87,21 +88,25 @@ class HBaseQueue(Queue):
         pass
 
     def schedule(self, batch):
-        to_schedule = []
+        to_schedule = dict()
+        now = int(time())
         for fprint, score, request, schedule in batch:
             if schedule:
-                if 'domain' not in request.meta:
+                if b'domain' not in request.meta:    # TODO: this have to be done always by DomainMiddleware,
+                    # so I propose to require DomainMiddleware by HBaseBackend and remove that code
                     _, hostname, _, _, _, _ = parse_domain_from_url_fast(request.url)
                     if not hostname:
                         self.logger.error("Can't get hostname for URL %s, fingerprint %s", request.url, fprint)
-                    request.meta['domain'] = {'name': hostname}
-                to_schedule.append((score, fprint, request.meta['domain'], request.url))
-        self._schedule(to_schedule)
+                    request.meta[b'domain'] = {'name': hostname}
+                timestamp = request.meta[b'crawl_at'] if b'crawl_at' in request.meta else now
+                to_schedule.setdefault(timestamp, []).append((request, score))
+        for timestamp, batch in six.iteritems(to_schedule):
+            self._schedule(batch, timestamp)
 
-    def _schedule(self, batch):
+    def _schedule(self, batch, timestamp):
         """
         Row - portion of the queue for each partition id created at some point in time
-        Row Key - partition id + score interval + timestamp
+        Row Key - partition id + score interval + random_str
         Column Qualifier - discrete score (first three digits after dot, e.g. 0.001_0.002, 0.002_0.003, ...)
         Value - QueueCell msgpack blob
 
@@ -112,9 +117,9 @@ class HBaseQueue(Queue):
           [0.03-0.04)
          ...
           [0.99-1.00]
-        timestamp - the time when links was scheduled for retrieval.
+        random_str - the time when links was scheduled for retrieval, microsecs
 
-        :param batch: list of tuples(score, fingerprint, domain, url)
+        :param batch: iterable of Request objects
         :return:
         """
         def get_interval(score, resolution):
@@ -126,20 +131,22 @@ class HBaseQueue(Queue):
                 i = i - 1  # last interval is inclusive from right
             return (i * resolution, (i + 1) * resolution)
 
-        timestamp = int(time() * 1E+6)
+        random_str = int(time() * 1E+6)
         data = dict()
-        for score, fingerprint, domain, url in batch:
+        for request, score in batch:
+            domain = request.meta[b'domain']
+            fingerprint = request.meta[b'fingerprint']
             if type(domain) == dict:
-                partition_id = self.partitioner.partition(domain['name'], self.partitions)
-                host_crc32 = get_crc32(domain['name'])
+                partition_id = self.partitioner.partition(domain[b'name'], self.partitions)
+                host_crc32 = get_crc32(domain[b'name'])
             elif type(domain) == int:
                 partition_id = self.partitioner.partition_by_hash(domain, self.partitions)
                 host_crc32 = domain
             else:
                 raise TypeError("domain of unknown type.")
-            item = (unhexlify(fingerprint), host_crc32, url, score)
+            item = (unhexlify(fingerprint), host_crc32, request.url, score)
             score = 1 - score  # because of lexicographical sort in HBase
-            rk = "%d_%s_%d" % (partition_id, "%0.2f_%0.2f" % get_interval(score, 0.01), timestamp)
+            rk = "%d_%s_%d" % (partition_id, "%0.2f_%0.2f" % get_interval(score, 0.01), random_str)
             data.setdefault(rk, []).append((score, item))
 
         table = self.connection.table(self.table_name)
@@ -157,6 +164,7 @@ class HBaseQueue(Queue):
                     for item in items:
                         stream.write(packer.pack(item))
                     final[column] = stream.getvalue()
+                final[b'f:t'] = str(timestamp)
                 b.put(rk, final)
 
     def get_next_requests(self, max_n_requests, partition_id, **kwargs):
@@ -182,6 +190,9 @@ class HBaseQueue(Queue):
         limit = min_requests
         tries = 0
         count = 0
+        prefix = '%d_' % partition_id
+        now_ts = int(time())
+        filter = "PrefixFilter ('%s') AND SingleColumnValueFilter ('f', 't', <=, 'binary:%d')" % (prefix, now_ts)
         while tries < self.GET_RETRIES:
             tries += 1
             limit *= 5.5 if tries > 1 else 1.0
@@ -190,8 +201,10 @@ class HBaseQueue(Queue):
             meta_map.clear()
             queue.clear()
             count = 0
-            for rk, data in table.scan(row_prefix='%d_' % partition_id, limit=int(limit), batch_size=256):
+            for rk, data in table.scan(limit=int(limit), batch_size=256, filter=filter):
                 for cq, buf in six.iteritems(data):
+                    if cq == b'f:t':
+                        continue
                     stream = BytesIO(buf)
                     unpacker = Unpacker(stream)
                     for item in unpacker:
@@ -235,9 +248,9 @@ class HBaseQueue(Queue):
                     for rk_fprint in fprint_map[rk]:
                         _, item = meta_map[rk_fprint][0]
                         _, _, url, score = item
-                        results.append(Request(url, meta={
-                            'fingerprint': hexlify(rk_fprint),
-                            'score': score,
+                        results.append(Request(to_native_str(url), meta={
+                            b'fingerprint': hexlify(rk_fprint),
+                            b'score': score,
                         }))
                     trash_can.add(rk)
 
@@ -264,15 +277,15 @@ class HBaseState(States):
         objs = objs if isinstance(objs, Iterable) else [objs]
 
         def put(obj):
-            self._state_cache[obj.meta['fingerprint']] = obj.meta['state']
+            self._state_cache[obj.meta[b'fingerprint']] = obj.meta[b'state']
         [put(obj) for obj in objs]
 
     def set_states(self, objs):
         objs = objs if isinstance(objs, Iterable) else [objs]
 
         def get(obj):
-            fprint = obj.meta['fingerprint']
-            obj.meta['state'] = self._state_cache[fprint] if fprint in self._state_cache else States.DEFAULT
+            fprint = obj.meta[b'fingerprint']
+            obj.meta[b'state'] = self._state_cache[fprint] if fprint in self._state_cache else States.DEFAULT
         [get(obj) for obj in objs]
 
     def flush(self, force_clear):
@@ -295,10 +308,10 @@ class HBaseState(States):
         for chunk in chunks(to_fetch, 65536):
             keys = [unhexlify(fprint) for fprint in chunk]
             table = self.connection.table(self._table_name)
-            records = table.rows(keys, columns=['s:state'])
+            records = table.rows(keys, columns=[b's:state'])
             for key, cells in records:
-                if 's:state' in cells:
-                    state = unpack('>B', cells['s:state'])[0]
+                if b's:state' in cells:
+                    state = unpack('>B', cells[b's:state'])[0]
                     self._state_cache[hexlify(key)] = state
 
 
@@ -338,28 +351,28 @@ class HBaseMetadata(Metadata):
             obj = prepare_hbase_object(url=seed.url,
                                        depth=0,
                                        created_at=utcnow_timestamp(),
-                                       domain_fingerprint=seed.meta['domain']['fingerprint'])
-            self.batch.put(unhexlify(seed.meta['fingerprint']), obj)
+                                       domain_fingerprint=seed.meta[b'domain'][b'fingerprint'])
+            self.batch.put(unhexlify(seed.meta[b'fingerprint']), obj)
 
     def page_crawled(self, response, links):
         obj = prepare_hbase_object(status_code=response.status_code, content=response.body) if self.store_content else \
             prepare_hbase_object(status_code=response.status_code)
         links_dict = dict()
         for link in links:
-            links_dict[unhexlify(link.meta['fingerprint'])] = (link, link.url, link.meta['domain'])
-        self.batch.put(unhexlify(response.meta['fingerprint']), obj)
+            links_dict[unhexlify(link.meta[b'fingerprint'])] = (link, link.url, link.meta[b'domain'])
+        self.batch.put(unhexlify(response.meta[b'fingerprint']), obj)
         for link_fingerprint, (link, link_url, link_domain) in six.iteritems(links_dict):
             obj = prepare_hbase_object(url=link_url,
                                        created_at=utcnow_timestamp(),
-                                       domain_fingerprint=link_domain['fingerprint'])
+                                       domain_fingerprint=link_domain[b'fingerprint'])
             self.batch.put(link_fingerprint, obj)
 
     def request_error(self, request, error):
         obj = prepare_hbase_object(url=request.url,
                                    created_at=utcnow_timestamp(),
                                    error=error,
-                                   domain_fingerprint=request.meta['domain']['fingerprint'])
-        rk = unhexlify(request.meta['fingerprint'])
+                                   domain_fingerprint=request.meta[b'domain'][b'fingerprint'])
+        rk = unhexlify(request.meta[b'fingerprint'])
         self.batch.put(rk, obj)
 
     def update_score(self, batch):
