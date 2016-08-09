@@ -26,7 +26,7 @@ def test_codec(encoder, decoder):
         enc.encode_page_crawled(Response(url="http://www.yandex.ru", body='SOME CONTENT', headers={'hdr': 'value'},
                                          request=req), [req2]),
         enc.encode_request_error(req, "Host not found"),
-        enc.encode_update_score("1be68ff556fd0bbe5802d1a100850da29f7f15b1", 0.51, "http://yandex.ru", True),
+        enc.encode_update_score(req, 0.51, True),
         enc.encode_new_job_id(1),
         enc.encode_offset(0, 28796),
         enc.encode_request(req)
@@ -56,11 +56,10 @@ def test_codec(encoder, decoder):
     check_request(o_req, req)
     assert o_error == "Host not found"
 
-    o_type, fprint, score, url, schedule = dec.decode(next(it))
+    o_type, o_req2, score, schedule = dec.decode(next(it))
     assert o_type == 'update_score'
-    assert fprint == "1be68ff556fd0bbe5802d1a100850da29f7f15b1"
+    assert o_req2.url == req.url and o_req2.meta == req.meta and o_req2.headers == req.headers
     assert score == 0.51
-    assert url == "http://yandex.ru"
     assert schedule is True
 
     o_type, job_id = dec.decode(next(it))

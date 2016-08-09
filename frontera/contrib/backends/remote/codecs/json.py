@@ -64,11 +64,10 @@ class Encoder(BaseEncoder, CrawlFrontierJSONEncoder):
     def encode_request(self, request):
         return self.encode(_prepare_request_message(request))
 
-    def encode_update_score(self, fingerprint, score, url, schedule):
+    def encode_update_score(self, request, score, schedule):
         return self.encode({'type': 'update_score',
-                            'fprint': fingerprint,
+                            'r': _prepare_request_message(request),
                             'score': score,
-                            'url': url,
                             'schedule': schedule})
 
     def encode_new_job_id(self, job_id):
@@ -116,7 +115,7 @@ class Decoder(json.JSONDecoder, BaseDecoder):
             request = self._request_from_object(message['r'])
             return ('request_error', request, message['error'])
         if message['type'] == 'update_score':
-            return ('update_score', str(message['fprint']), message['score'], str(message['url']), message['schedule'])
+            return ('update_score', self._request_from_object(message['r']), message['score'], message['schedule'])
         if message['type'] == 'add_seeds':
             seeds = []
             for seed in message['seeds']:

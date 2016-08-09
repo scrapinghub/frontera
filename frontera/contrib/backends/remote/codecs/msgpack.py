@@ -49,8 +49,8 @@ class Encoder(BaseEncoder):
     def encode_request(self, request):
         return packb(_prepare_request_message(request))
 
-    def encode_update_score(self, fingerprint, score, url, schedule):
-        return packb(['us', fingerprint, score, url, schedule])
+    def encode_update_score(self, request, score, schedule):
+        return packb(['us', _prepare_request_message(request), score, schedule])
 
     def encode_new_job_id(self, job_id):
         return packb(['njid', int(job_id)])
@@ -84,7 +84,7 @@ class Decoder(BaseDecoder):
                     self._response_from_object(obj[1]),
                     [self._request_from_object(x) for x in obj[2]])
         if obj[0] == 'us':
-            return ('update_score', str(obj[1]), obj[2], str(obj[3]), obj[4])
+            return ('update_score', self._request_from_object(obj[1]), obj[2], obj[3])
         if obj[0] == 're':
             return ('request_error', self._request_from_object(obj[1]), obj[2])
         if obj[0] == 'as':
