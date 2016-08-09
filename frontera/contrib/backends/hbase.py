@@ -1,5 +1,19 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
+from frontera.utils.url import parse_domain_from_url_fast
+from frontera import DistributedBackend
+from frontera.core.components import Metadata, Queue, States
+from frontera.core.models import Request
+from frontera.contrib.backends.partitioners import Crc32NamePartitioner
+from frontera.utils.misc import chunks, get_crc32
+from frontera.contrib.backends.remote.codecs.msgpack import Decoder, Encoder
+
+from happybase import Connection
+from msgpack import Unpacker, Packer
+import six
+from six.moves import range
+from w3lib.util import to_bytes
+
 from struct import pack, unpack
 from datetime import datetime
 from calendar import timegm
@@ -8,21 +22,7 @@ from binascii import hexlify, unhexlify
 from io import BytesIO
 from random import choice
 from collections import Iterable
-
-from happybase import Connection
-from frontera.utils.url import parse_domain_from_url_fast
-from msgpack import Unpacker, Packer
-
-from frontera import DistributedBackend
-from frontera.core.components import Metadata, Queue, States
-from frontera.core.models import Request
-from frontera.contrib.backends.partitioners import Crc32NamePartitioner
-from frontera.utils.misc import chunks, get_crc32
 import logging
-import six
-from six.moves import map
-from six.moves import range
-from w3lib.util import to_native_str, to_bytes
 
 
 _pack_functions = {
@@ -80,6 +80,11 @@ class HBaseQueue(Queue):
 
         if self.table_name not in tables:
             self.connection.create_table(self.table_name, {'f': {'max_versions': 1, 'block_cache_enabled': 1}})
+
+        class DumbResponse:
+            pass
+        self.decoder = Decoder(Request, DumbResponse)
+        self.encoder = Encoder(Request)
 
     def frontier_start(self):
         pass
@@ -144,7 +149,7 @@ class HBaseQueue(Queue):
                 host_crc32 = domain
             else:
                 raise TypeError("domain of unknown type.")
-            item = (unhexlify(fingerprint), host_crc32, request.url, score)
+            item = (unhexlify(fingerprint), host_crc32, self.encoder.encode_request(request), score)
             score = 1 - score  # because of lexicographical sort in HBase
             rk = "%d_%s_%d" % (partition_id, "%0.2f_%0.2f" % get_interval(score, 0.01), random_str)
             data.setdefault(rk, []).append((score, item))
@@ -208,17 +213,17 @@ class HBaseQueue(Queue):
                     stream = BytesIO(buf)
                     unpacker = Unpacker(stream)
                     for item in unpacker:
-                        fingerprint, host_crc32, url, score = item
+                        fprint, host_crc32, _, _ = item
                         if host_crc32 not in queue:
                             queue[host_crc32] = []
                         if max_requests_per_host is not None and len(queue[host_crc32]) > max_requests_per_host:
                             continue
-                        queue[host_crc32].append(fingerprint)
+                        queue[host_crc32].append(fprint)
                         count += 1
 
-                        if fingerprint not in meta_map:
-                            meta_map[fingerprint] = []
-                        meta_map[fingerprint].append((rk, item))
+                        if fprint not in meta_map:
+                            meta_map[fprint] = []
+                        meta_map[fprint].append((rk, item))
                 if count > max_n_requests:
                     break
 
@@ -247,11 +252,10 @@ class HBaseQueue(Queue):
                         continue
                     for rk_fprint in fprint_map[rk]:
                         _, item = meta_map[rk_fprint][0]
-                        _, _, url, score = item
-                        results.append(Request(to_native_str(url), meta={
-                            b'fingerprint': hexlify(rk_fprint),
-                            b'score': score,
-                        }))
+                        _, _, encoded, score = item
+                        request = self.decoder.decode_request(encoded)
+                        request.meta[b'score'] = score
+                        results.append(request)
                     trash_can.add(rk)
 
         with table.batch(transaction=True) as b:
