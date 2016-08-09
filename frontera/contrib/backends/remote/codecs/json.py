@@ -103,7 +103,7 @@ class Decoder(json.JSONDecoder, BaseDecoder):
 
     def _request_from_object(self, obj):
         return self._request_model(url=to_native_str(obj[b'url']),
-                                   method=obj[b'method'],
+                                   method=to_native_str(obj[b'method']),
                                    headers=obj[b'headers'],
                                    cookies=obj[b'cookies'],
                                    meta=obj[b'meta'])
