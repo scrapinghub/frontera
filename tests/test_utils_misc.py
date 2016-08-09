@@ -25,7 +25,8 @@ class TestGetCRC32(object):
     def test_crc32_range(self):
         left, right = -2**31, 2**31 - 1
         for x in range(10000):
-            assert left <= get_crc32(hashlib.md5(str(x)).hexdigest()) <= right
+            bytestr = hashlib.md5(str(x).encode('ascii')).hexdigest()
+            assert left <= get_crc32(bytestr) <= right
         for x in [left, left + 1, right - 1, right, right + 1,
                   2**32 - 2, 2**32 - 1]:
             assert left <= to_signed32(x) <= right
