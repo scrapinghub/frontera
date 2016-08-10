@@ -175,7 +175,7 @@ class DBWorker(object):
                         else:
                             self.spider_feed.mark_busy(partition_id)
                     continue
-                logger.warning('Unknown message type %s', type)
+                logger.debug('Unknown message type %s', type)
             finally:
                 consumed += 1
         """
