@@ -15,15 +15,16 @@ import pytest
 )
 def test_codec(encoder, decoder):
     def check_request(req1, req2):
-        assert req1.url == req2.url and req1.meta == req2.meta and req1.headers == req2.headers
+        assert req1.url == req2.url and req1.meta == req2.meta and req1.headers == req2.headers \
+            and req1.method == req2.method
 
     enc = encoder(Request, send_body=True)
     dec = decoder(Request, Response)
-    req = Request(url="http://www.yandex.ru", meta={"test": "shmest"}, headers={'reqhdr': 'value'})
+    req = Request(url="http://www.yandex.ru",method=b'GET', meta={b"test": b"shmest"}, headers={b'reqhdr': b'value'})
     req2 = Request(url="http://www.yandex.ru/search")
     msgs = [
         enc.encode_add_seeds([req]),
-        enc.encode_page_crawled(Response(url="http://www.yandex.ru", body='SOME CONTENT', headers={'hdr': 'value'},
+        enc.encode_page_crawled(Response(url="http://www.yandex.ru", body=b'SOME CONTENT', headers={b'hdr': b'value'},
                                          request=req), [req2]),
         enc.encode_request_error(req, "Host not found"),
         enc.encode_update_score(req, 0.51, True),
@@ -44,7 +45,7 @@ def test_codec(encoder, decoder):
     o = dec.decode(next(it))
     assert o[0] == 'page_crawled'
     assert type(o[1]) == Response
-    assert o[1].url == req.url and o[1].body == 'SOME CONTENT' and o[1].meta == req.meta
+    assert o[1].url == req.url and o[1].body == b'SOME CONTENT' and o[1].meta == req.meta
 
     assert type(o[2]) == list
     req_d = o[2][0]

@@ -3,14 +3,16 @@ from __future__ import absolute_import
 import json
 from base64 import b64decode, b64encode
 from frontera.core.codec import BaseDecoder, BaseEncoder
+from w3lib.util import to_unicode, to_native_str
+from frontera.utils.misc import dict_to_unicode, dict_to_bytes
 
 
 def _prepare_request_message(request):
-    return {'url': request.url,
-            'method': request.method,
-            'headers': request.headers,
-            'cookies': request.cookies,
-            'meta': request.meta}
+    return {'url': to_unicode(request.url),
+            'method': to_unicode(request.method),
+            'headers': dict_to_unicode(request.headers),
+            'cookies': dict_to_unicode(request.cookies),
+            'meta': dict_to_unicode(request.meta)}
 
 
 def _prepare_links_message(links):
@@ -18,10 +20,10 @@ def _prepare_links_message(links):
 
 
 def _prepare_response_message(response, send_body):
-    return {'url': response.url,
+    return {'url': to_unicode(response.url),
             'status_code': response.status_code,
-            'meta': response.meta,
-            'body': b64encode(response.body) if send_body else None}
+            'meta': dict_to_unicode(response.meta),
+            'body': to_unicode(b64encode(response.body)) if send_body else None}
 
 
 class CrawlFrontierJSONEncoder(json.JSONEncoder):
@@ -91,48 +93,49 @@ class Decoder(json.JSONDecoder, BaseDecoder):
         super(Decoder, self).__init__(*a, **kw)
 
     def _response_from_object(self, obj):
-        request = self._request_model(url=obj['url'],
-                                      meta=obj['meta'])
-        return self._response_model(url=obj['url'],
-                                    status_code=obj['status_code'],
-                                    body=b64decode(obj['body']),
+        url = to_native_str(obj[b'url'])
+        request = self._request_model(url=url,
+                                      meta=obj[b'meta'])
+        return self._response_model(url=url,
+                                    status_code=obj[b'status_code'],
+                                    body=b64decode(obj[b'body']),
                                     request=request)
 
     def _request_from_object(self, obj):
-        return self._request_model(url=obj['url'],
-                                   method=obj['method'],
-                                   headers=obj['headers'],
-                                   cookies=obj['cookies'],
-                                   meta=obj['meta'])
+        return self._request_model(url=to_native_str(obj[b'url']),
+                                   method=obj[b'method'],
+                                   headers=obj[b'headers'],
+                                   cookies=obj[b'cookies'],
+                                   meta=obj[b'meta'])
 
     def decode(self, message):
-        message = super(Decoder, self).decode(message)
-        if message['type'] == 'page_crawled':
-            response = self._response_from_object(message['r'])
-            links = [self._request_from_object(link) for link in message['links']]
+        message = dict_to_bytes(super(Decoder, self).decode(message))
+        if message[b'type'] == b'page_crawled':
+            response = self._response_from_object(message[b'r'])
+            links = [self._request_from_object(link) for link in message[b'links']]
             return ('page_crawled', response, links)
-        if message['type'] == 'request_error':
-            request = self._request_from_object(message['r'])
-            return ('request_error', request, message['error'])
-        if message['type'] == 'update_score':
-            return ('update_score', self._request_from_object(message['r']), message['score'], message['schedule'])
-        if message['type'] == 'add_seeds':
+        if message[b'type'] == b'request_error':
+            request = self._request_from_object(message[b'r'])
+            return ('request_error', request, to_native_str(message[b'error']))
+        if message[b'type'] == b'update_score':
+            return ('update_score', self._request_from_object(message[b'r']), message[b'score'], message[b'schedule'])
+        if message[b'type'] == b'add_seeds':
             seeds = []
-            for seed in message['seeds']:
+            for seed in message[b'seeds']:
                 request = self._request_from_object(seed)
                 seeds.append(request)
             return ('add_seeds', seeds)
-        if message['type'] == 'new_job_id':
-            return ('new_job_id', int(message['job_id']))
-        if message['type'] == 'offset':
-            return ('offset', int(message['partition_id']), int(message['offset']))
+        if message[b'type'] == b'new_job_id':
+            return ('new_job_id', int(message[b'job_id']))
+        if message[b'type'] == b'offset':
+            return ('offset', int(message[b'partition_id']), int(message[b'offset']))
         return TypeError('Unknown message type')
 
     def decode_request(self, message):
-        obj = super(Decoder, self).decode(message)
-        return self._request_model(url=obj['url'],
-                                   method=obj['method'],
-                                   headers=obj['headers'],
-                                   cookies=obj['cookies'],
-                                   meta=obj['meta'])
+        obj = dict_to_bytes(super(Decoder, self).decode(message))
+        return self._request_model(url=to_native_str(obj[b'url']),
+                                   method=obj[b'method'],
+                                   headers=obj[b'headers'],
+                                   cookies=obj[b'cookies'],
+                                   meta=obj[b'meta'])
 
