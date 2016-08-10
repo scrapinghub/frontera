@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
+""" A MsgPack codec for Frontera. Implemented using native msgpack-python library.
+"""
 from __future__ import absolute_import
 
 from msgpack import packb, unpackb
 
 from frontera.core.codec import BaseDecoder, BaseEncoder
 import six
-from six.moves import map
 from w3lib.util import to_native_str
 
 

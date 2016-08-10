@@ -2,7 +2,6 @@
 from __future__ import absolute_import
 from frontera import Backend
 from frontera.core import OverusedBuffer
-from .codecs.msgpack import Encoder, Decoder
 from frontera.utils.misc import load_object
 import logging
 
@@ -12,9 +11,12 @@ class MessageBusBackend(Backend):
         settings = manager.settings
         messagebus = load_object(settings.get('MESSAGE_BUS'))
         self.mb = messagebus(settings)
+        codec_path = settings.get('MESSAGE_BUS_CODEC')
+        encoder_cls = load_object(codec_path+".Encoder")
+        decoder_cls = load_object(codec_path+".Decoder")
         store_content = settings.get('STORE_CONTENT')
-        self._encoder = Encoder(manager.request_model, send_body=store_content)
-        self._decoder = Decoder(manager.request_model, manager.response_model)
+        self._encoder = encoder_cls(manager.request_model, send_body=store_content)
+        self._decoder = decoder_cls(manager.request_model, manager.response_model)
         self.spider_log_producer = self.mb.spider_log().producer()
         spider_feed = self.mb.spider_feed()
         self.partition_id = int(settings.get('SPIDER_PARTITION_ID'))

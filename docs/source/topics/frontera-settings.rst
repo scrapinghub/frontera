@@ -237,6 +237,16 @@ Default: ``frontera.contrib.messagebus.zeromq.MessageBus``
 
 Points Frontera to :term:`message bus` implementation. Defaults to ZeroMQ.
 
+.. setting:: MESSAGE_BUS_CODEC
+
+MESSAGE_BUS_CODEC
+-----------------
+
+Default: ``frontera.contrib.backends.remote.codecs.msgpack``
+
+Points Frontera to :term:`message bus` codec implementation. Here is the :ref:`codec interface description <message_bus_protocol>`.
+Defaults to MsgPack.
+
 .. setting:: MIDDLEWARES
 
 MIDDLEWARES

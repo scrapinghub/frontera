@@ -9,13 +9,11 @@ from time import asctime
 from os.path import exists
 
 from twisted.internet import reactor, task
-from frontera.core.models import Request
 from frontera.core.components import DistributedBackend
 from frontera.core.manager import FrontierManager
 from frontera.utils.url import parse_domain_from_url_fast
 from frontera.logger.handlers import CONSOLE
 
-from frontera.contrib.backends.remote.codecs.msgpack import Decoder, Encoder
 from frontera.settings import Settings
 from frontera.utils.misc import load_object
 from frontera.utils.async import CallLaterOnce
@@ -75,8 +73,11 @@ class DBWorker(object):
 
         self._manager = FrontierManager.from_settings(settings, db_worker=True)
         self._backend = self._manager.backend
-        self._encoder = Encoder(self._manager.request_model)
-        self._decoder = Decoder(self._manager.request_model, self._manager.response_model)
+        codec_path = settings.get('MESSAGE_BUS_CODEC')
+        encoder_cls = load_object(codec_path+".Encoder")
+        decoder_cls = load_object(codec_path+".Decoder")
+        self._encoder = encoder_cls(self._manager.request_model)
+        self._decoder = decoder_cls(self._manager.request_model, self._manager.response_model)
 
         if isinstance(self._backend, DistributedBackend):
             scoring_log = self.mb.scoring_log()
