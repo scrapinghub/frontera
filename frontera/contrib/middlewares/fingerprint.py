@@ -69,9 +69,9 @@ class UrlFingerprintMiddleware(BaseFingerprintMiddleware):
         return self.fingerprint_function(canonicalize_url(url))
 
     def _add_fingerprint(self, obj):
-        obj.meta['fingerprint'] = self._get_fingerprint(obj.url)
-        if 'redirect_urls' in obj.meta:
-            obj.meta['redirect_fingerprints'] = [self._get_fingerprint(url) for url in obj.meta['redirect_urls']]
+        obj.meta[b'fingerprint'] = self._get_fingerprint(obj.url)
+        if b'redirect_urls' in obj.meta:
+            obj.meta[b'redirect_fingerprints'] = [self._get_fingerprint(url) for url in obj.meta[b'redirect_urls']]
         return obj
 
 
@@ -107,9 +107,9 @@ class DomainFingerprintMiddleware(BaseFingerprintMiddleware):
     fingerprint_function_name = 'DOMAIN_FINGERPRINT_FUNCTION'
 
     def _add_fingerprint(self, obj):
-        if 'domain' in obj.meta and 'name' in obj.meta['domain']:
-            obj.meta['domain']['fingerprint'] = self.fingerprint_function(obj.meta['domain']['name'])
-        if 'redirect_domains' in obj.meta:
-            for domain in obj.meta['redirect_domains']:
-                domain['fingerprint'] = self.fingerprint_function(domain['name'])
+        if b'domain' in obj.meta and b'name' in obj.meta[b'domain']:
+            obj.meta[b'domain'][b'fingerprint'] = self.fingerprint_function(obj.meta[b'domain'][b'name'])
+        if b'redirect_domains' in obj.meta:
+            for domain in obj.meta[b'redirect_domains']:
+                domain[b'fingerprint'] = self.fingerprint_function(domain[b'name'])
         return obj

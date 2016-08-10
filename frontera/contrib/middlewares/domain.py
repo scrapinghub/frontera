@@ -87,10 +87,10 @@ class DomainMiddleware(Middleware):
         return self._add_domain(request)
 
     def _add_domain(self, obj):
-        obj.meta['domain'] = self.parse_domain_info(obj.url, self.manager.test_mode)
-        if 'redirect_urls' in obj.meta:
-            obj.meta['redirect_domains'] = [self.parse_domain_info(url, self.manager.test_mode)
-                                            for url in obj.meta['redirect_urls']]
+        obj.meta[b'domain'] = self.parse_domain_info(obj.url, self.manager.test_mode)
+        if b'redirect_urls' in obj.meta:
+            obj.meta[b'redirect_domains'] = [self.parse_domain_info(url, self.manager.test_mode)
+                                            for url in obj.meta[b'redirect_urls']]
         return obj
 
     def parse_domain_info(self, url, test_mode=False):
@@ -101,10 +101,10 @@ class DomainMiddleware(Middleware):
         else:
             netloc, name, scheme, sld, tld, subdomain = self.parse_domain_func(url)
         return {
-            'netloc': netloc,
-            'name': name,
-            'scheme': scheme,
-            'sld': sld,
-            'tld': tld,
-            'subdomain': subdomain,
+            b'netloc': netloc,
+            b'name': name,
+            b'scheme': scheme,
+            b'sld': sld,
+            b'tld': tld,
+            b'subdomain': subdomain,
         }

@@ -57,8 +57,8 @@ class TestFrontierManager(object):
         #seeds reached the 4 middlewares.
         assert [set([seed for seed in mw.seeds]) for mw in fm.middlewares] == [set([r1, r2, r3])]*4
         #seeds were modified.
-        assert [seed.meta['test_seeds'] for seed in [r1, r2, r3]] == ['test']*3
-        assert [seed.meta['test_seeds_canonical_solver'] for seed in [r1, r2, r3]] == ['test']*3
+        assert [seed.meta[b'test_seeds'] for seed in [r1, r2, r3]] == ['test']*3
+        assert [seed.meta[b'test_seeds_canonical_solver'] for seed in [r1, r2, r3]] == ['test']*3
 
     def test_page_crawled(self):
         fm = self.setup_frontier_manager()
@@ -67,12 +67,12 @@ class TestFrontierManager(object):
         assert fm.backend.responses.pop() == response
         assert [mw.responses.pop() for mw in fm.middlewares] == [response]*4
         assert fm.canonicalsolver.responses.pop() == response
-        assert response.meta['test_response'] == 'test'
+        assert response.meta[b'test_response'] == 'test'
         assert set([link for link in fm.backend.links]) == set([r2, r3])
         assert set([link for link in fm.canonicalsolver.links]) == set([r2, r3])
         assert [set([link for link in mw.links]) for mw in fm.middlewares] == [set([r2, r3])]*4
-        assert [link.meta['test_links'] for link in [r2, r3]] == ['test']*2
-        assert [link.meta['test_links_canonical_solver'] for link in [r2, r3]] == ['test']*2
+        assert [link.meta[b'test_links'] for link in [r2, r3]] == ['test']*2
+        assert [link.meta[b'test_links_canonical_solver'] for link in [r2, r3]] == ['test']*2
 
     def test_get_next_requests(self):
         fm = self.setup_frontier_manager()

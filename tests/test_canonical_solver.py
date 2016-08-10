@@ -8,9 +8,9 @@ from frontera.utils.fingerprint import sha1
 def single_node_chain(url1, url2):
     r = Request(url=url1)
     re = Response(url=url2, request=r)
-    re.meta['fingerprint'] = sha1(url2)
-    re.meta['redirect_urls'] = [url1]
-    re.meta['redirect_fingerprints'] = [sha1(url1)]
+    re.meta[b'fingerprint'] = sha1(url2)
+    re.meta[b'redirect_urls'] = [url1]
+    re.meta[b'redirect_fingerprints'] = [sha1(url1)]
     return re
 
 

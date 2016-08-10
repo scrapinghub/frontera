@@ -16,7 +16,7 @@ class TestSpider(object):
         pass
 
 
-REQUEST_BODY = "BodyContent"
+REQUEST_BODY = b"BodyContent"
 RESPONSE_BODY = b"This is a fake response body"
 
 
@@ -28,49 +28,49 @@ def test_request_response_converters():
     url = "http://test.com/test?param=123"
     request = ScrapyRequest(url=url, callback=spider.callback, errback=spider.errback,
                             body=REQUEST_BODY)
-    request.meta['test_param'] = 'test_value'
-    request.headers.appendlist("TestKey", "test value")
-    request.cookies['MyCookie'] = 'CookieContent'
+    request.meta[b'test_param'] = b'test_value'
+    request.headers.appendlist(b"TestKey", b"test value")
+    request.cookies[b'MyCookie'] = b'CookieContent'
 
     frontier_request = rc.to_frontier(request)
-    assert frontier_request.meta['scrapy_callback'] == 'callback'
-    assert frontier_request.meta['scrapy_errback'] == 'errback'
+    assert frontier_request.meta[b'scrapy_callback'] == b'callback'
+    assert frontier_request.meta[b'scrapy_errback'] == b'errback'
     assert frontier_request.body == to_bytes(REQUEST_BODY)
     assert frontier_request.url == url
-    assert frontier_request.method == 'GET'
-    assert frontier_request.headers['Testkey'] == b'test value'
-    assert frontier_request.cookies['MyCookie'] == 'CookieContent'
-    assert 'frontier_request' not in frontier_request.meta['scrapy_meta']
+    assert frontier_request.method == b'GET'
+    assert frontier_request.headers[b'Testkey'] == b'test value'
+    assert frontier_request.cookies[b'MyCookie'] == b'CookieContent'
+    assert b'frontier_request' not in frontier_request.meta[b'scrapy_meta']
 
     request_converted = rc.from_frontier(frontier_request)
-    assert request_converted.meta['test_param'] == 'test_value'
+    assert request_converted.meta[b'test_param'] == b'test_value'
     assert request_converted.body == to_bytes(REQUEST_BODY)
     assert request_converted.url == url
     assert request_converted.method == 'GET'
-    assert request_converted.cookies['MyCookie'] == 'CookieContent'
-    assert request_converted.headers.get('Testkey') == b'test value'
+    assert request_converted.cookies[b'MyCookie'] == b'CookieContent'
+    assert request_converted.headers.get(b'Testkey') == b'test value'
     assert request_converted.callback == spider.callback
     assert request_converted.errback == spider.errback
 
     # Some middleware could change .meta contents
-    request_converted.meta['middleware_stuff'] = 'appeared'
+    request_converted.meta[b'middleware_stuff'] = b'appeared'
 
     response = ScrapyResponse(url=url, request=request_converted, body=RESPONSE_BODY,
-                              headers={'TestHeader': 'Test value'})
+                              headers={b'TestHeader': b'Test value'})
 
     frontier_response = rsc.to_frontier(response)
     assert frontier_response.body == RESPONSE_BODY
-    assert frontier_response.meta['scrapy_meta']['test_param'] == 'test_value'
-    assert frontier_response.meta['scrapy_meta']['middleware_stuff'] == 'appeared'
+    assert frontier_response.meta[b'scrapy_meta'][b'test_param'] == b'test_value'
+    assert frontier_response.meta[b'scrapy_meta'][b'middleware_stuff'] == b'appeared'
     assert frontier_response.status_code == 200
-    assert 'frontier_request' not in frontier_response.meta['scrapy_meta']
+    assert b'frontier_request' not in frontier_response.meta[b'scrapy_meta']
 
     response_converted = rsc.from_frontier(frontier_response)
     assert response_converted.body == RESPONSE_BODY
-    assert response_converted.meta['test_param'] == 'test_value'
+    assert response_converted.meta[b'test_param'] == b'test_value'
     assert response_converted.url == url
     assert response_converted.status == 200
-    assert response_converted.headers['TestHeader'] == b'Test value'
+    assert response_converted.headers[b'TestHeader'] == b'Test value'
 
     frontier_request = FrontierRequest(url)
     request_converted = rc.from_frontier(frontier_request)

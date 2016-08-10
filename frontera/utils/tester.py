@@ -44,11 +44,11 @@ class FrontierTester(object):
     def _make_request(self, url):
         r = self.frontier.request_model(url=url,
                                         headers={
-                                            'X-Important-Header': 'Frontera'
+                                            b'X-Important-Header': b'Frontera'
                                         },
-                                        method='POST',
-                                        cookies={'currency': 'USD'})
-        r.meta['this_param'] = 'should be passed over'
+                                        method=b'POST',
+                                        cookies={b'currency': b'USD'})
+        r.meta[b'this_param'] = 'should be passed over'
         return r
 
     def _make_response(self, url, status_code, request):
@@ -74,10 +74,10 @@ class FrontierTester(object):
             else:
                 self.frontier.request_error(request=page_to_crawl,
                                             error=crawled_page.status)
-            assert page_to_crawl.meta['this_param'] == 'should be passed over'
-            assert page_to_crawl.headers['X-Important-Header'] == 'Frontera'
-            assert page_to_crawl.method == 'POST'
-            assert page_to_crawl.cookies['currency'] == 'USD'
+            assert page_to_crawl.meta[b'this_param'] == 'should be passed over'
+            assert page_to_crawl.headers[b'X-Important-Header'] == b'Frontera'
+            assert page_to_crawl.method == b'POST'
+            assert page_to_crawl.cookies[b'currency'] == b'USD'
         return (requests, self.frontier.iteration, kwargs)
 
 

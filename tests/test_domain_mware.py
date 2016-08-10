@@ -29,15 +29,15 @@ class DomainMiddlewareTest(unittest.TestCase):
         self.assertEquals(len(result), len(seeds))
 
         for r in result:
-            self.assertIn('domain', r.meta, 'Missing domain info for %r' % r)
+            self.assertIn(b'domain', r.meta, 'Missing domain info for %r' % r)
 
         expected = [
-            {'name': 'example.com', 'netloc': 'example.com', 'scheme': 'http',
-             'sld': '', 'subdomain': '', 'tld': ''},
-            {'name': 'www.google.com', 'netloc': 'www.google.com', 'scheme': 'https',
-             'sld': '', 'subdomain': '', 'tld': ''},
+            {b'name': 'example.com', b'netloc': 'example.com', b'scheme': 'http',
+             b'sld': '', b'subdomain': '', b'tld': ''},
+            {b'name': 'www.google.com', b'netloc': 'www.google.com', b'scheme': 'https',
+             b'sld': '', b'subdomain': '', b'tld': ''},
         ]
-        self.assertEquals(expected, [r.meta['domain'] for r in result])
+        self.assertEquals(expected, [r.meta[b'domain'] for r in result])
 
     def test_should_parse_tldextract_extra_domain_info(self):
         seeds = [
@@ -53,12 +53,12 @@ class DomainMiddlewareTest(unittest.TestCase):
         self.assertEquals(len(result), len(seeds))
 
         for r in result:
-            self.assertIn('domain', r.meta, 'Missing domain info for %r' % r)
+            self.assertIn(b'domain', r.meta, 'Missing domain info for %r' % r)
 
         expected = [
-            {'name': 'example.com', 'netloc': 'example.com', 'scheme': 'http',
-             'sld': 'example', 'subdomain': '', 'tld': 'com'},
-            {'name': 'google.com', 'netloc': 'www.google.com', 'scheme': 'https',
-             'sld': 'google', 'subdomain': 'www', 'tld': 'com'},
+            {b'name': 'example.com', b'netloc': 'example.com', b'scheme': 'http',
+             b'sld': 'example', b'subdomain': '', b'tld': 'com'},
+            {b'name': 'google.com', b'netloc': 'www.google.com', b'scheme': 'https',
+             b'sld': 'google', b'subdomain': 'www', b'tld': 'com'},
         ]
-        self.assertEquals(expected, [r.meta['domain'] for r in result])
+        self.assertEquals(expected, [r.meta[b'domain'] for r in result])

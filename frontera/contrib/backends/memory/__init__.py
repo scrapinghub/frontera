@@ -187,13 +187,13 @@ class MemoryBaseBackend(CommonBackend):
 
     def add_seeds(self, seeds):
         for seed in seeds:
-            seed.meta['id'] = self._id
+            seed.meta[b'id'] = self._id
             self._id += 1
         super(MemoryBaseBackend, self).add_seeds(seeds)
 
     def page_crawled(self, response, links):
         for link in links:
-            link.meta['id'] = self._id
+            link.meta[b'id'] = self._id
             self._id += 1
         super(MemoryBaseBackend, self).page_crawled(response, links)
 

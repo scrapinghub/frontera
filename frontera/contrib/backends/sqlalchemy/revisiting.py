@@ -88,13 +88,13 @@ class RevisitingQueue(BaseQueue):
                 else:
                     partition_id = self.partitioner.partition(hostname, self.partitions)
                     host_crc32 = get_crc32(hostname)
-                schedule_at = request.meta['crawl_at'] if 'crawl_at' in request.meta else utcnow_timestamp()
+                schedule_at = request.meta[b'crawl_at'] if b'crawl_at' in request.meta else utcnow_timestamp()
                 q = self.queue_model(fingerprint=fprint, score=score, url=request.url, meta=request.meta,
                                      headers=request.headers, cookies=request.cookies, method=request.method,
                                      partition_id=partition_id, host_crc32=host_crc32, created_at=time()*1E+6,
                                      crawl_at=schedule_at)
                 to_save.append(q)
-                request.meta['state'] = States.QUEUED
+                request.meta[b'state'] = States.QUEUED
         self.session.bulk_save_objects(to_save)
         self.session.commit()
 
@@ -114,13 +114,13 @@ class Backend(SQLAlchemyBackend):
     def _schedule(self, requests):
         batch = []
         for request in requests:
-            if request.meta['state'] in [States.NOT_CRAWLED]:
-                request.meta['crawl_at'] = utcnow_timestamp()
-            elif request.meta['state'] in [States.CRAWLED, States.ERROR]:
-                request.meta['crawl_at'] = utcnow_timestamp() + self.interval
+            if request.meta[b'state'] in [States.NOT_CRAWLED]:
+                request.meta[b'crawl_at'] = utcnow_timestamp()
+            elif request.meta[b'state'] in [States.CRAWLED, States.ERROR]:
+                request.meta[b'crawl_at'] = utcnow_timestamp() + self.interval
             else:
                 continue    # QUEUED
-            batch.append((request.meta['fingerprint'], self._get_score(request), request, True))
+            batch.append((request.meta[b'fingerprint'], self._get_score(request), request, True))
         self.queue.schedule(batch)
         self.metadata.update_score(batch)
         self.queue_size += len(batch)
