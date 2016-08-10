@@ -29,7 +29,7 @@ def _prepare_request_message(request):
             return serialize(obj.__dict__)
         else:
             return None
-    return [request.url, request.headers, request.cookies, serialize(request.meta)]
+    return [request.url, request.method, request.headers, request.cookies, serialize(request.meta)]
 
 
 def _prepare_response_message(response, send_body):
@@ -77,9 +77,10 @@ class Decoder(BaseDecoder):
 
     def _request_from_object(self, obj):
         return self._request_model(url=to_native_str(obj[0]),
-                                   headers=obj[1],
-                                   cookies=obj[2],
-                                   meta=obj[3])
+                                   method=obj[1],
+                                   headers=obj[2],
+                                   cookies=obj[3],
+                                   meta=obj[4])
 
     def decode(self, buffer):
         obj = unpackb(buffer)

@@ -103,7 +103,7 @@ class Decoder(json.JSONDecoder, BaseDecoder):
 
     def _request_from_object(self, obj):
         return self._request_model(url=to_native_str(obj[b'url']),
-                                   method=to_native_str(obj[b'method']),
+                                   method=obj[b'method'],
                                    headers=obj[b'headers'],
                                    cookies=obj[b'cookies'],
                                    meta=obj[b'meta'])
@@ -134,7 +134,7 @@ class Decoder(json.JSONDecoder, BaseDecoder):
     def decode_request(self, message):
         obj = dict_to_bytes(super(Decoder, self).decode(message))
         return self._request_model(url=to_native_str(obj[b'url']),
-                                   method=to_native_str(obj[b'method']),
+                                   method=obj[b'method'],
                                    headers=obj[b'headers'],
                                    cookies=obj[b'cookies'],
                                    meta=obj[b'meta'])

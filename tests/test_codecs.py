@@ -15,11 +15,12 @@ import pytest
 )
 def test_codec(encoder, decoder):
     def check_request(req1, req2):
-        assert req1.url == req2.url and req1.meta == req2.meta and req1.headers == req2.headers
+        assert req1.url == req2.url and req1.meta == req2.meta and req1.headers == req2.headers \
+            and req1.method == req2.method
 
     enc = encoder(Request, send_body=True)
     dec = decoder(Request, Response)
-    req = Request(url="http://www.yandex.ru", meta={b"test": b"shmest"}, headers={b'reqhdr': b'value'})
+    req = Request(url="http://www.yandex.ru",method=b'GET', meta={b"test": b"shmest"}, headers={b'reqhdr': b'value'})
     req2 = Request(url="http://www.yandex.ru/search")
     msgs = [
         enc.encode_add_seeds([req]),

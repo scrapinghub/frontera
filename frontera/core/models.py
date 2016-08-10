@@ -25,7 +25,7 @@ class Request(FrontierObject):
         :param dict meta: dictionary that contains arbitrary metadata for this request.
         """
         self._url = url
-        self._method = to_native_str(method or 'GET').upper()
+        self._method = (method or 'GET').upper()
         self._headers = headers or {}
         self._cookies = cookies or {}
         self._meta = meta or {'scrapy_meta': {}}
