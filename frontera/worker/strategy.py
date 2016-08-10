@@ -56,16 +56,16 @@ class StatesContext(object):
 
     def to_fetch(self, requests):
         if isinstance(requests, Sequence):
-            self._fingerprints.update([x.meta['fingerprint'] for x in requests])
+            self._fingerprints.update([x.meta[b'fingerprint'] for x in requests])
             return
-        self._fingerprints.add(requests.meta['fingerprint'])
+        self._fingerprints.add(requests.meta[b'fingerprint'])
 
     def fetch(self):
         self._states.fetch(self._fingerprints)
         self._fingerprints.clear()
 
     def refresh_and_keep(self, request):
-        self._states.fetch([request.meta['fingerprint']])
+        self._states.fetch([request.meta[b'fingerprint']])
         self._states.set_states(request)
         self._requests.append(request)
 
@@ -165,20 +165,20 @@ class StrategyWorker(object):
                 if type == 'add_seeds':
                     _, seeds = msg
                     for seed in seeds:
-                        seed.meta['jid'] = self.job_id
+                        seed.meta[b'jid'] = self.job_id
                     self.on_add_seeds(seeds)
                     continue
 
                 if type == 'page_crawled':
                     _, response, links = msg
-                    if 'jid' not in response.meta or response.meta['jid'] != self.job_id:
+                    if b'jid' not in response.meta or response.meta[b'jid'] != self.job_id:
                         continue
                     self.on_page_crawled(response, links)
                     continue
 
                 if type == 'request_error':
                     _, request, error = msg
-                    if 'jid' not in request.meta or request.meta['jid'] != self.job_id:
+                    if b'jid' not in request.meta or request.meta[b'jid'] != self.job_id:
                         continue
                     self.on_request_error(request, error)
                     continue

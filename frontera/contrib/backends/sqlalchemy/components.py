@@ -56,22 +56,22 @@ class Metadata(BaseMetadata):
 
     @retry_and_rollback
     def request_error(self, page, error):
-        m = self._modify_page(page) if page.meta['fingerprint'] in self.cache else self._create_page(page)
+        m = self._modify_page(page) if page.meta[b'fingerprint'] in self.cache else self._create_page(page)
         m.error = error
         self.cache[m.fingerprint] = self.session.merge(m)
         self.session.commit()
 
     @retry_and_rollback
     def page_crawled(self, response, links):
-        r = self._modify_page(response) if response.meta['fingerprint'] in self.cache else self._create_page(response)
+        r = self._modify_page(response) if response.meta[b'fingerprint'] in self.cache else self._create_page(response)
         self.cache[r.fingerprint] = self.session.merge(r)
         for link in links:
-            if link.meta['fingerprint'] not in self.cache:
-                self.cache[link.meta['fingerprint']] = self.session.merge(self._create_page(link))
+            if link.meta[b'fingerprint'] not in self.cache:
+                self.cache[link.meta[b'fingerprint']] = self.session.merge(self._create_page(link))
         self.session.commit()
 
     def _modify_page(self, obj):
-        db_page = self.cache[obj.meta['fingerprint']]
+        db_page = self.cache[obj.meta[b'fingerprint']]
         db_page.fetched_at = datetime.utcnow()
         if isinstance(obj, Response):
             db_page.headers = obj.request.headers
@@ -82,7 +82,7 @@ class Metadata(BaseMetadata):
 
     def _create_page(self, obj):
         db_page = self.model()
-        db_page.fingerprint = obj.meta['fingerprint']
+        db_page.fingerprint = obj.meta[b'fingerprint']
         db_page.url = obj.url
         db_page.created_at = datetime.utcnow()
         db_page.meta = obj.meta
@@ -173,10 +173,10 @@ class Queue(BaseQueue):
         try:
             for item in self._order_by(self.session.query(self.queue_model).filter_by(partition_id=partition_id)).\
                     limit(max_n_requests):
-                method = item.method or 'GET'
+                method = item.method or b'GET'
                 r = Request(item.url, method=method, meta=item.meta, headers=item.headers, cookies=item.cookies)
-                r.meta['fingerprint'] = to_native_str(item.fingerprint)
-                r.meta['score'] = item.score
+                r.meta[b'fingerprint'] = to_native_str(item.fingerprint)
+                r.meta[b'score'] = item.score
                 results.append(r)
                 self.session.delete(item)
             self.session.commit()
@@ -202,7 +202,7 @@ class Queue(BaseQueue):
                                      headers=request.headers, cookies=request.cookies, method=request.method,
                                      partition_id=partition_id, host_crc32=host_crc32, created_at=time()*1E+6)
                 to_save.append(q)
-                request.meta['state'] = States.QUEUED
+                request.meta[b'state'] = States.QUEUED
         self.session.bulk_save_objects(to_save)
         self.session.commit()
 
@@ -266,7 +266,7 @@ class BroadCrawlingQueue(Queue):
         results = []
         for items in six.itervalues(queue):
             for item in items:
-                method = item.method or 'GET'
+                method = item.method or b'GET'
                 results.append(Request(item.url, method=method,
                                        meta=item.meta, headers=item.headers, cookies=item.cookies))
                 self.session.delete(item)

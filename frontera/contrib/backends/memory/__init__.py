@@ -23,7 +23,7 @@ class MemoryMetadata(Metadata):
         self.requests = {}
 
     def request_error(self, request, error):
-        request.meta['error'] = error
+        request.meta[b'error'] = error
         self._get_or_create_request(request)
 
     def page_crawled(self, response, links):
@@ -36,7 +36,7 @@ class MemoryMetadata(Metadata):
             self._get_or_create_request(seed)
 
     def _get_or_create_request(self, request):
-        fingerprint = request.meta['fingerprint']
+        fingerprint = request.meta[b'fingerprint']
         if fingerprint not in self.requests:
             new_request = request.copy()
             self.requests[fingerprint] = new_request
@@ -67,7 +67,7 @@ class MemoryQueue(Queue):
     def schedule(self, batch):
         for fprint, score, request, schedule in batch:
             if schedule:
-                request.meta['_scr'] = score
+                request.meta[b'_scr'] = score
                 _, hostname, _, _, _, _ = parse_domain_from_url_fast(request.url)
                 if not hostname:
                     self.logger.error("Can't get hostname for URL %s, fingerprint %s", request.url, fprint)
@@ -77,7 +77,7 @@ class MemoryQueue(Queue):
                 self.heap[partition_id].push(request)
 
     def _compare_pages(self, first, second):
-        return cmp(first.meta['_scr'], second.meta['_scr'])
+        return cmp(first.meta[b'_scr'], second.meta[b'_scr'])
 
 
 class MemoryDequeQueue(Queue):
@@ -109,7 +109,7 @@ class MemoryDequeQueue(Queue):
     def schedule(self, batch):
         for fprint, score, request, schedule in batch:
             if schedule:
-                request.meta['_scr'] = score
+                request.meta[b'_scr'] = score
                 _, hostname, _, _, _, _ = parse_domain_from_url_fast(request.url)
                 if not hostname:
                     self.logger.error("Can't get hostname for URL %s, fingerprint %s", request.url, fprint)
@@ -127,11 +127,11 @@ class MemoryStates(States):
         self.logger = logging.getLogger("memory.states")
 
     def _put(self, obj):
-        self._cache[obj.meta['fingerprint']] = obj.meta['state']
+        self._cache[obj.meta[b'fingerprint']] = obj.meta[b'state']
 
     def _get(self, obj):
-        fprint = obj.meta['fingerprint']
-        obj.meta['state'] = self._cache[fprint] if fprint in self._cache else States.DEFAULT
+        fprint = obj.meta[b'fingerprint']
+        obj.meta[b'state'] = self._cache[fprint] if fprint in self._cache else States.DEFAULT
 
     def update_cache(self, objs):
         objs = objs if isinstance(objs, Iterable) else [objs]
@@ -203,14 +203,14 @@ class MemoryBaseBackend(CommonBackend):
 
 class MemoryDFSQueue(MemoryQueue):
     def _compare_pages(self, first, second):
-        return cmp((second.meta['depth'], first.meta['id']),
-                   (first.meta['depth'], second.meta['id']))
+        return cmp((second.meta[b'depth'], first.meta[b'id']),
+                   (first.meta[b'depth'], second.meta[b'id']))
 
 
 class MemoryBFSQueue(MemoryQueue):
     def _compare_pages(self, first, second):
-        return cmp((first.meta['depth'], first.meta['id']),
-                   (second.meta['depth'], second.meta['id']))
+        return cmp((first.meta[b'depth'], first.meta[b'id']),
+                   (second.meta[b'depth'], second.meta[b'id']))
 
 
 class MemoryRandomQueue(MemoryQueue):
