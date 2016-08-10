@@ -134,21 +134,18 @@ class StrategyWorker(object):
                         _, seeds = msg
                         self.states_context.to_fetch(seeds)
                         continue
-
                     if type == 'page_crawled':
                         _, response, links = msg
                         self.states_context.to_fetch(response)
                         self.states_context.to_fetch(links)
                         continue
-
                     if type == 'request_error':
                         _, request, error = msg
                         self.states_context.to_fetch(request)
                         continue
-
                     if type == 'offset':
                         continue
-                    raise TypeError('Unknown message type %s' % type)
+                    logger.warning('Unknown message type %s', type)
                 except Exception as exc:
                     logger.exception(exc)
                     pass
