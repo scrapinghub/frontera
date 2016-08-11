@@ -51,20 +51,20 @@ class Metadata(BaseMetadata):
     def add_seeds(self, seeds):
         for seed in seeds:
             o = self._create_page(seed)
-            self.cache[o.fingerprint] = self.session.merge(o)
+            self.cache[to_bytes(o.fingerprint)] = self.session.merge(o)
         self.session.commit()
 
     @retry_and_rollback
     def request_error(self, page, error):
         m = self._modify_page(page) if page.meta[b'fingerprint'] in self.cache else self._create_page(page)
         m.error = error
-        self.cache[m.fingerprint] = self.session.merge(m)
+        self.cache[to_bytes(m.fingerprint)] = self.session.merge(m)
         self.session.commit()
 
     @retry_and_rollback
     def page_crawled(self, response, links):
         r = self._modify_page(response) if response.meta[b'fingerprint'] in self.cache else self._create_page(response)
-        self.cache[r.fingerprint] = self.session.merge(r)
+        self.cache[to_bytes(r.fingerprint)] = self.session.merge(r)
         for link in links:
             if link.meta[b'fingerprint'] not in self.cache:
                 self.cache[link.meta[b'fingerprint']] = self.session.merge(self._create_page(link))
@@ -82,7 +82,7 @@ class Metadata(BaseMetadata):
 
     def _create_page(self, obj):
         db_page = self.model()
-        db_page.fingerprint = obj.meta[b'fingerprint']
+        db_page.fingerprint = to_native_str(obj.meta[b'fingerprint'])
         db_page.url = obj.url
         db_page.created_at = datetime.utcnow()
         db_page.meta = obj.meta
@@ -102,7 +102,7 @@ class Metadata(BaseMetadata):
     @retry_and_rollback
     def update_score(self, batch):
         for fprint, score, request, schedule in batch:
-            m = self.model(fingerprint=fprint, score=score)
+            m = self.model(fingerprint=to_native_str(fprint), score=score)
             self.session.merge(m)
         self.session.commit()
 
@@ -123,18 +123,18 @@ class States(MemoryStates):
 
     @retry_and_rollback
     def fetch(self, fingerprints):
-        to_fetch = [f for f in fingerprints if f not in self._cache]
+        to_fetch = [to_native_str(f) for f in fingerprints if f not in self._cache]
         self.logger.debug("cache size %s", len(self._cache))
         self.logger.debug("to fetch %d from %d", len(to_fetch), len(fingerprints))
 
         for chunk in chunks(to_fetch, 128):
             for state in self.session.query(self.model).filter(self.model.fingerprint.in_(chunk)):
-                self._cache[str(state.fingerprint)] = state.state
+                self._cache[to_bytes(state.fingerprint)] = state.state
 
     @retry_and_rollback
     def flush(self, force_clear=False):
         for fingerprint, state_val in six.iteritems(self._cache):
-            state = self.model(fingerprint=fingerprint, state=state_val)
+            state = self.model(fingerprint=to_native_str(fingerprint), state=state_val)
             self.session.merge(state)
         self.session.commit()
         self.logger.debug("State cache has been flushed.")
@@ -198,7 +198,7 @@ class Queue(BaseQueue):
                 else:
                     partition_id = self.partitioner.partition(hostname, self.partitions)
                     host_crc32 = get_crc32(hostname)
-                q = self.queue_model(fingerprint=fprint, score=score, url=request.url, meta=request.meta,
+                q = self.queue_model(fingerprint=to_native_str(fprint), score=score, url=request.url, meta=request.meta,
                                      headers=request.headers, cookies=request.cookies, method=to_native_str(request.method),
                                      partition_id=partition_id, host_crc32=host_crc32, created_at=time()*1E+6)
                 to_save.append(q)
