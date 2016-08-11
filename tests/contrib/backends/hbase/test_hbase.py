@@ -58,7 +58,7 @@ class TestHBaseBackend(object):
         queue.schedule(batch)
         assert queue.get_next_requests(10, 0, min_requests=3, min_hosts=1,
                    max_requests_per_host=10) == []
-        sleep(1.0)
+        sleep(1.5)
         assert set([r.url for r in queue.get_next_requests(10, 0, min_requests=3, min_hosts=1,
                    max_requests_per_host=10)]) == set([r5.url])
 
