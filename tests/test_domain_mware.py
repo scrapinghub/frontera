@@ -32,10 +32,10 @@ class DomainMiddlewareTest(unittest.TestCase):
             self.assertIn(b'domain', r.meta, 'Missing domain info for %r' % r)
 
         expected = [
-            {b'name': 'example.com', b'netloc': 'example.com', b'scheme': 'http',
-             b'sld': '', b'subdomain': '', b'tld': ''},
-            {b'name': 'www.google.com', b'netloc': 'www.google.com', b'scheme': 'https',
-             b'sld': '', b'subdomain': '', b'tld': ''},
+            {b'name': b'example.com', b'netloc': b'example.com', b'scheme': b'http',
+             b'sld': b'', b'subdomain': b'', b'tld': b''},
+            {b'name': b'www.google.com', b'netloc': b'www.google.com', b'scheme': b'https',
+             b'sld': b'', b'subdomain': b'', b'tld': b''},
         ]
         self.assertEquals(expected, [r.meta[b'domain'] for r in result])
 
@@ -56,9 +56,9 @@ class DomainMiddlewareTest(unittest.TestCase):
             self.assertIn(b'domain', r.meta, 'Missing domain info for %r' % r)
 
         expected = [
-            {b'name': 'example.com', b'netloc': 'example.com', b'scheme': 'http',
-             b'sld': 'example', b'subdomain': '', b'tld': 'com'},
-            {b'name': 'google.com', b'netloc': 'www.google.com', b'scheme': 'https',
-             b'sld': 'google', b'subdomain': 'www', b'tld': 'com'},
+            {b'name': b'example.com', b'netloc': b'example.com', b'scheme': b'http',
+             b'sld': b'example', b'subdomain': b'', b'tld': b'com'},
+            {b'name': b'google.com', b'netloc': b'www.google.com', b'scheme': b'https',
+             b'sld': b'google', b'subdomain': b'www', b'tld': b'com'},
         ]
         self.assertEquals(expected, [r.meta[b'domain'] for r in result])
