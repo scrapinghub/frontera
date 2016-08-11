@@ -38,13 +38,13 @@ class MessageBusBackend(Backend):
         self.spider_log_producer.flush()
 
     def add_seeds(self, seeds):
-        self.spider_log_producer.send(seeds[0].meta['fingerprint'], self._encoder.encode_add_seeds(seeds))
+        self.spider_log_producer.send(seeds[0].meta[b'fingerprint'], self._encoder.encode_add_seeds(seeds))
 
     def page_crawled(self, response, links):
-        self.spider_log_producer.send(response.meta['fingerprint'], self._encoder.encode_page_crawled(response, links))
+        self.spider_log_producer.send(response.meta[b'fingerprint'], self._encoder.encode_page_crawled(response, links))
 
     def request_error(self, page, error):
-        self.spider_log_producer.send(page.meta['fingerprint'], self._encoder.encode_request_error(page, error))
+        self.spider_log_producer.send(page.meta[b'fingerprint'], self._encoder.encode_request_error(page, error))
 
     def _get_next_requests(self, max_n_requests, **kwargs):
         requests = []
@@ -55,7 +55,7 @@ class MessageBusBackend(Backend):
                 self._logger.warning("Could not decode message: {0}, error {1}".format(encoded, str(exc)))
             else:
                 requests.append(request)
-        self.spider_log_producer.send('0123456789abcdef0123456789abcdef012345678',
+        self.spider_log_producer.send(b'0123456789abcdef0123456789abcdef012345678',
                                       self._encoder.encode_offset(self.partition_id, self.consumer.get_offset()))
         return requests
 
