@@ -14,7 +14,7 @@ from frontera.utils.misc import get_crc32, chunks
 from frontera.utils.url import parse_domain_from_url_fast
 import six
 from six.moves import range
-from w3lib.util import to_native_str
+from w3lib.util import to_native_str, to_bytes
 
 
 def retry_and_rollback(func):
