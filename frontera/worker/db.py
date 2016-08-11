@@ -144,18 +144,21 @@ class DBWorker(object):
                     for seed in seeds:
                         logger.debug('URL: %s', seed.url)
                     self._backend.add_seeds(seeds)
+                    continue
                 if type == 'page_crawled':
                     _, response, links = msg
                     logger.debug("Page crawled %s", response.url)
                     if 'jid' not in response.meta or response.meta['jid'] != self.job_id:
                         continue
                     self._backend.page_crawled(response, links)
+                    continue
                 if type == 'request_error':
                     _, request, error = msg
                     if 'jid' not in request.meta or request.meta['jid'] != self.job_id:
                         continue
                     logger.debug("Request error %s", request.url)
                     self._backend.request_error(request, error)
+                    continue
                 if type == 'offset':
                     _, partition_id, offset = msg
                     try:
@@ -171,6 +174,8 @@ class DBWorker(object):
                             self.spider_feed.mark_ready(partition_id)
                         else:
                             self.spider_feed.mark_busy(partition_id)
+                    continue
+                logger.debug('Unknown message type %s', type)
             finally:
                 consumed += 1
         """

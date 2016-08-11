@@ -114,8 +114,13 @@ class StrategyWorker(object):
         self._logging_task = LoopingCall(self.log_status)
         logger.info("Strategy worker is initialized and consuming partition %d", partition_id)
 
-    def work(self):
-        # Collecting batch to process
+    def collect_unknown_message(self, msg):
+        logger.debug('Unknown message type %s', type)
+
+    def on_unknown_message(self, msg):
+        pass
+
+    def collect_batch(self):
         consumed = 0
         batch = []
         for m in self.consumer.get_messages(count=self.consumer_batch_size, timeout=1.0):
@@ -134,31 +139,26 @@ class StrategyWorker(object):
                         _, seeds = msg
                         self.states_context.to_fetch(seeds)
                         continue
-
                     if type == 'page_crawled':
                         _, response, links = msg
                         self.states_context.to_fetch(response)
                         self.states_context.to_fetch(links)
                         continue
-
                     if type == 'request_error':
                         _, request, error = msg
                         self.states_context.to_fetch(request)
                         continue
-
                     if type == 'offset':
                         continue
-                    raise TypeError('Unknown message type %s' % type)
+                    self.collect_unknown_message(msg)
                 except Exception as exc:
                     logger.exception(exc)
                     pass
             finally:
                 consumed += 1
+        return (batch, consumed)
 
-        # Fetching states
-        self.states_context.fetch()
-
-        # Batch processing
+    def process_batch(self, batch):
         for msg in batch:
             type = msg[0]
             try:
@@ -168,24 +168,27 @@ class StrategyWorker(object):
                         seed.meta['jid'] = self.job_id
                     self.on_add_seeds(seeds)
                     continue
-
                 if type == 'page_crawled':
                     _, response, links = msg
                     if 'jid' not in response.meta or response.meta['jid'] != self.job_id:
                         continue
                     self.on_page_crawled(response, links)
                     continue
-
                 if type == 'request_error':
                     _, request, error = msg
                     if 'jid' not in request.meta or request.meta['jid'] != self.job_id:
                         continue
                     self.on_request_error(request, error)
                     continue
+                self.on_unknown_message(msg)
             except Exception as exc:
                 logger.exception(exc)
                 pass
 
+    def work(self):
+        batch, consumed = self.collect_batch()
+        self.states_context.fetch()
+        self.process_batch(batch)
         self.update_score.flush()
         self.states_context.release()
 
@@ -250,7 +253,7 @@ class StrategyWorker(object):
         self.states.update_cache(request)
 
 
-if __name__ == '__main__':
+def setup_environment():
     parser = ArgumentParser(description="Frontera strategy worker.")
     parser.add_argument('--config', type=str, required=True,
                         help='Settings module name, should be accessible by import')
@@ -281,5 +284,9 @@ if __name__ == '__main__':
         logging.basicConfig(level=args.log_level)
         logger.setLevel(args.log_level)
         logger.addHandler(CONSOLE)
+    return settings, strategy_class
+
+if __name__ == '__main__':
+    settings, strategy_class = setup_environment()
     worker = StrategyWorker(settings, strategy_class)
     worker.run()
