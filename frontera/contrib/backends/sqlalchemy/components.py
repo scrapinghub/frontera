@@ -175,7 +175,7 @@ class Queue(BaseQueue):
                     limit(max_n_requests):
                 method = item.method or b'GET'
                 r = Request(item.url, method=method, meta=item.meta, headers=item.headers, cookies=item.cookies)
-                r.meta[b'fingerprint'] = to_native_str(item.fingerprint)
+                r.meta[b'fingerprint'] = to_bytes(item.fingerprint)
                 r.meta[b'score'] = item.score
                 results.append(r)
                 self.session.delete(item)
