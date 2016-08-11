@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 import copy
-from w3lib.util import to_bytes
+from w3lib.util import to_bytes, to_native_str
 from w3lib.url import safe_url_string
 
 
@@ -24,7 +24,7 @@ class Request(FrontierObject):
         :param dict cookies: dictionary of cookies to attach to this request.
         :param dict meta: dictionary that contains arbitrary metadata for this request.
         """
-        self._url = url
+        self._url = to_native_str(url)
         self._method = to_bytes((method or b'GET').upper())
         self._headers = headers or {}
         self._cookies = cookies or {}
@@ -100,7 +100,7 @@ class Response(FrontierObject):
         :param Request request: The Request object that generated this response.
         """
 
-        self._url = url
+        self._url = to_native_str(url)
         self._status_code = int(status_code)
         self._headers = headers or {}
         self._body = body
