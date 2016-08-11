@@ -9,11 +9,11 @@ from w3lib.util import to_native_str, to_bytes
 
 
 def sha1(key):
-    return hashlib.sha1(to_bytes(key, 'utf8')).hexdigest()
+    return to_bytes(hashlib.sha1(to_bytes(key, 'utf8')).hexdigest())
 
 
 def md5(key):
-    return hashlib.md5(to_bytes(key, 'utf8')).hexdigest()
+    return to_bytes(hashlib.md5(to_bytes(key, 'utf8')).hexdigest())
 
 
 def hostname_local_fingerprint(key):
@@ -35,4 +35,4 @@ def hostname_local_fingerprint(key):
     doc_uri_combined = to_bytes(doc_uri_combined, 'utf8', 'ignore')
     doc_fprint = hashlib.md5(doc_uri_combined).digest()
     fprint = hexlify(pack(">i16s", host_checksum, doc_fprint))
-    return to_native_str(fprint, 'utf8')
+    return fprint
