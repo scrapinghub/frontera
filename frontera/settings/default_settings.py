@@ -26,6 +26,7 @@ KAFKA_CODEC_LEGACY = "none"
 MAX_NEXT_REQUESTS = 64
 MAX_REQUESTS = 0
 MESSAGE_BUS = 'frontera.contrib.messagebus.zeromq.MessageBus'
+MESSAGE_BUS_CODEC = 'frontera.contrib.backends.remote.codecs.msgpack'
 MIDDLEWARES = [
     'frontera.contrib.middlewares.fingerprint.UrlFingerprintMiddleware',
 ]

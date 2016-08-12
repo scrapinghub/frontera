@@ -3,7 +3,7 @@ Message bus
 ===========
 
 Is the transport layer abstraction mechanism. It provides interface and several implementations. Only one message bus
-can be used in crawler at the time, and it's selected with :setting:`MESSAGE_BUS` vim maksetting.
+can be used in crawler at the time, and it's selected with :setting:`MESSAGE_BUS` setting.
 
 Spiders process can use
 
@@ -44,11 +44,14 @@ Requires running `Kafka`_ service and more suitable for large-scale web crawling
 .. _ZeroMQ: http://zeromq.org/
 
 
+.. _message_bus_protocol:
+
 Protocol
 ========
 
 Depending on stream Frontera is using several message types to code it's messages. Every message is a python native
-object serialized using `msgpack`_ (also JSON is available, but needs to be selected in code manually).
+object serialized using `msgpack`_ or JSON. The codec module can be selected using :setting:`MESSAGE_BUS_CODEC`, and
+it's required to export ``Encoder`` and ``Decoder`` classes.
 
 Here are the classes needed to subclass to implement own codec:
 
@@ -66,6 +69,22 @@ Here are the classes needed to subclass to implement own codec:
 
     .. automethod:: frontera.core.codec.BaseDecoder.decode
     .. automethod:: frontera.core.codec.BaseDecoder.decode_request
+
+
+Available codecs
+================
+
+MsgPack
+-------
+.. automodule:: frontera.contrib.backends.remote.codecs.msgpack
+
+Module: frontera.contrib.backends.remote.codecs.msgpack
+
+JSON
+----
+.. automodule:: frontera.contrib.backends.remote.codecs.json
+
+Module: frontera.contrib.backends.remote.codecs.json
 
 
 .. _msgpack: http://msgpack.org/index.html

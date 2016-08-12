@@ -15,7 +15,6 @@ from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
 
 from frontera.settings import Settings
-from frontera.contrib.backends.remote.codecs.msgpack import Decoder, Encoder
 from collections import Sequence
 from binascii import hexlify
 import six
@@ -97,8 +96,11 @@ class StrategyWorker(object):
         self.scoring_log_producer = scoring_log.producer()
 
         self._manager = FrontierManager.from_settings(settings, strategy_worker=True)
-        self._decoder = Decoder(self._manager.request_model, self._manager.response_model)
-        self._encoder = Encoder(self._manager.request_model)
+        codec_path = settings.get('MESSAGE_BUS_CODEC')
+        encoder_cls = load_object(codec_path+".Encoder")
+        decoder_cls = load_object(codec_path+".Decoder")
+        self._decoder = decoder_cls(self._manager.request_model, self._manager.response_model)
+        self._encoder = encoder_cls(self._manager.request_model)
 
         self.update_score = UpdateScoreStream(self._encoder, self.scoring_log_producer, 1024)
         self.states_context = StatesContext(self._manager.backend.states)
