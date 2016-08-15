@@ -1,7 +1,7 @@
 sphinx>=1.2.3
 sphinx-rtd-theme>=0.1.6
 SQLAlchemy>=1.0.0
-happybase
+happybase>=1.0.0
 w3lib
 msgpack-python
 pyzmq
