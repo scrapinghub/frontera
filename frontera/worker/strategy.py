@@ -51,7 +51,7 @@ class StatesContext(object):
         self._requests = []
         self._states = states
         self._fingerprints = set()
-        self.cache_flush_counter = 0
+        self._cache_flush_counter = 0
 
     def to_fetch(self, requests):
         if isinstance(requests, Sequence):
@@ -73,13 +73,13 @@ class StatesContext(object):
         self._requests = []
 
         # Flushing states cache if needed
-        if self.cache_flush_counter == 30:
+        if self._cache_flush_counter == 30:
             logger.info("Flushing states")
             self._states.flush(force_clear=False)
             logger.info("Flushing states finished")
-            self.cache_flush_counter = 0
+            self._cache_flush_counter = 0
 
-        self.cache_flush_counter += 1
+        self._cache_flush_counter += 1
 
 
 class StrategyWorker(object):
