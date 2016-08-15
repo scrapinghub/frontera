@@ -56,7 +56,7 @@ setup(
             'tldextract>=1.5.1',
         ],
         'hbase': [
-            'happybase'
+            'happybase>=1.0.0'
         ],
         'zeromq': [
             'pyzmq',

@@ -34,7 +34,7 @@ before_install:
   - chmod +x docker-compose
   - sudo mv docker-compose /usr/local/bin
   - git clone https://github.com/scrapinghub/hbase-docker.git
-  - docker pull dajobe/hbase
+  - docker pull scrapinghub/hbase-docker
   - mkdir data
   - ./hbase-docker/start-hbase.sh
 
