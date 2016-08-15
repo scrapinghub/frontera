@@ -11,6 +11,7 @@ from frontera.contrib.messagebus.kafka import OffsetsFetcher
 from logging import getLogger
 from time import sleep
 import six
+from w3lib.util import to_bytes
 
 logger = getLogger("messagebus.kafka")
 
@@ -204,11 +205,11 @@ class ScoringLogStream(BaseScoringLogStream):
 class MessageBus(BaseMessageBus):
     def __init__(self, settings):
         server = settings.get('KAFKA_LOCATION')
-        self.topic_todo = settings.get('OUTGOING_TOPIC', "frontier-todo")
-        self.topic_done = settings.get('INCOMING_TOPIC', "frontier-done")
-        self.topic_scoring = settings.get('SCORING_TOPIC')
-        self.general_group = settings.get('FRONTIER_GROUP', "general")
-        self.sw_group = settings.get('SCORING_GROUP', "strategy-workers")
+        self.topic_todo = to_bytes(settings.get('OUTGOING_TOPIC', "frontier-todo"))
+        self.topic_done = to_bytes(settings.get('INCOMING_TOPIC', "frontier-done"))
+        self.topic_scoring = to_bytes(settings.get('SCORING_TOPIC'))
+        self.general_group = to_bytes(settings.get('FRONTIER_GROUP', "general"))
+        self.sw_group = to_bytes(settings.get('SCORING_GROUP', "strategy-workers"))
         self.spider_partition_id = settings.get('SPIDER_PARTITION_ID')
         self.max_next_requests = settings.MAX_NEXT_REQUESTS
         self.hostname_partitioning = settings.get('QUEUE_HOSTNAME_PARTITIONING')
