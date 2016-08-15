@@ -92,7 +92,7 @@ class StrategyWorker(object):
         mb = messagebus(settings)
         spider_log = mb.spider_log()
         scoring_log = mb.scoring_log()
-        self.consumer = spider_log.consumer(partition_id=partition_id, type='sw')
+        self.consumer = spider_log.consumer(partition_id=partition_id, type=b'sw')
         self.scoring_log_producer = scoring_log.producer()
 
         self._manager = FrontierManager.from_settings(settings, strategy_worker=True)
