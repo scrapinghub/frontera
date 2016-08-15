@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-from zlib import crc32
 from struct import unpack
 from binascii import unhexlify
 
