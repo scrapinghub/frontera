@@ -48,7 +48,7 @@ class FrontierTester(object):
                                         },
                                         method=b'POST',
                                         cookies={b'currency': b'USD'})
-        r.meta[b'this_param'] = 'should be passed over'
+        r.meta[b'this_param'] = b'should be passed over'
         return r
 
     def _make_response(self, url, status_code, request):
@@ -74,7 +74,7 @@ class FrontierTester(object):
             else:
                 self.frontier.request_error(request=page_to_crawl,
                                             error=crawled_page.status)
-            assert page_to_crawl.meta[b'this_param'] == 'should be passed over'
+            assert page_to_crawl.meta[b'this_param'] == b'should be passed over'
             assert page_to_crawl.headers[b'X-Important-Header'] == b'Frontera'
             assert page_to_crawl.method == b'POST'
             assert page_to_crawl.cookies[b'currency'] == b'USD'
