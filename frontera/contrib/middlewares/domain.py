@@ -3,6 +3,7 @@ import re
 
 from frontera.core.components import Middleware
 from frontera.utils.url import parse_domain_from_url_fast, parse_domain_from_url
+from w3lib.util import to_bytes
 
 # TODO: Why not to put the whole url_parse result here in meta?
 
@@ -87,24 +88,24 @@ class DomainMiddleware(Middleware):
         return self._add_domain(request)
 
     def _add_domain(self, obj):
-        obj.meta['domain'] = self.parse_domain_info(obj.url, self.manager.test_mode)
-        if 'redirect_urls' in obj.meta:
-            obj.meta['redirect_domains'] = [self.parse_domain_info(url, self.manager.test_mode)
-                                            for url in obj.meta['redirect_urls']]
+        obj.meta[b'domain'] = self.parse_domain_info(obj.url, self.manager.test_mode)
+        if b'redirect_urls' in obj.meta:
+            obj.meta[b'redirect_domains'] = [self.parse_domain_info(url, self.manager.test_mode)
+                                             for url in obj.meta[b'redirect_urls']]
         return obj
 
     def parse_domain_info(self, url, test_mode=False):
         if test_mode:
             match = re.match('([A-Z])\w+', url)
-            netloc = name = match.groups()[0] if match else '?'
-            scheme = sld = tld = subdomain = '-'
+            netloc = name = to_bytes(match.groups()[0]) if match else b'?'
+            scheme = sld = tld = subdomain = b'-'
         else:
             netloc, name, scheme, sld, tld, subdomain = self.parse_domain_func(url)
         return {
-            'netloc': netloc,
-            'name': name,
-            'scheme': scheme,
-            'sld': sld,
-            'tld': tld,
-            'subdomain': subdomain,
+            b'netloc': to_bytes(netloc),
+            b'name': to_bytes(name),
+            b'scheme': to_bytes(scheme),
+            b'sld': to_bytes(sld),
+            b'tld': to_bytes(tld),
+            b'subdomain': to_bytes(subdomain),
         }

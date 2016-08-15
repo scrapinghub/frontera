@@ -104,17 +104,17 @@ class RecorderScheduler(Scheduler):
             self.stats.inc_value('scheduler/enqueued/memory', spider=self.spider)
         self.stats.inc_value('scheduler/enqueued', spider=self.spider)
         if self.recorder_enabled:
-            is_seed = 'rule' not in request.meta and \
-                      'origin_is_recorder' not in request.meta
+            is_seed = b'rule' not in request.meta and \
+                      b'origin_is_recorder' not in request.meta
             page = self.graph.add_page(url=request.url, is_seed=is_seed)
             self.stats_manager.add_page(is_seed)
-            request.meta['is_seed'] = is_seed
-            request.meta['page'] = page
+            request.meta[b'is_seed'] = is_seed
+            request.meta[b'page'] = page
 
     def next_request(self):
         request = super(RecorderScheduler, self).next_request()
         if self.recorder_enabled and request:
-            request.meta['origin_is_recorder'] = True
+            request.meta[b'origin_is_recorder'] = True
         return request
 
     def process_spider_output(self, response, result, spider):
@@ -123,21 +123,21 @@ class RecorderScheduler(Scheduler):
                 yield r
             return
 
-        page = response.meta['page']
+        page = response.meta[b'page']
         page.status = response.status
         self.graph.save()
         requests = [r for r in result if isinstance(r, Request)]
         for request in requests:
             link = self.graph.add_link(page=page, url=request.url)
-            request.meta['page'] = link
-            request.meta['referer'] = page
+            request.meta[b'page'] = link
+            request.meta[b'referer'] = page
             self.stats_manager.add_link()
             yield request
 
     def process_exception(self, request, exception, spider):
         if self.recorder_enabled:
             error_code = self._get_exception_code(exception)
-            page = request.meta['page']
+            page = request.meta[b'page']
             page.status = error_code
             self.graph.save()
 

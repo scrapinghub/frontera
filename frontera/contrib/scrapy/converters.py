@@ -5,6 +5,7 @@ from scrapy.http.response import Response as ScrapyResponse
 from frontera.core.models import Request as FrontierRequest
 from frontera.core.models import Response as FrontierResponse
 from frontera.utils.converters import BaseRequestConverter, BaseResponseConverter
+from w3lib.util import to_bytes, to_native_str
 
 
 class RequestConverter(BaseRequestConverter):
@@ -27,20 +28,20 @@ class RequestConverter(BaseRequestConverter):
 
         scrapy_meta = scrapy_request.meta
         meta = {}
-        if 'frontier_request' in scrapy_meta:
-            request = scrapy_meta['frontier_request']
+        if b'frontier_request' in scrapy_meta:
+            request = scrapy_meta[b'frontier_request']
             if isinstance(request, FrontierRequest):
                 meta = request.meta
-            del scrapy_meta['frontier_request']
+            del scrapy_meta[b'frontier_request']
 
         meta.update({
-            'scrapy_callback': cb,
-            'scrapy_errback': eb,
-            'scrapy_meta': scrapy_meta,
-            'origin_is_frontier': True,
+            b'scrapy_callback': cb,
+            b'scrapy_errback': eb,
+            b'scrapy_meta': scrapy_meta,
+            b'origin_is_frontier': True,
         })
-        if 'redirect_urls' in scrapy_meta:
-            meta['redirect_urls'] = scrapy_meta['redirect_urls']
+        if b'redirect_urls' in scrapy_meta:
+            meta[b'redirect_urls'] = scrapy_meta[b'redirect_urls']
         return FrontierRequest(url=scrapy_request.url,
                                method=scrapy_request.method,
                                headers=scrapy_request.headers,
@@ -50,20 +51,20 @@ class RequestConverter(BaseRequestConverter):
 
     def from_frontier(self, frontier_request):
         """request: Frontier > Scrapy"""
-        cb = frontier_request.meta.get('scrapy_callback', None)
+        cb = frontier_request.meta.get(b'scrapy_callback', None)
         if cb and self.spider:
             cb = _get_method(self.spider, cb)
-        eb = frontier_request.meta.get('scrapy_errback', None)
+        eb = frontier_request.meta.get(b'scrapy_errback', None)
         if eb and self.spider:
             eb = _get_method(self.spider, eb)
         body = frontier_request.body
-        meta = frontier_request.meta.get('scrapy_meta', {})
-        meta['frontier_request'] = frontier_request
+        meta = frontier_request.meta.get(b'scrapy_meta', {})
+        meta[b'frontier_request'] = frontier_request
         return ScrapyRequest(url=frontier_request.url,
                              callback=cb,
                              errback=eb,
                              body=body,
-                             method=frontier_request.method,
+                             method=to_native_str(frontier_request.method),
                              headers=frontier_request.headers,
                              cookies=frontier_request.cookies,
                              meta=meta,
@@ -78,11 +79,11 @@ class ResponseConverter(BaseResponseConverter):
 
     def to_frontier(self, scrapy_response):
         """response: Scrapy > Frontier"""
-        frontier_request = scrapy_response.meta['frontier_request']
-        frontier_request.meta['scrapy_meta'] = scrapy_response.meta
-        if 'redirect_urls' in scrapy_response.meta:
-            frontier_request.meta['redirect_urls'] = scrapy_response.meta['redirect_urls']
-        del scrapy_response.meta['frontier_request']
+        frontier_request = scrapy_response.meta[b'frontier_request']
+        frontier_request.meta[b'scrapy_meta'] = scrapy_response.meta
+        if b'redirect_urls' in scrapy_response.meta:
+            frontier_request.meta[b'redirect_urls'] = scrapy_response.meta[b'redirect_urls']
+        del scrapy_response.meta[b'frontier_request']
         return FrontierResponse(url=scrapy_response.url,
                                 status_code=scrapy_response.status,
                                 headers=scrapy_response.headers,
@@ -100,13 +101,13 @@ class ResponseConverter(BaseResponseConverter):
 
 def _find_method(obj, func):
     if obj and hasattr(func, '__self__') and func.__self__ is obj:
-        return func.__func__.__name__
+        return to_bytes(func.__func__.__name__)
     else:
         raise ValueError("Function %s is not a method of: %s" % (func, obj))
 
 
 def _get_method(obj, name):
-    name = str(name)
+    name = to_native_str(name)
     try:
         return getattr(obj, name)
     except AttributeError:

@@ -9,19 +9,19 @@ class CrawlingStrategy(BaseCrawlingStrategy):
 
     def add_seeds(self, seeds):
         for seed in seeds:
-            if seed.meta['state'] is States.NOT_CRAWLED:
-                seed.meta['state'] = States.QUEUED
+            if seed.meta[b'state'] is States.NOT_CRAWLED:
+                seed.meta[b'state'] = States.QUEUED
                 self.schedule(seed)
 
     def page_crawled(self, response, links):
-        response.meta['state'] = States.CRAWLED
+        response.meta[b'state'] = States.CRAWLED
         for link in links:
-            if link.meta['state'] is States.NOT_CRAWLED:
-                link.meta['state'] = States.QUEUED
+            if link.meta[b'state'] is States.NOT_CRAWLED:
+                link.meta[b'state'] = States.QUEUED
                 self.schedule(link, self.get_score(link.url))
 
     def page_error(self, request, error):
-        request.meta['state'] = States.ERROR
+        request.meta[b'state'] = States.ERROR
         self.schedule(request, score=0.0, dont_queue=True)
 
     def get_score(self, url):

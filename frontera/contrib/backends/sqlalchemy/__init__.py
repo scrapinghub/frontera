@@ -85,7 +85,7 @@ class DFSBackend(SQLAlchemyBackend):
         return Queue(self.session_cls, self.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'))
 
     def _get_score(self, obj):
-        return -obj.meta['depth']
+        return -obj.meta[b'depth']
 
 
 class BFSBackend(SQLAlchemyBackend):
@@ -95,7 +95,7 @@ class BFSBackend(SQLAlchemyBackend):
         return Queue(self.session_cls, self.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'))
 
     def _get_score(self, obj):
-        return obj.meta['depth']
+        return obj.meta[b'depth']
 
 
 BASE = CommonBackend

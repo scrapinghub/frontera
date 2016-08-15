@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 import copy
-from w3lib.util import to_native_str
+from w3lib.util import to_bytes, to_native_str
 from w3lib.url import safe_url_string
 
 
@@ -16,7 +16,7 @@ class Request(FrontierObject):
     :class:`Response <frontera.core.models.Response>` object when crawled.
 
     """
-    def __init__(self, url, method='GET', headers=None, cookies=None, meta=None, body=''):
+    def __init__(self, url, method=b'GET', headers=None, cookies=None, meta=None, body=''):
         """
         :param string url: URL to send.
         :param string method: HTTP method to use.
@@ -24,11 +24,11 @@ class Request(FrontierObject):
         :param dict cookies: dictionary of cookies to attach to this request.
         :param dict meta: dictionary that contains arbitrary metadata for this request.
         """
-        self._url = url
-        self._method = (method or 'GET').upper()
+        self._url = to_native_str(url)
+        self._method = to_bytes((method or b'GET').upper())
         self._headers = headers or {}
         self._cookies = cookies or {}
-        self._meta = meta or {'scrapy_meta': {}}
+        self._meta = meta or {b'scrapy_meta': {}}
         self._body = body
 
     @property
@@ -100,7 +100,7 @@ class Response(FrontierObject):
         :param Request request: The Request object that generated this response.
         """
 
-        self._url = url
+        self._url = to_native_str(url)
         self._status_code = int(status_code)
         self._headers = headers or {}
         self._body = body

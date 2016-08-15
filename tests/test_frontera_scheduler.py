@@ -17,9 +17,9 @@ r3 = Request('http://example1.com')
 
 
 # test requests with redirects
-rr1 = Request('http://www.example.com', meta={'redirect_times': 1})
-rr2 = Request('https://www.example.com/some/page', meta={'redirect_times': 4})
-rr3 = Request('http://example1.com', meta={'redirect_times': 0})
+rr1 = Request('http://www.example.com', meta={b'redirect_times': 1})
+rr2 = Request('https://www.example.com/some/page', meta={b'redirect_times': 4})
+rr3 = Request('http://example1.com', meta={b'redirect_times': 0})
 
 
 # test frontier requests
@@ -114,7 +114,7 @@ class TestFronteraScheduler(object):
         i1 = {'name': 'item', 'item': 'i1'}
         i2 = {'name': 'item', 'item': 'i2'}
         result = [r1, r2, r3, i1, i2]
-        resp = Response(fr1.url, request=Request(fr1.url, meta={'frontier_request': fr1}))
+        resp = Response(fr1.url, request=Request(fr1.url, meta={b'frontier_request': fr1}))
         crawler = FakeCrawler()
         fs = FronteraScheduler(crawler, manager=FakeFrontierManager)
         fs.open(Spider)

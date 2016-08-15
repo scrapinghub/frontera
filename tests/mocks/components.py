@@ -65,7 +65,7 @@ class FakeQueue(Queue):
     def schedule(self, batch):
         for obj in batch:
             if obj[3]:
-                self.requests.append(Request(obj[2].url, meta={'fingerprint': obj[0], 'score': obj[1]}))
+                self.requests.append(Request(obj[2].url, meta={b'fingerprint': obj[0], b'score': obj[1]}))
 
 
 class FakeBackend(FakeMiddleware, Backend):
@@ -128,7 +128,7 @@ class FakeMiddlewareModifySeeds(FakeMiddleware):
     def add_seeds(self, seeds):
         for seed in seeds:
             self.seeds.append(seed)
-            seed.meta['test_seeds'] = self.test_value
+            seed.meta[b'test_seeds'] = self.test_value
         return seeds
 
 
@@ -138,7 +138,7 @@ class FakeMiddlewareModifyResponse(FakeMiddleware):
         for link in links:
             self.links.append(link)
         self.responses.append(response)
-        response.meta['test_response'] = self.test_value
+        response.meta[b'test_response'] = self.test_value
         return response
 
 
@@ -147,7 +147,7 @@ class FakeMiddlewareModifyLinks(FakeMiddleware):
     def page_crawled(self, response, links):
         for link in links:
             self.links.append(link)
-            link.meta['test_links'] = self.test_value
+            link.meta[b'test_links'] = self.test_value
         self.responses.append(response)
         return response
 
@@ -157,12 +157,12 @@ class FakeCanonicalSolver(CanonicalSolver, FakeMiddleware):
     def add_seeds(self, seeds):
         for seed in seeds:
             self.seeds.append(seed)
-            seed.meta['test_seeds_canonical_solver'] = self.test_value
+            seed.meta[b'test_seeds_canonical_solver'] = self.test_value
         return seeds
 
     def page_crawled(self, response, links):
         for link in links:
             self.links.append(link)
-            link.meta['test_links_canonical_solver'] = self.test_value
+            link.meta[b'test_links_canonical_solver'] = self.test_value
         self.responses.append(response)
         return response

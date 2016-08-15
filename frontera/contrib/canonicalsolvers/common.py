@@ -7,9 +7,9 @@ from frontera.utils.url import parse_url
 class CorporateWebsiteFriendly(BasicCanonicalSolver):
 
     def _set_canonical(self, obj):
-        if 'redirect_urls' in obj.meta:
+        if b'redirect_urls' in obj.meta:
             # if home page is requested then leave the target page as canonical
-            urls = obj.meta['redirect_urls']
+            urls = obj.meta[b'redirect_urls']
             scheme, netloc, path, params, query, fragment = parse_url(urls[0])
             if not path or path in ['/', 'index.html', 'index.htm', 'default.htm']:
                 return

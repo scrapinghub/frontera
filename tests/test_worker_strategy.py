@@ -5,10 +5,10 @@ from frontera.core.models import Request, Response
 from frontera.core.components import States
 
 
-r1 = Request('http://www.example.com/', meta={'fingerprint': 1, 'jid': 0})
-r2 = Request('http://www.scrapy.org/', meta={'fingerprint': 2, 'jid': 0})
-r3 = Request('https://www.dmoz.org', meta={'fingerprint': 3, 'jid': 0})
-r4 = Request('http://www.test.com/some/page', meta={'fingerprint': 4, 'jid': 0})
+r1 = Request('http://www.example.com/', meta={b'fingerprint': b'1', b'jid': 0})
+r2 = Request('http://www.scrapy.org/', meta={b'fingerprint': b'2', b'jid': 0})
+r3 = Request('https://www.dmoz.org', meta={b'fingerprint': b'3', b'jid': 0})
+r4 = Request('http://www.test.com/some/page', meta={b'fingerprint': b'4', b'jid': 0})
 
 
 class TestStrategyWorker(object):
@@ -24,20 +24,20 @@ class TestStrategyWorker(object):
         sw = self.sw_setup()
         msg = sw._encoder.encode_add_seeds([r1, r2, r3, r4])
         sw.consumer.put_messages([msg])
-        r2.meta['state'] = States.CRAWLED
+        r2.meta[b'state'] = States.CRAWLED
         sw.states.update_cache([r2])
         sw.work()
 
-        r1.meta['state'] = States.QUEUED
-        r3.meta['state'] = States.QUEUED
-        r4.meta['state'] = States.QUEUED
+        r1.meta[b'state'] = States.QUEUED
+        r3.meta[b'state'] = States.QUEUED
+        r4.meta[b'state'] = States.QUEUED
         assert set(sw.scoring_log_producer.messages) == \
             set([sw._encoder.encode_update_score(r, 1.0, True)
                 for r in [r1, r3, r4]])
 
     def test_page_crawled(self):
         sw = self.sw_setup()
-        r1.meta['jid'] = 1
+        r1.meta[b'jid'] = 1
         resp = Response(r1.url, request=r1)
         msg = sw._encoder.encode_page_crawled(resp, [r2, r3, r4])
         sw.consumer.put_messages([msg])
@@ -45,13 +45,13 @@ class TestStrategyWorker(object):
         # response should be skipped if it's jid doesn't match the strategy worker's
         assert sw.scoring_log_producer.messages == []
         sw.job_id = 1
-        r2.meta['state'] = States.QUEUED
+        r2.meta[b'state'] = States.QUEUED
         sw.states.update_cache([r2])
         sw.consumer.put_messages([msg])
         sw.work()
 
-        r3.meta['state'] = States.QUEUED
-        r4.meta['state'] = States.QUEUED
+        r3.meta[b'state'] = States.QUEUED
+        r4.meta[b'state'] = States.QUEUED
         assert set(sw.scoring_log_producer.messages) == \
             set(sw._encoder.encode_update_score(r, sw.strategy.get_score(r.url), True) for r in [r3, r4])
 
@@ -60,6 +60,6 @@ class TestStrategyWorker(object):
         msg = sw._encoder.encode_request_error(r4, 'error')
         sw.consumer.put_messages([msg])
         sw.work()
-        r4.meta['state'] = States.ERROR
+        r4.meta[b'state'] = States.ERROR
         assert sw.scoring_log_producer.messages.pop() == \
             sw._encoder.encode_update_score(r4, 0.0, False)

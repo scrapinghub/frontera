@@ -91,7 +91,7 @@ class BaseCrawlingStrategy(object):
         """
         self._mb_stream.send(request, score, dont_queue)
 
-    def create_request(self, url, method='GET', headers=None, cookies=None, meta=None, body=''):
+    def create_request(self, url, method=b'GET', headers=None, cookies=None, meta=None, body=b''):
         """
         Creates request with specified fields, with state fetched from backend.
 

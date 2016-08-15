@@ -30,15 +30,15 @@ class BasicCanonicalSolver(CanonicalSolver):
         self._set_canonical(page)
 
     def _set_canonical(self, obj):
-        if 'redirect_urls' in obj.meta:
-            redirect_urls = obj.meta['redirect_urls']
-            redirect_fingerprints = obj.meta['redirect_fingerprints']
+        if b'redirect_urls' in obj.meta:
+            redirect_urls = obj.meta[b'redirect_urls']
+            redirect_fingerprints = obj.meta[b'redirect_fingerprints']
             redirect_urls.append(obj.url)
-            redirect_fingerprints.append(obj.meta['fingerprint'])
+            redirect_fingerprints.append(obj.meta[b'fingerprint'])
             obj._url = redirect_urls[0]
-            obj.meta['fingerprint'] = redirect_fingerprints[0]
+            obj.meta[b'fingerprint'] = redirect_fingerprints[0]
 
-            if 'redirect_domains' in obj.meta:
-                redirect_domains = obj.meta['redirect_domains']
-                redirect_domains.append(obj.meta['domain'])
-                obj.meta['domain'] = redirect_domains[0]
+            if b'redirect_domains' in obj.meta:
+                redirect_domains = obj.meta[b'redirect_domains']
+                redirect_domains.append(obj.meta[b'domain'])
+                obj.meta[b'domain'] = redirect_domains[0]

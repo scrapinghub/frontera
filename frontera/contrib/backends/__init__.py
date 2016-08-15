@@ -29,9 +29,9 @@ class CommonBackend(Backend):
 
     def add_seeds(self, seeds):
         for seed in seeds:
-            seed.meta['depth'] = 0
+            seed.meta[b'depth'] = 0
         self.metadata.add_seeds(seeds)
-        self.states.fetch([seed.meta['fingerprint'] for seed in seeds])
+        self.states.fetch([seed.meta[b'fingerprint'] for seed in seeds])
         self.states.set_states(seeds)
         self._schedule(seeds)
         self.states.update_cache(seeds)
@@ -40,17 +40,17 @@ class CommonBackend(Backend):
         batch = []
         queue_incr = 0
         for request in requests:
-            schedule = True if request.meta['state'] in [States.NOT_CRAWLED, States.ERROR, None] else False
-            batch.append((request.meta['fingerprint'], self._get_score(request), request, schedule))
+            schedule = True if request.meta[b'state'] in [States.NOT_CRAWLED, States.ERROR, None] else False
+            batch.append((request.meta[b'fingerprint'], self._get_score(request), request, schedule))
             if schedule:
                 queue_incr += 1
-                request.meta['state'] = States.QUEUED
+                request.meta[b'state'] = States.QUEUED
         self.queue.schedule(batch)
         self.metadata.update_score(batch)
         self.queue_size += queue_incr
 
     def _get_score(self, obj):
-        return obj.meta.get('score', 1.0)
+        return obj.meta.get(b'score', 1.0)
 
     def get_next_requests(self, max_next_requests, **kwargs):
         partitions = kwargs.pop('partitions', [0])  # TODO: Collect from all known partitions
@@ -61,13 +61,13 @@ class CommonBackend(Backend):
         return batch
 
     def page_crawled(self, response, links):
-        response.meta['state'] = States.CRAWLED
+        response.meta[b'state'] = States.CRAWLED
         self.states.update_cache(response)
-        depth = response.meta.get('depth', 0)+1
+        depth = response.meta.get(b'depth', 0)+1
         to_fetch = OrderedDict()
         for link in links:
-            to_fetch[link.meta['fingerprint']] = link
-            link.meta['depth'] = depth
+            to_fetch[link.meta[b'fingerprint']] = link
+            link.meta[b'depth'] = depth
         self.states.fetch(to_fetch.keys())
         self.states.set_states(links)
         unique_links = to_fetch.values()
@@ -76,7 +76,7 @@ class CommonBackend(Backend):
         self.states.update_cache(unique_links)
 
     def request_error(self, request, error):
-        request.meta['state'] = States.ERROR
+        request.meta[b'state'] = States.ERROR
         self.metadata.request_error(request, error)
         self.states.update_cache(request)
 

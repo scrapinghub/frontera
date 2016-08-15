@@ -149,13 +149,13 @@ class DBWorker(object):
                 if type == 'page_crawled':
                     _, response, links = msg
                     logger.debug("Page crawled %s", response.url)
-                    if 'jid' not in response.meta or response.meta['jid'] != self.job_id:
+                    if b'jid' not in response.meta or response.meta[b'jid'] != self.job_id:
                         continue
                     self._backend.page_crawled(response, links)
                     continue
                 if type == 'request_error':
                     _, request, error = msg
-                    if 'jid' not in request.meta or request.meta['jid'] != self.job_id:
+                    if b'jid' not in request.meta or request.meta[b'jid'] != self.job_id:
                         continue
                     logger.debug("Request error %s", request.url)
                     self._backend.request_error(request, error)
@@ -204,9 +204,9 @@ class DBWorker(object):
             else:
                 if msg[0] == 'update_score':
                     _, request, score, schedule = msg
-                    if request.meta['fingerprint'] not in seen:
-                        batch.append((request.meta['fingerprint'], score, request, schedule))
-                        seen.add(request.meta['fingerprint'])
+                    if request.meta[b'fingerprint'] not in seen:
+                        batch.append((request.meta[b'fingerprint'], score, request, schedule))
+                        seen.add(request.meta[b'fingerprint'])
                 if msg[0] == 'new_job_id':
                     self.job_id = msg[1]
             finally:
@@ -223,14 +223,14 @@ class DBWorker(object):
             try:
                 netloc, name, scheme, sld, tld, subdomain = parse_domain_from_url_fast(request.url)
             except Exception as e:
-                logger.error("URL parsing error %s, fingerprint %s, url %s" % (e, request.meta['fingerprint'],
+                logger.error("URL parsing error %s, fingerprint %s, url %s" % (e, request.meta[b'fingerprint'],
                                                                                request.url))
                 return None
             else:
                 return name.encode('utf-8', 'ignore')
 
         def get_fingerprint(request):
-            return request.meta['fingerprint']
+            return request.meta[b'fingerprint']
 
         partitions = self.spider_feed.available_partitions()
         logger.info("Getting new batches for partitions %s" % str(",").join(map(str, partitions)))
@@ -247,11 +247,11 @@ class DBWorker(object):
 
         for request in self._backend.get_next_requests(self.max_next_requests, partitions=partitions):
             try:
-                request.meta['jid'] = self.job_id
+                request.meta[b'jid'] = self.job_id
                 eo = self._encoder.encode_request(request)
             except Exception as e:
                 logger.error("Encoding error, %s, fingerprint: %s, url: %s" % (e,
-                                                                               request.meta['fingerprint'],
+                                                                               request.meta[b'fingerprint'],
                                                                                request.url))
                 continue
             finally:
