@@ -107,23 +107,23 @@ class Server(object):
 
     def handle_db_in_recv(self, msg):
         self.stats['db_in_recvd'] += 1
-        if msg[0][0] in ['\x01', '\x00']:
+        if b'\x01' in msg[0] or b'\x00' in msg[0]:
             action, identity, partition_id = self.decode_subscription(msg[0])
-            if identity == 'sl':
+            if identity == b'sl':
                 self.spiders_out.send_multipart(msg)
                 return
-            if identity == 'us':
+            if identity == b'us':
                 self.sw_out.send_multipart(msg)
                 return
             raise AttributeError('Unknown identity in channel subscription.')
 
     def handle_sw_in_recv(self, msg):
-        if msg[0][0] in ['\x01', '\x00']:
+        if b'\x01' in msg[0] or b'\x00' in msg[0]:
             self.spiders_out.send_multipart(msg)
         self.stats['sw_in_recvd'] += 1
 
     def handle_spiders_in_recv(self, msg):
-        if msg[0][0] in ['\x01', '\x00']:
+        if b'\x01' in msg[0] or b'\x00' in msg[0]:
             self.db_out.send_multipart(msg)
         self.stats['spiders_in_recvd'] += 1
 

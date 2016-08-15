@@ -103,7 +103,7 @@ class Producer(object):
 
 class SpiderLogProducer(Producer):
     def __init__(self, context, location, partitions):
-        super(SpiderLogProducer, self).__init__(context, location, 'sl')
+        super(SpiderLogProducer, self).__init__(context, location, b'sl')
         self.partitioner = FingerprintPartitioner(partitions)
 
 
@@ -119,13 +119,13 @@ class SpiderLogStream(BaseSpiderLogStream):
         return SpiderLogProducer(self.context, self.out_location, self.partitions)
 
     def consumer(self, partition_id, type):
-        location = self.sw_in_location if type == 'sw' else self.db_in_location
-        return Consumer(self.context, location, partition_id, 'sl')
+        location = self.sw_in_location if type == b'sw' else self.db_in_location
+        return Consumer(self.context, location, partition_id, b'sl')
 
 
 class UpdateScoreProducer(Producer):
     def __init__(self, context, location):
-        super(UpdateScoreProducer, self).__init__(context, location, 'us')
+        super(UpdateScoreProducer, self).__init__(context, location, b'us')
 
     def send(self, key, *messages):
         # Guarantee that msg is actually a list or tuple (should always be true)
@@ -152,7 +152,7 @@ class ScoringLogStream(BaseScoringLogStream):
         self.out_location = messagebus.socket_config.db_in()
 
     def consumer(self):
-        return Consumer(self.context, self.out_location, None, 'us')
+        return Consumer(self.context, self.out_location, None, b'us')
 
     def producer(self):
         return UpdateScoreProducer(self.context, self.in_location)
@@ -160,7 +160,7 @@ class ScoringLogStream(BaseScoringLogStream):
 
 class SpiderFeedProducer(Producer):
     def __init__(self, context, location, partitions, hwm, hostname_partitioning):
-        super(SpiderFeedProducer, self).__init__(context, location, 'sf')
+        super(SpiderFeedProducer, self).__init__(context, location, b'sf')
         self.partitioner = Crc32NamePartitioner(partitions) if hostname_partitioning else \
             FingerprintPartitioner(partitions)
         self.sender.set(zmq.SNDHWM, hwm)
@@ -178,7 +178,7 @@ class SpiderFeedStream(BaseSpiderFeedStream):
         self.hostname_partitioning = messagebus.hostname_partitioning
 
     def consumer(self, partition_id):
-        return Consumer(self.context, self.out_location, partition_id, 'sf', seq_warnings=True, hwm=self.consumer_hwm)
+        return Consumer(self.context, self.out_location, partition_id, b'sf', seq_warnings=True, hwm=self.consumer_hwm)
 
     def producer(self):
         return SpiderFeedProducer(self.context, self.in_location, self.partitions,
