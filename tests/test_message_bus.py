@@ -9,6 +9,7 @@ from random import randint
 from time import sleep
 from six.moves import range
 import logging
+from w3lib.util import to_bytes
 
 
 class MessageBusTester(object):
@@ -19,14 +20,14 @@ class MessageBusTester(object):
         spiderlog = self.messagebus.spider_log()
 
         # sw
-        self.sw_sl_c = spiderlog.consumer(partition_id=0, type='sw')
+        self.sw_sl_c = spiderlog.consumer(partition_id=0, type=b'sw')
         scoring_log = self.messagebus.scoring_log()
         self.sw_us_p = scoring_log.producer()
 
         sleep(0.1)
 
         # db
-        self.db_sl_c = spiderlog.consumer(partition_id=None, type='db')
+        self.db_sl_c = spiderlog.consumer(partition_id=None, type=b'db')
         self.db_us_c = scoring_log.consumer()
 
         spider_feed = self.messagebus.spider_feed()
@@ -43,9 +44,9 @@ class MessageBusTester(object):
     def spider_log_activity(self, messages):
         for i in range(0, messages):
             if i % 2 == 0:
-                self.sp_sl_p.send(sha1(str(randint(1, 1000))), 'http://helloworld.com/way/to/the/sun/' + str(0))
+                self.sp_sl_p.send(sha1(str(randint(1, 1000))), b'http://helloworld.com/way/to/the/sun/' + b'0')
             else:
-                self.sp_sl_p.send(sha1(str(randint(1, 1000))), 'http://way.to.the.sun' + str(0))
+                self.sp_sl_p.send(sha1(str(randint(1, 1000))), b'http://way.to.the.sun' + b'0')
         self.sp_sl_p.flush()
 
     def spider_feed_activity(self):
@@ -58,9 +59,9 @@ class MessageBusTester(object):
         c = 0
         p = 0
         for m in self.sw_sl_c.get_messages(timeout=1.0, count=512):
-            if m.startswith('http://helloworld.com/'):
+            if m.startswith(b'http://helloworld.com/'):
                 p += 1
-                self.sw_us_p.send(None, 'message' + str(0) + "," + str(c))
+                self.sw_us_p.send(None, b'message' + b'0' + b"," + to_bytes(str(c)))
             c += 1
         assert p > 0
         return c
@@ -76,9 +77,9 @@ class MessageBusTester(object):
             us_c += 1
         for i in range(0, messages):
             if i % 2 == 0:
-                self.db_sf_p.send("newhost", "http://newhost/new/url/to/crawl")
+                self.db_sf_p.send(b"newhost", b"http://newhost/new/url/to/crawl")
             else:
-                self.db_sf_p.send("someotherhost", "http://newhost223/new/url/to/crawl")
+                self.db_sf_p.send(b"someotherhost", b"http://newhost223/new/url/to/crawl")
         self.db_sf_p.flush()
         return (sl_c, us_c)
 
