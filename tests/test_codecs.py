@@ -25,8 +25,8 @@ def test_codec(encoder, decoder):
     msgs = [
         enc.encode_add_seeds([req]),
         enc.encode_page_crawled(Response(url="http://www.yandex.ru", body=b'SOME CONTENT', headers={b'hdr': b'value'},
-                                         request=req))
-        enc.encode_links_extracted(req, [req2])
+                                         request=req)),
+        enc.encode_links_extracted(req, [req2]),
         enc.encode_request_error(req, "Host not found"),
         enc.encode_update_score(req, 0.51, True),
         enc.encode_new_job_id(1),
@@ -48,7 +48,8 @@ def test_codec(encoder, decoder):
     assert type(o[1]) == Response
     assert o[1].url == req.url and o[1].body == b'SOME CONTENT' and o[1].meta == req.meta
 
-    o = dec.decode(it.next())
+    o = dec.decode(next(it))
+    print(o)
     assert o[0] == 'links_extracted'
     assert type(o[1]) == Request
     assert o[1].url == req.url and o[1].meta == req.meta

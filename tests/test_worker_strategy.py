@@ -39,17 +39,25 @@ class TestStrategyWorker(object):
         sw = self.sw_setup()
         r1.meta[b'jid'] = 1
         resp = Response(r1.url, request=r1)
-        msg = sw._encoder.encode_page_crawled(resp, [r2, r3, r4])
+        msg = sw._encoder.encode_page_crawled(resp)
         sw.consumer.put_messages([msg])
         sw.work()
         # response should be skipped if it's jid doesn't match the strategy worker's
         assert sw.scoring_log_producer.messages == []
         sw.job_id = 1
-        r2.meta[b'state'] = States.QUEUED
-        sw.states.update_cache([r2])
         sw.consumer.put_messages([msg])
         sw.work()
+        r1c = r1.copy()
+        sw.states.set_states(r1c)
+        assert r1c.meta[b'state'] == States.CRAWLED
 
+    def test_links_extracted(self):
+        sw = self.sw_setup()
+        sw.job_id = 0
+        r1.meta[b'jid'] = 0
+        msg = sw._encoder.encode_links_extracted(r1, [r3, r4])
+        sw.consumer.put_messages([msg])
+        sw.work()
         r3.meta[b'state'] = States.QUEUED
         r4.meta[b'state'] = States.QUEUED
         assert set(sw.scoring_log_producer.messages) == \

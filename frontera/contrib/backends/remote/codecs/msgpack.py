@@ -91,7 +91,7 @@ class Decoder(BaseDecoder):
         if obj[0] == b'pc':
             return ('page_crawled',
                     self._response_from_object(obj[1]))
-        if obj[0] == 'le':
+        if obj[0] == b'le':
             return ('links_extracted',
                     self._request_from_object(obj[1]),
                     [self._request_from_object(x) for x in obj[2]])

@@ -31,10 +31,17 @@ class TestDBWorker(object):
     def test_page_crawled(self):
         dbw = self.dbw_setup()
         resp = Response(r1.url, request=r1)
-        msg = dbw._encoder.encode_page_crawled(resp, [r2, r3])
+        msg = dbw._encoder.encode_page_crawled(resp)
         dbw.spider_log_consumer.put_messages([msg])
         dbw.consume_incoming()
-        assert set([r.url for r in dbw._backend.links]) == set([r.url for r in [r2, r3]])
+        assert set([r.url for r in dbw._backend.responses]) == set([r1.url])
+
+    def test_links_extracted(self):
+        dbw = self.dbw_setup()
+        msg = dbw._encoder.encode_links_extracted(r1, [r2, r3])
+        dbw.spider_log_consumer.put_messages([msg])
+        dbw.consume_incoming()
+        assert set([r.url for r in dbw._backend.links]) == set([r2.url, r3.url])
 
     def test_request_error(self):
         dbw = self.dbw_setup()

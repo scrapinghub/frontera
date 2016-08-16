@@ -181,10 +181,9 @@ class StrategyWorker(object):
                         continue
                     self.on_page_crawled(response)
                     continue
-
                 if type == 'links_extracted':
                     _, request, links = msg
-                    if 'jid' not in request.meta or request.meta['jid'] != self.job_id:
+                    if b'jid' not in request.meta or request.meta[b'jid'] != self.job_id:
                         continue
                     self.on_links_extracted(request, links)
                     continue

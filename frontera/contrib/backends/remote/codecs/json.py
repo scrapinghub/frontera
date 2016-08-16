@@ -118,7 +118,7 @@ class Decoder(json.JSONDecoder, BaseDecoder):
 
     def decode(self, message):
         message = dict_to_bytes(super(Decoder, self).decode(message))
-        if message['type'] == 'links_extracted':
+        if message[b'type'] == b'links_extracted':
             request = self._request_from_object(message[b'r'])
             links = [self._request_from_object(link) for link in message[b'links']]
             return ('links_extracted', request, links)
