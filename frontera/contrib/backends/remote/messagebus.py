@@ -103,6 +103,7 @@ def aggregate_per_host(requests):
         per_host[host_fprint].append(link)
     return per_host
 
+
 def get_host_fprint(request):
     if b'fingerprint' not in request.meta[b'domain']:
         return None

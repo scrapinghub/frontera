@@ -460,7 +460,7 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
         self._check_startstop()
         self._logger.debug('LINKS_EXTRACTED url=%s links=%d', request.url, len(links))
         assert isinstance(request, self.request_model), "Request object must subclass '%s', '%s' found" % \
-                                                          (self.request_model.__name__, type(request).__name__)
+                                                        (self.request_model.__name__, type(request).__name__)
         for link in links:
             assert isinstance(link, self._request_model), "Link objects must subclass '%s', '%s' found" % \
                                                           (self._request_model.__name__, type(link).__name__)
