@@ -4,7 +4,7 @@ Installation Guide
 
 The installation steps assume that you have the following requirements installed:
 
-* `Python`_ 2.7
+* `Python`_ 2.7+ or 3.4+
 
 * `pip`_ and `setuptools`_ Python packages. Nowadays `pip`_ requires and
   installs `setuptools`_ if not installed.
