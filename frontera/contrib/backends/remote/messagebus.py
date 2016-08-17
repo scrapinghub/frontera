@@ -42,7 +42,7 @@ class MessageBusBackend(Backend):
 
     def add_seeds(self, seeds):
         per_host = aggregate_per_host(seeds)
-        for host_fprint, host_links in per_host.iteritems():
+        for host_fprint, host_links in six.iteritems(per_host):
             self.spider_log_producer.send(host_fprint,
                                           self._encoder.encode_add_seeds(host_links))
 
