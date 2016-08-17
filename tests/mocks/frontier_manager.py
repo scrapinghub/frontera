@@ -48,11 +48,13 @@ class FakeFrontierManager(object):
         self.iteration += 1
         return lst
 
-    def page_crawled(self, response, links=None):
+    def page_crawled(self, response):
+        self.responses.append(response)
+
+    def links_extracted(self, request, links):
         if links:
             for link in links:
                 self.links.append(link)
-        self.responses.append(response)
 
     def request_error(self, request, error):
         self.errors.append((request, error))

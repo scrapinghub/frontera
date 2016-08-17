@@ -4,6 +4,7 @@ from frontera import Backend
 from frontera.core import OverusedBuffer
 from frontera.utils.misc import load_object
 import logging
+import six
 
 
 class MessageBusBackend(Backend):
@@ -40,13 +41,24 @@ class MessageBusBackend(Backend):
         self.spider_log_producer.flush()
 
     def add_seeds(self, seeds):
-        self.spider_log_producer.send(seeds[0].meta[b'fingerprint'], self._encoder.encode_add_seeds(seeds))
+        per_host = aggregate_per_host(seeds)
+        for host_fprint, host_links in six.iteritems(per_host):
+            self.spider_log_producer.send(host_fprint,
+                                          self._encoder.encode_add_seeds(host_links))
 
-    def page_crawled(self, response, links):
-        self.spider_log_producer.send(response.meta[b'fingerprint'], self._encoder.encode_page_crawled(response, links))
+    def page_crawled(self, response):
+        host_fprint = get_host_fprint(response)
+        self.spider_log_producer.send(host_fprint, self._encoder.encode_page_crawled(response))
+
+    def links_extracted(self, request, links):
+        per_host = aggregate_per_host(links)
+        for host_fprint, host_links in six.iteritems(per_host):
+            self.spider_log_producer.send(host_fprint,
+                                          self._encoder.encode_links_extracted(request, host_links))
 
     def request_error(self, page, error):
-        self.spider_log_producer.send(page.meta[b'fingerprint'], self._encoder.encode_request_error(page, error))
+        host_fprint = get_host_fprint(page)
+        self.spider_log_producer.send(host_fprint, self._encoder.encode_request_error(page, error))
 
     def _get_next_requests(self, max_n_requests, **kwargs):
         requests = []
@@ -78,3 +90,21 @@ class MessageBusBackend(Backend):
     @property
     def states(self):
         return None
+
+
+def aggregate_per_host(requests):
+    per_host = dict()
+    for link in requests:
+        if b'fingerprint' not in link.meta[b'domain']:
+            continue
+        host_fprint = link.meta[b'domain'][b'fingerprint']
+        if host_fprint not in per_host:
+            per_host[host_fprint] = []
+        per_host[host_fprint].append(link)
+    return per_host
+
+
+def get_host_fprint(request):
+    if b'fingerprint' not in request.meta[b'domain']:
+        return None
+    return request.meta[b'domain'][b'fingerprint']

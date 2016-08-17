@@ -21,8 +21,10 @@ class BasicCanonicalSolver(CanonicalSolver):
         for seed in seeds:
             self._set_canonical(seed)
 
-    def page_crawled(self, response, links):
+    def page_crawled(self, response):
         self._set_canonical(response)
+
+    def links_extracted(self, request, links):
         for link in links:
             self._set_canonical(link)
 

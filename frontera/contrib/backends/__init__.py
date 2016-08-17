@@ -60,18 +60,20 @@ class CommonBackend(Backend):
         self.queue_size -= len(batch)
         return batch
 
-    def page_crawled(self, response, links):
+    def page_crawled(self, response):
         response.meta[b'state'] = States.CRAWLED
         self.states.update_cache(response)
-        depth = response.meta.get(b'depth', 0)+1
+        self.metadata.page_crawled(response)
+
+    def links_extracted(self, request, links):
         to_fetch = OrderedDict()
         for link in links:
             to_fetch[link.meta[b'fingerprint']] = link
-            link.meta[b'depth'] = depth
+            link.meta[b'depth'] = request.meta.get(b'depth', 0)+1
         self.states.fetch(to_fetch.keys())
         self.states.set_states(links)
         unique_links = to_fetch.values()
-        self.metadata.page_crawled(response, unique_links)
+        self.metadata.links_extracted(request, unique_links)
         self._schedule(unique_links)
         self.states.update_cache(unique_links)
 

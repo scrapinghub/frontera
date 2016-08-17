@@ -147,17 +147,24 @@ class DBWorker(object):
                     self._backend.add_seeds(seeds)
                     continue
                 if type == 'page_crawled':
-                    _, response, links = msg
+                    _, response = msg
                     logger.debug("Page crawled %s", response.url)
                     if b'jid' not in response.meta or response.meta[b'jid'] != self.job_id:
                         continue
-                    self._backend.page_crawled(response, links)
+                    self._backend.page_crawled(response)
+                    continue
+                if type == 'links_extracted':
+                    _, request, links = msg
+                    logger.debug("Links extracted %s (%d)", request.url, len(links))
+                    if b'jid' not in request.meta or request.meta[b'jid'] != self.job_id:
+                        continue
+                    self._backend.links_extracted(request, links)
                     continue
                 if type == 'request_error':
                     _, request, error = msg
+                    logger.debug("Request error %s", request.url)
                     if b'jid' not in request.meta or request.meta[b'jid'] != self.job_id:
                         continue
-                    logger.debug("Request error %s", request.url)
                     self._backend.request_error(request, error)
                     continue
                 if type == 'offset':

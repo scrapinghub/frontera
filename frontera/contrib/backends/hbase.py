@@ -358,13 +358,15 @@ class HBaseMetadata(Metadata):
                                        domain_fingerprint=seed.meta[b'domain'][b'fingerprint'])
             self.batch.put(unhexlify(seed.meta[b'fingerprint']), obj)
 
-    def page_crawled(self, response, links):
+    def page_crawled(self, response):
         obj = prepare_hbase_object(status_code=response.status_code, content=response.body) if self.store_content else \
             prepare_hbase_object(status_code=response.status_code)
+        self.batch.put(unhexlify(response.meta[b'fingerprint']), obj)
+
+    def links_extracted(self, request, links):
         links_dict = dict()
         for link in links:
             links_dict[unhexlify(link.meta[b'fingerprint'])] = (link, link.url, link.meta[b'domain'])
-        self.batch.put(unhexlify(response.meta[b'fingerprint']), obj)
         for link_fingerprint, (link, link_url, link_domain) in six.iteritems(links_dict):
             obj = prepare_hbase_object(url=link_url,
                                        created_at=utcnow_timestamp(),
@@ -466,8 +468,11 @@ class HBaseBackend(DistributedBackend):
     def add_seeds(self, seeds):
         self.metadata.add_seeds(seeds)
 
-    def page_crawled(self, response, links):
-        self.metadata.page_crawled(response, links)
+    def page_crawled(self, response):
+        self.metadata.page_crawled(response)
+
+    def links_extracted(self, request, links):
+        self.metadata.links_extracted(request, links)
 
     def request_error(self, page, error):
         self.metadata.request_error(page, error)

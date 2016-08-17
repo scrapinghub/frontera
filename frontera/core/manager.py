@@ -431,7 +431,7 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
                            len(next_requests), self.n_requests, self.max_requests or '-')
         return next_requests
 
-    def page_crawled(self, response, links=None):
+    def page_crawled(self, response):
         """
         Informs the frontier about the crawl result and extracted links for the current page.
 
@@ -442,8 +442,7 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
         :return: None.
         """
         self._check_startstop()
-        self._logger.debug('PAGE_CRAWLED url=%s status=%s links=%d', response.url, response.status_code,
-                           len(links) if links else 0)
+        self._logger.debug('PAGE_CRAWLED url=%s status=%s', response.url, response.status_code)
         assert isinstance(response, self.response_model), "Response object must subclass '%s', '%s' found" % \
                                                           (self.response_model.__name__, type(response).__name__)
         assert hasattr(response, 'request') and response.request, "Empty response request"
@@ -453,14 +452,22 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
                                                                   type(response.request).__name__)
         assert isinstance(response, self.response_model), "Response object must subclass '%s', '%s' found" % \
                                                           (self.response_model.__name__, type(response).__name__)
-        if links:
-            for link in links:
-                assert isinstance(link, self._request_model), "Link objects must subclass '%s', '%s' found" % \
-                                                              (self._request_model.__name__, type(link).__name__)
         self._process_components(method_name='page_crawled',
                                  obj=response,
-                                 return_classes=self.response_model,
-                                 links=links or [])
+                                 return_classes=self.response_model)
+
+    def links_extracted(self, request, links):
+        self._check_startstop()
+        self._logger.debug('LINKS_EXTRACTED url=%s links=%d', request.url, len(links))
+        assert isinstance(request, self.request_model), "Request object must subclass '%s', '%s' found" % \
+                                                        (self.request_model.__name__, type(request).__name__)
+        for link in links:
+            assert isinstance(link, self._request_model), "Link objects must subclass '%s', '%s' found" % \
+                                                          (self._request_model.__name__, type(link).__name__)
+        self._process_components(method_name='links_extracted',
+                                 obj=request,
+                                 return_classes=self.request_model,
+                                 links=links)
 
     def request_error(self, request, error):
         """

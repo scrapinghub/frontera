@@ -44,8 +44,11 @@ class Encoder(BaseEncoder):
     def encode_add_seeds(self, seeds):
         return packb([b'as', [_prepare_request_message(seed) for seed in seeds]])
 
-    def encode_page_crawled(self, response, links):
-        return packb([b'pc', _prepare_response_message(response, self.send_body), [_prepare_request_message(link) for link in links]])
+    def encode_page_crawled(self, response):
+        return packb([b'pc', _prepare_response_message(response, self.send_body)])
+
+    def encode_links_extracted(self, request, links):
+        return packb([b'le', _prepare_request_message(request), [_prepare_request_message(link) for link in links]])
 
     def encode_request_error(self, request, error):
         return packb([b're', _prepare_request_message(request), str(error)])
@@ -87,7 +90,10 @@ class Decoder(BaseDecoder):
         obj = unpackb(buffer)
         if obj[0] == b'pc':
             return ('page_crawled',
-                    self._response_from_object(obj[1]),
+                    self._response_from_object(obj[1]))
+        if obj[0] == b'le':
+            return ('links_extracted',
+                    self._request_from_object(obj[1]),
                     [self._request_from_object(x) for x in obj[2]])
         if obj[0] == b'us':
             return ('update_score', self._request_from_object(obj[1]), obj[2], obj[3])

@@ -32,11 +32,14 @@ class FakeMiddleware(Middleware):
             self.seeds.append(seed)
         return seeds
 
-    def page_crawled(self, response, links):
-        for link in links:
-            self.links.append(link)
+    def page_crawled(self, response):
         self.responses.append(response)
         return response
+
+    def links_extracted(self, request, links):
+        for link in links:
+            self.links.append(link)
+        return request
 
     def request_error(self, request, error):
         self.errors.append((request, error))
@@ -114,10 +117,12 @@ class FakeMiddlewareBlocking(FakeMiddleware):
         for seed in seeds:
             self.seeds.append(seed)
 
-    def page_crawled(self, response, links):
+    def page_crawled(self, response):
+        self.responses.append(response)
+
+    def links_extracted(self, request, links):
         for link in links:
             self.links.append(link)
-        self.responses.append(response)
 
     def request_error(self, request, error):
         self.errors.append((request, error))
@@ -134,23 +139,28 @@ class FakeMiddlewareModifySeeds(FakeMiddleware):
 
 class FakeMiddlewareModifyResponse(FakeMiddleware):
 
-    def page_crawled(self, response, links):
-        for link in links:
-            self.links.append(link)
+    def page_crawled(self, response):
         self.responses.append(response)
         response.meta[b'test_response'] = self.test_value
         return response
 
+    def links_extracted(self, request, links):
+        for link in links:
+            self.links.append(link)
+        return request
+
 
 class FakeMiddlewareModifyLinks(FakeMiddleware):
 
-    def page_crawled(self, response, links):
-        for link in links:
-            self.links.append(link)
-            link.meta[b'test_links'] = self.test_value
+    def page_crawled(self, response):
         self.responses.append(response)
         return response
 
+    def links_extracted(self, request, links):
+        for link in links:
+            self.links.append(link)
+            link.meta[b'test_links'] = self.test_value
+        return request
 
 class FakeCanonicalSolver(CanonicalSolver, FakeMiddleware):
 
@@ -160,9 +170,12 @@ class FakeCanonicalSolver(CanonicalSolver, FakeMiddleware):
             seed.meta[b'test_seeds_canonical_solver'] = self.test_value
         return seeds
 
-    def page_crawled(self, response, links):
+    def page_crawled(self, response):
+        self.responses.append(response)
+        return response
+
+    def links_extracted(self, request, links):
         for link in links:
             self.links.append(link)
             link.meta[b'test_links_canonical_solver'] = self.test_value
-        self.responses.append(response)
-        return response
+        return request

@@ -204,8 +204,11 @@ class Distributed(DistributedBackend):
             batch.extend(self.queue.get_next_requests(max_next_requests, partition_id, **kwargs))
         return batch
 
-    def page_crawled(self, response, links):
-        self.metadata.page_crawled(response, links)
+    def page_crawled(self, response):
+        self.metadata.page_crawled(response)
+
+    def links_extracted(self, request, links):
+        self.metadata.links_extracted(request, links)
 
     def request_error(self, request, error):
         self.metadata.request_error(request, error)

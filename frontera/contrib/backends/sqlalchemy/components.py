@@ -62,9 +62,12 @@ class Metadata(BaseMetadata):
         self.session.commit()
 
     @retry_and_rollback
-    def page_crawled(self, response, links):
+    def page_crawled(self, response):
         r = self._modify_page(response) if response.meta[b'fingerprint'] in self.cache else self._create_page(response)
-        self.cache[to_bytes(r.fingerprint)] = self.session.merge(r)
+        self.cache[r.fingerprint] = self.session.merge(r)
+        self.session.commit()
+
+    def links_extracted(self, request, links):
         for link in links:
             if link.meta[b'fingerprint'] not in self.cache:
                 self.cache[link.meta[b'fingerprint']] = self.session.merge(self._create_page(link))
