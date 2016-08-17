@@ -433,11 +433,9 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
 
     def page_crawled(self, response):
         """
-        Informs the frontier about the crawl result and extracted links for the current page.
+        Informs the frontier about the crawl result.
 
         :param object response: The :class:`Response <frontera.core.models.Response>` object for the crawled page.
-        :param list links: A list of :class:`Request <frontera.core.models.Request>` objects generated from \
-        the links extracted for the crawled page.
 
         :return: None.
         """
@@ -457,6 +455,15 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
                                  return_classes=self.response_model)
 
     def links_extracted(self, request, links):
+        """
+        Informs the frontier about extracted links for the request.
+
+        :param object request: The :class:`Request <frontera.core.models.Request>` object from which the links where crawled.
+        :param list links: A list of :class:`Request <frontera.core.models.Request>` objects generated from the links \
+        extracted for the request.
+
+        :return: None.
+        """
         self._check_startstop()
         self._logger.debug('LINKS_EXTRACTED url=%s links=%d', request.url, len(links))
         assert isinstance(request, self.request_model), "Request object must subclass '%s', '%s' found" % \
