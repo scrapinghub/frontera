@@ -13,7 +13,7 @@ Prerequisites
 
 Here is what services needs to be installed and configured before running Frontera:
 
-- Python 2.7+
+- Python 2.7+ or 3.4+
 - Scrapy
 
 Frontera installation

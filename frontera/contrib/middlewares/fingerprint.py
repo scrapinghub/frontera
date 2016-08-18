@@ -54,6 +54,7 @@ class UrlFingerprintMiddleware(BaseFingerprintMiddleware):
     Fingerprint will be calculated from object ``URL``, using the function defined in
     :setting:`URL_FINGERPRINT_FUNCTION` setting.
     You can write your own fingerprint calculation function and use by changing this setting.
+    The fingerprint must be bytes.
 
     An example for a :class:`Request <frontera.core.models.Request>` object::
 
@@ -87,6 +88,7 @@ class DomainFingerprintMiddleware(BaseFingerprintMiddleware):
     Fingerprint will be calculated from object ``URL``, using the function defined in
     :setting:`DOMAIN_FINGERPRINT_FUNCTION` setting.
     You can write your own fingerprint calculation function and use by changing this setting.
+    The fingerprint must be bytes
 
     An example for a :class:`Request <frontera.core.models.Request>` object::
 

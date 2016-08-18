@@ -22,7 +22,8 @@ class Request(FrontierObject):
         :param string method: HTTP method to use.
         :param dict headers: dictionary of headers to send.
         :param dict cookies: dictionary of cookies to attach to this request.
-        :param dict meta: dictionary that contains arbitrary metadata for this request.
+        :param dict meta: dictionary that contains arbitrary metadata for this request, the keys must be bytes and \
+        the values must be either bytes or serializable objects such as lists, tuples, dictionaries with byte type items.
         """
         self._url = to_native_str(url)
         self._method = to_bytes((method or b'GET').upper())
@@ -65,7 +66,8 @@ class Request(FrontierObject):
         """
         A dict that contains arbitrary metadata for this request. This dict is empty for new Requests, and is usually
         populated by different Frontera components (middlewares, etc). So the data contained in this dict depends
-        on the components you have enabled.
+        on the components you have enabled. The keys are bytes and the values are either bytes or serializable objects \
+        such as lists, tuples, dictionaries with byte type items.
         """
         return self._meta
 

@@ -16,6 +16,7 @@ downloading them from the web. Main features of Frontera are:
   :doc:`Graph Manager <graph-manager>`.
 * transparent transport layer concept (:term:`message bus`) and communication protocol,
 * pure Python implementation.
+* Python 3 support.
 
 
 .. _use-cases:

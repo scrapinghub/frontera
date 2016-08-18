@@ -15,7 +15,7 @@ class DomainMiddleware(Middleware):
     :attr:`Response.meta <frontera.core.models.Response.meta>` if is activated.
 
 
-    ``domain`` object will contains the following fields:
+    ``domain`` object will contain the following fields, with both keys and values as bytes:
 
     - **netloc**: URL netloc according to `RFC 1808`_ syntax specifications
     - **name**: Domain name

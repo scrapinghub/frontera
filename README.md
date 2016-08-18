@@ -19,6 +19,7 @@ the crawler to decide which pages to visit next, and capable of doing it in dist
 - Revisiting logic with RDBMS.
 - Optional use of Scrapy for fetching and parsing.
 - 3-clause BSD license, allowing to use in any commercial product.
+- Python 3 support.
 
 ## Installation
 
