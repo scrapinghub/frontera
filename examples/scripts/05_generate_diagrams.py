@@ -1,7 +1,7 @@
 """
 Graph diagram generation example
 """
-from frontera import graphs
+from frontera.utils import graphs
 
 SITE_LIST_A = [
     [

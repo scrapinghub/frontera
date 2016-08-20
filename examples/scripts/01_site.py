@@ -1,7 +1,7 @@
 """
 Graph manager example with single site
 """
-from frontera import graphs
+from frontera.utils import graphs
 
 SITE = [
     ("A", ["B", "C"]),

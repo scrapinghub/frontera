@@ -3,9 +3,12 @@ import pprint
 
 from scrapy.core.scheduler import Scheduler
 from scrapy.http import Request
-from scrapy import log
 
-from frontera import graphs
+import logging
+
+
+
+from frontera.utils import graphs
 
 # Default Values
 DEFAULT_RECORDER_ENABLED = True
@@ -60,15 +63,15 @@ class RecorderScheduler(Scheduler):
         self.recorder_enabled = settings.get('RECORDER_ENABLED', DEFAULT_RECORDER_ENABLED)
 
         if not self.recorder_enabled:
-            log.msg('Recorder disabled!', log.WARNING)
+            logging.debug('Recorder disabled!')
             return
 
-        log.msg('Starting recorder', log.INFO)
+        logging.debug('Starting recorder')
 
         recorder_storage = settings.get('RECORDER_STORAGE_ENGINE', None)
         if not recorder_storage:
             self.recorder_enabled = False
-            log.msg('Missing Recorder storage! Recorder disabled...', log.WARNING)
+            logging.debug('Missing Recorder storage! Recorder disabled...')
             return
 
         self.graph = graphs.Manager(
@@ -81,7 +84,7 @@ class RecorderScheduler(Scheduler):
     def close(self, reason):
         super(RecorderScheduler, self).close(reason)
         if self.recorder_enabled:
-            log.msg('Finishing recorder (%s)' % reason, log.INFO)
+            logging.debug('Finishing recorder (%s)' % reason)
             pages = self.graph.session.query(graphs.Page).filter_by(status=None).all()
             for page in pages:
                 n_deleted_links = self.graph.session.query(graphs.Relation).filter_by(child_id=page.id).delete()
