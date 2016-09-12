@@ -6,6 +6,7 @@ class Consumer(BaseStreamConsumer):
 
     def __init__(self):
         self.messages = []
+        self.offset = None
 
     def put_messages(self, messages=[]):
         self.messages += messages
@@ -19,8 +20,11 @@ class Consumer(BaseStreamConsumer):
                 break
         return lst
 
+    def _set_offset(self, offset):
+        self.offset = offset
+
     def get_offset(self):
-        pass
+        return self.offset
 
 
 class Producer(object):
