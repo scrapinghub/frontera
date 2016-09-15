@@ -49,12 +49,14 @@ class TestMessageBusBackend(unittest.TestCase):
         resp = Response(r1.url, body='body', request=r1)
         mbb.page_crawled(resp)
         page = mbb._decoder.decode(mbb.spider_log_producer.messages[0])[1]
-        self.assertEqual(page.request.url, resp.request.url)
+        self.assertEqual((page.request.url, page.body), (resp.request.url, b'body'))
 
     def test_links_extracted(self):
         mbb = self.mbb_setup()
         mbb.links_extracted(r1, [r2, r3])
+        requests = [mbb._decoder.decode(m)[1] for m in mbb.spider_log_producer.messages]
         links = [mbb._decoder.decode(m)[2][0] for m in mbb.spider_log_producer.messages]
+        self.assertEqual(set([r.url for r in requests]), set([r1.url]))
         self.assertEqual(set([link.url for link in links]), set([r2.url, r3.url]))
 
     def test_request_error(self):
@@ -69,6 +71,8 @@ class TestMessageBusBackend(unittest.TestCase):
         mbb.consumer.put_messages(encoded_requests)
         mbb.consumer._set_offset(0)
         requests = set(mbb.get_next_requests(10, overused_keys=[], key_type='domain'))
+        _, partition_id, offset = mbb._decoder.decode(mbb.spider_log_producer.messages[0])
+        self.assertEqual((partition_id, offset), (0, 0))
         self.assertEqual(set([r.url for r in requests]), set([r1.url, r2.url, r3.url]))
         requests = set(mbb.get_next_requests(10, overused_keys=[], key_type='domain'))
         self.assertEqual([r.url for r in requests], [])
