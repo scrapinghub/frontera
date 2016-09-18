@@ -54,6 +54,7 @@ setup(
         ],
         'logging': [
             'colorlog>=2.4.0',
+            'python-json-logger>=0.1.5'
         ],
         'tldextract': [
             'tldextract>=1.5.1',
@@ -80,6 +81,8 @@ setup(
         "scrapy>=0.24",
         "tldextract>=1.5.1",
         "SQLAlchemy>=1.0.0",
-        "cachetools"
+        "cachetools",
+        "colorlog>=2.4.0",
+        "python-json-logger>=0.1.5"
     ]
 )
