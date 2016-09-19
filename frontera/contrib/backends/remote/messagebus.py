@@ -31,8 +31,8 @@ class MessageBusBackend(Backend):
         self._logger.info("Consuming from partition id %d", self.partition_id)
 
     @classmethod
-    def from_manager(clas, manager):
-        return clas(manager)
+    def from_manager(cls, manager):
+        return cls(manager)
 
     def frontier_start(self):
         pass
