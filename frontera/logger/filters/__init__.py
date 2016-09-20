@@ -1,18 +1,13 @@
 from __future__ import absolute_import
 import logging
 import six
-
-
-def format_str(s):
-    if isinstance(s, six.text_type):
-        return s.encode('ascii', 'ignore')
-    return str(s)
+from w3lib.util import to_native_str
 
 
 class PlainValuesFilter(logging.Filter):
     def __init__(self, separator=None, excluded_fields=None, msg_max_length=0):
         super(PlainValuesFilter, self).__init__()
-        self.separator = separator or " "
+        self.separator = to_native_str(separator or " ")
         self.excluded_fields = excluded_fields or []
         self.msg_max_length = msg_max_length
 
@@ -20,8 +15,8 @@ class PlainValuesFilter(logging.Filter):
         if isinstance(record.msg, dict):
             for field_name in self.excluded_fields:
                 setattr(record, field_name, record.msg.get(field_name, ''))
-            record.msg = self.separator.join([format_str(value)
-                                              for key, value in record.msg.items()
+            record.msg = self.separator.join([to_native_str(value)
+                                              for key, value in six.iteritems(record.msg)
                                               if key not in self.excluded_fields])
             if self.msg_max_length and len(record.msg) > self.msg_max_length:
                 record.msg = record.msg[0:self.msg_max_length-3] + "..."
