@@ -11,16 +11,7 @@ from frontera.logger.formatters import (EVENTS,
                                         CONSOLE_MANAGER,
                                         CONSOLE_BACKEND,
                                         CONSOLE_DEBUGGING)
-from tests.utils import LoggingCaptureMixin, SetupDefaultLoggingMixin
-
-
-colors = {
-    'bold_yellow': '\x1b[01;33m',
-    'green': '\x1b[32m',
-    'red': '\x1b[31m',
-    'reset': '\x1b[0m',
-    'white': '\x1b[37m',
-}
+from tests.utils import LoggingCaptureMixin, SetupDefaultLoggingMixin, colors
 
 
 class BaseTestFormatters(SetupDefaultLoggingMixin, LoggingCaptureMixin, unittest.TestCase):

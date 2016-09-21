@@ -2,6 +2,13 @@ import six
 import logging
 import logging.config
 
+colors = {
+    'bold_yellow': '\x1b[01;33m',
+    'green': '\x1b[32m',
+    'red': '\x1b[31m',
+    'reset': '\x1b[0m',
+    'white': '\x1b[37m',
+}
 
 DEFAULT_LOGGING = {
     'version': 1,
