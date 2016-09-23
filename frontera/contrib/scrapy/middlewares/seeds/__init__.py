@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-from scrapy.http.request import Request
 
 
 class SeedLoader(object):
