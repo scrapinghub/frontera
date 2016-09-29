@@ -3,14 +3,10 @@ import re
 import json
 import datetime
 
-from frontera.logger.formatters.text import DETAILED, SHORT
 from frontera.logger.formatters.color import ColorFormatter
 from frontera.logger.formatters.json import JSONFormatter
-from frontera.logger.formatters import (EVENTS,
-                                        CONSOLE,
-                                        CONSOLE_MANAGER,
-                                        CONSOLE_BACKEND,
-                                        CONSOLE_DEBUGGING)
+from frontera.logger.formatters import CONSOLE
+
 from tests.utils import LoggingCaptureMixin, SetupDefaultLoggingMixin, colors
 
 
@@ -25,20 +21,6 @@ class BaseTestFormatters(SetupDefaultLoggingMixin, LoggingCaptureMixin, unittest
 
     def setFormatter(self, formatter):
         self.logger.handlers[0].setFormatter(formatter)
-
-
-class TestFormatterText(BaseTestFormatters):
-
-    def test_formatter_detailed(self):
-        self.setFormatter(DETAILED)
-        self.logger.debug('debug message')
-        self.assertRegexpMatches(self.logger_output.getvalue(),
-                                 r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d+ - frontera - DEBUG - debug message\n')
-
-    def test_formatter_short(self):
-        self.setFormatter(SHORT)
-        self.logger.debug('debug message')
-        self.assertEqual(self.logger_output.getvalue(), '[frontera]   DEBUG: debug message\n')
 
 
 class TestFormatterColor(BaseTestFormatters):
@@ -119,30 +101,9 @@ class TestFormatterJson(BaseTestFormatters):
 
 
 class TestFormatterMiscellaneous(BaseTestFormatters):
-    def test_formatter_events(self):
-
-        self.setFormatter(EVENTS)
-        self.logger.debug('starting frontier', extra={'event': 'FRONTIER_START'})
-        self.assertRegexpMatches(self.logger_output.getvalue(),
-                                 r'{bold_yellow}\d{{4}}-\d{{2}}-\d{{2}} \d{{2}}:\d{{2}}:\d{{2}},\d+ '
-                                 r'FRONTIER_START   starting frontier{reset}\n'.
-                                 format(bold_yellow=re.escape(colors['bold_yellow']),
-                                        reset=re.escape(colors['reset'])))
 
     def test_formatter_console(self):
-        self.assert_logs(CONSOLE)
-
-    def test_formatter_console_manager(self):
-        self.assert_logs(CONSOLE_MANAGER)
-
-    def test_formatter_console_backend(self):
-        self.assert_logs(CONSOLE_BACKEND)
-
-    def test_formatter_console_debugging(self):
-        self.assert_logs(CONSOLE_DEBUGGING)
-
-    def assert_logs(self, formatter):
-        self.setFormatter(formatter)
+        self.setFormatter(CONSOLE)
         self.logger.debug('debug message')
         self.logger.info('info message')
         self.logger.error('error message')
