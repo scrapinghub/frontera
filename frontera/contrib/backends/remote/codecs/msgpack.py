@@ -6,8 +6,6 @@ from __future__ import absolute_import
 from msgpack import packb, unpackb
 
 from frontera.core.codec import BaseDecoder, BaseEncoder
-from frontera.utils.misc import dict_to_unicode
-
 import six
 from w3lib.util import to_native_str
 
@@ -82,15 +80,11 @@ class Decoder(BaseDecoder):
                                                                 meta=obj[2]))
 
     def _request_from_object(self, obj):
-        meta = obj[4]
-        for k, v in meta.items():
-            if 'scrapy' in dict_to_unicode(k):
-                meta[k] = dict_to_unicode(v)
         return self._request_model(url=to_native_str(obj[0]),
                                    method=obj[1],
                                    headers=obj[2],
                                    cookies=obj[3],
-                                   meta=meta)
+                                   meta=obj[4])
 
     def decode(self, buffer):
         obj = unpackb(buffer)
