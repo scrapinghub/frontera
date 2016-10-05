@@ -121,10 +121,13 @@ Developer documentation
    topics/requests-integration
    topics/examples
    topics/tests
+   topics/loggers
    topics/frontier-tester
    topics/faq
    topics/contributing
    topics/glossary
+
+
 
 
 :doc:`topics/architecture`
@@ -141,6 +144,9 @@ Developer documentation
 
 :doc:`topics/tests`
     How to run and write Frontera tests.
+
+:doc:`topics/loggers`
+    A list of loggers for use with python native logging system.
 
 :doc:`topics/frontier-tester`
     Test your frontier in an easy way.

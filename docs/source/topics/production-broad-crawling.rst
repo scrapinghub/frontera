@@ -1,8 +1,92 @@
-=========================
-Production broad crawling
-=========================
+===================
+Cluster setup guide
+===================
 
-These are the topics you need to consider when deploying Frontera-based broad crawler in production system.
+This guide is targeting an initial setup of crawling cluster, probably further tuning will be needed.
+
+Things to decide
+================
+* The speed you want to crawl with,
+* number of spider processes (assuming that single spider process gives you 1200 pages/min maximum),
+* number of DB and Strategy worker processes.
+
+Things to setup before you start
+================================
+* Kafka
+* HBase (we recommend 1.0.x and higher)
+* recursive and may be caching DNS Service
+
+Things to implement before you start
+====================================
+* Crawling strategy (see :ref:)
+* Spider code
+
+
+Configuring Kafka
+=================
+1. Create all topics needed for Kafka message bus
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* spider log (`frontier-done` (see :setting:`INCOMING_TOPIC`)), set the number of partitions equal to number of
+  strategy worker instances,
+* spider feed (`frontier-todo` (see :setting:`OUTGOING_TOPIC`)), set the number of partitions equal to number of
+  spider instances,
+* scoring log (:setting:`SCORING_TOPIC` setting)
+
+
+Configuring HBase
+=================
+* create a namespace `crawler` (see :setting:`HBASE_NAMESPACE`)
+
+
+Configuring Frontera
+====================
+Every frontera component requires it's own configuration module, but some options are shared, so we recommend to create
+a common module and import settings from it in component's modules.
+
+1. Create a common module and add there: ::
+
+    from __future__ import absolute_import
+    from frontera.settings.default_settings import MIDDLEWARES
+    MAX_NEXT_REQUESTS = 512
+    SPIDER_FEED_PARTITIONS = 2 # number of spider processes
+    SPIDER_LOG_PARTITIONS = 2 # worker instances
+    MIDDLEWARES.extend([
+        'frontera.contrib.middlewares.domain.DomainMiddleware',
+        'frontera.contrib.middlewares.fingerprint.DomainFingerprintMiddleware'
+    ])
+
+    QUEUE_HOSTNAME_PARTITIONING = True
+
+2. Create workers shared module: ::
+
+    from __future__ import absolute_import
+    from .common import *
+
+    BACKEND = 'frontera.contrib.backends.hbase.HBaseBackend'
+
+    MAX_NEXT_REQUESTS = 2048
+    NEW_BATCH_DELAY = 3.0
+
+3. Create DB worker module: ::
+
+    from __future__ import absolute_import
+    from .worker import *
+
+    LOGGING_CONFIG='logging-db.conf' # if needed
+
+4. Create Strategy worker's module: ::
+
+    from __future__ import absolute_import
+    from .worker import *
+
+    LOGGING_CONFIG='logging-sw.conf' # if needed
+
+The logging, if needed, can be configured according to https://docs.python.org/2/library/logging.config.html see the
+list of loggers here :ref:`loggers`.
+
+
+
 
 DNS Service
 ===========
@@ -22,15 +106,6 @@ There are two options available:
 
 * Kafka, requires properly configured partitions,
 * ZeroMQ (default), requires broker process.
-
-Configuring Kafka
------------------
-The main thing to do here is to set the number of partitions for :setting:`OUTGOING_TOPIC` equal to the number of spider
-instances and for :setting:`INCOMING_TOPIC` equal to number of strategy worker instances. For other topics it makes sense to
-set more than one partition to better distribute the load across Kafka cluster.
-
-Kafka throughput is key performance issue, make sure that Kafka brokers have enough IOPS, and monitor the network load.
-
 
 Configuring ZeroMQ
 ------------------
