@@ -80,6 +80,8 @@ setup(
         "scrapy>=0.24",
         "tldextract>=1.5.1",
         "SQLAlchemy>=1.0.0",
-        "cachetools"
+        "cachetools",
+        "mock",
+        "boto>=2.42.0"
     ]
 )
