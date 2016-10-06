@@ -71,7 +71,7 @@ class HBaseQueue(Queue):
         self.partitions = [i for i in range(0, partitions)]
         self.partitioner = Crc32NamePartitioner(self.partitions)
         self.logger = logging.getLogger("hbase.queue")
-        self.table_name = table_name
+        self.table_name = to_bytes(table_name)
 
         tables = set(self.connection.tables())
         if drop and self.table_name in tables:
@@ -321,7 +321,7 @@ class HBaseState(States):
 
 class HBaseMetadata(Metadata):
     def __init__(self, connection, table_name, drop_all_tables, use_snappy, batch_size, store_content):
-        self._table_name = table_name
+        self._table_name = to_bytes(table_name)
         tables = set(connection.tables())
         if drop_all_tables and self._table_name in tables:
             connection.delete_table(self._table_name, disable=True)

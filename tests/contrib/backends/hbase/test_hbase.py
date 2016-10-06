@@ -87,3 +87,26 @@ class TestHBaseBackend(object):
         assert r4.meta[b'state'] == States.CRAWLED
         state.flush(True)
         assert state._state_cache == {}
+
+    def test_drop_all_tables_when_table_name_is_str(self):
+        connection = Connection(host='hbase-docker', port=9090)
+        for table in connection.tables():
+            connection.delete_table(table, True)
+        hbase_queue_table = 'queue'
+        queue_schema = {'f': {'max_versions': 1, 'block_cache_enabled': 1}}
+        hbase_metadata_table = 'metadata'
+        metadata_schema = {'m': {'max_versions': 1},
+                           's': {'max_versions': 1, 'block_cache_enabled': 1,
+                                 'bloom_filter_type': 'ROW', 'in_memory': True, },
+                           'c': {'max_versions': 1}
+                           }
+        connection.create_table(hbase_queue_table, queue_schema)
+        connection.create_table(hbase_metadata_table, metadata_schema)
+        tables = connection.tables()
+        assert set(tables) == set([b'metadata', b'queue'])  # Failure of test itself
+
+        # the following two lines should fail with a table already exists exception
+        # if the table are not dropped successfully in the constructor
+        HBaseQueue(connection=connection, partitions=1, table_name=hbase_queue_table, drop=True)
+        HBaseMetadata(connection=connection, table_name=hbase_metadata_table, drop_all_tables=True,
+                      use_snappy=False, batch_size=300000, store_content=True)
