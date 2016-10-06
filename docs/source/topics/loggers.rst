@@ -2,7 +2,14 @@
 Logging
 =======
 
+Frontera is using Python native logging system. That means you can manage what messages are logged and where by writing
+logger configuration in files (see :setting:`LOGGING_CONFIG`).
+
+Logger configuration syntax is here
 https://docs.python.org/2/library/logging.config.html
+
+Loggers used
+============
 
 * kafka
 * hbase.backend
