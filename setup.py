@@ -82,6 +82,8 @@ setup(
         "tldextract>=1.5.1",
         "SQLAlchemy>=1.0.0",
         "cachetools",
+        "mock",
+        "boto>=2.42.0",
         "colorlog>=2.4.0",
         "python-json-logger>=0.1.5"
     ]

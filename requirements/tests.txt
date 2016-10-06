@@ -10,4 +10,6 @@ msgpack-python
 kafka-python<=0.9.5
 pytest-cov
 happybase>=1.0.0
+mock
+boto>=2.42.0
 -r logging.txt
