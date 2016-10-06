@@ -3,7 +3,7 @@ Crawling strategy
 =================
 
 Use ``frontera.worker.strategies.bfs`` module for reference. In general, you need to write a crawling strategy class
-implementing the interface:
+by subclassing:
 
 .. autoclass:: frontera.worker.strategies.BaseCrawlingStrategy
 
