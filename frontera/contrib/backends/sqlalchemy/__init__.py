@@ -214,5 +214,5 @@ class Distributed(DistributedBackend):
         self.metadata.request_error(request, error)
 
     def finished(self):
-        return NotImplementedError
+        raise NotImplementedError
 
