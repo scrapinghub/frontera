@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 from happybase import Connection
+from Hbase_thrift import AlreadyExists  # module loaded at runtime in happybase
 from frontera.contrib.backends.hbase import HBaseState, HBaseMetadata, HBaseQueue
 from frontera.core.models import Request, Response
 from frontera.core.components import States
@@ -14,7 +15,6 @@ r2 = Request('http://example.com/some/page/', meta={b'fingerprint': b'11',
 r3 = Request('http://www.scrapy.org', meta={b'fingerprint': b'12',
              b'domain': {b'name': b'www.scrapy.org', b'fingerprint': b'83'}})
 r4 = r3.copy()
-
 
 
 class TestHBaseBackend(object):
@@ -93,20 +93,14 @@ class TestHBaseBackend(object):
         for table in connection.tables():
             connection.delete_table(table, True)
         hbase_queue_table = 'queue'
-        queue_schema = {'f': {'max_versions': 1, 'block_cache_enabled': 1}}
         hbase_metadata_table = 'metadata'
-        metadata_schema = {'m': {'max_versions': 1},
-                           's': {'max_versions': 1, 'block_cache_enabled': 1,
-                                 'bloom_filter_type': 'ROW', 'in_memory': True, },
-                           'c': {'max_versions': 1}
-                           }
-        connection.create_table(hbase_queue_table, queue_schema)
-        connection.create_table(hbase_metadata_table, metadata_schema)
+        connection.create_table(hbase_queue_table, {'f': {'max_versions': 1}})
+        connection.create_table(hbase_metadata_table, {'f': {'max_versions': 1}})
         tables = connection.tables()
         assert set(tables) == set([b'metadata', b'queue'])  # Failure of test itself
-
-        # the following two lines should fail with a table already exists exception
-        # if the table are not dropped successfully in the constructor
-        HBaseQueue(connection=connection, partitions=1, table_name=hbase_queue_table, drop=True)
-        HBaseMetadata(connection=connection, table_name=hbase_metadata_table, drop_all_tables=True,
-                      use_snappy=False, batch_size=300000, store_content=True)
+        try:
+            HBaseQueue(connection=connection, partitions=1, table_name=hbase_queue_table, drop=True)
+            HBaseMetadata(connection=connection, table_name=hbase_metadata_table, drop_all_tables=True,
+                          use_snappy=False, batch_size=300000, store_content=True)
+        except AlreadyExists:
+            assert False, "failed to drop hbase tables"
