@@ -2,8 +2,8 @@
 Logging
 =======
 
-Frontera is using Python native logging system. That means you can manage what messages are logged and where by writing
-logger configuration in files (see :setting:`LOGGING_CONFIG`).
+Frontera is using Python native logging system. This allows a user to manage logged messages by writing a logger
+configuration file (see :setting:`LOGGING_CONFIG`) or configuring logging system during runtime.
 
 Logger configuration syntax is here
 https://docs.python.org/2/library/logging.config.html

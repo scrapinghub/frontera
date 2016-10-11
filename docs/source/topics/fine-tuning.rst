@@ -18,7 +18,7 @@ Tuning HBase
 ============
 * Increase block cache in HBase.
 * Put Thrift server on each HBase region server and spread load from SW to Thrift.
-* Enable Snappy compression.
+* Enable Snappy compression (see :setting:`HBASE_USE_SNAPPY`).
 
 Tuning Kafka
 ============
@@ -39,7 +39,7 @@ in mind:
 * DB worker and spider values have to be consistent to avoid overloading of message bus and loosing messages. In other
   words, DB worker have to produce slightly more than consumed by spiders, because the spider should still be able to
   fetch new pages even though the DB worker has not pushed a new batch yet.
-* Spider consumption rate is depending on many factors: internet connection latency, amount of spider
+* Spider consumption rate depends on many factors: internet connection latency, amount of spider
   parsing/scraping work, delays and auto throttling settings, usage of proxies, etc.
 * Keep spider queue always full to prevent spider idling.
 * General recommendation is to set DB worker value 2-4 times bigger than spiders.

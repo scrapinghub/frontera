@@ -9,7 +9,7 @@ reliable option.
 Things to decide
 ================
 * The speed you want to crawl with,
-* number of spider processes (assuming that single spider process gives you 1200 pages/min maximum),
+* number of spider processes (assuming that single spider process gives a maximum of 1200 pages/min),
 * number of DB and Strategy worker processes.
 
 Things to setup before you start

@@ -44,6 +44,13 @@ distributed spider and backends run modes.
 
 See :doc:`quick-start-distributed` for how to run it.
 
+cluster
+=======
+
+Is a large scale crawling application for performing broad crawls with number of pages per host limit. It preserves
+each host state in HBase and uses it when schedule new requests for downloading. Designed for running in distributed
+backend run mode using HBase.
+
 
 scrapy_recording
 ================
