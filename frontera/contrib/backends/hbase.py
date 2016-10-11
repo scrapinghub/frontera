@@ -265,7 +265,7 @@ class HBaseQueue(Queue):
         return results
 
     def count(self):
-        return NotImplementedError
+        raise NotImplementedError
 
 
 class HBaseState(States):
