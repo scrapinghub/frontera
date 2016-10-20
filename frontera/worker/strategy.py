@@ -118,7 +118,7 @@ class StrategyWorker(object):
         logger.info("Strategy worker is initialized and consuming partition %d", partition_id)
 
     def collect_unknown_message(self, msg):
-        logger.debug('Unknown message type %s', type)
+        logger.debug('Unknown message %s', msg)
 
     def on_unknown_message(self, msg):
         pass
