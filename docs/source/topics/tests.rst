@@ -28,14 +28,14 @@ Backend testing
 ===============
 
 A base `pytest`_ class for :class:`Backend <frontera.core.components.Backend>` testing is provided:
-:class:`BackendTest <frontera.tests.backends.BackendTest>`
+:class:`BackendTest <tests.backends.BackendTest>`
 
-.. autoclass:: frontera.tests.backends.BackendTest
+.. autoclass:: tests.backends.BackendTest
 
-    .. automethod:: frontera.tests.backends.BackendTest.get_settings
-    .. automethod:: frontera.tests.backends.BackendTest.get_frontier
-    .. automethod:: frontera.tests.backends.BackendTest.setup_backend
-    .. automethod:: frontera.tests.backends.BackendTest.teardown_backend
+    .. automethod:: tests.backends.BackendTest.get_settings
+    .. automethod:: tests.backends.BackendTest.get_frontier
+    .. automethod:: tests.backends.BackendTest.setup_backend
+    .. automethod:: tests.backends.BackendTest.teardown_backend
 
 
 Let's say for instance that you want to test to your backend ``MyBackend`` and create a new frontier instance for each
@@ -91,15 +91,15 @@ Testing backend sequences
 =========================
 
 To test :class:`Backend <frontera.core.components.Backend>` crawling sequences you can use the
-:class:`BackendSequenceTest <frontera.tests.backends.BackendSequenceTest>` class.
+:class:`BackendSequenceTest <tests.backends.BackendSequenceTest>` class.
 
-.. autoclass:: frontera.tests.backends.BackendSequenceTest
+.. autoclass:: tests.backends.BackendSequenceTest
 
-    .. automethod:: frontera.tests.backends.BackendSequenceTest.get_sequence
-    .. automethod:: frontera.tests.backends.BackendSequenceTest.assert_sequence
+    .. automethod:: tests.backends.BackendSequenceTest.get_sequence
+    .. automethod:: tests.backends.BackendSequenceTest.assert_sequence
 
 
-:class:`BackendSequenceTest <frontera.tests.backends.BackendSequenceTest>` class will run a complete crawl of the passed
+:class:`BackendSequenceTest <tests.backends.BackendSequenceTest>` class will run a complete crawl of the passed
 site graphs and return the sequence used by the backend for visiting the different pages.
 
 Let's say you want to test to a backend that sort pages using alphabetic order.
@@ -139,7 +139,7 @@ Testing basic algorithms
 If your backend uses any of the :ref:`basic algorithms logics <frontier-backends-basic-algorithms>`, you can just
 inherit the correponding test base class for each logic and sequences will be automatically tested for it::
 
-    from frontera.tests import backends
+    from tests import backends
 
 
     class TestMyBackendFIFO(backends.FIFOBackendTest):
