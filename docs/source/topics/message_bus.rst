@@ -2,8 +2,8 @@
 Message bus
 ===========
 
-Is the transport layer abstraction mechanism. It provides interface and several implementations. Only one message bus
-can be used in crawler at the time, and it's selected with :setting:`MESSAGE_BUS` setting.
+Message bus ss the transport layer abstraction mechanism. Frontera provides interface and several implementations.
+Only one message bus can be used in crawler at the time, and it's selected with :setting:`MESSAGE_BUS` setting.
 
 Spiders process can use
 
@@ -25,10 +25,20 @@ and can be configured using :ref:`zeromq-settings`.
 
 ZeroMQ message bus requires installed ZeroMQ library and running broker process, see :ref:`running_zeromq_broker`.
 
+Overall ZeroMQ message bus is designed to get a working PoC quickly and smaller deployments. Mainly because it's prone
+to message loss when data flow of components isn't properly adjusted or during startup. Here's the recommended order of
+components startup to avoid message loss:
+
+#. :term:`db worker`
+#. :term:`strategy worker`
+#. :term:`spiders`
+
+Unfortunately, it's not possible to avoid message loss when stopping running crawler with unfinished crawl. We recommend
+ to use Kafka message bus if your crawler application is sensitive to small message loss.
+
 .. pull-quote::
     WARNING! ZeroMQ message bus doesn't support yet multiple SW and DB workers, only one instance of each worker
     type is allowed.
-
 
 Kafka
 -----

@@ -29,6 +29,7 @@ how it works and decide if it is suited to your needs.
    topics/run-modes
    topics/quick-start-single
    topics/quick-start-distributed
+   topics/cluster-setup
 
 :doc:`topics/overview`
     Understand what Frontera is and how it can help you.
@@ -41,6 +42,9 @@ how it works and decide if it is suited to your needs.
 
 :doc:`topics/quick-start-distributed`
     with SQLite and ZeroMQ.
+
+:doc:`topics/cluster-setup`
+    Setting up clustered version of Frontera on multiple machines with HBase and Kafka.
 
 Using Frontera
 ==============
@@ -95,7 +99,8 @@ Advanced usage
    topics/what-is-cf
    topics/graph-manager
    topics/scrapy-recorder
-   topics/production-broad-crawling
+   topics/fine-tuning
+   topics/dns-service
 
 :doc:`topics/what-is-cf`
     Learn Crawl Frontier theory.
@@ -106,9 +111,11 @@ Advanced usage
 :doc:`topics/scrapy-recorder`
     Create Scrapy crawl recordings and reproduce them later.
 
-:doc:`topics/production-broad-crawling`
-    Deployment and tuning information.
+:doc:`topics/fine-tuning`
+    Cluster deployment and fine tuning information.
 
+:doc:`topics/dns-service`
+    Few words about DNS service setup.
 
 Developer documentation
 =======================
@@ -121,10 +128,13 @@ Developer documentation
    topics/requests-integration
    topics/examples
    topics/tests
+   topics/loggers
    topics/frontier-tester
    topics/faq
    topics/contributing
    topics/glossary
+
+
 
 
 :doc:`topics/architecture`
@@ -141,6 +151,9 @@ Developer documentation
 
 :doc:`topics/tests`
     How to run and write Frontera tests.
+
+:doc:`topics/loggers`
+    A list of loggers for use with python native logging system.
 
 :doc:`topics/frontier-tester`
     Test your frontier in an easy way.
