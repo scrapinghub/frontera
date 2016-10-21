@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 from happybase import Connection
+from Hbase_thrift import AlreadyExists  # module loaded at runtime in happybase
 from frontera.contrib.backends.hbase import HBaseState, HBaseMetadata, HBaseQueue
 from frontera.core.models import Request, Response
 from frontera.core.components import States
@@ -14,7 +15,6 @@ r2 = Request('http://example.com/some/page/', meta={b'fingerprint': b'11',
 r3 = Request('http://www.scrapy.org', meta={b'fingerprint': b'12',
              b'domain': {b'name': b'www.scrapy.org', b'fingerprint': b'83'}})
 r4 = r3.copy()
-
 
 
 class TestHBaseBackend(object):
@@ -87,3 +87,20 @@ class TestHBaseBackend(object):
         assert r4.meta[b'state'] == States.CRAWLED
         state.flush(True)
         assert state._state_cache == {}
+
+    def test_drop_all_tables_when_table_name_is_str(self):
+        connection = Connection(host='hbase-docker', port=9090)
+        for table in connection.tables():
+            connection.delete_table(table, True)
+        hbase_queue_table = 'queue'
+        hbase_metadata_table = 'metadata'
+        connection.create_table(hbase_queue_table, {'f': {'max_versions': 1}})
+        connection.create_table(hbase_metadata_table, {'f': {'max_versions': 1}})
+        tables = connection.tables()
+        assert set(tables) == set([b'metadata', b'queue'])  # Failure of test itself
+        try:
+            HBaseQueue(connection=connection, partitions=1, table_name=hbase_queue_table, drop=True)
+            HBaseMetadata(connection=connection, table_name=hbase_metadata_table, drop_all_tables=True,
+                          use_snappy=False, batch_size=300000, store_content=True)
+        except AlreadyExists:
+            assert False, "failed to drop hbase tables"
