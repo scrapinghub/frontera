@@ -2,75 +2,17 @@
 from __future__ import absolute_import
 
 from logging import getLogger
+from time import sleep
 
-from kafka import KafkaClient, SimpleConsumer
+import six
 from kafka import KafkaConsumer, KafkaProducer, TopicPartition
-from kafka.common import BrokerResponseError
 
 from frontera.contrib.backends.partitioners import FingerprintPartitioner, Crc32NamePartitioner
 from frontera.contrib.messagebus.kafka import OffsetsFetcher
-from logging import getLogger
-from time import sleep
-import six
-from w3lib.util import to_bytes
 from frontera.core.messagebus import BaseMessageBus, BaseSpiderLogStream, BaseSpiderFeedStream, \
     BaseStreamConsumer, BaseScoringLogStream, BaseStreamProducer
 
 logger = getLogger("messagebus.kafka")
-
-
-class DeprecatedConsumer(BaseStreamConsumer):
-    """
-    Used in DB and SW worker. SW consumes per partition.
-    """
-    def __init__(self, location, topic, group, partition_id):
-        self._location = location
-        self._group = group
-        self._topic = topic
-        self._partition_ids = [partition_id] if partition_id is not None else None
-
-        self._cons = None
-        self._connect_consumer()
-
-    def _connect_consumer(self):
-        if self._cons is None:
-            try:
-                self._client = KafkaClient(self._location)
-                self._cons = SimpleConsumer(
-                    self._client,
-                    self._group,
-                    self._topic,
-                    partitions=self._partition_ids,
-                    buffer_size=1048576,
-                    max_buffer_size=10485760)
-            except BrokerResponseError:
-                self._cons = None
-                logger.warning("Could not connect consumer to Kafka server")
-                return False
-        return True
-
-    def get_messages(self, timeout=0.1, count=1):
-        if not self._connect_consumer():
-            yield
-        while True:
-            try:
-                for offmsg in self._cons.get_messages(
-                        count,
-                        timeout=timeout):
-                    try:
-                        yield offmsg.message.value
-                    except ValueError:
-                        logger.warning(
-                            "Could not decode {0} message: {1}".format(
-                                self._topic,
-                                offmsg.message.value))
-            except Exception as err:
-                logger.warning("Error %s" % err)
-            finally:
-                break
-
-    def get_offset(self):
-        return 0
 
 
 class Consumer(BaseStreamConsumer):
@@ -86,17 +28,19 @@ class Consumer(BaseStreamConsumer):
             group_id=self._group,
             max_partition_fetch_bytes=10485760,
             consumer_timeout_ms=100,
-            client_id="%s-%s" % (self._topic, str(partition_id) if partition_id else "all")
+            client_id="%s-%s" % (self._topic, str(partition_id) if partition_id is not None else "all")
         )
-        if partition_id:
+
+        if partition_id is not None:
             self._partition_ids = [TopicPartition(self._topic, partition_id)]
             self._consumer.assign(self._partition_ids)
         else:
             self._partition_ids = [TopicPartition(self._topic, pid) for pid in self._consumer.partitions_for_topic(self._topic)]
             self._consumer.subscribe(topics=[self._topic])
+            if self._consumer._use_consumer_group():
+                self._consumer._coordinator.ensure_coordinator_known()
+                self._consumer._coordinator.ensure_active_group()
 
-        for tp in self._partition_ids:
-            self._consumer.committed(tp)
         self._consumer._update_fetch_positions(self._partition_ids)
 
     def get_messages(self, timeout=0.1, count=1):
@@ -112,6 +56,16 @@ class Consumer(BaseStreamConsumer):
 
     def get_offset(self):
         return 0
+
+    def close(self):
+        self._consumer.commit()
+        # getting kafka client event loop running some more and execute commit
+        tries = 3
+        while tries:
+            self.get_messages()
+            sleep(2.0)
+            tries -= 1
+        self._consumer.close()
 
 
 class SimpleProducer(BaseStreamProducer):
@@ -131,6 +85,9 @@ class SimpleProducer(BaseStreamProducer):
 
     def flush(self):
         self._producer.flush()
+
+    def close(self):
+        self._producer.close()
 
 
 class KeyedProducer(BaseStreamProducer):
@@ -156,16 +113,15 @@ class KeyedProducer(BaseStreamProducer):
 class SpiderLogStream(BaseSpiderLogStream):
     def __init__(self, messagebus):
         self._location = messagebus.kafka_location
-        self._db_group = messagebus.general_group
-        self._sw_group = messagebus.sw_group
-        self._topic_done = messagebus.topic_done
-        self._compression_type = messagebus.compression_type
+        self._db_group = messagebus.spiderlog_dbw_group
+        self._sw_group = messagebus.spiderlog_sw_group
+        self._topic = messagebus.topic_done
+        self._codec = messagebus.codec
         self._partitions = messagebus.spider_log_partitions
-        self._consumer_cls = DeprecatedConsumer if messagebus.use_simple_consumer else Consumer
 
     def producer(self):
-        return KeyedProducer(self._location, self._topic_done, FingerprintPartitioner(self._partitions),
-                             self._compression_type)
+        return KeyedProducer(self._location, self._topic, FingerprintPartitioner(self._partitions),
+                             self._codec)
 
     def consumer(self, partition_id, type):
         """
@@ -174,24 +130,27 @@ class SpiderLogStream(BaseSpiderLogStream):
         :param type: either 'db' or 'sw'
         :return:
         """
-        group = self._sw_group if type == 'sw' else self._db_group
-        return self._consumer_cls(self._location, self._topic_done, group, partition_id)
+        group = self._sw_group if type == b'sw' else self._db_group
+        c = Consumer(self._location, self._topic, group, partition_id)
+        assert len(c._consumer.partitions_for_topic(self._topic)) == self._partitions
+        return c
 
 
 class SpiderFeedStream(BaseSpiderFeedStream):
     def __init__(self, messagebus):
         self._location = messagebus.kafka_location
-        self._general_group = messagebus.general_group
+        self._general_group = messagebus.spider_feed_group
         self._topic = messagebus.topic_todo
         self._max_next_requests = messagebus.max_next_requests
         self._hostname_partitioning = messagebus.hostname_partitioning
         self._offset_fetcher = OffsetsFetcher(self._location, self._topic, self._general_group)
-        self._compression_type = messagebus.compression_type
+        self._codec = messagebus.codec
         self._partitions = messagebus.spider_feed_partitions
-        self._consumer_cls = DeprecatedConsumer if messagebus.use_simple_consumer else Consumer
 
     def consumer(self, partition_id):
-        return self._consumer_cls(self._location, self._topic, self._general_group, partition_id)
+        c = Consumer(self._location, self._topic, self._general_group, partition_id)
+        assert len(c._consumer.partitions_for_topic(self._topic)) == self._partitions
+        return c
 
     def available_partitions(self):
         partitions = []
@@ -204,40 +163,40 @@ class SpiderFeedStream(BaseSpiderFeedStream):
     def producer(self):
         partitioner = Crc32NamePartitioner(self._partitions) if self._hostname_partitioning \
             else FingerprintPartitioner(self._partitions)
-        return KeyedProducer(self._location, self._topic, partitioner, self._compression_type)
+        return KeyedProducer(self._location, self._topic, partitioner, self._codec)
 
 
 class ScoringLogStream(BaseScoringLogStream):
     def __init__(self, messagebus):
         self._topic = messagebus.topic_scoring
-        self._group = messagebus.general_group
+        self._group = messagebus.scoringlog_dbw_group
         self._location = messagebus.kafka_location
-        self._compression_type = messagebus.compression_type
-        self._consumer_cls = DeprecatedConsumer if messagebus.use_simple_consumer else Consumer
+        self._codec = messagebus.codec
 
     def consumer(self):
-        return self._consumer_cls(self._location, self._topic, self._group, partition_id=None)
+        return Consumer(self._location, self._topic, self._group, partition_id=None)
 
     def producer(self):
-        return SimpleProducer(self._location, self._topic, self._compression_type)
+        return SimpleProducer(self._location, self._topic, self._codec)
 
 
 class MessageBus(BaseMessageBus):
     def __init__(self, settings):
-        self.topic_todo = settings.get('OUTGOING_TOPIC')
-        self.topic_done = settings.get('INCOMING_TOPIC')
-        self.topic_scoring = settings.get('SCORING_TOPIC')
-        self.general_group = settings.get('FRONTIER_GROUP')
-        self.sw_group = settings.get('SCORING_GROUP')
+        self.topic_todo = settings.get('SPIDER_FEED_TOPIC')
+        self.topic_done = settings.get('SPIDER_LOG_TOPIC')
+        self.topic_scoring = settings.get('SCORING_LOG_TOPIC')
+
+        self.spiderlog_dbw_group = settings.get('SPIDER_LOG_DBW_GROUP')
+        self.spiderlog_sw_group = settings.get('SPIDER_LOG_SW_GROUP')
+        self.scoringlog_dbw_group = settings.get('SCORING_LOG_DBW_GROUP')
+        self.spider_feed_group = settings.get('SPIDER_FEED_GROUP')
         self.spider_partition_id = settings.get('SPIDER_PARTITION_ID')
         self.max_next_requests = settings.MAX_NEXT_REQUESTS
         self.hostname_partitioning = settings.get('QUEUE_HOSTNAME_PARTITIONING')
-        codec = settings.get('KAFKA_CODEC')
-        self.codec = codec if codec else CODEC_NONE
+        self.codec = settings.get('KAFKA_CODEC')
         self.kafka_location = settings.get('KAFKA_LOCATION')
         self.spider_log_partitions = settings.get('SPIDER_LOG_PARTITIONS')
         self.spider_feed_partitions = settings.get('SPIDER_FEED_PARTITIONS')
-        self.use_simple_consumer = settings.get('KAFKA_USE_SIMPLE_CONSUMER')
 
     def spider_log(self):
         return SpiderLogStream(self)

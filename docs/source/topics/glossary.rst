@@ -30,3 +30,7 @@ Glossary
     message bus
         Transport layer abstraction mechanism. Provides interface for transport layer abstraction and several
         implementations.
+
+    spider
+        A process retrieving and extracting content from the Web, using :term:`spider feed` as incoming queue and
+        storing results to :term:`spider log`. In this documentation fetcher is used as synonym.

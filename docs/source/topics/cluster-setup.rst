@@ -28,11 +28,11 @@ Configuring Kafka
 Create all topics needed for Kafka message bus
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-* :term:`spider log` (`frontier-done` (see :setting:`INCOMING_TOPIC`)), set the number of partitions equal to number of
+* :term:`spider log` (`frontier-done` (see :setting:`SPIDER_LOG_TOPIC`)), set the number of partitions equal to number of
   strategy worker instances,
-* :term:`spider feed` (`frontier-todo` (see :setting:`OUTGOING_TOPIC`)), set the number of partitions equal to number of
+* :term:`spider feed` (`frontier-todo` (see :setting:`SPIDER_FEED_TOPIC`)), set the number of partitions equal to number of
   spider instances,
-* :term:`scoring log` (:setting:`SCORING_TOPIC` setting)
+* :term:`scoring log` (:setting:`SCORING_LOG_TOPIC` setting)
 
 
 Configuring HBase

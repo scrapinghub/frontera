@@ -3,7 +3,7 @@ Quick start distributed mode
 ============================
 
 Here is a guide how to quickly setup Frontera for single-machine, multiple process, local hacking. We're going to deploy
-the simpliest possible setup with SQLite and ZeroMQ. Please proceed to :doc:`production-broad-crawling` article for a
+the simpliest possible setup with SQLite and ZeroMQ. Please proceed to :doc:`cluster-setup` article for a
 production setup details for broad crawlers.
 
 .. _basic_requirements:

@@ -180,17 +180,8 @@ KAFKA_GET_TIMEOUT
 
 Default: ``5.0``
 
-Time process should block until requested amount of data will be received from message bus.
-
-.. setting:: KAFKA_CODEC_LEGACY
-
-KAFKA_CODEC_LEGACY
-------------------
-
-Default: ``KAFKA_CODEC_LEGACY``
-
-Kafka-python 0.x version compression codec to use, is a string and could be one of ``none``, ``snappy`` or ``gzip``.
-
+Time process should block until requested amount of data will be received from message bus. This is a general
+message bus setting with obsolete Kafka-related name.
 
 .. setting:: LOGGING_CONFIG
 
@@ -639,67 +630,72 @@ Hostname and port of kafka broker, separated with :. Can be a string with hostna
 .. setting:: KAFKA_CODEC
 
 KAFKA_CODEC
-___________
+-----------
 
-Default:: ``CODEC_NONE``
+Default: ``KAFKA_CODEC``
 
-Kafka protocol compression codec, see kafka-python documentation for more details. Please use symbols from kafka-python
-package.
+Kafka-python 1.0.x version compression codec to use, is a string and could be one of ``none``, ``snappy``, ``gzip`` or
+``lz4``.
 
-.. setting:: KAFKA_USE_SIMPLE_CONSUMER
+.. setting:: SPIDER_LOG_DBW_GROUP
 
-KAFKA_USE_SIMPLE_CONSUMER
--------------------------
+SPIDER_LOG_DBW_GROUP
+--------------------
 
-Default:: ``False``
+Default: ``dbw-spider-log``
 
-In case of ``True`` Kafka :term:`message bus` will use Simple* deprecated interfaces from ``kafka-python`` package. For
-older (<0.9.0) Kafka versions this allows to enable consumer offsets auto commit, and therefore have a working flow
-control in :term:`db worker`. On the other side, older versions doesn't support automatic consumer rebalancing.
+Kafka consumer group name, used for :term:`spider log` by :term:`db worker` s.
 
-.. setting:: FRONTIER_GROUP
+.. setting:: SPIDER_LOG_SW_GROUP
 
-FRONTIER_GROUP
---------------
+SPIDER_LOG_SW_GROUP
+-------------------
 
-Default: ``general``
+Default: ``sw-spider-log``
 
-Kafka consumer group name, used for almost everything.
+Kafka consumer group name, used for :term:`spider log` by :term:`strategy worker` (s).
 
+.. setting:: SCORING_LOG_DBW_GROUP
 
-.. setting:: INCOMING_TOPIC
+SCORING_LOG_DBW_GROUP
+---------------------
 
-INCOMING_TOPIC
---------------
+Default: ``dbw-scoring-log``
+
+Kafka consumer group name, used for :term:`scoring log` by :term:`db worker` (s).
+
+.. setting:: SPIDER_FEED_GROUP
+
+SPIDER_FEED_GROUP
+-----------------
+
+Default: ``fetchers-spider-feed``
+
+Kafka consumer group name, used for :term:`spider feed` by :term:`spider` (s).
+
+.. setting:: SPIDER_LOG_TOPIC
+
+SPIDER_LOG_TOPIC
+----------------
 
 Default: ``frontier-done``
 
-Spider log stream topic name.
+:term:`spider log` stream topic name.
 
 
-.. setting:: OUTGOING_TOPIC
+.. setting:: SPIDER_FEED_TOPIC
 
-OUTGOING_TOPIC
---------------
+SPIDER_FEED_TOPIC
+-----------------
 
 Default: ``frontier-todo``
 
-Spider feed stream topic name.
+:term:`spider feed` stream topic name.
 
+.. setting:: SCORING_LOG_TOPIC
 
-.. setting:: SCORING_GROUP
-
-SCORING_GROUP
--------------
-
-Default: ``strategy-workers``
-
-A group used by strategy workers for spider log reading. Needs to be different than ``FRONTIER_GROUP``.
-
-.. setting:: SCORING_TOPIC
-
-SCORING_TOPIC
--------------
+SCORING_LOG_TOPIC
+-----------------
 
 Kafka topic used for :term:`scoring log` stream.
 
