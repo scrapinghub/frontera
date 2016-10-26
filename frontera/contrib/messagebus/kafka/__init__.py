@@ -11,7 +11,7 @@ logger = getLogger("offset-fetcher")
 OffsetsStruct = namedtuple("OffsetsStruct", ["commit", "produced"])
 
 
-class OffsetsFetcher(object):
+class OffsetsFetcherSync(object):
     def __init__(self, location, topic, group_id):
         self._client = KafkaClient(location)
         self._topic = topic
@@ -44,7 +44,7 @@ class OffsetsFetcher(object):
     def _update_group_offsets(self):
         logger.info("Consumer fetching stored offsets")
         for partition in self._client.get_partition_ids_for_topic(self._topic):
-            (resp,) = self._client.send_offset_fetch_request(
+            (resp,) = self._client.send_offset_fetch_request_kafka(
                 self._group_id,
                 [OffsetFetchRequestPayload(self._topic, partition)],
                 fail_on_error=False)

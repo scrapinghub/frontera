@@ -8,7 +8,7 @@ import six
 from kafka import KafkaConsumer, KafkaProducer, TopicPartition
 
 from frontera.contrib.backends.partitioners import FingerprintPartitioner, Crc32NamePartitioner
-from frontera.contrib.messagebus.kafka import OffsetsFetcher
+from frontera.contrib.messagebus.kafka import OffsetsFetcherSync
 from frontera.core.messagebus import BaseMessageBus, BaseSpiderLogStream, BaseSpiderFeedStream, \
     BaseStreamConsumer, BaseScoringLogStream, BaseStreamProducer
 
@@ -54,8 +54,8 @@ class Consumer(BaseStreamConsumer):
                 break
         return result
 
-    def get_offset(self):
-        return 0
+    def get_offset(self, partition_id):
+        return self._consumer.position(self._partition_ids[partition_id])
 
     def close(self):
         self._consumer.commit()
@@ -143,7 +143,7 @@ class SpiderFeedStream(BaseSpiderFeedStream):
         self._topic = messagebus.topic_todo
         self._max_next_requests = messagebus.max_next_requests
         self._hostname_partitioning = messagebus.hostname_partitioning
-        self._offset_fetcher = OffsetsFetcher(self._location, self._topic, self._general_group)
+        self._offset_fetcher = OffsetsFetcherSync(self._location, self._topic, self._general_group)
         self._codec = messagebus.codec
         self._partitions = messagebus.spider_feed_partitions
 

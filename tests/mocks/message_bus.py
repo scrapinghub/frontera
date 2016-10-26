@@ -23,7 +23,7 @@ class Consumer(BaseStreamConsumer):
     def _set_offset(self, offset):
         self.offset = offset
 
-    def get_offset(self):
+    def get_offset(self, partition_id):
         return self.offset
 
 

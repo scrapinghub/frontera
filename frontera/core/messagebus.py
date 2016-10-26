@@ -20,9 +20,11 @@ class BaseStreamConsumer(object):
         raise NotImplementedError
 
     @abstractmethod
-    def get_offset(self):
+    def get_offset(self, partition_id):
         """
         Returns consumer offset.
+
+        :param partition_id: int
         :return: int consumer offset
         """
         raise NotImplementedError
@@ -58,6 +60,8 @@ class BaseStreamProducer(object):
     def get_offset(self, partition_id):
         """
         Returns producer offset for partition. Raises KeyError, if partition isn't available or doesn't exist.
+        Returns None if not applicable to current implementation.
+
         :param partition_id: int
         :return: int producer offset
         """
