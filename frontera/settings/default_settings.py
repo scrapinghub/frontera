@@ -8,6 +8,21 @@ BC_MIN_REQUESTS = 64
 BC_MIN_HOSTS = 24
 BC_MAX_REQUESTS_PER_HOST = 128
 CANONICAL_SOLVER = 'frontera.contrib.canonicalsolvers.Basic'
+CASSANDRABACKEND_CACHE_SIZE = 10000
+CASSANDRABACKEND_DROP_ALL_TABLES = False
+CASSANDRABACKEND_MODELS = {
+    'MetadataModel': 'frontera.contrib.backends.cassandra.models.MetadataModel',
+    'StateModel': 'frontera.contrib.backends.cassandra.models.StateModel',
+    'QueueModel': 'frontera.contrib.backends.cassandra.models.QueueModel',
+    'CrawlStatsModel': 'frontera.contrib.backends.cassandra.models.CrawlStatsModel'
+}
+CASSANDRABACKEND_REVISIT_INTERVAL = timedelta(days=1)
+CASSANDRABACKEND_CLUSTER_IPS = ['127.0.0.1']
+CASSANDRABACKEND_CLUSTER_PORT = 9042
+CASSANDRABACKEND_KEYSPACE = 'frontera'
+CASSANDRABACKEND_CREATE_KEYSPACE_IF_NOT_EXISTS = True
+CASSANDRABACKEND_CRAWL_ID = "default"
+CASSANDRABACKEND_GENERATE_STATS = False
 DELAY_ON_EMPTY = 5.0
 DOMAIN_FINGERPRINT_FUNCTION = 'frontera.utils.fingerprint.sha1'
 
