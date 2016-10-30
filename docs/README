@@ -30,9 +30,6 @@ from this dir::
 
 Documentation will be generated (in HTML format) inside the ``build/html`` dir.
 
-If you get the error "ImportError: No module named sphinx_rtd_theme" run:
-    sudo pip install   sphinx-rtd-theme
-
 
 View the documentation
 ----------------------

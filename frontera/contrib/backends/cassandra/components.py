@@ -2,14 +2,17 @@
 import logging
 from datetime import datetime
 from time import time
-from frontera.contrib.backends.partitioners import Crc32NamePartitioner
-from frontera.contrib.backends.memory import MemoryStates
-from frontera.core.components import Metadata as BaseMetadata, Queue as BaseQueue
-from frontera.core.models import Request, Response
-from frontera.utils.misc import get_crc32, chunks
-from frontera.utils.url import parse_domain_from_url_fast
+
 from cassandra.concurrent import execute_concurrent_with_args
+
 from frontera.contrib.backends.cassandra.models import Meta
+from frontera.contrib.backends.memory import MemoryStates
+from frontera.contrib.backends.partitioners import Crc32NamePartitioner
+from frontera.core.components import Metadata as BaseMetadata
+from frontera.core.components import Queue as BaseQueue
+from frontera.core.models import Request
+from frontera.utils.misc import chunks, get_crc32
+from frontera.utils.url import parse_domain_from_url_fast
 
 
 class Metadata(BaseMetadata):
@@ -178,7 +181,7 @@ class Queue(BaseQueue):
 
             self.counter_cls.cass_count({"dequeued_urls": dequeued_urls})
 
-        except Exception, exc:
+        except Exception as exc:
             self.logger.exception(exc)
 
         return results

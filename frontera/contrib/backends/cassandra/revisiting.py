@@ -1,15 +1,17 @@
 # -*- coding: utf-8 -*-
-import logging
 import json
+import logging
 from datetime import datetime, timedelta
-from time import time, sleep
+from time import sleep, time
 
-from frontera import Request
-from frontera.contrib.backends.partitioners import Crc32NamePartitioner
-from frontera.contrib.backends.cassandra import CassandraBackend
 from cassandra.cqlengine import columns
 from cassandra.cqlengine.models import Model
-from frontera.core.components import Queue as BaseQueue, States
+
+from frontera import Request
+from frontera.contrib.backends.cassandra import CassandraBackend
+from frontera.contrib.backends.partitioners import Crc32NamePartitioner
+from frontera.core.components import Queue as BaseQueue
+from frontera.core.components import States
 from frontera.utils.misc import get_crc32
 from frontera.utils.url import parse_domain_from_url_fast
 
@@ -26,7 +28,7 @@ def retry_and_rollback(func):
         while True:
             try:
                 return func(self, *args, **kwargs)
-            except Exception, exc:
+            except Exception as exc:
                 self.logger.exception(exc)
                 sleep(5)
                 tries -= 1
@@ -58,7 +60,7 @@ class RevisitingQueue(BaseQueue):
                 results.append(Request(item.url, method=method, meta=item.meta, headers=item.headers,
                                        cookies=item.cookies))
                 item.delete()
-        except Exception, exc:
+        except Exception as exc:
             self.logger.exception(exc)
         return results
 

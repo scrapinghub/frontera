@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from collections import OrderedDict
 
 from frontera import Backend
-from frontera.core.components import States
+from frontera.core.components import States, Queue as BaseQueue, DistributedBackend
 
 
 class CommonBackend(Backend):
@@ -84,3 +84,74 @@ class CommonBackend(Backend):
 
     def finished(self):
         return self.queue_size == 0
+
+
+class CommonStorageBackend(CommonBackend):
+
+    def _create_queue(self, settings):
+        if not isinstance(self.queue_component, BaseQueue):
+            raise TypeError('expected queue_component to '
+                            'belong to class: %s, got %s instead' % (type(BaseQueue).__name__,
+                                                                     type(self.queue_component).__name__))
+        return self.queue_component(self.session_cls,
+                                    self.models['QueueModel'],
+                                    settings.get('SPIDER_FEED_PARTITIONS'))
+
+    @property
+    def queue(self):
+        return self._queue
+
+    @property
+    def metadata(self):
+        return self._metadata
+
+    @property
+    def states(self):
+        return self._states
+
+
+class CommonDistributedStorageBackend(DistributedBackend):
+
+    @property
+    def queue(self):
+        return self._queue
+
+    @property
+    def metadata(self):
+        return self._metadata
+
+    @property
+    def states(self):
+        return self._states
+
+    def frontier_start(self):
+        for component in [self.metadata, self.queue, self.states]:
+            if component:
+                component.frontier_start()
+
+    def frontier_stop(self):
+        for component in [self.metadata, self.queue, self.states]:
+            if component:
+                component.frontier_stop()
+
+    def add_seeds(self, seeds):
+        self.metadata.add_seeds(seeds)
+
+    def get_next_requests(self, max_next_requests, **kwargs):
+        partitions = kwargs.pop('partitions', [0])  # TODO: Collect from all known partitions
+        batch = []
+        for partition_id in partitions:
+            batch.extend(self.queue.get_next_requests(max_next_requests, partition_id, **kwargs))
+        return batch
+
+    def page_crawled(self, response):
+        self.metadata.page_crawled(response)
+
+    def links_extracted(self, request, links):
+        self.metadata.links_extracted(request, links)
+
+    def request_error(self, request, error):
+        self.metadata.request_error(request, error)
+
+    def finished(self):
+        raise NotImplementedError

@@ -4,14 +4,16 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.engine.reflection import Inspector
 
-from frontera.core.components import DistributedBackend
-from frontera.contrib.backends import CommonBackend
+from frontera.contrib.backends import CommonBackend, CommonStorageBackend, CommonDistributedStorageBackend
 from frontera.contrib.backends.sqlalchemy.components import Metadata, Queue, States
 from frontera.contrib.backends.sqlalchemy.models import DeclarativeBase
 from frontera.utils.misc import load_object
 
 
-class SQLAlchemyBackend(CommonBackend):
+class SQLAlchemyBackend(CommonStorageBackend):
+
+    queue_component = Queue
+
     def __init__(self, manager):
         self.manager = manager
         settings = manager.settings
@@ -45,21 +47,6 @@ class SQLAlchemyBackend(CommonBackend):
     def frontier_stop(self):
         super(SQLAlchemyBackend, self).frontier_stop()
         self.engine.dispose()
-
-    def _create_queue(self, settings):
-        return Queue(self.session_cls, self.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'))
-
-    @property
-    def queue(self):
-        return self._queue
-
-    @property
-    def metadata(self):
-        return self._metadata
-
-    @property
-    def states(self):
-        return self._states
 
 
 class FIFOBackend(SQLAlchemyBackend):
@@ -105,7 +92,7 @@ DFS = DFSBackend
 BFS = BFSBackend
 
 
-class Distributed(DistributedBackend):
+class Distributed(CommonDistributedStorageBackend):
     def __init__(self, manager):
         self.manager = manager
         settings = manager.settings
@@ -171,48 +158,3 @@ class Distributed(DistributedBackend):
                                settings.get('SQLALCHEMYBACKEND_CACHE_SIZE'))
         b._queue = Queue(b.session_cls, queue_m, settings.get('SPIDER_FEED_PARTITIONS'))
         return b
-
-    @property
-    def queue(self):
-        return self._queue
-
-    @property
-    def metadata(self):
-        return self._metadata
-
-    @property
-    def states(self):
-        return self._states
-
-    def frontier_start(self):
-        for component in [self.metadata, self.queue, self.states]:
-            if component:
-                component.frontier_start()
-
-    def frontier_stop(self):
-        for component in [self.metadata, self.queue, self.states]:
-            if component:
-                component.frontier_stop()
-
-    def add_seeds(self, seeds):
-        self.metadata.add_seeds(seeds)
-
-    def get_next_requests(self, max_next_requests, **kwargs):
-        partitions = kwargs.pop('partitions', [0])  # TODO: Collect from all known partitions
-        batch = []
-        for partition_id in partitions:
-            batch.extend(self.queue.get_next_requests(max_next_requests, partition_id, **kwargs))
-        return batch
-
-    def page_crawled(self, response):
-        self.metadata.page_crawled(response)
-
-    def links_extracted(self, request, links):
-        self.metadata.links_extracted(request, links)
-
-    def request_error(self, request, error):
-        self.metadata.request_error(request, error)
-
-    def finished(self):
-        raise NotImplementedError
-
