@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 import logging
+import uuid
 from datetime import datetime
 from time import time
 
+from cachetools import LRUCache
 from cassandra.concurrent import execute_concurrent_with_args
+from cassandra.cqlengine.query import BatchQuery
 
-from frontera.contrib.backends.cassandra.models import Meta
+from frontera.contrib.backends import CreateOrModifyPageMixin
 from frontera.contrib.backends.memory import MemoryStates
 from frontera.contrib.backends.partitioners import Crc32NamePartitioner
 from frontera.core.components import Metadata as BaseMetadata
@@ -15,51 +18,47 @@ from frontera.utils.misc import chunks, get_crc32
 from frontera.utils.url import parse_domain_from_url_fast
 
 
-class Metadata(BaseMetadata):
-    def __init__(self, session, model_cls, crawl_id, generate_stats):
+class Metadata(BaseMetadata, CreateOrModifyPageMixin):
+
+    def __init__(self, session, model_cls, cache_size):
         self.session = session
         self.model = model_cls
-        self.table = 'MetadataModel'
+        self.cache = LRUCache(cache_size)
+        self.batch = BatchQuery()
         self.logger = logging.getLogger("frontera.contrib.backends.cassandra.components.Metadata")
-        self.crawl_id = crawl_id
-        self.generate_stats = generate_stats
-        self.counter_cls = CassandraCount(crawl_id, self.session, generate_stats)
 
     def frontier_stop(self):
         pass
 
     def add_seeds(self, seeds):
-        cql_items = []
         for seed in seeds:
-            query = self.session.prepare(
-                "INSERT INTO metadata (crawl, fingerprint, url, created_at, meta, headers, cookies, method, depth) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
-            meta = Meta(domain=seed.meta['domain'], fingerprint=seed.meta['fingerprint'],
-                        origin_is_frontier=seed.meta['origin_is_frontier'],
-                        scrapy_callback=seed.meta['scrapy_callback'], scrapy_errback=seed.meta['scrapy_errback'],
-                        scrapy_meta=seed.meta['scrapy_meta'])
-            cql_i = (self.crawl_id, seed.meta['fingerprint'], seed.url, datetime.utcnow(), meta,
-                     seed.headers, seed.cookies, seed.method, 0)
-            cql_items.append(cql_i)
-        if len(seeds) > 0:
-            execute_concurrent_with_args(self.session, query, cql_items, concurrency=400)
-        self.counter_cls.cass_count({"seed_urls": len(seeds)})
+            o = self._create_page(seed)
+
+        # cql_items = []
+        # query = self.session.prepare(
+        #     "INSERT INTO metadata (fingerprint, url, created_at, meta, headers, cookies, method, depth) "
+        #     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+        # for seed in seeds:
+        #     cql_i = (seed.meta['fingerprint'], seed.url, datetime.utcnow(), seed.meta,
+        #              seed.headers, seed.cookies, seed.method, 0)
+        #     cql_items.append(cql_i)
+        # if len(seeds) > 0:
+        #     execute_concurrent_with_args(self.session, query, cql_items, concurrency=400)
 
     def request_error(self, page, error):
         query_page = self.session.prepare(
-            "UPDATE metadata SET error = ? WHERE crawl = ? AND  fingerprint = ?")
-        self.session.execute(query_page, (error, self.crawl_id, page.meta['fingerprint']))
-        self.counter_cls.cass_count({"error": 1})
+            "UPDATE metadata SET error = ? WHERE fingerprint = ?")
+        self.session.execute(query_page, (error, page.meta['fingerprint']))
 
     def page_crawled(self, response, links):
         query_page = self.session.prepare(
             "UPDATE metadata SET fetched_at = ?, headers = ?, method = ?, cookies = ?, status_code = ? "
-            "WHERE crawl= ? AND fingerprint = ?")
-        self.session.execute_async(query_page, (datetime.utcnow(), response.request.headers, response.request.method,
-                                                response.request.cookies, response.status_code, self.crawl_id,
-                                                response.meta['fingerprint']))
+            "WHERE fingerprint = ?")
+        self.session.execute_async(query_page, (datetime.utcnow(), response.request.headers,
+                                                response.request.method, response.request.cookies,
+                                                response.status_code, response.meta['fingerprint']))
         depth = 0
-        page_res = self.model.objects.filter(crawl=self.crawl_id, fingerprint=response.meta['fingerprint'])
+        page_res = self.model.objects.filter(fingerprint=response.meta['fingerprint'])
         if page_res[0].depth > 0:
             depth = page_res[0].depth
 
@@ -89,7 +88,6 @@ class States(MemoryStates):
         super(States, self).__init__(cache_size_limit)
         self.session = session
         self.model = model_cls
-        self.table = 'StateModel'
         self.logger = logging.getLogger("frontera.contrib.backends.cassandra.components.States")
         self.crawl_id = crawl_id
 
@@ -106,10 +104,10 @@ class States(MemoryStates):
                 self._cache[state.fingerprint] = state.state
 
     def flush(self, force_clear=False):
-        query = self.session.prepare("INSERT INTO states (crawl, fingerprint, state) VALUES (?, ?, ?)")
+        query = self.session.prepare("INSERT INTO states (id, fingerprint, state) VALUES (?, ?, ?)")
         cql_items = []
         for fingerprint, state_val in self._cache.iteritems():
-            cql_i = (self.crawl_id, fingerprint, state_val)
+            cql_i = (uuid.uuid4(), fingerprint, state_val)
             cql_items.append(cql_i)
         execute_concurrent_with_args(self.session, query, cql_items, concurrency=20000)
         super(States, self).flush(force_clear)
@@ -123,8 +121,6 @@ class Queue(BaseQueue):
         self.partitions = [i for i in range(0, partitions)]
         self.partitioner = Crc32NamePartitioner(self.partitions)
         self.ordering = ordering
-        self.crawl_id = crawl_id
-        self.counter_cls = CassandraCount(crawl_id, self.session, generate_stats)
 
     def frontier_stop(self):
         pass
@@ -187,7 +183,7 @@ class Queue(BaseQueue):
         return results
 
     def schedule(self, batch):
-        query = self.session.prepare("INSERT INTO queue (crawl, fingerprint, score, partition_id, host_crc32, url, "
+        query = self.session.prepare("INSERT INTO queue (id, fingerprint, score, partition_id, host_crc32, url, "
                                      "created_at, meta, depth, headers, method, cookies) "
                                      "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
         cql_items = []
@@ -218,13 +214,8 @@ class Queue(BaseQueue):
                 if "jid" not in request.meta:
                     request.meta["jid"] = 0
 
-                meta = Meta(domain=request.meta['domain'], fingerprint=fprint,
-                            origin_is_frontier=request.meta['origin_is_frontier'],
-                            scrapy_callback=request.meta['scrapy_callback'],
-                            scrapy_errback=request.meta['scrapy_errback'], scrapy_meta=request.meta['scrapy_meta'])
-
-                cql_i = (self.crawl_id, fprint, score, partition_id, host_crc32, request.url, created_at, meta, 0,
-                         request.headers, request.method, request.cookies)
+                cql_i = (uuid.uuid4(), fprint, score, partition_id, host_crc32, request.url, created_at,
+                         request.meta, 0, request.headers, request.method, request.cookies)
                 cql_items.append(cql_i)
 
                 request.meta['state'] = States.QUEUED
@@ -233,14 +224,8 @@ class Queue(BaseQueue):
         self.counter_cls.cass_count({"queued_urls": len(cql_items)})
 
     def count(self):
-        count = self.queue_model.objects.filter(crawl=self.crawl_id).count()
+        count = self.queue_model.objects.filter().count()
         return count
-
-    def cass_count(self, counts, generate_stats):
-        if generate_stats is True:
-            for row, count in counts.iteritems():
-                count_page = self.session.prepare("UPDATE crawlstats SET "+row+" = "+row+" + ? WHERE crawl= ?")
-                self.session.execute_async(count_page, (count, self.crawl_id))
 
 
 class BroadCrawlingQueue(Queue):
@@ -301,17 +286,3 @@ class BroadCrawlingQueue(Queue):
                                        cookies=item.cookies))
                 item.delete()
         return results
-
-
-class CassandraCount:
-
-    def __init__(self, crawl_id, session, generate_stats):
-        self.generate_stats = generate_stats
-        self.session = session
-        self.crawl_id = crawl_id
-
-    def cass_count(self, counts):
-        if self.generate_stats is True:
-            for row, count in counts.iteritems():
-                count_page = self.session.prepare("UPDATE crawlstats SET "+row+" = "+row+" + ? WHERE crawl= ?")
-                self.session.execute_async(count_page, (count, self.crawl_id))

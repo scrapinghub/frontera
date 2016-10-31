@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 from collections import OrderedDict
+from datetime import datetime
 
 from frontera import Backend
 from frontera.core.components import States, Queue as BaseQueue, DistributedBackend
+from frontera.core.models import Request, Response
+
+from w3lib.util import to_native_str
 
 
 class CommonBackend(Backend):
@@ -155,3 +159,35 @@ class CommonDistributedStorageBackend(DistributedBackend):
 
     def finished(self):
         raise NotImplementedError
+
+
+class CreateOrModifyPageMixin(object):
+
+    def _create_page(self, obj):
+        db_page = self.model()
+        db_page.fingerprint = to_native_str(obj.meta[b'fingerprint'])
+        db_page.url = obj.url
+        db_page.created_at = datetime.utcnow()
+        db_page.meta = obj.meta
+        db_page.depth = 0
+
+        if isinstance(obj, Request):
+            db_page.headers = obj.headers
+            db_page.method = to_native_str(obj.method)
+            db_page.cookies = obj.cookies
+        elif isinstance(obj, Response):
+            db_page.headers = obj.request.headers
+            db_page.method = to_native_str(obj.request.method)
+            db_page.cookies = obj.request.cookies
+            db_page.status_code = obj.status_code
+        return db_page
+
+    def _modify_page(self, obj):
+        db_page = self.cache[obj.meta[b'fingerprint']]
+        db_page.fetched_at = datetime.utcnow()
+        if isinstance(obj, Response):
+            db_page.headers = obj.request.headers
+            db_page.method = to_native_str(obj.request.method)
+            db_page.cookies = obj.request.cookies
+            db_page.status_code = obj.status_code
+        return db_page

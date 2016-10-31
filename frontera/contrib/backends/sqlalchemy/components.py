@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 import logging
-from datetime import datetime
 from time import time, sleep
 
 from cachetools import LRUCache
+from frontera.contrib.backends import CreateOrModifyPageMixin
 from frontera.contrib.backends.partitioners import Crc32NamePartitioner
 from frontera.contrib.backends.memory import MemoryStates
 from frontera.contrib.backends.sqlalchemy.models import DeclarativeBase
 from frontera.core.components import Metadata as BaseMetadata, Queue as BaseQueue
-from frontera.core.models import Request, Response
+from frontera.core.models import Request
 from frontera.utils.misc import get_crc32, chunks
 from frontera.utils.url import parse_domain_from_url_fast
 import six
@@ -36,7 +36,7 @@ def retry_and_rollback(func):
     return func_wrapper
 
 
-class Metadata(BaseMetadata):
+class Metadata(BaseMetadata, CreateOrModifyPageMixin):
     def __init__(self, session_cls, model_cls, cache_size):
         self.session = session_cls(expire_on_commit=False)   # FIXME: Should be explicitly mentioned in docs
         self.model = model_cls
@@ -72,35 +72,6 @@ class Metadata(BaseMetadata):
             if link.meta[b'fingerprint'] not in self.cache:
                 self.cache[link.meta[b'fingerprint']] = self.session.merge(self._create_page(link))
         self.session.commit()
-
-    def _modify_page(self, obj):
-        db_page = self.cache[obj.meta[b'fingerprint']]
-        db_page.fetched_at = datetime.utcnow()
-        if isinstance(obj, Response):
-            db_page.headers = obj.request.headers
-            db_page.method = to_native_str(obj.request.method)
-            db_page.cookies = obj.request.cookies
-            db_page.status_code = obj.status_code
-        return db_page
-
-    def _create_page(self, obj):
-        db_page = self.model()
-        db_page.fingerprint = to_native_str(obj.meta[b'fingerprint'])
-        db_page.url = obj.url
-        db_page.created_at = datetime.utcnow()
-        db_page.meta = obj.meta
-        db_page.depth = 0
-
-        if isinstance(obj, Request):
-            db_page.headers = obj.headers
-            db_page.method = to_native_str(obj.method)
-            db_page.cookies = obj.cookies
-        elif isinstance(obj, Response):
-            db_page.headers = obj.request.headers
-            db_page.method = to_native_str(obj.request.method)
-            db_page.cookies = obj.request.cookies
-            db_page.status_code = obj.status_code
-        return db_page
 
     @retry_and_rollback
     def update_score(self, batch):
