@@ -1,7 +1,29 @@
 # -*- coding: utf-8 -*-
-from cassandra.cqlengine.columns import (UUID, BigInt, DateTime, Float,
+import pickle
+import six
+
+from cassandra.cqlengine.columns import (UUID, BigInt, Bytes, DateTime, Float,
                                          Integer, Map, SmallInt, Text)
 from cassandra.cqlengine.models import Model
+
+
+class Pickle(Bytes):
+
+    def to_database(self, value):
+        value = self._pickle_object(value)
+        return super(Pickle, self).to_database(value)
+
+    def to_python(self, value):
+        value = super(Pickle, self).to_python(value)
+        return self._unpickle_object(value)
+
+    def _pickle_object(self, obj):
+        pickled = pickle.dumps(obj)
+        return pickled.encode('hex') if six.PY2 else pickled
+
+    def _unpickle_object(self, pickled_obj):
+        obj = pickled_obj.decode('hex') if six.PY2 else pickled_obj
+        return pickle.loads(obj)
 
 
 class MetadataModel(Model):
@@ -15,9 +37,9 @@ class MetadataModel(Model):
     status_code = Integer()
     score = Float()
     error = Text()
-    meta = Map(Text(), Text())
-    headers = Map(Text(), Text())
-    cookies = Map(Text(), Text())
+    meta = Pickle()
+    headers = Pickle()
+    cookies = Pickle()
     method = Text()
 
     def __repr__(self):
@@ -31,7 +53,7 @@ class StateModel(Model):
     state = SmallInt(required=True)
 
     def __repr__(self):
-        return '<State:%s=%d>' % (self.fingerprint, self.state)
+        return '<State:%s=%s>' % (self.fingerprint, self.state)
 
 
 class QueueModel(Model):
@@ -43,12 +65,12 @@ class QueueModel(Model):
     url = Text(required=True)
     fingerprint = Text(required=True)
     host_crc32 = Integer(required=True)
-    meta = Map(Text(), Text())
-    headers = Map(Text(), Text())
-    cookies = Map(Text(), Text())
+    meta = Pickle()
+    headers = Pickle()
+    cookies = Pickle()
     method = Text()
     created_at = BigInt(required=True)
     depth = SmallInt()
 
     def __repr__(self):
-        return '<Queue:%s (%d)>' % (self.url, self.id)
+        return '<Queue:%s (%s)>' % (self.url, self.id)

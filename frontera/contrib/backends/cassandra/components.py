@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import logging
 import uuid
-from datetime import datetime
+import pickle
+import six
 from time import time
 
 from cachetools import LRUCache
@@ -16,6 +17,8 @@ from frontera.core.components import Queue as BaseQueue
 from frontera.core.models import Request
 from frontera.utils.misc import chunks, get_crc32
 from frontera.utils.url import parse_domain_from_url_fast
+
+from w3lib.util import to_native_str, to_bytes
 
 
 class Metadata(BaseMetadata, CreateOrModifyPageMixin):
@@ -32,54 +35,38 @@ class Metadata(BaseMetadata, CreateOrModifyPageMixin):
 
     def add_seeds(self, seeds):
         for seed in seeds:
-            o = self._create_page(seed)
-
-        # cql_items = []
-        # query = self.session.prepare(
-        #     "INSERT INTO metadata (fingerprint, url, created_at, meta, headers, cookies, method, depth) "
-        #     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
-        # for seed in seeds:
-        #     cql_i = (seed.meta['fingerprint'], seed.url, datetime.utcnow(), seed.meta,
-        #              seed.headers, seed.cookies, seed.method, 0)
-        #     cql_items.append(cql_i)
-        # if len(seeds) > 0:
-        #     execute_concurrent_with_args(self.session, query, cql_items, concurrency=400)
+            page = self._create_page(seed)
+            page.batch(self.batch).save()
+            self.cache[to_bytes(page.fingerprint)] = page
+        self.batch.execute()
 
     def request_error(self, page, error):
-        query_page = self.session.prepare(
-            "UPDATE metadata SET error = ? WHERE fingerprint = ?")
-        self.session.execute(query_page, (error, page.meta['fingerprint']))
+        page = self._modify_page(page) if page.meta[b'fingerprint'] in self.cache else self._create_page(page)
+        page.error = error
+        self.cache[to_bytes(page.fingerprint)] = page
+        page.save()
 
-    def page_crawled(self, response, links):
-        query_page = self.session.prepare(
-            "UPDATE metadata SET fetched_at = ?, headers = ?, method = ?, cookies = ?, status_code = ? "
-            "WHERE fingerprint = ?")
-        self.session.execute_async(query_page, (datetime.utcnow(), response.request.headers,
-                                                response.request.method, response.request.cookies,
-                                                response.status_code, response.meta['fingerprint']))
-        depth = 0
-        page_res = self.model.objects.filter(fingerprint=response.meta['fingerprint'])
-        if page_res[0].depth > 0:
-            depth = page_res[0].depth
+    def page_crawled(self, response):
+        page = self._modify_page(response) if response.meta[b'fingerprint'] in self.cache else self._create_page(response)
+        self.cache[page.fingerprint] = page
+        page.save()
 
-        query = self.session.prepare(
-            "INSERT INTO metadata (crawl, fingerprint, created_at, method, url, depth) VALUES (?, ?, ?, ?, ?, ?)")
-        cql_items = []
+    def links_extracted(self, request, links):
         for link in links:
-            if response.meta['fingerprint'] != link.meta['fingerprint']:
-                cql_i = (self.crawl_id, link.meta['fingerprint'], datetime.utcnow(), link.method, link.url, depth+1)
-                cql_items.append(cql_i)
-        execute_concurrent_with_args(self.session, query, cql_items, concurrency=400)
-        self.counter_cls.cass_count({"pages_crawled": 1, "links_found": len(cql_items)})
+            if link.meta[b'fingerprint'] not in self.cache:
+                page = self._create_page(link)
+                self.cache[link.meta[b'fingerprint']] = page
+                page.batch(self.batch).save()
+        self.batch.execute()
 
     def update_score(self, batch):
-        query = self.session.prepare("UPDATE metadata SET score = ? WHERE crawl = ? AND fingerprint = ?")
-        cql_items = []
         for fprint, score, request, schedule in batch:
-            cql_i = (score, self.crawl_id, fprint)
-            cql_items.append(cql_i)
-        execute_concurrent_with_args(self.session, query, cql_items, concurrency=400)
-        self.counter_cls.cass_count({"scored_urls": len(cql_items)})
+            page = self.cache[fprint]
+            page.fingerprint = to_native_str(fprint)
+            page.score = score
+            self.cache[fprint] = page
+            page.batch(self.batch).save()
+        self.batch.execute()
 
 
 class States(MemoryStates):
