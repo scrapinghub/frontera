@@ -11,6 +11,9 @@ from frontera.contrib.backends.partitioners import FingerprintPartitioner, Crc32
 from frontera.contrib.messagebus.kafka.async import OffsetsFetcherAsync
 from frontera.core.messagebus import BaseMessageBus, BaseSpiderLogStream, BaseSpiderFeedStream, \
     BaseStreamConsumer, BaseScoringLogStream, BaseStreamProducer
+from twisted.internet.task import LoopingCall
+from traceback import format_tb
+
 
 logger = getLogger("messagebus.kafka")
 
@@ -43,6 +46,20 @@ class Consumer(BaseStreamConsumer):
                 self._consumer._coordinator.ensure_active_group()
 
         self._consumer._update_fetch_positions(self._partition_ids)
+        self._start_looping_call()
+
+    def _start_looping_call(self, interval=60):
+        def errback(failure):
+            logger.exception(failure.value)
+            if failure.frames:
+                logger.critical(str("").join(format_tb(failure.getTracebackObject())))
+            self._poll_task.start(interval).addErrback(errback)
+
+        self._poll_task = LoopingCall(self._poll_client)
+        self._poll_task.start(interval).addErrback(errback)
+
+    def _poll_client(self):
+        self._consumer._client.poll()
 
     def get_messages(self, timeout=0.1, count=1):
         result = []
@@ -62,6 +79,7 @@ class Consumer(BaseStreamConsumer):
         raise KeyError("Can't find partition %d", partition_id)
 
     def close(self):
+        self._poll_task.stop()
         self._consumer.commit()
         # getting kafka client event loop running some more and execute commit
         tries = 3
