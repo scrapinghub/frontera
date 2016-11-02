@@ -1,18 +1,29 @@
 import unittest
-import six
 import uuid
 from datetime import datetime
+from time import time
 
+import six
 from cassandra.cluster import Cluster
 from cassandra.cqlengine import connection
-from cassandra.cqlengine.management import drop_table, sync_table
+from cassandra.cqlengine.management import drop_keyspace, sync_table
 
 from frontera.contrib.backends.cassandra import CassandraBackend
-from frontera.contrib.backends.cassandra.models import MetadataModel, StateModel, QueueModel
+from frontera.contrib.backends.cassandra.models import (MetadataModel,
+                                                        QueueModel, StateModel)
 from frontera.settings import Settings
+from frontera.core.models import Request, Response
 
 
-class BaseCassendraTest(unittest.TestCase):
+r1 = Request('https://www.example.com', meta={b'fingerprint': b'10',
+             b'domain': {b'name': b'www.example.com', b'fingerprint': b'81'}})
+r2 = Request('http://example.com/some/page/', meta={b'fingerprint': b'11',
+             b'domain': {b'name': b'example.com', b'fingerprint': b'82'}})
+r3 = Request('http://www.scrapy.org', meta={b'fingerprint': b'12',
+             b'domain': {b'name': b'www.scrapy.org', b'fingerprint': b'83'}})
+
+
+class BaseCassandraTest(unittest.TestCase):
     def setUp(self):
         settings = Settings()
         hosts = ['127.0.0.1']
@@ -20,29 +31,22 @@ class BaseCassendraTest(unittest.TestCase):
         self.manager = type('manager', (object,), {})
         self.manager.settings = settings
         self.keyspace = settings.CASSANDRABACKEND_KEYSPACE
-        cluster = Cluster(hosts, port, control_connection_timeout=240)
+        cluster = Cluster(hosts, port)
         self.session = cluster.connect()
         self.session.execute("CREATE KEYSPACE IF NOT EXISTS %s WITH "
-                             "replication = {'class':'SimpleStrategy', 'replication_factor' : 3}" % self.keyspace)
-        connection.setup(hosts, self.keyspace, port=port, control_connection_timeout=240)
+                             "replication = {'class':'SimpleStrategy', 'replication_factor' : 1}" % self.keyspace)
         self.session.set_keyspace(self.keyspace)
+        timeout = settings.CASSANDRABACKEND_REQUEST_TIMEOUT
+        connection.setup(hosts, self.keyspace, port=port)
+        self.session.default_timeout = connection.session.default_timeout = timeout
 
     def tearDown(self):
-        tables = self._get_tables()
-        models = [MetadataModel, StateModel, QueueModel]
-        for model in models:
-            if model.__table_name__ in tables:
-                # self.session.execute('DROP TABLE {0};'.format(model.column_family_name()), timeout=240)
-                drop_table(model)
+        drop_keyspace(self.keyspace)
         self.session.shutdown()
 
-    def _get_tables(self):
-        query = self.session.prepare('SELECT table_name FROM system_schema.tables WHERE keyspace_name = ?')
-        result = self.session.execute(query, (self.session.keyspace,))
-        return [row.table_name for row in result.current_rows]
 
+class TestCassandraBackendModels(BaseCassandraTest):
 
-class TestCassandraBackendModels(BaseCassendraTest):
     def test_pickled_fields(self):
         sync_table(MetadataModel)
         m = MetadataModel(fingerprint='fingerprint',
@@ -74,14 +78,14 @@ class TestCassandraBackendModels(BaseCassendraTest):
             'cookies': {'cookies': 'cookies'},
             'method': 'GET',
         }
-        self.assert_db_values(MetadataModel, 'fingerprint', fields)
+        self.assert_db_values(MetadataModel, {'fingerprint': fields['fingerprint']}, fields)
 
     def test_state_model(self):
         fields = {
             'fingerprint': 'fingerprint',
             'state': 1
         }
-        self.assert_db_values(StateModel, 'fingerprint', fields)
+        self.assert_db_values(StateModel, {'fingerprint': fields['fingerprint']}, fields)
 
     def test_queue_model(self):
         fields = {
@@ -95,25 +99,34 @@ class TestCassandraBackendModels(BaseCassendraTest):
             'headers': {'headers': 'headers'},
             'cookies': {'cookies': 'cookies'},
             'method': 'GET',
-            'created_at': datetime.now(),
+            'created_at': int(time()*1E+6),
             'depth': 0,
         }
-        self.assert_db_values(QueueModel, 'id', fields)
+        self.assert_db_values(QueueModel, {'id': fields['id']}, fields)
 
-    def assert_db_values(self, model, primary_key, fields):
+    def assert_db_values(self, model, _filter, fields):
         sync_table(model)
         m = model(**fields)
         m.save()
-        stored_obj = m.get(fingerprint=fields[primary_key])
+        stored_obj = m.get(**_filter)
         for field, original_value in six.iteritems(fields):
             stored_value = getattr(stored_obj, field)
             if isinstance(original_value, dict):
                 self.assertDictEqual(stored_value, original_value)
+            elif isinstance(original_value, datetime):
+                self.assertEqual(stored_value.ctime(), original_value.ctime())
+            elif isinstance(original_value, float):
+                self.assertAlmostEquals(stored_value, original_value)
             else:
                 self.assertEqual(stored_value, original_value)
 
 
-class TestCassandraBackend(BaseCassendraTest):
+class TestCassandraBackend(BaseCassandraTest):
+
+    def _get_tables(self):
+        query = self.session.prepare('SELECT table_name FROM system_schema.tables WHERE keyspace_name = ?')
+        result = self.session.execute(query, (self.session.keyspace,))
+        return [row.table_name for row in result.current_rows]
 
     def test_tables_created(self):
         tables_before = self._get_tables()
@@ -139,3 +152,22 @@ class TestCassandraBackend(BaseCassendraTest):
         self.assertEqual(set(tables_before), set(['metadata', 'states', 'queue']))
         rows_after = _get_state_data()
         self.assertEqual(rows_after.count(), 0)
+
+    def test_metadata(self):
+        b = CassandraBackend(self.manager)
+        metadata = b.metadata
+        metadata.add_seeds([r1, r2, r3])
+        meta_qs = MetadataModel.objects.all()
+        self.assertEqual(set([r1.url, r2.url, r3.url]), set([m.url for m in meta_qs]))
+        resp = Response('https://www.example.com', request=r1)
+        metadata.page_crawled(resp)
+        stored_response = meta_qs.get(fingerprint='10')
+        self.assertEqual(stored_response.status_code, 200)
+        metadata.request_error(r3, 'error')
+        stored_error = meta_qs.get(fingerprint='12')
+        self.assertEqual(stored_error.error, 'error')
+        batch = {r2.meta[b'fingerprint']: [0.8, r2.url, False]}
+        metadata.update_score(batch)
+        stored_score = meta_qs.get(fingerprint='11')
+        self.assertAlmostEquals(stored_score.score, 0.8)
+        self.assertEqual(meta_qs.count(), 3)

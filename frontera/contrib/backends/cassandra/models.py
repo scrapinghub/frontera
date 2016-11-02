@@ -3,19 +3,31 @@ import pickle
 import six
 
 from cassandra.cqlengine.columns import (UUID, BigInt, Bytes, DateTime, Float,
-                                         Integer, Map, SmallInt, Text)
+                                         Integer, SmallInt, Text)
 from cassandra.cqlengine.models import Model
 
 
-class Pickle(Bytes):
+class PickleDict(Bytes):
+    """
+    PickleDict applies Python's ``pickle.dumps()`` to incoming objects
+    if the value received is a dict, and ``pickle.loads()`` on the way out.
+    """
 
     def to_database(self, value):
-        value = self._pickle_object(value)
-        return super(Pickle, self).to_database(value)
+        if value is None:
+            return
+        if isinstance(value, dict):
+            value = self._pickle_object(value)
+        return super(PickleDict, self).to_database(value)
 
     def to_python(self, value):
-        value = super(Pickle, self).to_python(value)
-        return self._unpickle_object(value)
+        value = super(PickleDict, self).to_python(value)
+        if value is None:
+            return
+        try:
+            return self._unpickle_object(value)
+        except TypeError:
+            return value
 
     def _pickle_object(self, obj):
         pickled = pickle.dumps(obj)
@@ -37,9 +49,9 @@ class MetadataModel(Model):
     status_code = Integer()
     score = Float()
     error = Text()
-    meta = Pickle()
-    headers = Pickle()
-    cookies = Pickle()
+    meta = PickleDict()
+    headers = PickleDict()
+    cookies = PickleDict()
     method = Text()
 
     def __repr__(self):
@@ -60,14 +72,14 @@ class QueueModel(Model):
     __table_name__ = 'queue'
 
     id = UUID(primary_key=True)
-    partition_id = Integer(required=True)
+    partition_id = Integer(primary_key=True)
     score = Float(required=True)
     url = Text(required=True)
     fingerprint = Text(required=True)
     host_crc32 = Integer(required=True)
-    meta = Pickle()
-    headers = Pickle()
-    cookies = Pickle()
+    meta = PickleDict()
+    headers = PickleDict()
+    cookies = PickleDict()
     method = Text()
     created_at = BigInt(required=True)
     depth = SmallInt()

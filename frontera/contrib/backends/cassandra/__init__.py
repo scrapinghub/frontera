@@ -1,13 +1,12 @@
 from __future__ import absolute_import
 
 import six
-
 from cassandra.cluster import Cluster
 from cassandra.cqlengine import connection
 from cassandra.cqlengine.management import drop_table, sync_table
-from cassandra.query import dict_factory
 
-from frontera.contrib.backends import CommonStorageBackend, CommonDistributedStorageBackend
+from frontera.contrib.backends import (CommonDistributedStorageBackend,
+                                       CommonStorageBackend)
 from frontera.contrib.backends.cassandra.components import (Metadata, Queue,
                                                             States)
 from frontera.utils.misc import load_object
@@ -29,20 +28,16 @@ class CassandraBackend(CommonStorageBackend):
         self.models = dict([(name, load_object(cls)) for name, cls in six.iteritems(models)])
         cluster_kwargs = {
             'port': cluster_port,
-            'compression': True,
-            'control_connection_timeout': 240,
+            'compression': True
         }
         self.cluster = Cluster(contact_points=cluster_hosts, **cluster_kwargs)
-
         self.session = self.cluster.connect(keyspace)
-        # self.session.row_factory = dict_factory
-        # self.session.encoder.mapping[dict] = self.session.encoder.cql_encode_map_collection
         connection.setup(cluster_hosts, keyspace, **cluster_kwargs)
+        self.session.default_timeout = connection.session.default_timeout = \
+            settings.get('CASSANDRABACKEND_REQUEST_TIMEOUT')
 
-        tables = self._get_tables()
         if drop_all_tables:
             for name, table in six.iteritems(self.models):
-                if table.__table_name__ in tables:
                     drop_table(table)
 
         for name, table in six.iteritems(self.models):
@@ -53,14 +48,6 @@ class CassandraBackend(CommonStorageBackend):
                                   settings.get('CASSANDRABACKEND_CACHE_SIZE'))
         # self._states = States(self.session, self.models['StateModel'], settings.get('STATE_CACHE_SIZE_LIMIT'))
         # self._queue = self._create_queue(settings)
-
-    # def _drop_table(self, model):
-    #     self.session.execute('DROP TABLE {0};'.format(model.column_family_name()), timeout=240)
-
-    def _get_tables(self):
-        query = self.session.prepare('SELECT table_name FROM system_schema.tables WHERE keyspace_name = ?')
-        result = self.session.execute(query, (self.session.keyspace,))
-        return [row.table_name for row in result.current_rows]
 
     def frontier_stop(self):
         self.states.flush()
@@ -84,9 +71,6 @@ class Distributed(CommonDistributedStorageBackend):
         }
         self.cluster = Cluster(cluster_hosts, **cluster_kwargs)
         self.models = dict([(name, load_object(cls)) for name, cls in six.iteritems(models)])
-
-        self.session = self.cluster.connect()
-        self.session.row_factory = dict_factory
 
         self.session.set_keyspace(keyspace)
         connection.set_session(self.session)

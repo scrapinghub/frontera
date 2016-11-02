@@ -1,13 +1,17 @@
 # -*- coding: utf-8 -*-
 import logging
-import uuid
-import pickle
 import six
+import sys
+import traceback
+import uuid
 from time import time
 
 from cachetools import LRUCache
+from cassandra import (OperationTimedOut, ReadFailure, ReadTimeout,
+                       WriteFailure, WriteTimeout)
 from cassandra.concurrent import execute_concurrent_with_args
 from cassandra.cqlengine.query import BatchQuery
+from w3lib.util import to_bytes, to_native_str
 
 from frontera.contrib.backends import CreateOrModifyPageMixin
 from frontera.contrib.backends.memory import MemoryStates
@@ -18,7 +22,24 @@ from frontera.core.models import Request
 from frontera.utils.misc import chunks, get_crc32
 from frontera.utils.url import parse_domain_from_url_fast
 
-from w3lib.util import to_native_str, to_bytes
+
+def _retry(func):
+    def func_wrapper(self, *args, **kwargs):
+        tries = 5
+        count = 0
+        while count < tries:
+            try:
+                return func(self, *args, **kwargs)
+            except (OperationTimedOut, ReadTimeout, ReadFailure, WriteTimeout, WriteFailure) as exc:
+                ex_type, ex, tb = sys.exc_info()
+                tries += 1
+                self.logger.warn("{0}: {1} Backtrace: {2}".format(ex_type.__name__, ex, traceback.extract_tb(tb)))
+                del tb
+                self.logger.info("Tries left %i" % tries - count)
+
+        raise exc
+
+    return func_wrapper
 
 
 class Metadata(BaseMetadata, CreateOrModifyPageMixin):
@@ -36,37 +57,38 @@ class Metadata(BaseMetadata, CreateOrModifyPageMixin):
     def add_seeds(self, seeds):
         for seed in seeds:
             page = self._create_page(seed)
-            page.batch(self.batch).save()
-            self.cache[to_bytes(page.fingerprint)] = page
+            self._add_to_batch_and_update_cache(page)
         self.batch.execute()
 
     def request_error(self, page, error):
         page = self._modify_page(page) if page.meta[b'fingerprint'] in self.cache else self._create_page(page)
         page.error = error
-        self.cache[to_bytes(page.fingerprint)] = page
-        page.save()
+        self._add_to_batch_and_update_cache(page)
+        self.batch.execute()
 
     def page_crawled(self, response):
-        page = self._modify_page(response) if response.meta[b'fingerprint'] in self.cache else self._create_page(response)
-        self.cache[page.fingerprint] = page
-        page.save()
+        page = self._modify_page(response) \
+            if response.meta[b'fingerprint'] in self.cache else self._create_page(response)
+        self._add_to_batch_and_update_cache(page)
+        self.batch.execute()
 
     def links_extracted(self, request, links):
         for link in links:
             if link.meta[b'fingerprint'] not in self.cache:
                 page = self._create_page(link)
-                self.cache[link.meta[b'fingerprint']] = page
-                page.batch(self.batch).save()
+                self._add_to_batch_and_update_cache(page)
         self.batch.execute()
 
     def update_score(self, batch):
-        for fprint, score, request, schedule in batch:
+        for fprint, (score, url, schedule) in six.iteritems(batch):
             page = self.cache[fprint]
             page.fingerprint = to_native_str(fprint)
             page.score = score
-            self.cache[fprint] = page
-            page.batch(self.batch).save()
+            self._add_to_batch_and_update_cache(page)
         self.batch.execute()
+
+    def _add_to_batch_and_update_cache(self, page):
+        self.cache[to_bytes(page.fingerprint)] = page.batch(self.batch).save()
 
 
 class States(MemoryStates):
