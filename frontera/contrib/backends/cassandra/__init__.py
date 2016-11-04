@@ -38,15 +38,17 @@ class CassandraBackend(CommonStorageBackend):
 
         if drop_all_tables:
             for name, table in six.iteritems(self.models):
-                    drop_table(table)
+                drop_table(table)
 
         for name, table in six.iteritems(self.models):
-                sync_table(table)
+            sync_table(table)
 
         self._metadata = Metadata(self.session,
                                   self.models['MetadataModel'],
                                   settings.get('CASSANDRABACKEND_CACHE_SIZE'))
-        # self._states = States(self.session, self.models['StateModel'], settings.get('STATE_CACHE_SIZE_LIMIT'))
+        self._states = States(self.session,
+                              self.models['StateModel'],
+                              settings.get('STATE_CACHE_SIZE_LIMIT'))
         # self._queue = self._create_queue(settings)
 
     def frontier_stop(self):

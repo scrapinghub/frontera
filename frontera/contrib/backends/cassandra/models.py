@@ -24,6 +24,8 @@ class PickleDict(Bytes):
         value = super(PickleDict, self).to_python(value)
         if value is None:
             return
+        if isinstance(value, dict):
+            return value
         try:
             return self._unpickle_object(value)
         except TypeError:

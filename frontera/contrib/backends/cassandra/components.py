@@ -93,32 +93,31 @@ class Metadata(BaseMetadata, CreateOrModifyPageMixin):
 
 class States(MemoryStates):
 
-    def __init__(self, session, model_cls, cache_size_limit, crawl_id):
+    def __init__(self, session, model_cls, cache_size_limit):
         super(States, self).__init__(cache_size_limit)
         self.session = session
         self.model = model_cls
+        self.batch = BatchQuery()
         self.logger = logging.getLogger("frontera.contrib.backends.cassandra.components.States")
-        self.crawl_id = crawl_id
 
     def frontier_stop(self):
-        pass
+        self.flush()
 
     def fetch(self, fingerprints):
-        to_fetch = [f for f in fingerprints if f not in self._cache]
+        to_fetch = [to_native_str(f) for f in fingerprints if f not in self._cache]
         self.logger.debug("cache size %s", len(self._cache))
         self.logger.debug("to fetch %d from %d", (len(to_fetch), len(fingerprints)))
 
         for chunk in chunks(to_fetch, 128):
-            for state in self.model.objects.filter(crawl=self.crawl_id, fingerprint__in=chunk):
-                self._cache[state.fingerprint] = state.state
+            for state in self.model.objects.filter(fingerprint__in=chunk):
+                self._cache[to_bytes(state.fingerprint)] = state.state
 
     def flush(self, force_clear=False):
-        query = self.session.prepare("INSERT INTO states (id, fingerprint, state) VALUES (?, ?, ?)")
-        cql_items = []
-        for fingerprint, state_val in self._cache.iteritems():
-            cql_i = (uuid.uuid4(), fingerprint, state_val)
-            cql_items.append(cql_i)
-        execute_concurrent_with_args(self.session, query, cql_items, concurrency=20000)
+        for fingerprint, state_val in six.iteritems(self._cache):
+            state = self.model(fingerprint=to_native_str(fingerprint), state=state_val)
+            state.batch(self.batch).save()
+        self.batch.execute()
+        self.logger.debug("State cache has been flushed.")
         super(States, self).flush(force_clear)
 
 
