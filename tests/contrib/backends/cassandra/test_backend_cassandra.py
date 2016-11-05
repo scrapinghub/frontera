@@ -33,12 +33,13 @@ class BaseCassandraTest(unittest.TestCase):
         self.manager = type('manager', (object,), {})
         self.manager.settings = settings
         self.keyspace = settings.CASSANDRABACKEND_KEYSPACE
+        timeout = settings.CASSANDRABACKEND_REQUEST_TIMEOUT
         cluster = Cluster(hosts, port)
         self.session = cluster.connect()
         self.session.execute("CREATE KEYSPACE IF NOT EXISTS %s WITH "
-                             "replication = {'class':'SimpleStrategy', 'replication_factor' : 1}" % self.keyspace)
+                             "replication = {'class':'SimpleStrategy', 'replication_factor' : 1}" % self.keyspace,
+                             timeout=timeout)
         self.session.set_keyspace(self.keyspace)
-        timeout = settings.CASSANDRABACKEND_REQUEST_TIMEOUT
         connection.setup(hosts, self.keyspace, port=port)
         self.session.default_timeout = connection.session.default_timeout = timeout
 
@@ -110,7 +111,7 @@ class TestCassandraBackendModels(BaseCassandraTest):
         sync_table(model)
         m = model(**fields)
         m.save()
-        stored_obj = m.get(**_filter)
+        stored_obj = m.objects.allow_filtering().get(**_filter)
         for field, original_value in six.iteritems(fields):
             stored_value = getattr(stored_obj, field)
             if isinstance(original_value, dict):
@@ -198,3 +199,21 @@ class TestCassandraBackend(BaseCassandraTest):
         self.assertEqual(r4.meta[b'state'], States.CRAWLED)
         state.flush(True)
         self.assertEqual(state._cache, {})
+
+    def test_queue(self):
+        self.manager.settings.SPIDER_FEED_PARTITIONS = 2
+        b = CassandraBackend(self.manager)
+        queue = b.queue
+        batch = [('10', 0.5, r1, True), ('11', 0.6, r2, True),
+                 ('12', 0.7, r3, True)]
+        queue.schedule(batch)
+        self.assertEqual(set([r.url for r in queue.get_next_requests(10, 0,
+                                                                     min_requests=3,
+                                                                     min_hosts=1,
+                                                                     max_requests_per_host=10)]),
+                         set([r3.url]))
+        self.assertEqual(set([r.url for r in queue.get_next_requests(10, 1,
+                                                                     min_requests=3,
+                                                                     min_hosts=1,
+                                                                     max_requests_per_host=10)]),
+                         set([r1.url, r2.url]))

@@ -73,9 +73,10 @@ class StateModel(Model):
 class QueueModel(Model):
     __table_name__ = 'queue'
 
-    id = UUID(primary_key=True)
     partition_id = Integer(primary_key=True)
-    score = Float(required=True)
+    score = Float(primary_key=True)
+    created_at = BigInt(primary_key=True)
+    id = UUID(primary_key=True)
     url = Text(required=True)
     fingerprint = Text(required=True)
     host_crc32 = Integer(required=True)
@@ -83,7 +84,6 @@ class QueueModel(Model):
     headers = PickleDict()
     cookies = PickleDict()
     method = Text()
-    created_at = BigInt(required=True)
     depth = SmallInt()
 
     def __repr__(self):

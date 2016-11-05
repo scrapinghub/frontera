@@ -9,9 +9,7 @@ from time import time
 from cachetools import LRUCache
 from cassandra import (OperationTimedOut, ReadFailure, ReadTimeout,
                        WriteFailure, WriteTimeout)
-from cassandra.concurrent import execute_concurrent_with_args
 from cassandra.cqlengine.query import BatchQuery
-from w3lib.util import to_bytes, to_native_str
 
 from frontera.contrib.backends import CreateOrModifyPageMixin
 from frontera.contrib.backends.memory import MemoryStates
@@ -21,6 +19,8 @@ from frontera.core.components import Queue as BaseQueue
 from frontera.core.models import Request
 from frontera.utils.misc import chunks, get_crc32
 from frontera.utils.url import parse_domain_from_url_fast
+
+from w3lib.util import to_bytes, to_native_str
 
 
 def _retry(func):
@@ -122,21 +122,26 @@ class States(MemoryStates):
 
 
 class Queue(BaseQueue):
-    def __init__(self, session, queue_cls, partitions, crawl_id, generate_stats, ordering='default'):
+
+    def __init__(self, session, queue_cls, partitions, ordering='default'):
         self.session = session
         self.queue_model = queue_cls
         self.logger = logging.getLogger("frontera.contrib.backends.cassandra.components.Queue")
         self.partitions = [i for i in range(0, partitions)]
         self.partitioner = Crc32NamePartitioner(self.partitions)
         self.ordering = ordering
+        self.batch = BatchQuery()
 
     def frontier_stop(self):
         pass
 
-    def _order_by(self):
+    def _order_by(self, query):
         if self.ordering == 'created':
-            return "created_at"
-        return "created_at"
+            return query.order_by('created_at')
+        if self.ordering == 'created_desc':
+            return query.order_by('-created_at')
+        return query.order_by('score', 'created_at')  # TODO: remove second parameter,
+        # it's not necessary for proper crawling, but needed for tests
 
     def get_next_requests(self, max_n_requests, partition_id, **kwargs):
         """
@@ -148,53 +153,19 @@ class Queue(BaseQueue):
         """
         results = []
         try:
-            dequeued_urls = 0
-            cql_ditems = []
-            d_query = self.session.prepare("DELETE FROM queue WHERE crawl = ? AND fingerprint = ? AND partition_id = ? "
-                                           "AND score = ? AND created_at = ?")
-            for item in self.queue_model.objects.filter(crawl=self.crawl_id, partition_id=partition_id).\
-                    order_by("partition_id", "score", self._order_by()).limit(max_n_requests):
-                method = 'GET' if not item.method else item.method
-
-                meta_dict2 = dict((name, getattr(item.meta, name)) for name in dir(item.meta)
-                                  if not name.startswith('__'))
-                # TODO: How the result can be an dict not an object -> Objects get error while encodeing for Message Bus
-                # If I take meta_dict2 direct to Request i get the same error message
-
-                meta_dict = dict()
-                meta_dict["fingerprint"] = meta_dict2["fingerprint"]
-                meta_dict["domain"] = meta_dict2["domain"]
-                meta_dict["origin_is_frontier"] = meta_dict2["origin_is_frontier"]
-                meta_dict["scrapy_callback"] = meta_dict2["scrapy_callback"]
-                meta_dict["scrapy_errback"] = meta_dict2["scrapy_errback"]
-                meta_dict["scrapy_meta"] = meta_dict2["scrapy_meta"]
-                meta_dict["score"] = meta_dict2["score"]
-                meta_dict["jid"] = meta_dict2["jid"]
-
-                r = Request(item.url, method=method, meta=meta_dict, headers=item.headers, cookies=item.cookies)
-                r.meta['fingerprint'] = item.fingerprint
-                r.meta['score'] = item.score
+            for item in self._order_by(self.queue_model.filter(partition_id=partition_id).allow_filtering()).limit(max_n_requests):
+                method = item.method or b'GET'
+                r = Request(item.url, method=method, meta=item.meta, headers=item.headers, cookies=item.cookies)
+                r.meta[b'fingerprint'] = to_bytes(item.fingerprint)
+                r.meta[b'score'] = item.score
                 results.append(r)
-
-                cql_d = (item.crawl, item.fingerprint, item.partition_id, item.score, item.created_at)
-                cql_ditems.append(cql_d)
-                dequeued_urls += 1
-
-            if dequeued_urls > 0:
-                execute_concurrent_with_args(self.session, d_query, cql_ditems, concurrency=200)
-
-            self.counter_cls.cass_count({"dequeued_urls": dequeued_urls})
-
+                item.batch(self.batch).delete()
+            self.batch.execute()
         except Exception as exc:
             self.logger.exception(exc)
-
         return results
 
     def schedule(self, batch):
-        query = self.session.prepare("INSERT INTO queue (id, fingerprint, score, partition_id, host_crc32, url, "
-                                     "created_at, meta, depth, headers, method, cookies) "
-                                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-        cql_items = []
         for fprint, score, request, schedule in batch:
             if schedule:
                 _, hostname, _, _, _, _ = parse_domain_from_url_fast(request.url)
@@ -205,35 +176,23 @@ class Queue(BaseQueue):
                 else:
                     partition_id = self.partitioner.partition(hostname, self.partitions)
                     host_crc32 = get_crc32(hostname)
-                created_at = time()*1E+6
-
-                if "domain" not in request.meta:
-                    request.meta["domain"] = {}
-                if "origin_is_frontier" not in request.meta:
-                    request.meta["origin_is_frontier"] = ''
-                if "scrapy_callback" not in request.meta:
-                    request.meta["scrapy_callback"] = None
-                if "scrapy_errback" not in request.meta:
-                    request.meta["scrapy_errback"] = None
-                if "scrapy_meta" not in request.meta:
-                    request.meta["scrapy_meta"] = {}
-                if "score" not in request.meta:
-                    request.meta["score"] = 0
-                if "jid" not in request.meta:
-                    request.meta["jid"] = 0
-
-                cql_i = (uuid.uuid4(), fprint, score, partition_id, host_crc32, request.url, created_at,
-                         request.meta, 0, request.headers, request.method, request.cookies)
-                cql_items.append(cql_i)
-
-                request.meta['state'] = States.QUEUED
-
-        execute_concurrent_with_args(self.session, query, cql_items, concurrency=400)
-        self.counter_cls.cass_count({"queued_urls": len(cql_items)})
+                q = self.queue_model(id=uuid.uuid4(),
+                                     fingerprint=to_native_str(fprint),
+                                     score=score,
+                                     url=request.url,
+                                     meta=request.meta,
+                                     headers=request.headers,
+                                     cookies=request.cookies,
+                                     method=to_native_str(request.method),
+                                     partition_id=partition_id,
+                                     host_crc32=host_crc32,
+                                     created_at=time() * 1E+6)
+                q.batch(self.batch).save()
+                request.meta[b'state'] = States.QUEUED
+        self.batch.execute()
 
     def count(self):
-        count = self.queue_model.objects.filter().count()
-        return count
+        return self.queue_model.all().count()
 
 
 class BroadCrawlingQueue(Queue):
@@ -265,12 +224,11 @@ class BroadCrawlingQueue(Queue):
         while tries < self.GET_RETRIES:
             tries += 1
             limit *= 5.5 if tries > 1 else 1.0
-            self.logger.debug("Try %d, limit %d, last attempt: requests %d, hosts %d" %
-                              (tries, limit, count, len(queue.keys())))
+            self.logger.debug("Try %d, limit %d, last attempt: requests %d, hosts %d",
+                              tries, limit, count, len(queue.keys()))
             queue.clear()
             count = 0
-            for item in self.queue_model.objects.filter(crawl=self.crawl_id, partition_id=partition_id).\
-                    order_by("crawl", "score", self._order_by()).limit(limit):
+            for item in self._order_by(self.queue_model.filter(partition_id=partition_id)).limit(max_n_requests):
                 if item.host_crc32 not in queue:
                     queue[item.host_crc32] = []
                 if max_requests_per_host is not None and len(queue[item.host_crc32]) > max_requests_per_host:
@@ -284,13 +242,14 @@ class BroadCrawlingQueue(Queue):
             if min_requests is not None and count < min_requests:
                 continue
             break
-        self.logger.debug("Finished: tries %d, hosts %d, requests %d" % (tries, len(queue.keys()), count))
+        self.logger.debug("Finished: tries %d, hosts %d, requests %d", tries, len(queue.keys()), count)
 
         results = []
-        for items in queue.itervalues():
+        for items in six.itervalues(queue):
             for item in items:
-                method = 'GET' if not item.method else item.method
-                results.append(Request(item.url, method=method, meta=item.meta, headers=item.headers,
-                                       cookies=item.cookies))
-                item.delete()
+                method = item.method or b'GET'
+                results.append(Request(item.url, method=method,
+                                       meta=item.meta, headers=item.headers, cookies=item.cookies))
+                item.batch(self.batch).delete()
+        self.batch.execute()
         return results

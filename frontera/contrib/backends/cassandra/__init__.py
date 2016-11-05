@@ -49,7 +49,7 @@ class CassandraBackend(CommonStorageBackend):
         self._states = States(self.session,
                               self.models['StateModel'],
                               settings.get('STATE_CACHE_SIZE_LIMIT'))
-        # self._queue = self._create_queue(settings)
+        self._queue = self._create_queue(settings)
 
     def frontier_stop(self):
         self.states.flush()
@@ -93,8 +93,7 @@ class Distributed(CommonDistributedStorageBackend):
 
         sync_table(model)
 
-        b._states = States(b.session, model,
-                           settings.get('STATE_CACHE_SIZE_LIMIT'))
+        b._states = States(b.session, model, settings.get('STATE_CACHE_SIZE_LIMIT'))
         return b
 
     @classmethod
