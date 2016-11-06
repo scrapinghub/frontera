@@ -14,7 +14,8 @@ CASSANDRABACKEND_DROP_ALL_TABLES = False
 CASSANDRABACKEND_MODELS = {
     'MetadataModel': 'frontera.contrib.backends.cassandra.models.MetadataModel',
     'StateModel': 'frontera.contrib.backends.cassandra.models.StateModel',
-    'QueueModel': 'frontera.contrib.backends.cassandra.models.QueueModel'
+    'QueueModel': 'frontera.contrib.backends.cassandra.models.QueueModel',
+    'FifoOrLIfoQueueModel': 'frontera.contrib.backends.cassandra.models.FifoOrLIfoQueueModel',
 }
 CASSANDRABACKEND_REVISIT_INTERVAL = timedelta(days=1)
 CASSANDRABACKEND_CLUSTER_HOSTS = ['127.0.0.1']

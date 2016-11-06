@@ -6,14 +6,19 @@ from time import time
 import six
 from cassandra.cluster import Cluster
 from cassandra.cqlengine import connection
-from cassandra.cqlengine.management import drop_keyspace, sync_table
+from cassandra.cqlengine.management import (create_keyspace_simple,
+                                            drop_keyspace, drop_table,
+                                            sync_table)
 
 from frontera.contrib.backends.cassandra import CassandraBackend
-from frontera.contrib.backends.cassandra.models import (MetadataModel,
+from frontera.contrib.backends.cassandra.models import (FifoOrLIfoQueueModel,
+                                                        MetadataModel,
                                                         QueueModel, StateModel)
-from frontera.core.models import Request, Response
 from frontera.core.components import States
+from frontera.core.models import Request, Response
 from frontera.settings import Settings
+from tests import backends
+
 
 r1 = Request('https://www.example.com', meta={b'fingerprint': b'10',
              b'domain': {b'name': b'www.example.com', b'fingerprint': b'81'}})
@@ -24,7 +29,7 @@ r3 = Request('http://www.scrapy.org', meta={b'fingerprint': b'12',
 r4 = r3.copy()
 
 
-class BaseCassandraTest(unittest.TestCase):
+class BaseCassandraTest(object):
 
     def setUp(self):
         settings = Settings()
@@ -36,19 +41,20 @@ class BaseCassandraTest(unittest.TestCase):
         timeout = settings.CASSANDRABACKEND_REQUEST_TIMEOUT
         cluster = Cluster(hosts, port)
         self.session = cluster.connect()
-        self.session.execute("CREATE KEYSPACE IF NOT EXISTS %s WITH "
-                             "replication = {'class':'SimpleStrategy', 'replication_factor' : 1}" % self.keyspace,
-                             timeout=timeout)
+        if not connection.cluster:
+            connection.setup(hosts, self.keyspace, port=port)
+            connection.session.default_timeout = timeout
+        create_keyspace_simple(self.keyspace, 1)
         self.session.set_keyspace(self.keyspace)
-        connection.setup(hosts, self.keyspace, port=port)
-        self.session.default_timeout = connection.session.default_timeout = timeout
+        self.session.default_timeout = timeout
+        connection.session.set_keyspace(self.keyspace)
 
     def tearDown(self):
         drop_keyspace(self.keyspace)
         self.session.shutdown()
 
 
-class TestCassandraBackendModels(BaseCassandraTest):
+class TestCassandraBackendModels(BaseCassandraTest, unittest.TestCase):
 
     def test_pickled_fields(self):
         sync_table(MetadataModel)
@@ -105,7 +111,9 @@ class TestCassandraBackendModels(BaseCassandraTest):
             'created_at': int(time()*1E+6),
             'depth': 0,
         }
-        self.assert_db_values(QueueModel, {'id': fields['id']}, fields)
+        for model in [FifoOrLIfoQueueModel, QueueModel]:
+            self.assert_db_values(model, {'id': fields['id']}, fields)
+            drop_table(model)
 
     def assert_db_values(self, model, _filter, fields):
         sync_table(model)
@@ -124,7 +132,7 @@ class TestCassandraBackendModels(BaseCassandraTest):
                 self.assertEqual(stored_value, original_value)
 
 
-class TestCassandraBackend(BaseCassandraTest):
+class TestCassandraBackend(BaseCassandraTest, unittest.TestCase):
 
     def _get_tables(self):
         query = self.session.prepare('SELECT table_name FROM system_schema.tables WHERE keyspace_name = ?')
@@ -217,3 +225,29 @@ class TestCassandraBackend(BaseCassandraTest):
                                                                      min_hosts=1,
                                                                      max_requests_per_host=10)]),
                          set([r1.url, r2.url]))
+
+
+class BaseCassandraIntegrationTests(object):
+    obj = BaseCassandraTest()
+
+    def setup_backend(self, method):
+        self.obj.setUp()
+
+    def teardown_backend(self, method):
+        self.obj.tearDown()
+
+
+class TestCassandraFIFOBackend(BaseCassandraIntegrationTests, backends.FIFOBackendTest):
+    backend_class = 'frontera.contrib.backends.cassandra.FIFO'
+
+
+class TestCassandraLIFOBackend(BaseCassandraIntegrationTests, backends.LIFOBackendTest):
+    backend_class = 'frontera.contrib.backends.cassandra.LIFO'
+
+
+class TestCassandraDFSBackend(BaseCassandraIntegrationTests, backends.DFSBackendTest):
+    backend_class = 'frontera.contrib.backends.cassandra.DFS'
+
+
+class TestCassandraBFSBackend(BaseCassandraIntegrationTests, backends.BFSBackendTest):
+    backend_class = 'frontera.contrib.backends.cassandra.BFS'

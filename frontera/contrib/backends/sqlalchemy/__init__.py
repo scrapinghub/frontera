@@ -12,8 +12,6 @@ from frontera.utils.misc import load_object
 
 class SQLAlchemyBackend(CommonStorageBackend):
 
-    queue_component = Queue
-
     def __init__(self, manager):
         self.manager = manager
         settings = manager.settings
@@ -47,6 +45,9 @@ class SQLAlchemyBackend(CommonStorageBackend):
     def frontier_stop(self):
         super(SQLAlchemyBackend, self).frontier_stop()
         self.engine.dispose()
+
+    def _create_queue(self, settings):
+        return Queue(self.session, self.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'))
 
 
 class FIFOBackend(SQLAlchemyBackend):

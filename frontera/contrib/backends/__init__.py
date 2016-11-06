@@ -92,15 +92,6 @@ class CommonBackend(Backend):
 
 class CommonStorageBackend(CommonBackend):
 
-    def _create_queue(self, settings):
-        if not issubclass(self.queue_component, BaseQueue):
-            raise TypeError('expected queue_component to '
-                            'belong to class: %s, got %s instead' % (type(BaseQueue).__name__,
-                                                                     type(self.queue_component).__name__))
-        return self.queue_component(self.session,
-                                    self.models['QueueModel'],
-                                    settings.get('SPIDER_FEED_PARTITIONS'))
-
     @property
     def queue(self):
         return self._queue

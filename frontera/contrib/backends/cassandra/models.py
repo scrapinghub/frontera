@@ -88,3 +88,27 @@ class QueueModel(Model):
 
     def __repr__(self):
         return '<Queue:%s (%s)>' % (self.url, self.id)
+
+
+class FifoOrLIfoQueueModel(Model):
+    # Separate models are needed as
+    # order_by is supported on columns
+    # only in the order, the clustering
+    # keys were created
+
+    # Also Inheriting model has some runtime issues
+    # mostly a bug in the driver
+    # Hence the duplicate code
+
+    partition_id = Integer(primary_key=True)
+    score = Float(required=True)
+    created_at = BigInt(primary_key=True)
+    id = UUID(primary_key=True)
+    url = Text(required=True)
+    fingerprint = Text(required=True)
+    host_crc32 = Integer(required=True)
+    meta = PickleDict()
+    headers = PickleDict()
+    cookies = PickleDict()
+    method = Text()
+    depth = SmallInt()

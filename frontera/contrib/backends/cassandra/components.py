@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
 import logging
-import six
-import sys
-import traceback
 import uuid
 from time import time
 
+import six
 from cachetools import LRUCache
-from cassandra import (OperationTimedOut, ReadFailure, ReadTimeout,
-                       WriteFailure, WriteTimeout)
+from cassandra.cqlengine.management import sync_table
 from cassandra.cqlengine.query import BatchQuery
+from w3lib.util import to_bytes, to_native_str
 
 from frontera.contrib.backends import CreateOrModifyPageMixin
 from frontera.contrib.backends.memory import MemoryStates
@@ -20,36 +18,15 @@ from frontera.core.models import Request
 from frontera.utils.misc import chunks, get_crc32
 from frontera.utils.url import parse_domain_from_url_fast
 
-from w3lib.util import to_bytes, to_native_str
-
-
-def _retry(func):
-    def func_wrapper(self, *args, **kwargs):
-        tries = 5
-        count = 0
-        while count < tries:
-            try:
-                return func(self, *args, **kwargs)
-            except (OperationTimedOut, ReadTimeout, ReadFailure, WriteTimeout, WriteFailure) as exc:
-                ex_type, ex, tb = sys.exc_info()
-                tries += 1
-                self.logger.warn("{0}: {1} Backtrace: {2}".format(ex_type.__name__, ex, traceback.extract_tb(tb)))
-                del tb
-                self.logger.info("Tries left %i" % tries - count)
-
-        raise exc
-
-    return func_wrapper
-
 
 class Metadata(BaseMetadata, CreateOrModifyPageMixin):
 
-    def __init__(self, session, model_cls, cache_size):
-        self.session = session
+    def __init__(self, model_cls, cache_size):
         self.model = model_cls
         self.cache = LRUCache(cache_size)
         self.batch = BatchQuery()
         self.logger = logging.getLogger("frontera.contrib.backends.cassandra.components.Metadata")
+        sync_table(model_cls)
 
     def frontier_stop(self):
         pass
@@ -80,7 +57,9 @@ class Metadata(BaseMetadata, CreateOrModifyPageMixin):
         self.batch.execute()
 
     def update_score(self, batch):
-        for fprint, (score, url, schedule) in six.iteritems(batch):
+        if isinstance(batch, dict):
+            batch = [(fprint, score, url, schedule) for fprint, (score, url, schedule) in six.iteritems(batch)]
+        for fprint, score, url, schedule in batch:
             page = self.cache[fprint]
             page.fingerprint = to_native_str(fprint)
             page.score = score
@@ -93,12 +72,12 @@ class Metadata(BaseMetadata, CreateOrModifyPageMixin):
 
 class States(MemoryStates):
 
-    def __init__(self, session, model_cls, cache_size_limit):
+    def __init__(self, model_cls, cache_size_limit):
         super(States, self).__init__(cache_size_limit)
-        self.session = session
         self.model = model_cls
         self.batch = BatchQuery()
         self.logger = logging.getLogger("frontera.contrib.backends.cassandra.components.States")
+        sync_table(model_cls)
 
     def frontier_stop(self):
         self.flush()
@@ -106,7 +85,7 @@ class States(MemoryStates):
     def fetch(self, fingerprints):
         to_fetch = [to_native_str(f) for f in fingerprints if f not in self._cache]
         self.logger.debug("cache size %s", len(self._cache))
-        self.logger.debug("to fetch %d from %d", (len(to_fetch), len(fingerprints)))
+        self.logger.debug("to fetch %d from %d", len(to_fetch), len(fingerprints))
 
         for chunk in chunks(to_fetch, 128):
             for state in self.model.objects.filter(fingerprint__in=chunk):
@@ -123,14 +102,14 @@ class States(MemoryStates):
 
 class Queue(BaseQueue):
 
-    def __init__(self, session, queue_cls, partitions, ordering='default'):
-        self.session = session
+    def __init__(self, queue_cls, partitions, ordering='default'):
         self.queue_model = queue_cls
         self.logger = logging.getLogger("frontera.contrib.backends.cassandra.components.Queue")
         self.partitions = [i for i in range(0, partitions)]
         self.partitioner = Crc32NamePartitioner(self.partitions)
         self.ordering = ordering
         self.batch = BatchQuery()
+        sync_table(queue_cls)
 
     def frontier_stop(self):
         pass
@@ -228,7 +207,7 @@ class BroadCrawlingQueue(Queue):
                               tries, limit, count, len(queue.keys()))
             queue.clear()
             count = 0
-            for item in self._order_by(self.queue_model.filter(partition_id=partition_id)).limit(max_n_requests):
+            for item in self._order_by(self.queue_model.filter(partition_id=partition_id).allow_filtering()).limit(max_n_requests):
                 if item.host_crc32 not in queue:
                     queue[item.host_crc32] = []
                 if max_requests_per_host is not None and len(queue[item.host_crc32]) > max_requests_per_host:

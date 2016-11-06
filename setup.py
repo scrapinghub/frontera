@@ -73,7 +73,8 @@ setup(
             'Twisted'
         ],
         'cassandra': [
-            'cassandra-driver==3.7.0'
+            'cassandra-driver==3.7.0',
+            'cachetools'
         ]
     },
     tests_require=[

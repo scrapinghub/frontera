@@ -14,8 +14,6 @@ from frontera.utils.misc import load_object
 
 class CassandraBackend(CommonStorageBackend):
 
-    queue_component = Queue
-
     def __init__(self, manager):
         self.manager = manager
         settings = manager.settings
@@ -28,35 +26,70 @@ class CassandraBackend(CommonStorageBackend):
         self.models = dict([(name, load_object(cls)) for name, cls in six.iteritems(models)])
         cluster_kwargs = {
             'port': cluster_port,
-            'compression': True
+            'compression': True,
         }
-        self.cluster = Cluster(contact_points=cluster_hosts, **cluster_kwargs)
-        self.session = self.cluster.connect(keyspace)
-        connection.setup(cluster_hosts, keyspace, **cluster_kwargs)
-        self.session.default_timeout = connection.session.default_timeout = \
-            settings.get('CASSANDRABACKEND_REQUEST_TIMEOUT')
+        if not connection.cluster:
+            connection.setup(cluster_hosts, keyspace, **cluster_kwargs)
+            connection.session.default_timeout = settings.get('CASSANDRABACKEND_REQUEST_TIMEOUT')
 
         if drop_all_tables:
             for name, table in six.iteritems(self.models):
                 drop_table(table)
 
-        for name, table in six.iteritems(self.models):
-            sync_table(table)
-
-        self._metadata = Metadata(self.session,
-                                  self.models['MetadataModel'],
-                                  settings.get('CASSANDRABACKEND_CACHE_SIZE'))
-        self._states = States(self.session,
-                              self.models['StateModel'],
-                              settings.get('STATE_CACHE_SIZE_LIMIT'))
+        self._metadata = Metadata(self.models['MetadataModel'], settings.get('CASSANDRABACKEND_CACHE_SIZE'))
+        self._states = States(self.models['StateModel'], settings.get('STATE_CACHE_SIZE_LIMIT'))
         self._queue = self._create_queue(settings)
 
     def frontier_stop(self):
         self.states.flush()
-        self.session.shutdown()
+
+    def _create_queue(self, settings):
+        return Queue(self.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'))
+
+
+class FIFOBackend(CassandraBackend):
+    component_name = 'Cassandra FIFO Backend'
+
+    def _create_queue(self, settings):
+        return Queue(self.models['FifoOrLIfoQueueModel'],
+                     settings.get('SPIDER_FEED_PARTITIONS'),
+                     ordering='created')
+
+
+class LIFOBackend(CassandraBackend):
+    component_name = 'Cassandra LIFO Backend'
+
+    def _create_queue(self, settings):
+        return Queue(self.models['FifoOrLIfoQueueModel'],
+                     settings.get('SPIDER_FEED_PARTITIONS'),
+                     ordering='created_desc')
+
+
+class DFSBackend(CassandraBackend):
+    component_name = 'Cassandra DFS Backend'
+
+    def _create_queue(self, settings):
+        return Queue(self.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'))
+
+    def _get_score(self, obj):
+        return -obj.meta[b'depth']
+
+
+class BFSBackend(CassandraBackend):
+    component_name = 'Cassandra BFS Backend'
+
+    def _create_queue(self, settings):
+        return Queue(self.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'))
+
+    def _get_score(self, obj):
+        return obj.meta[b'depth']
 
 
 BASE = CassandraBackend
+LIFO = LIFOBackend
+FIFO = FIFOBackend
+DFS = DFSBackend
+BFS = BFSBackend
 
 
 class Distributed(CommonDistributedStorageBackend):
@@ -111,6 +144,6 @@ class Distributed(CommonDistributedStorageBackend):
         sync_table(metadata_m)
         sync_table(queue_m)
 
-        b._metadata = Metadata(b.session, metadata_m)
-        b._queue = Queue(b.session, queue_m, settings.get('SPIDER_FEED_PARTITIONS'))
+        b._metadata = Metadata(metadata_m)
+        b._queue = Queue(queue_m, settings.get('SPIDER_FEED_PARTITIONS'))
         return b

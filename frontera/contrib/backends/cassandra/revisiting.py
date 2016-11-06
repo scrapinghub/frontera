@@ -2,7 +2,7 @@
 import json
 import logging
 from datetime import datetime, timedelta
-from time import sleep, time
+from time import time
 
 from cassandra.cqlengine import columns
 from cassandra.cqlengine.models import Model
@@ -20,24 +20,6 @@ class RevisitingQueueModel(Model):
     __table_name__ = 'revisiting_queue'
 
     crawl_at = columns.DateTime(required=True, default=datetime.now(), index=True)
-
-
-def retry_and_rollback(func):
-    def func_wrapper(self, *args, **kwargs):
-        tries = 5
-        while True:
-            try:
-                return func(self, *args, **kwargs)
-            except Exception as exc:
-                self.logger.exception(exc)
-                sleep(5)
-                tries -= 1
-                if tries > 0:
-                    self.logger.info("Tries left %i" % tries)
-                    continue
-                else:
-                    raise exc
-    return func_wrapper
 
 
 class RevisitingQueue(BaseQueue):
@@ -64,7 +46,6 @@ class RevisitingQueue(BaseQueue):
             self.logger.exception(exc)
         return results
 
-    @retry_and_rollback
     def schedule(self, batch):
         for fprint, score, request, schedule_at in batch:
             if schedule_at:
@@ -107,7 +88,6 @@ class RevisitingQueue(BaseQueue):
 
         return db_queue
 
-    @retry_and_rollback
     def count(self):
         return self.session.query(self.queue_model).count()
 
