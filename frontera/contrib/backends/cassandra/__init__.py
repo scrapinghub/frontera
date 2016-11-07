@@ -42,6 +42,7 @@ class CassandraBackend(CommonStorageBackend):
 
     def frontier_stop(self):
         self.states.flush()
+        connection.unregister_connection('default')
 
     def _create_queue(self, settings):
         return Queue(self.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'))

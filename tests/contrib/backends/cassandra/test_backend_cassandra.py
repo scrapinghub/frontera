@@ -33,25 +33,30 @@ class BaseCassandraTest(object):
 
     def setUp(self):
         settings = Settings()
-        hosts = ['127.0.0.1']
-        port = 9042
+        self.hosts = ['127.0.0.1']
+        self.port = 9042
         self.manager = type('manager', (object,), {})
         self.manager.settings = settings
         self.keyspace = settings.CASSANDRABACKEND_KEYSPACE
-        timeout = settings.CASSANDRABACKEND_REQUEST_TIMEOUT
-        cluster = Cluster(hosts, port)
+        self.timeout = settings.CASSANDRABACKEND_REQUEST_TIMEOUT
+        cluster = Cluster(self.hosts, self.port)
         self.session = cluster.connect()
-        if not connection.cluster:
-            connection.setup(hosts, self.keyspace, port=port)
-            connection.session.default_timeout = timeout
+        self._set_global_connection(self.hosts, self.port, self.timeout)
         create_keyspace_simple(self.keyspace, 1)
         self.session.set_keyspace(self.keyspace)
-        self.session.default_timeout = timeout
+        self.session.default_timeout = self.timeout
         connection.session.set_keyspace(self.keyspace)
 
     def tearDown(self):
+        self._set_global_connection(self.hosts, self.port, self.timeout)
         drop_keyspace(self.keyspace)
         self.session.shutdown()
+        connection.unregister_connection('default')
+
+    def _set_global_connection(self, hosts, port, timeout):
+        if not connection.cluster:
+            connection.setup(hosts, self.keyspace, port=port)
+            connection.session.default_timeout = timeout
 
 
 class TestCassandraBackendModels(BaseCassandraTest, unittest.TestCase):
