@@ -6,6 +6,7 @@ from datetime import datetime
 from frontera import Backend
 from frontera.core.components import States, Queue as BaseQueue, DistributedBackend
 from frontera.core.models import Request, Response
+from frontera.utils.misc import utcnow_timestamp
 
 from w3lib.util import to_native_str
 
@@ -182,3 +183,26 @@ class CreateOrModifyPageMixin(object):
             db_page.cookies = obj.request.cookies
             db_page.status_code = obj.status_code
         return db_page
+
+
+class CommonRevisitingStorageBackendMixin(object):
+
+    def _schedule(self, requests):
+        batch = []
+        for request in requests:
+            if request.meta[b'state'] in [States.NOT_CRAWLED]:
+                request.meta[b'crawl_at'] = utcnow_timestamp()
+            elif request.meta[b'state'] in [States.CRAWLED, States.ERROR]:
+                request.meta[b'crawl_at'] = utcnow_timestamp() + self.interval
+            else:
+                continue    # QUEUED
+            batch.append((request.meta[b'fingerprint'], self._get_score(request), request, True))
+        self.queue.schedule(batch)
+        self.metadata.update_score(batch)
+        self.queue_size += len(batch)
+
+    def page_crawled(self, response):
+        super(CommonRevisitingStorageBackendMixin, self).page_crawled(response)
+        self.states.set_states(response.request)
+        self._schedule([response.request])
+        self.states.update_cache(response.request)

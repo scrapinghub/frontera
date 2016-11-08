@@ -132,7 +132,8 @@ class Queue(BaseQueue):
         """
         results = []
         try:
-            for item in self._order_by(self.queue_model.filter(partition_id=partition_id).allow_filtering()).limit(max_n_requests):
+            for item in self._order_by(self.queue_model.filter(partition_id=partition_id).
+                                               allow_filtering()).limit(max_n_requests):
                 method = item.method or b'GET'
                 r = Request(item.url, method=method, meta=item.meta, headers=item.headers, cookies=item.cookies)
                 r.meta[b'fingerprint'] = to_bytes(item.fingerprint)
@@ -207,7 +208,8 @@ class BroadCrawlingQueue(Queue):
                               tries, limit, count, len(queue.keys()))
             queue.clear()
             count = 0
-            for item in self._order_by(self.queue_model.filter(partition_id=partition_id).allow_filtering()).limit(max_n_requests):
+            for item in self._order_by(self.queue_model.filter(partition_id=partition_id).
+                                               allow_filtering()).limit(max_n_requests):
                 if item.host_crc32 not in queue:
                     queue[item.host_crc32] = []
                 if max_requests_per_host is not None and len(queue[item.host_crc32]) > max_requests_per_host:
@@ -227,8 +229,11 @@ class BroadCrawlingQueue(Queue):
         for items in six.itervalues(queue):
             for item in items:
                 method = item.method or b'GET'
-                results.append(Request(item.url, method=method,
-                                       meta=item.meta, headers=item.headers, cookies=item.cookies))
+                results.append(Request(item.url,
+                                       method=method,
+                                       meta=item.meta,
+                                       headers=item.headers,
+                                       cookies=item.cookies))
                 item.batch(self.batch).delete()
         self.batch.execute()
         return results

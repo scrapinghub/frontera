@@ -70,13 +70,9 @@ class StateModel(Model):
         return '<State:%s=%s>' % (self.fingerprint, self.state)
 
 
-class QueueModel(Model):
-    __table_name__ = 'queue'
+class BaseQueueModel(Model):
+    __abstract__ = True
 
-    partition_id = Integer(primary_key=True)
-    score = Float(primary_key=True)
-    created_at = BigInt(primary_key=True)
-    id = UUID(primary_key=True)
     url = Text(required=True)
     fingerprint = Text(required=True)
     host_crc32 = Integer(required=True)
@@ -90,25 +86,32 @@ class QueueModel(Model):
         return '<Queue:%s (%s)>' % (self.url, self.id)
 
 
-class FifoOrLIfoQueueModel(Model):
-    # Separate models are needed as
-    # order_by is supported on columns
-    # only in the order, the clustering
-    # keys were created
+class QueueModel(BaseQueueModel):
+    __abstract__ = False
+    __table_name__ = 'queue'
 
-    # Also Inheriting model has some runtime issues
-    # mostly a bug in the driver
-    # Hence the duplicate code
+    partition_id = Integer(primary_key=True)
+    score = Float(primary_key=True)
+    created_at = BigInt(primary_key=True)
+    id = UUID(primary_key=True)
+
+
+class FifoOrLIfoQueueModel(BaseQueueModel):
+    __abstract__ = False
+    __table_name__ = 'fifo_lifo_queue'
 
     partition_id = Integer(primary_key=True)
     score = Float(required=True)
     created_at = BigInt(primary_key=True)
     id = UUID(primary_key=True)
-    url = Text(required=True)
-    fingerprint = Text(required=True)
-    host_crc32 = Integer(required=True)
-    meta = PickleDict()
-    headers = PickleDict()
-    cookies = PickleDict()
-    method = Text()
-    depth = SmallInt()
+
+
+class RevisitingQueueModel(BaseQueueModel):
+    __abstract__ = False
+    __table_name__ = 'revisiting_queue'
+
+    partition_id = Integer(primary_key=True)
+    crawl_at = BigInt(primary_key=True)
+    id = UUID(primary_key=True)
+    score = Float(required=True)
+    created_at = BigInt(required=True)

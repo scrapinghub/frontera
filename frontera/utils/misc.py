@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 from importlib import import_module
+from calendar import timegm
+from datetime import datetime
 from zlib import crc32
 from six.moves import range
 from w3lib.util import to_bytes
@@ -73,3 +75,8 @@ def dict_to_unicode(obj):
         return map(dict_to_unicode, obj)
     else:
         return obj
+
+
+def utcnow_timestamp():
+    d = datetime.utcnow()
+    return timegm(d.timetuple())

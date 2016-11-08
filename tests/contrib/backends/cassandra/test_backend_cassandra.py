@@ -1,6 +1,6 @@
 import unittest
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from time import time
 
 import six
@@ -18,6 +18,7 @@ from frontera.core.components import States
 from frontera.core.models import Request, Response
 from frontera.settings import Settings
 from tests import backends
+from tests.test_revisiting_backend import RevisitingBackendTest
 
 
 r1 = Request('https://www.example.com', meta={b'fingerprint': b'10',
@@ -256,3 +257,12 @@ class TestCassandraDFSBackend(BaseCassandraIntegrationTests, backends.DFSBackend
 
 class TestCassandraBFSBackend(BaseCassandraIntegrationTests, backends.BFSBackendTest):
     backend_class = 'frontera.contrib.backends.cassandra.BFS'
+
+
+class TestCassandraRevisiting(BaseCassandraIntegrationTests, RevisitingBackendTest):
+    backend_class = 'frontera.contrib.backends.cassandra.revisiting.Backend'
+
+    def get_settings(self):
+        settings = super(TestCassandraRevisiting, self).get_settings()
+        settings.CASSANDRABACKEND_REVISIT_INTERVAL = timedelta(seconds=0)
+        return settings
