@@ -1,8 +1,11 @@
 from __future__ import absolute_import
 import hashlib
 import pytest
-from frontera.utils.misc import load_object, get_crc32, chunks, to_signed32
 import six
+from datetime import datetime
+
+from frontera.utils.misc import load_object, get_crc32, chunks, to_signed32, utcnow_timestamp
+from tests import mock
 
 
 class TestGetCRC32(object):
@@ -82,3 +85,13 @@ class TestLoadObject(object):
             load_object('tests.mocks.load_objects.non_existent_object')
         assert str(info.value) == ("Module 'tests.mocks.load_objects' doesn't define"
                                    " any object named 'non_existent_object'")
+
+
+class TestUtcNowTimestamp(object):
+
+    def test(self):
+        udt = datetime(2016, 11, 11, 0, 0, 0)
+        with mock.patch('frontera.utils.misc.datetime') as mocked_datetime:
+            mocked_datetime.utcnow = mock.Mock(return_value=udt)
+            utc_tstamp = utcnow_timestamp()
+            assert utc_tstamp == 1478822400

@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 from time import time
 
 import six
-from cassandra.cluster import Cluster
 from cassandra.cqlengine import connection
 from cassandra.cqlengine.management import (create_keyspace_simple,
                                             drop_keyspace, drop_table,
@@ -40,19 +39,13 @@ class BaseCassandraTest(object):
         self.manager.settings = settings
         self.keyspace = settings.CASSANDRABACKEND_KEYSPACE
         self.timeout = settings.CASSANDRABACKEND_REQUEST_TIMEOUT
-        cluster = Cluster(self.hosts, self.port)
-        self.session = cluster.connect()
         self._set_global_connection(self.hosts, self.port, self.timeout)
         create_keyspace_simple(self.keyspace, 1)
-        self.session.set_keyspace(self.keyspace)
-        self.session.default_timeout = self.timeout
         connection.session.set_keyspace(self.keyspace)
 
     def tearDown(self):
         self._set_global_connection(self.hosts, self.port, self.timeout)
         drop_keyspace(self.keyspace)
-        self.session.shutdown()
-        connection.unregister_connection('default')
 
     def _set_global_connection(self, hosts, port, timeout):
         if not connection.cluster:
@@ -141,9 +134,9 @@ class TestCassandraBackendModels(BaseCassandraTest, unittest.TestCase):
 class TestCassandraBackend(BaseCassandraTest, unittest.TestCase):
 
     def _get_tables(self):
-        query = self.session.prepare('SELECT table_name FROM system_schema.tables WHERE keyspace_name = ?')
-        result = self.session.execute(query, (self.session.keyspace,))
-        return [row.table_name for row in result.current_rows]
+        query = 'SELECT table_name FROM system_schema.tables WHERE keyspace_name = \'{}\''.format(self.keyspace)
+        result = connection.execute(query)
+        return [row['table_name'] for row in result.current_rows]
 
     def test_tables_created(self):
         tables_before = self._get_tables()
