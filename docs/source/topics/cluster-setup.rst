@@ -32,7 +32,7 @@ Create all topics needed for Kafka message bus
   strategy worker instances,
 * :term:`spider feed` (`frontier-todo` (see :setting:`OUTGOING_TOPIC`)), set the number of partitions equal to number of
   spider instances,
-* :term:`scoring log` (:setting:`SCORING_TOPIC` setting)
+* :term:`scoring log` (`frontier-score` (see :setting:`SCORING_TOPIC` setting))
 
 
 Configuring HBase
