@@ -492,6 +492,36 @@ documents scheduled after the change. All previously queued documents will be cr
 Cassandra
 ---------
 
+.. setting:: CASSANDRABACKEND_CACHE_SIZE
+
+CASSANDRABACKEND_CACHE_SIZE
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Default:: ``10000``
+
+Cassandra Metadata LRU Cache size. It's used for caching objects, which are requested from DB every time already known,
+documents are crawled. This is mainly saves DB throughput, increase it if you're experiencing problems with too high
+volume of SELECT's to Metadata table, or decrease if you need to save memory.
+
+
+.. setting:: CASSANDRABACKEND_CLUSTER_HOSTS
+
+CASSANDRABACKEND_CLUSTER_HOSTS
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Default:: ``['127.0.0.1']``
+
+The list of contact points to try connecting for cluster discovery. All contact points are not required, the driver
+discovers the rest.
+
+.. setting:: CASSANDRABACKEND_CLUSTER_PORT
+
+CASSANDRABACKEND_CLUSTER_PORT
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Default:: ``9042``
+
+The server-side port to open connections to Cassandra.
 
 .. setting:: CASSANDRABACKEND_DROP_ALL_TABLES
 
@@ -500,55 +530,18 @@ CASSANDRABACKEND_DROP_ALL_TABLES
 
 Default: ``False``
 
-Set to ``True`` if you need to drop of all DB tables on backend instantiation (e.g. every Scrapy spider run).
+Set to ``True``  to drop and create all DB tables on backend instantiation.
 
-.. setting:: SQLALCHEMYBACKEND_ENGINE
-
-CASSANDRABACKEND_CLUSTER_IPS
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Default:: ``['127.0.0.1']``
-
-Set IPs from Cassandra Cluster. Default is localhost. To assign more than one IP use this Syntax: ``['192.168.0.1', '192.168.0.2']``
-
-CASSANDRABACKEND_CLUSTER_PORT
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Default:: ``9042``
-
-Set port from Cassandra Cluster / Nodes
-
-
-CASSANDRABACKEND_GENERATE_STATS
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Default:: ``False``
-
-Set this to true if you want to create an extra Table for stats collection. In this table there will be pages crawled, links queued etv. counted up.
-
+.. setting:: CASSANDRABACKEND_KEYSPACE
 
 CASSANDRABACKEND_KEYSPACE
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Default:: ``frontera``
+Default:: ``crawler``
 
-Set cassandra Keyspace
+Set Cassandra Keyspace.
 
-CASSANDRABACKEND_CREATE_KEYSPACE_IF_NOT_EXISTS
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Default:: ``True``
-
-Creates Keyspace if it not exist. Set to false if you frontera shouldn't check on every startup.
-
-
-CASSANDRABACKEND_CRAWL_ID
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Default:: ``default``
-
-Sets an ID in each table for the actual crawl. If you want to run another crawl from begining in same Table set to another Crawl ID. Its an Text field.
-
+.. setting:: CASSANDRABACKEND_MODELS
 
 CASSANDRABACKEND_MODELS
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -559,11 +552,19 @@ Default::
         'MetadataModel': 'frontera.contrib.backends.cassandra.models.MetadataModel',
         'StateModel': 'frontera.contrib.backends.cassandra.models.StateModel',
         'QueueModel': 'frontera.contrib.backends.cassandra.models.QueueModel',
-        'CrawlStatsModel': 'frontera.contrib.backends.cassandra.models.CrawlStatsModel'
+        'FifoOrLIfoQueueModel': 'frontera.contrib.backends.cassandra.models.FifoOrLIfoQueueModel',
     }
 
-This is mapping with Cassandra models used by backends. It is mainly used for customization.
+This is mapping of Cassandra models used by backends. It is mainly used for customization.
 
+.. setting:: CASSANDRABACKEND_REQUEST_TIMEOUT
+
+CASSANDRABACKEND_REQUEST_TIMEOUT
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Default:: ``60``
+
+Timeout in seconds for every request made by the Cassandra driver for to Cassandra.
 
 Revisiting backend
 ------------------

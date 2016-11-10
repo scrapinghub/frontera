@@ -10,18 +10,17 @@ BC_MAX_REQUESTS_PER_HOST = 128
 
 CANONICAL_SOLVER = 'frontera.contrib.canonicalsolvers.Basic'
 CASSANDRABACKEND_CACHE_SIZE = 10000
+CASSANDRABACKEND_CLUSTER_HOSTS = ['127.0.0.1']
+CASSANDRABACKEND_CLUSTER_PORT = 9042
 CASSANDRABACKEND_DROP_ALL_TABLES = False
+CASSANDRABACKEND_KEYSPACE = 'crawler'
 CASSANDRABACKEND_MODELS = {
     'MetadataModel': 'frontera.contrib.backends.cassandra.models.MetadataModel',
     'StateModel': 'frontera.contrib.backends.cassandra.models.StateModel',
     'QueueModel': 'frontera.contrib.backends.cassandra.models.QueueModel',
     'FifoOrLIfoQueueModel': 'frontera.contrib.backends.cassandra.models.FifoOrLIfoQueueModel',
 }
-CASSANDRABACKEND_REVISIT_INTERVAL = timedelta(days=1)
-CASSANDRABACKEND_CLUSTER_HOSTS = ['127.0.0.1']
-CASSANDRABACKEND_CLUSTER_PORT = 9042
-CASSANDRABACKEND_KEYSPACE = 'crawler'
-CASSANDRABACKEND_REQUEST_TIMEOUT = 100
+CASSANDRABACKEND_REQUEST_TIMEOUT = 60
 CASSANDRABACKEND_REVISIT_INTERVAL = timedelta(days=1)
 
 DELAY_ON_EMPTY = 5.0

@@ -254,33 +254,15 @@ For a complete list of all settings used for SQLAlchemy backends check the :doc:
     SQLAlchemy :class:`Backend <frontera.core.components.Backend>` implementation of a random selection
     algorithm.
 
-
-Revisiting backend
-^^^^^^^^^^^^^^^^^^
-
-Based on custom SQLAlchemy backend, and queue. Crawling starts with seeds. After seeds are crawled, every new
-document will be scheduled for immediate crawling. On fetching every new document will be scheduled for recrawling
-after fixed interval set by :setting:`SQLALCHEMYBACKEND_REVISIT_INTERVAL`.
-
-Current implementation of revisiting backend has no prioritization. During long term runs spider could go idle, because
-there are no documents available for crawling, but there are documents waiting for their scheduled revisit time.
-
-
-.. class:: frontera.contrib.backends.sqlalchemy.revisiting.Backend
-
-    Base class for SQLAlchemy :class:`Backend <frontera.core.components.Backend>` implementation of revisiting back-end.
-
 .. _frontier-backends-cassandra:
 
 Cassandra backends
 ^^^^^^^^^^^^^^^^^^
 
-This set of :class:`Backend <frontera.core.components.Backend>` objects will use `Cassandra`_ as storage for
+This set of :class:`Backend <frontera.core.components.Backend>` objects will use Cassandra as storage for
 :ref:`basic algorithms <frontier-backends-basic-algorithms>`.
 
-Cassandra is a NoSQL Colum-Store Database with Linear scalability and a SQL-Like Query Language.
-
-If you need to use your own `declarative cassandra models`_, you can do it by using the
+If you need to use your own  `cassandra models`_, you can do it by using the
 :setting:`CASSANDRABACKEND_MODELS` setting.
 
 This setting uses a dictionary where ``key`` represents the name of the model to define and ``value`` the model to use.
@@ -290,13 +272,46 @@ For a complete list of all settings used for Cassandra backends check the :doc:`
 .. class:: frontera.contrib.backends.cassandra.BASE
 
     Base class for Cassandra :class:`Backend <frontera.core.components.Backend>` objects.
-    It runs cassandra in multi-spider one worker mode with the FIFO algorithm.
+
+.. class:: frontera.contrib.backends.cassandra.FIFO
+
+    Cassandra :class:`Backend <frontera.core.components.Backend>` implementation of `FIFO`_ algorithm.
+
+.. class:: frontera.contrib.backends.cassandra.LIFO
+
+    Cassandra :class:`Backend <frontera.core.components.Backend>` implementation of `LIFO`_ algorithm.
+
+.. class:: frontera.contrib.backends.cassandra.BFS
+
+    Cassandra :class:`Backend <frontera.core.components.Backend>` implementation of `BFS`_ algorithm.
+
+.. class:: frontera.contrib.backends.cassandra.DFS
+
+    Cassandra :class:`Backend <frontera.core.components.Backend>` implementation of `DFS`_ algorithm.
 
 .. class:: frontera.contrib.backends.cassandra.Distributed
 
-    Cassandra :class:`Backend <frontera.core.components.Backend>` implementation of the distributed Backend.
+    Cassandra :class:`Backend <frontera.core.components.Distributed>` implementation of a distributed backend.
+
+Revisiting backend
+^^^^^^^^^^^^^^^^^^
+
+There are two backends for Revisiting which are based on Cassandra and SqlAlchemy Backend and Queue. Crawling starts
+with seeds. After seeds are crawled, every new document will be scheduled for immediate crawling. On fetching every new
+document will be scheduled for recrawling after fixed interval set by :setting:`SQLALCHEMYBACKEND_REVISIT_INTERVAL` or
+:setting:`CASSANDRABACKEND_REVISIT_INTERVAL`.
+
+Current implementation of revisiting backend has no prioritization. During long term runs spider could go idle, because
+there are no documents available for crawling, but there are documents waiting for their scheduled revisit time.
 
 
+.. class:: frontera.contrib.backends.sqlalchemy.revisiting.Backend
+
+    Base class for SQLAlchemy :class:`Backend <frontera.core.components.Backend>` implementation of revisiting back-end.
+
+.. class:: frontera.contrib.backends.cassandra.revisiting.Backend
+
+    Base class for Cassandra :class:`Backend <frontera.core.components.Backend>` implementation of revisiting back-end.
 
 HBase backend
 ^^^^^^^^^^^^^
@@ -325,3 +340,4 @@ setting.
 .. _SQLAlchemy: http://www.sqlalchemy.org/
 .. _any databases supported by SQLAlchemy: http://docs.sqlalchemy.org/en/latest/dialects/index.html
 .. _declarative sqlalchemy models: http://docs.sqlalchemy.org/en/latest/orm/extensions/declarative/index.html
+.. _cassandra models: https://datastax.github.io/python-driver/cqlengine/models.html
