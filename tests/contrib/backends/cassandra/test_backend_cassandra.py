@@ -9,7 +9,7 @@ from cassandra.cqlengine.management import (create_keyspace_simple,
                                             drop_keyspace, drop_table,
                                             sync_table)
 
-from frontera.contrib.backends.cassandra import CassandraBackend
+from frontera.contrib.backends.cassandra import CassandraBackend, Distributed
 from frontera.contrib.backends.cassandra.models import (FifoOrLIfoQueueModel,
                                                         MetadataModel,
                                                         QueueModel, StateModel)
@@ -29,7 +29,7 @@ r3 = Request('http://www.scrapy.org', meta={b'fingerprint': b'12',
 r4 = r3.copy()
 
 
-class BaseCassandraTest(object):
+class CassandraConfig(object):
 
     def setUp(self):
         settings = Settings()
@@ -53,7 +53,7 @@ class BaseCassandraTest(object):
             connection.session.default_timeout = timeout
 
 
-class TestCassandraBackendModels(BaseCassandraTest, unittest.TestCase):
+class TestCassandraBackendModels(CassandraConfig, unittest.TestCase):
 
     def test_pickled_fields(self):
         sync_table(MetadataModel)
@@ -131,7 +131,25 @@ class TestCassandraBackendModels(BaseCassandraTest, unittest.TestCase):
                 self.assertEqual(stored_value, original_value)
 
 
-class TestCassandraBackend(BaseCassandraTest, unittest.TestCase):
+class TestCassandraBackend(CassandraConfig, unittest.TestCase):
+
+    def init_backend(self):
+        self.backend = CassandraBackend(self.manager)
+
+    @property
+    def metadata(self):
+        self.init_backend()
+        return self.backend.metadata
+
+    @property
+    def states(self):
+        self.init_backend()
+        return self.backend.states
+
+    @property
+    def queue(self):
+        self.init_backend()
+        return self.backend.queue
 
     def _get_tables(self):
         query = 'SELECT table_name FROM system_schema.tables WHERE keyspace_name = \'{}\''.format(self.keyspace)
@@ -141,7 +159,7 @@ class TestCassandraBackend(BaseCassandraTest, unittest.TestCase):
     def test_tables_created(self):
         tables_before = self._get_tables()
         self.assertEqual(tables_before, [])
-        CassandraBackend(self.manager)
+        self.init_backend()
         tables_after = self._get_tables()
         self.assertEqual(set(tables_after), set(['metadata', 'states', 'queue']))
 
@@ -158,14 +176,14 @@ class TestCassandraBackend(BaseCassandraTest, unittest.TestCase):
         rows_before = _get_state_data()
         self.assertEqual(rows_before.count(), 1)
         self.manager.settings.CASSANDRABACKEND_DROP_ALL_TABLES = True
-        CassandraBackend(self.manager)
-        self.assertEqual(set(tables_before), set(['metadata', 'states', 'queue']))
+        self.init_backend()
+        tables_after = self._get_tables()
+        self.assertEqual(set(tables_after), set(['metadata', 'states', 'queue']))
         rows_after = _get_state_data()
         self.assertEqual(rows_after.count(), 0)
 
     def test_metadata(self):
-        b = CassandraBackend(self.manager)
-        metadata = b.metadata
+        metadata = self.metadata
         metadata.add_seeds([r1, r2, r3])
         meta_qs = MetadataModel.objects.all()
         self.assertEqual(set([r1.url, r2.url, r3.url]), set([m.url for m in meta_qs]))
@@ -183,10 +201,9 @@ class TestCassandraBackend(BaseCassandraTest, unittest.TestCase):
         self.assertEqual(meta_qs.count(), 3)
 
     def test_state(self):
-        b = CassandraBackend(self.manager)
-        state = b.states
+        state = self.states
         state.set_states([r1, r2, r3])
-        self.assertEqual([r.meta[b'state'] for r in [r1, r2, r3]], [States.NOT_CRAWLED]*3)
+        self.assertEqual([r.meta[b'state'] for r in [r1, r2, r3]], [States.NOT_CRAWLED] * 3)
         state.update_cache([r1, r2, r3])
         self.assertDictEqual(state._cache, {b'10': States.NOT_CRAWLED,
                                             b'11': States.NOT_CRAWLED,
@@ -209,11 +226,11 @@ class TestCassandraBackend(BaseCassandraTest, unittest.TestCase):
 
     def test_queue(self):
         self.manager.settings.SPIDER_FEED_PARTITIONS = 2
-        b = CassandraBackend(self.manager)
-        queue = b.queue
+        queue = self.queue
         batch = [('10', 0.5, r1, True), ('11', 0.6, r2, True),
                  ('12', 0.7, r3, True)]
         queue.schedule(batch)
+        self.assertEqual(queue.count(), 3)
         self.assertEqual(set([r.url for r in queue.get_next_requests(10, 0,
                                                                      min_requests=3,
                                                                      min_hosts=1,
@@ -224,10 +241,34 @@ class TestCassandraBackend(BaseCassandraTest, unittest.TestCase):
                                                                      min_hosts=1,
                                                                      max_requests_per_host=10)]),
                          set([r1.url, r2.url]))
+        self.assertEqual(queue.count(), 0)
+
+
+class TestCassandraDistributedBackend(TestCassandraBackend):
+
+    def init_backend(self):
+        self.backend = Distributed(self.manager)
+        self.strategy_worker = self.backend.strategy_worker(self.manager)
+        self.db_worker = self.backend.db_worker(self.manager)
+
+    @property
+    def metadata(self):
+        self.init_backend()
+        return self.db_worker.metadata
+
+    @property
+    def states(self):
+        self.init_backend()
+        return self.strategy_worker.states
+
+    @property
+    def queue(self):
+        self.init_backend()
+        return self.db_worker.queue
 
 
 class BaseCassandraIntegrationTests(object):
-    obj = BaseCassandraTest()
+    obj = CassandraConfig()
 
     def setup_backend(self, method):
         self.obj.setUp()

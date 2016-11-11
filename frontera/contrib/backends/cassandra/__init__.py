@@ -99,7 +99,6 @@ class Distributed(CommonDistributedStorageBackend):
         settings = manager.settings
         cluster_hosts = settings.get('CASSANDRABACKEND_CLUSTER_HOSTS')
         cluster_port = settings.get('CASSANDRABACKEND_CLUSTER_PORT')
-        drop_all_tables = settings.get('CASSANDRABACKEND_DROP_ALL_TABLES')
         models = settings.get('CASSANDRABACKEND_MODELS')
         keyspace = settings.get('CASSANDRABACKEND_KEYSPACE')
 
@@ -112,10 +111,6 @@ class Distributed(CommonDistributedStorageBackend):
             connection.setup(cluster_hosts, keyspace, **cluster_kwargs)
             connection.session.default_timeout = settings.get('CASSANDRABACKEND_REQUEST_TIMEOUT')
 
-        if drop_all_tables:
-            for name, table in six.iteritems(self.models):
-                drop_table(table)
-
         self._metadata = None
         self._queue = None
         self._states = None
@@ -124,15 +119,25 @@ class Distributed(CommonDistributedStorageBackend):
     def strategy_worker(cls, manager):
         b = cls(manager)
         settings = manager.settings
-        b._states = States(b.models['StateModel'], settings.get('STATE_CACHE_SIZE_LIMIT'))
+        drop_all_tables = settings.get('CASSANDRABACKEND_DROP_ALL_TABLES')
+        state_model = b.models['StateModel']
+        if drop_all_tables:
+            drop_table(state_model)
+        b._states = States(state_model, settings.get('STATE_CACHE_SIZE_LIMIT'))
         return b
 
     @classmethod
     def db_worker(cls, manager):
         b = cls(manager)
         settings = manager.settings
-        b._metadata = Metadata(b.models['MetadataModel'], settings.get('CASSANDRABACKEND_CACHE_SIZE'))
-        b._queue = BroadCrawlingQueue(b.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'))
+        drop_all_tables = settings.get('CASSANDRABACKEND_DROP_ALL_TABLES')
+        metadata_model = b.models['MetadataModel']
+        queue_model = b.models['QueueModel']
+        if drop_all_tables:
+            drop_table(metadata_model)
+            drop_table(queue_model)
+        b._metadata = Metadata(metadata_model, settings.get('CASSANDRABACKEND_CACHE_SIZE'))
+        b._queue = BroadCrawlingQueue(queue_model, settings.get('SPIDER_FEED_PARTITIONS'))
         return b
 
     def frontier_stop(self):

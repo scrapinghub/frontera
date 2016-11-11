@@ -89,7 +89,7 @@ class RevisitingQueue(BaseQueue):
         return q
 
     def count(self):
-        return self.queue_model.all().count()
+        return self.queue_model.objects.count()
 
 
 class Backend(CommonRevisitingStorageBackendMixin, CassandraBackend):

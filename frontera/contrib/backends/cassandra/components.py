@@ -172,7 +172,7 @@ class Queue(BaseQueue):
         self.batch.execute()
 
     def count(self):
-        return self.queue_model.all().count()
+        return self.queue_model.objects.count()
 
 
 class BroadCrawlingQueue(Queue):
