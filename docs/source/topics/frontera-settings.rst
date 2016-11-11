@@ -180,17 +180,8 @@ KAFKA_GET_TIMEOUT
 
 Default: ``5.0``
 
-Time process should block until requested amount of data will be received from message bus.
-
-.. setting:: KAFKA_CODEC_LEGACY
-
-KAFKA_CODEC_LEGACY
-------------------
-
-Default: ``KAFKA_CODEC_LEGACY``
-
-Kafka-python 0.x version compression codec to use, is a string and could be one of ``none``, ``snappy`` or ``gzip``.
-
+Time process should block until requested amount of data will be received from message bus. This is a general
+message bus setting with obsolete Kafka-related name.
 
 .. setting:: LOGGING_CONFIG
 
@@ -636,49 +627,75 @@ KAFKA_LOCATION
 
 Hostname and port of kafka broker, separated with :. Can be a string with hostname:port pair separated with commas(,).
 
-.. setting:: FRONTIER_GROUP
+.. setting:: KAFKA_CODEC
 
-FRONTIER_GROUP
---------------
+KAFKA_CODEC
+-----------
 
-Default: ``general``
+Default: ``None``
 
-Kafka consumer group name, used for almost everything.
+Kafka-python 1.0.x version compression codec to use, is a string or None and could be one of ``snappy``, ``gzip`` or
+``lz4``.
 
+.. setting:: SPIDER_LOG_DBW_GROUP
 
-.. setting:: INCOMING_TOPIC
+SPIDER_LOG_DBW_GROUP
+--------------------
 
-INCOMING_TOPIC
---------------
+Default: ``dbw-spider-log``
+
+Kafka consumer group name, used for :term:`spider log` by :term:`db worker` s.
+
+.. setting:: SPIDER_LOG_SW_GROUP
+
+SPIDER_LOG_SW_GROUP
+-------------------
+
+Default: ``sw-spider-log``
+
+Kafka consumer group name, used for :term:`spider log` by :term:`strategy worker` (s).
+
+.. setting:: SCORING_LOG_DBW_GROUP
+
+SCORING_LOG_DBW_GROUP
+---------------------
+
+Default: ``dbw-scoring-log``
+
+Kafka consumer group name, used for :term:`scoring log` by :term:`db worker` (s).
+
+.. setting:: SPIDER_FEED_GROUP
+
+SPIDER_FEED_GROUP
+-----------------
+
+Default: ``fetchers-spider-feed``
+
+Kafka consumer group name, used for :term:`spider feed` by :term:`spider` (s).
+
+.. setting:: SPIDER_LOG_TOPIC
+
+SPIDER_LOG_TOPIC
+----------------
 
 Default: ``frontier-done``
 
-Spider log stream topic name.
+:term:`spider log` stream topic name.
 
 
-.. setting:: OUTGOING_TOPIC
+.. setting:: SPIDER_FEED_TOPIC
 
-OUTGOING_TOPIC
---------------
+SPIDER_FEED_TOPIC
+-----------------
 
 Default: ``frontier-todo``
 
-Spider feed stream topic name.
+:term:`spider feed` stream topic name.
 
+.. setting:: SCORING_LOG_TOPIC
 
-.. setting:: SCORING_GROUP
-
-SCORING_GROUP
--------------
-
-Default: ``strategy-workers``
-
-A group used by strategy workers for spider log reading. Needs to be different than ``FRONTIER_GROUP``.
-
-.. setting:: SCORING_TOPIC
-
-SCORING_TOPIC
--------------
+SCORING_LOG_TOPIC
+-----------------
 
 Kafka topic used for :term:`scoring log` stream.
 
@@ -689,3 +706,5 @@ Default settings
 If no settings are specified, frontier will use the built-in default ones. For a complete list of default values see:
 :ref:`Built-in settings reference <frontier-built-in-frontier-settings>`. All default settings can be overridden.
 
+
+.. _`kafka-python documentation`: http://kafka-python.readthedocs.io/en/1.1.1/apidoc/KafkaProducer.html

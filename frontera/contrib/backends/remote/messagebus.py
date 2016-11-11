@@ -70,7 +70,8 @@ class MessageBusBackend(Backend):
             else:
                 requests.append(request)
         self.spider_log_producer.send(b'0123456789abcdef0123456789abcdef012345678',
-                                      self._encoder.encode_offset(self.partition_id, self.consumer.get_offset()))
+                                      self._encoder.encode_offset(self.partition_id,
+                                                                  self.consumer.get_offset(self.partition_id)))
         return requests
 
     def get_next_requests(self, max_n_requests, **kwargs):

@@ -19,6 +19,9 @@ class Crc32NamePartitioner(Partitioner):
         idx = value % size
         return partitions[idx]
 
+    def __call__(self, key, all_partitions, available):
+        return self.partition(key, all_partitions)
+
 
 class FingerprintPartitioner(Partitioner):
     def partition(self, key, partitions=None):
@@ -28,3 +31,6 @@ class FingerprintPartitioner(Partitioner):
         value = unpack("<I", digest)
         idx = value[0] % len(partitions)
         return partitions[idx]
+
+    def __call__(self, key, all_partitions, available):
+        return self.partition(key, all_partitions)

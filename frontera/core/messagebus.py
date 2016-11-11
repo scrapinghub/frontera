@@ -20,12 +20,21 @@ class BaseStreamConsumer(object):
         raise NotImplementedError
 
     @abstractmethod
-    def get_offset(self):
+    def get_offset(self, partition_id):
         """
         Returns consumer offset.
+
+        :param partition_id: int
         :return: int consumer offset
         """
         raise NotImplementedError
+
+    def close(self):
+        """
+        Performs necessary cleanup and closes consumer.
+        :return: none
+        """
+        pass
 
 
 @six.add_metaclass(ABCMeta)
@@ -48,14 +57,22 @@ class BaseStreamProducer(object):
         """
         raise NotImplementedError
 
-    @abstractmethod
     def get_offset(self, partition_id):
         """
         Returns producer offset for partition. Raises KeyError, if partition isn't available or doesn't exist.
+        Returns None if not applicable to current implementation.
+
         :param partition_id: int
         :return: int producer offset
         """
         raise NotImplementedError
+
+    def close(self):
+        """
+        Performs all necessary cleanup and closes the producer.
+        :return:  none
+        """
+        pass
 
 
 @six.add_metaclass(ABCMeta)

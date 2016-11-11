@@ -57,7 +57,7 @@ class Consumer(BaseStreamConsumer):
                     self.counter += 1
                 self.stats[self.stat_key] += 1
 
-    def get_offset(self):
+    def get_offset(self, partition_id):
         return self.counter
 
 

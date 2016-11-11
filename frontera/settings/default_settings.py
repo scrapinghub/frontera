@@ -22,7 +22,6 @@ HBASE_BATCH_SIZE = 9216
 HBASE_STATE_CACHE_SIZE_LIMIT = 3000000
 HBASE_QUEUE_TABLE = 'queue'
 KAFKA_GET_TIMEOUT = 5.0
-KAFKA_CODEC_LEGACY = "none"
 MAX_NEXT_REQUESTS = 64
 MAX_REQUESTS = 0
 MESSAGE_BUS = 'frontera.contrib.messagebus.zeromq.MessageBus'
@@ -64,3 +63,18 @@ ZMQ_ADDRESS = '127.0.0.1'
 ZMQ_BASE_PORT = 5550
 
 LOGGING_CONFIG = 'logging.conf'
+
+#--------------------------------------------------------
+# Kafka
+#--------------------------------------------------------
+
+SPIDER_FEED_TOPIC = "frontier-todo"
+SPIDER_LOG_TOPIC = "frontier-done"
+SCORING_LOG_TOPIC = "frontier-score"
+
+SPIDER_LOG_DBW_GROUP = "dbw-spider-log"
+SPIDER_LOG_SW_GROUP = "sw-spider-log"
+SCORING_LOG_DBW_GROUP = "dbw-scoring-log"
+SPIDER_FEED_GROUP = "fetchers-spider-feed"
+
+KAFKA_CODEC = None
