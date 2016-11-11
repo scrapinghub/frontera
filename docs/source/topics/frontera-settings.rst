@@ -632,9 +632,9 @@ Hostname and port of kafka broker, separated with :. Can be a string with hostna
 KAFKA_CODEC
 -----------
 
-Default: ``KAFKA_CODEC``
+Default: ``None``
 
-Kafka-python 1.0.x version compression codec to use, is a string and could be one of ``none``, ``snappy``, ``gzip`` or
+Kafka-python 1.0.x version compression codec to use, is a string or None and could be one of ``snappy``, ``gzip`` or
 ``lz4``.
 
 .. setting:: SPIDER_LOG_DBW_GROUP
