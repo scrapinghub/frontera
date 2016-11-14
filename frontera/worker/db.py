@@ -79,20 +79,19 @@ class DBWorker(object):
         self._encoder = encoder_cls(self._manager.request_model)
         self._decoder = decoder_cls(self._manager.request_model, self._manager.response_model)
 
-        if isinstance(self._backend, DistributedBackend):
+        if isinstance(self._backend, DistributedBackend) and not no_scoring:
             scoring_log = self.mb.scoring_log()
             self.scoring_log_consumer = scoring_log.consumer()
             self.queue = self._backend.queue
-            self.strategy_enabled = True
+            self.strategy_disabled = False
         else:
-            self.strategy_enabled = False
-        scoring_log_disabled = not self.strategy_enabled or no_scoring
+            self.strategy_disabled = True
         self.spider_log_consumer_batch_size = settings.get('SPIDER_LOG_CONSUMER_BATCH_SIZE')
         self.scoring_log_consumer_batch_size = settings.get('SCORING_LOG_CONSUMER_BATCH_SIZE')
         self.spider_feed_partitioning = 'fingerprint' if not settings.get('QUEUE_HOSTNAME_PARTITIONING') else 'hostname'
         self.max_next_requests = settings.MAX_NEXT_REQUESTS
         self.slot = Slot(self.new_batch, self.consume_incoming, self.consume_scoring, no_batches,
-                         scoring_log_disabled, settings.get('NEW_BATCH_DELAY'), no_incoming)
+                         self.strategy_disabled, settings.get('NEW_BATCH_DELAY'), no_incoming)
         self.job_id = 0
         self.stats = {
             'consumed_since_start': 0,
@@ -187,7 +186,7 @@ class DBWorker(object):
                 consumed += 1
         """
         # TODO: Think how it should be implemented in DB-worker only mode.
-        if not self.strategy_enabled and self._backend.finished():
+        if not self.strategy_disabled and self._backend.finished():
             logger.info("Crawling is finished.")
             reactor.stop()
         """
