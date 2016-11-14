@@ -81,7 +81,7 @@ class StatusResource(JsonResource):
     def render_GET(self, txrequest):
         return {
             'is_finishing': self.worker.slot.is_finishing,
-            'disable_new_batches': self.worker.slot.disable_new_batches,
+            'disable_new_batches': self.worker.slot.no_batches,
             'stats': self.worker.stats
         }
 
