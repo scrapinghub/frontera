@@ -19,7 +19,7 @@ class TestDBWorker(object):
             settings.BACKEND = 'tests.mocks.components.FakeDistributedBackend'
         else:
             settings.BACKEND = 'tests.mocks.components.FakeBackend'
-        return DBWorker(settings, True, True)
+        return DBWorker(settings, True, True, False)
 
     def test_add_seeds(self):
         dbw = self.dbw_setup()
