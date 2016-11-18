@@ -25,8 +25,8 @@ logger = logging.getLogger("db-worker")
 
 
 class Slot(object):
-    def __init__(self, new_batch, consume_incoming, consume_scoring, no_batches, enable_strategy_worker,
-                 new_batch_delay, no_incoming):
+    def __init__(self, new_batch, consume_incoming, consume_scoring, no_batches, no_scoring_log,
+                 new_batch_delay, no_spider_log):
         self.new_batch = CallLaterOnce(new_batch)
         self.new_batch.setErrback(self.error)
 
@@ -39,9 +39,9 @@ class Slot(object):
         self.scoring_consumption = CallLaterOnce(consume_scoring)
         self.scoring_consumption.setErrback(self.error)
 
-        self.disable_new_batches = no_batches
-        self.disable_scoring_consumption = not enable_strategy_worker
-        self.disable_incoming = no_incoming
+        self.no_batches = no_batches
+        self.no_scoring_log = no_scoring_log
+        self.no_spider_log = no_spider_log
         self.new_batch_delay = new_batch_delay
 
     def error(self, f):
@@ -49,20 +49,20 @@ class Slot(object):
         return f
 
     def schedule(self, on_start=False):
-        if on_start and not self.disable_new_batches:
+        if on_start and not self.no_batches:
             self.new_batch.schedule(0)
 
-        if not self.disable_incoming:
+        if not self.no_spider_log:
             self.consumption.schedule()
-        if not self.disable_new_batches:
+        if not self.no_batches:
             self.new_batch.schedule(self.new_batch_delay)
-        if not self.disable_scoring_consumption:
+        if not self.no_scoring_log:
             self.scoring_consumption.schedule()
         self.scheduling.schedule(5.0)
 
 
 class DBWorker(object):
-    def __init__(self, settings, no_batches, no_incoming):
+    def __init__(self, settings, no_batches, no_incoming, no_scoring):
         messagebus = load_object(settings.get('MESSAGE_BUS'))
         self.mb = messagebus(settings)
         spider_log = self.mb.spider_log()
@@ -79,20 +79,19 @@ class DBWorker(object):
         self._encoder = encoder_cls(self._manager.request_model)
         self._decoder = decoder_cls(self._manager.request_model, self._manager.response_model)
 
-        if isinstance(self._backend, DistributedBackend):
+        if isinstance(self._backend, DistributedBackend) and not no_scoring:
             scoring_log = self.mb.scoring_log()
             self.scoring_log_consumer = scoring_log.consumer()
             self.queue = self._backend.queue
-            self.strategy_enabled = True
+            self.strategy_disabled = False
         else:
-            self.strategy_enabled = False
-
+            self.strategy_disabled = True
         self.spider_log_consumer_batch_size = settings.get('SPIDER_LOG_CONSUMER_BATCH_SIZE')
         self.scoring_log_consumer_batch_size = settings.get('SCORING_LOG_CONSUMER_BATCH_SIZE')
         self.spider_feed_partitioning = 'fingerprint' if not settings.get('QUEUE_HOSTNAME_PARTITIONING') else 'hostname'
         self.max_next_requests = settings.MAX_NEXT_REQUESTS
         self.slot = Slot(self.new_batch, self.consume_incoming, self.consume_scoring, no_batches,
-                         self.strategy_enabled, settings.get('NEW_BATCH_DELAY'), no_incoming)
+                         self.strategy_disabled, settings.get('NEW_BATCH_DELAY'), no_incoming)
         self.job_id = 0
         self.stats = {
             'consumed_since_start': 0,
@@ -124,10 +123,10 @@ class DBWorker(object):
             logger.info("%s=%s", k, v)
 
     def disable_new_batches(self):
-        self.slot.disable_new_batches = True
+        self.slot.no_batches = True
 
     def enable_new_batches(self):
-        self.slot.disable_new_batches = False
+        self.slot.no_batches = False
 
     def consume_incoming(self, *args, **kwargs):
         consumed = 0
@@ -187,7 +186,7 @@ class DBWorker(object):
                 consumed += 1
         """
         # TODO: Think how it should be implemented in DB-worker only mode.
-        if not self.strategy_enabled and self._backend.finished():
+        if not self.strategy_disabled and self._backend.finished():
             logger.info("Crawling is finished.")
             reactor.stop()
         """
@@ -275,9 +274,11 @@ class DBWorker(object):
 if __name__ == '__main__':
     parser = ArgumentParser(description="Frontera DB worker.")
     parser.add_argument('--no-batches', action='store_true',
-                        help='Disables periodical generation of new batches.')
+                        help='Disables generation of new batches.')
     parser.add_argument('--no-incoming', action='store_true',
-                        help='Disables periodical incoming topic consumption.')
+                        help='Disables spider log processing.')
+    parser.add_argument('--no-scoring', action='store_true',
+                        help='Disables scoring log processing.')
     parser.add_argument('--config', type=str, required=True,
                         help='Settings module name, should be accessible by import.')
     parser.add_argument('--log-level', '-L', type=str, default='INFO',
@@ -297,7 +298,7 @@ if __name__ == '__main__':
         logger.setLevel(args.log_level)
         logger.addHandler(CONSOLE)
 
-    worker = DBWorker(settings, args.no_batches, args.no_incoming)
+    worker = DBWorker(settings, args.no_batches, args.no_incoming, args.no_scoring)
     server = WorkerJsonRpcService(worker, settings)
     server.start_listening()
     worker.run()
