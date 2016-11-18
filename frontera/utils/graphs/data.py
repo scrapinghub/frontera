@@ -58,6 +58,7 @@ class CrawlSiteListData(object):
     def __len__(self):
         return sum([len(site) for site in self.sites])
 
+
 #-----------------------------------------------------
 # Sites
 #-----------------------------------------------------

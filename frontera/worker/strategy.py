@@ -306,6 +306,7 @@ def setup_environment():
         logger.addHandler(CONSOLE)
     return settings, strategy_class
 
+
 if __name__ == '__main__':
     settings, strategy_class = setup_environment()
     worker = StrategyWorker(settings, strategy_class)
