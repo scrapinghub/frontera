@@ -64,10 +64,11 @@ class StatesContext(object):
         self._states.fetch(self._fingerprints)
         self._fingerprints.clear()
 
-    def refresh_and_keep(self, request):
-        self._states.fetch([request.meta[b'fingerprint']])
-        self._states.set_states(request)
-        self._requests.append(request)
+    def refresh_and_keep(self, requests):
+        self.to_fetch(requests)
+        self.fetch()
+        self._states.set_states(requests)
+        self._requests.extend(requests)
 
     def release(self):
         self._states.update_cache(self._requests)
