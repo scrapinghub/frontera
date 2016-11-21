@@ -31,6 +31,7 @@ def generate_diagrams():
                                title=graph.name,
                                graph=graph)
 
+
 if __name__ == '__main__':
     generate_diagrams()
 
