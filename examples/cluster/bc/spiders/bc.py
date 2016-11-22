@@ -3,7 +3,7 @@ from scrapy.spider import Spider
 from scrapy.http import Request
 from scrapy.http.response.html import HtmlResponse
 from scrapy.linkextractors import LinkExtractor
-
+from scrapy import signals
 
 class BCSpider(Spider):
     name = 'bc'
