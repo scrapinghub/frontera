@@ -1,9 +1,11 @@
 from __future__ import absolute_import
+
 from importlib import import_module
 from zlib import crc32
+
+import six
 from six.moves import range
 from w3lib.util import to_bytes
-import six
 
 
 def load_object(path):

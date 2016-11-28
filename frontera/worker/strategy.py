@@ -1,24 +1,24 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-from time import asctime
+
 import logging
-from traceback import format_stack, format_tb
-from signal import signal, SIGUSR1
-from logging.config import fileConfig
 from argparse import ArgumentParser
+from binascii import hexlify
+from collections import Sequence
+from logging.config import fileConfig
 from os.path import exists
-from frontera.utils.misc import load_object
+from signal import SIGUSR1, signal
+from time import asctime
+from traceback import format_stack, format_tb
+
+import six
+from twisted.internet import reactor
+from twisted.internet.task import LoopingCall
 
 from frontera.core.manager import FrontierManager
 from frontera.logger.handlers import CONSOLE
-from twisted.internet.task import LoopingCall
-from twisted.internet import reactor
-
 from frontera.settings import Settings
-from collections import Sequence
-from binascii import hexlify
-import six
-
+from frontera.utils.misc import load_object
 
 logger = logging.getLogger("strategy-worker")
 

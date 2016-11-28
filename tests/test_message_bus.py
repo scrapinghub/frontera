@@ -1,17 +1,20 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-from frontera.settings import Settings
-from frontera.contrib.messagebus.zeromq import MessageBus as ZeroMQMessageBus
-from frontera.contrib.messagebus.kafkabus import MessageBus as KafkaMessageBus, Consumer as KafkaConsumer
-from frontera.utils.fingerprint import sha1
-from kafka import KafkaClient
-from random import randint
-from time import sleep
-from six.moves import range
+
 import logging
-from sys import stdout
 import unittest
+from random import randint
+from sys import stdout
+from time import sleep
+
+from kafka import KafkaClient
+from six.moves import range
 from w3lib.util import to_bytes
+
+from frontera.contrib.messagebus.kafkabus import Consumer as KafkaConsumer, MessageBus as KafkaMessageBus
+from frontera.contrib.messagebus.zeromq import MessageBus as ZeroMQMessageBus
+from frontera.settings import Settings
+from frontera.utils.fingerprint import sha1
 
 
 class MessageBusTester(object):

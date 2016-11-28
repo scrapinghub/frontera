@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import absolute_import
-from frontera.settings import Settings, BaseSettings
+
+from frontera.settings import BaseSettings, Settings
 
 
 def test_settings_on_a_python_module_are_loaded():

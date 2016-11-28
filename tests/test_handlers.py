@@ -1,9 +1,10 @@
-import unittest
 import logging
 import logging.config
+import unittest
+
+from tests.utils import LoggingCaptureMixin, SetupDefaultLoggingMixin, colors
 
 from frontera.logger.handlers import CONSOLE
-from tests.utils import SetupDefaultLoggingMixin, LoggingCaptureMixin, colors
 
 
 class SetupHandler(SetupDefaultLoggingMixin):

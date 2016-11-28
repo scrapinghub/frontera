@@ -1,11 +1,11 @@
 from __future__ import absolute_import
+
 from scrapy.http.request import Request as ScrapyRequest
 from scrapy.http.response import Response as ScrapyResponse
-
-from frontera.core.models import Request as FrontierRequest
-from frontera.core.models import Response as FrontierResponse
-from frontera.utils.converters import BaseRequestConverter, BaseResponseConverter
 from w3lib.util import to_bytes, to_native_str
+
+from frontera.core.models import Request as FrontierRequest, Response as FrontierResponse
+from frontera.utils.converters import BaseRequestConverter, BaseResponseConverter
 
 
 class RequestConverter(BaseRequestConverter):

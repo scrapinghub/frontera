@@ -1,8 +1,8 @@
 from __future__ import absolute_import
-import unittest
-from frontera.utils.url import parse_url, parse_domain_from_url, \
-    parse_domain_from_url_fast
 
+import unittest
+
+from frontera.utils.url import parse_domain_from_url, parse_domain_from_url_fast, parse_url
 
 simple_url = 'http://www.example.com'
 complete_url = 'http://username:password@www.example.com:80/some/page/do?a=1&b=2&c=3#frag'

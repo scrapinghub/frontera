@@ -1,7 +1,8 @@
 from __future__ import absolute_import
+
 import pytest
 
-from frontera import FrontierManager, Settings, FrontierTester
+from frontera import FrontierManager, FrontierTester, Settings
 from frontera.utils import graphs
 from frontera.utils.tester import BaseDownloaderSimulator
 

@@ -1,13 +1,13 @@
 from __future__ import absolute_import
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy.orm import sessionmaker
 
-from frontera.core.components import DistributedBackend
 from frontera.contrib.backends import CommonBackend
 from frontera.contrib.backends.sqlalchemy.components import Metadata, Queue, States
 from frontera.contrib.backends.sqlalchemy.models import DeclarativeBase
+from frontera.core.components import DistributedBackend
 from frontera.utils.misc import load_object
 
 
@@ -215,4 +215,3 @@ class Distributed(DistributedBackend):
 
     def finished(self):
         raise NotImplementedError
-

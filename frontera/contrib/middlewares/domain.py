@@ -1,9 +1,12 @@
 from __future__ import absolute_import
+
 import re
 
-from frontera.core.components import Middleware
-from frontera.utils.url import parse_domain_from_url_fast, parse_domain_from_url
 from w3lib.util import to_bytes
+
+from frontera.core.components import Middleware
+from frontera.utils.url import parse_domain_from_url, parse_domain_from_url_fast
+
 
 # TODO: Why not to put the whole url_parse result here in meta?
 

@@ -1,6 +1,6 @@
 from __future__ import absolute_import
-from datetime import timedelta
 
+from datetime import timedelta
 
 AUTO_START = True
 BACKEND = 'frontera.contrib.backends.memory.FIFO'

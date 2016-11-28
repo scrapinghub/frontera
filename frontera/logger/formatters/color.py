@@ -3,8 +3,8 @@ from __future__ import absolute_import
 import logging
 import sys
 
-from colorlog.escape_codes import escape_codes
 from colorlog import ColoredFormatter
+from colorlog.escape_codes import escape_codes
 
 
 class ColorFormatter(ColoredFormatter):
@@ -49,6 +49,3 @@ class ColorFormatter(ColoredFormatter):
             return record.msg[self.log_color_field]
         else:
             return None
-
-
-

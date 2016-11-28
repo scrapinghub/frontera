@@ -1,6 +1,7 @@
 from __future__ import absolute_import
-from tests.test_overused_buffer import DFSOverusedBackendTest
+
 from tests import backends
+from tests.test_overused_buffer import DFSOverusedBackendTest
 
 
 class TestFIFO(backends.FIFOBackendTest):

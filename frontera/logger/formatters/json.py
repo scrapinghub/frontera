@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from pythonjsonlogger.jsonlogger import JsonFormatter
+
 from frontera.utils.encoders import DateTimeEncoder
 
 

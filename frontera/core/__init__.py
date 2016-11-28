@@ -1,8 +1,10 @@
 from __future__ import absolute_import
-from six.moves.urllib.parse import urlparse
-from socket import getaddrinfo
+
 from collections import deque
+from socket import getaddrinfo
+
 import six
+from six.moves.urllib.parse import urlparse
 
 
 def get_slot_key(request, type):  # TODO: Probably use caching here

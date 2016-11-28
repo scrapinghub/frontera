@@ -1,16 +1,17 @@
 from __future__ import absolute_import
+
+import collections
 import copy
 import logging
 import time
-import collections
+
 import six
+from kafka import TopicPartition, errors as Errors
 from kafka.client_async import KafkaClient
-from kafka import errors as Errors, TopicPartition
 from kafka.future import Future
 from kafka.protocol.commit import GroupCoordinatorRequest, OffsetFetchRequest
 from kafka.protocol.offset import OffsetRequest
 from kafka.structs import OffsetAndMetadata
-
 
 log = logging.getLogger('offsets-fetcher')
 

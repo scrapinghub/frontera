@@ -1,14 +1,14 @@
 from __future__ import absolute_import
-from frontera.contrib.scrapy.schedulers.frontier import FronteraScheduler
-from tests.mocks.frontier_manager import FakeFrontierManager
-from tests.mocks.crawler import FakeCrawler
-from frontera.core.models import Request as FRequest
-from frontera.core.models import Response as FResponse
-from scrapy.http import Request, Response
-from scrapy.spiders import Spider
-from scrapy.settings import Settings
-from six.moves import range
 
+from scrapy.http import Request, Response
+from scrapy.settings import Settings
+from scrapy.spiders import Spider
+from six.moves import range
+from tests.mocks.crawler import FakeCrawler
+from tests.mocks.frontier_manager import FakeFrontierManager
+
+from frontera.contrib.scrapy.schedulers.frontier import FronteraScheduler
+from frontera.core.models import Request as FRequest, Response as FResponse
 
 # test requests
 r1 = Request('http://www.example.com')

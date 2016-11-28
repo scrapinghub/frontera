@@ -1,13 +1,13 @@
-import unittest
-import re
-import json
 import datetime
-
-from frontera.logger.formatters.color import ColorFormatter
-from frontera.logger.formatters.json import JSONFormatter
-from frontera.logger.formatters import CONSOLE
+import json
+import re
+import unittest
 
 from tests.utils import LoggingCaptureMixin, SetupDefaultLoggingMixin, colors
+
+from frontera.logger.formatters import CONSOLE
+from frontera.logger.formatters.color import ColorFormatter
+from frontera.logger.formatters.json import JSONFormatter
 
 
 class BaseTestFormatters(SetupDefaultLoggingMixin, LoggingCaptureMixin, unittest.TestCase):

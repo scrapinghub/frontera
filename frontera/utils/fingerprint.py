@@ -1,11 +1,14 @@
 from __future__ import absolute_import
+
 import hashlib
-from six.moves.urllib.parse import urlparse
-from struct import pack
 from binascii import hexlify
+from struct import pack
+
+from six.moves.urllib.parse import urlparse
+from w3lib.util import to_bytes, to_native_str
+
 from frontera.utils.misc import get_crc32
 from frontera.utils.url import parse_url
-from w3lib.util import to_native_str, to_bytes
 
 
 def sha1(key):

@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-from frontera.core.models import Request
-from frontera.contrib.middlewares.fingerprint import UrlFingerprintMiddleware
 
 from abc import ABCMeta, abstractmethod
+
 import six
+
+from frontera.contrib.middlewares.fingerprint import UrlFingerprintMiddleware
+from frontera.core.models import Request
 
 
 @six.add_metaclass(ABCMeta)

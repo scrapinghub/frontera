@@ -1,17 +1,18 @@
 from __future__ import absolute_import
+
 import logging
 import random
-from collections import deque, Iterable
+from collections import Iterable, deque
+
+import six
+from six.moves import map, range
 
 from frontera.contrib.backends import CommonBackend
-from frontera.core.components import Metadata, Queue, States
-from frontera.core import OverusedBuffer
-from frontera.utils.heap import Heap
 from frontera.contrib.backends.partitioners import Crc32NamePartitioner
+from frontera.core import OverusedBuffer
+from frontera.core.components import Metadata, Queue, States
+from frontera.utils.heap import Heap
 from frontera.utils.url import parse_domain_from_url_fast
-import six
-from six.moves import map
-from six.moves import range
 
 
 def cmp(a, b):

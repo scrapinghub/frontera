@@ -1,8 +1,11 @@
 from __future__ import absolute_import
+
 import hashlib
+
 import pytest
-from frontera.utils.misc import load_object, get_crc32, chunks, to_signed32
 import six
+
+from frontera.utils.misc import chunks, get_crc32, load_object, to_signed32
 
 
 class TestGetCRC32(object):

@@ -2,11 +2,14 @@
 """ A JSON codec for Frontera. Implemented using native json library.
 """
 from __future__ import absolute_import
+
 import json
 from base64 import b64decode, b64encode
+
+from w3lib.util import to_native_str, to_unicode
+
 from frontera.core.codec import BaseDecoder, BaseEncoder
-from w3lib.util import to_unicode, to_native_str
-from frontera.utils.misc import dict_to_unicode, dict_to_bytes
+from frontera.utils.misc import dict_to_bytes, dict_to_unicode
 
 
 def _prepare_request_message(request):
@@ -149,4 +152,3 @@ class Decoder(json.JSONDecoder, BaseDecoder):
                                    headers=obj[b'headers'],
                                    cookies=obj[b'cookies'],
                                    meta=obj[b'meta'])
-

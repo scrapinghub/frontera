@@ -1,6 +1,8 @@
 from __future__ import absolute_import
-import six
+
 from importlib import import_module
+
+import six
 
 from . import default_settings
 

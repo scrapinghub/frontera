@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-from frontera.contrib.backends.partitioners import FingerprintPartitioner, Crc32NamePartitioner
+
 from six.moves import range
+
+from frontera.contrib.backends.partitioners import Crc32NamePartitioner, FingerprintPartitioner
 
 
 def test_fingerprint_partitioner():
@@ -27,4 +29,3 @@ def test_crc32name_partitioner():
 
     partition = cp.partition(key, None)
     assert partition == 3
-

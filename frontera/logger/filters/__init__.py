@@ -1,5 +1,7 @@
 from __future__ import absolute_import
+
 import logging
+
 import six
 from w3lib.util import to_native_str
 

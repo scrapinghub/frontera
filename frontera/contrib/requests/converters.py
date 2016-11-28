@@ -1,9 +1,8 @@
 from __future__ import absolute_import
-from requests.models import Request as RequestsRequest
-from requests.models import Response as RequestsResponse
 
-from frontera.core.models import Request as FrontierRequest
-from frontera.core.models import Response as FrontierResponse
+from requests.models import Request as RequestsRequest, Response as RequestsResponse
+
+from frontera.core.models import Request as FrontierRequest, Response as FrontierResponse
 from frontera.utils.converters import BaseRequestConverter, BaseResponseConverter
 
 

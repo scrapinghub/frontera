@@ -1,7 +1,9 @@
 from __future__ import absolute_import
+
+from w3lib.url import canonicalize_url
+
 from frontera.core.components import Middleware
 from frontera.exceptions import NotConfigured
-from w3lib.url import canonicalize_url
 from frontera.utils.misc import load_object
 
 

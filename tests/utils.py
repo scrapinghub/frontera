@@ -1,6 +1,7 @@
-import six
 import logging
 import logging.config
+
+import six
 
 colors = {
     'bold_yellow': '\x1b[01;33m',

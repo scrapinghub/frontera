@@ -1,12 +1,13 @@
 from __future__ import absolute_import
+
+import logging
 from collections import OrderedDict
 
-from frontera.exceptions import NotConfigured
-from frontera.utils.misc import load_object
-from frontera.settings import Settings, BaseSettings
-from frontera.core.components import Backend, DistributedBackend, Middleware, CanonicalSolver
 from frontera.core import models
-import logging
+from frontera.core.components import Backend, CanonicalSolver, DistributedBackend, Middleware
+from frontera.exceptions import NotConfigured
+from frontera.settings import BaseSettings, Settings
+from frontera.utils.misc import load_object
 
 
 class ComponentsPipelineMixin(object):

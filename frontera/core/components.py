@@ -1,5 +1,7 @@
 from __future__ import absolute_import
+
 from abc import ABCMeta, abstractmethod, abstractproperty
+
 import six
 
 
@@ -281,5 +283,3 @@ class Partitioner(object):
             partitions: (optional) a list of partitions.
         """
         raise NotImplementedError('partition function has to be implemented')
-
-

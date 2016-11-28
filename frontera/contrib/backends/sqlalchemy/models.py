@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-from sqlalchemy import Column, String, Integer, PickleType, SmallInteger, Float, DateTime, BigInteger
+
+from sqlalchemy import BigInteger, Column, DateTime, Float, Integer, PickleType, SmallInteger, String
 from sqlalchemy.ext.declarative import declarative_base
 
 DeclarativeBase = declarative_base()

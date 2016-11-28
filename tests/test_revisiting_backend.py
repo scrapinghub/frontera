@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-from tests.backends import BackendSequenceTest, TEST_SITES
-from frontera.utils.tester import FrontierTester
 
 from datetime import timedelta
-import pytest
 from time import sleep
+
+import pytest
+from tests.backends import TEST_SITES, BackendSequenceTest
+
+from frontera.utils.tester import FrontierTester
 
 
 class RevisitingFrontierTester(FrontierTester):
@@ -54,4 +56,3 @@ class RevisitingBackendTest(BackendSequenceTest):
             seen.add(url)
 
         assert False, "None of the URLs were revisted"
-

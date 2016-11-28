@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+
 import logging
 
 LOG_FORMAT = "[%(name)s] %(message)s"

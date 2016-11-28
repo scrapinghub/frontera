@@ -1,7 +1,8 @@
 from __future__ import absolute_import
-from frontera.core.components import Backend, Middleware, CanonicalSolver, \
-    DistributedBackend, Queue
+
 from six.moves import range
+
+from frontera.core.components import Backend, CanonicalSolver, DistributedBackend, Middleware, Queue
 from frontera.core.models import Request
 
 

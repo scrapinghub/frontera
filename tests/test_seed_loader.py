@@ -4,13 +4,12 @@ from shutil import rmtree
 from tempfile import mkdtemp
 
 from scrapy.spiders import Spider
+from tests import mock
+from tests.mocks.boto import MockConnection
 
-from frontera.settings import Settings
 from frontera.contrib.scrapy.middlewares.seeds.file import FileSeedLoader, NotConfigured
 from frontera.contrib.scrapy.middlewares.seeds.s3 import S3SeedLoader
-
-from tests.mocks.boto import MockConnection
-from tests import mock
+from frontera.settings import Settings
 
 
 class TestFileSeedLoader(unittest.TestCase):

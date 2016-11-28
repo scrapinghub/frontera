@@ -1,7 +1,8 @@
 from __future__ import absolute_import
-from six.moves.urllib.parse import urlparse
+
 from boto import connect_s3
 from scrapy.exceptions import NotConfigured
+from six.moves.urllib.parse import urlparse
 
 from frontera.contrib.scrapy.middlewares.seeds.file import FileSeedLoader
 
