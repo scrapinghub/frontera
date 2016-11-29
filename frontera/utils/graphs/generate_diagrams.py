@@ -1,10 +1,10 @@
-from __future__ import absolute_import
-from __future__ import print_function
+from __future__ import absolute_import, print_function
+
 import os
 import sys
 
-from .manager import CrawlGraphManager
 from .data import GRAPHS
+from .manager import CrawlGraphManager
 
 SCRIPT_FOLDER = os.path.abspath(os.path.split(sys.argv[0])[0])
 CHARTS_FOLDER = os.path.join(SCRIPT_FOLDER, 'diagrams')
@@ -34,17 +34,3 @@ def generate_diagrams():
 
 if __name__ == '__main__':
     generate_diagrams()
-
-
-
-
-
-
-
-
-
-
-
-
-
-

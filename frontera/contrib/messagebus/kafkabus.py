@@ -3,17 +3,18 @@ from __future__ import absolute_import
 
 from logging import getLogger
 from time import sleep
+from traceback import format_tb
 
 import six
 from kafka import KafkaConsumer, KafkaProducer, TopicPartition
-
-from frontera.contrib.backends.partitioners import FingerprintPartitioner, Crc32NamePartitioner
-from frontera.contrib.messagebus.kafka.async import OffsetsFetcherAsync
-from frontera.core.messagebus import BaseMessageBus, BaseSpiderLogStream, BaseSpiderFeedStream, \
-    BaseStreamConsumer, BaseScoringLogStream, BaseStreamProducer
 from twisted.internet.task import LoopingCall
-from traceback import format_tb
 
+from frontera.contrib.backends.partitioners import Crc32NamePartitioner, FingerprintPartitioner
+from frontera.contrib.messagebus.kafka.async import OffsetsFetcherAsync
+from frontera.core.messagebus import (
+    BaseMessageBus, BaseScoringLogStream, BaseSpiderFeedStream, BaseSpiderLogStream, BaseStreamConsumer,
+    BaseStreamProducer,
+)
 
 logger = getLogger("messagebus.kafka")
 

@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import absolute_import
-from frontera.contrib.scrapy.converters import RequestConverter, ResponseConverter
+
 from scrapy.http.request import Request as ScrapyRequest
 from scrapy.http.response import Response as ScrapyResponse
-from frontera.core.models import Request as FrontierRequest
 from w3lib.util import to_bytes
+
+from frontera.contrib.scrapy.converters import RequestConverter, ResponseConverter
+from frontera.core.models import Request as FrontierRequest
 
 
 class TestSpider(object):

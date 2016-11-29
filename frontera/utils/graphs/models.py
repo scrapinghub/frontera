@@ -1,10 +1,9 @@
 from __future__ import absolute_import
-from sqlalchemy import Column, String, Integer, Boolean, ForeignKey
-from sqlalchemy.orm import relation
-from sqlalchemy import UniqueConstraint
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import types
+
 import six
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, UniqueConstraint, types
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relation
 
 Base = declarative_base()
 

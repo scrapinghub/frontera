@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import absolute_import
-from frontera.contrib.backends.remote.codecs.json import Encoder as JsonEncoder, Decoder as JsonDecoder
-from frontera.contrib.backends.remote.codecs.msgpack import Encoder as MsgPackEncoder, Decoder as MsgPackDecoder
-from frontera.core.models import Request, Response
+
 import pytest
+
+from frontera.contrib.backends.remote.codecs.json import Decoder as JsonDecoder, Encoder as JsonEncoder
+from frontera.contrib.backends.remote.codecs.msgpack import Decoder as MsgPackDecoder, Encoder as MsgPackEncoder
+from frontera.core.models import Request, Response
 
 
 @pytest.mark.parametrize(

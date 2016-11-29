@@ -1,29 +1,29 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-from frontera.utils.url import parse_domain_from_url_fast
-from frontera import DistributedBackend
-from frontera.core.components import Metadata, Queue, States
-from frontera.core.models import Request
-from frontera.contrib.backends.partitioners import Crc32NamePartitioner
-from frontera.utils.misc import chunks, get_crc32
-from frontera.contrib.backends.remote.codecs.msgpack import Decoder, Encoder
 
-from happybase import Connection
-from msgpack import Unpacker, Packer
+import logging
+from binascii import hexlify, unhexlify
+from calendar import timegm
+from collections import Iterable
+from datetime import datetime
+from io import BytesIO
+from random import choice
+from struct import pack, unpack
+from time import time
+
 import six
+from happybase import Connection
+from msgpack import Packer, Unpacker
 from six.moves import range
 from w3lib.util import to_bytes
 
-from struct import pack, unpack
-from datetime import datetime
-from calendar import timegm
-from time import time
-from binascii import hexlify, unhexlify
-from io import BytesIO
-from random import choice
-from collections import Iterable
-import logging
-
+from frontera import DistributedBackend
+from frontera.contrib.backends.partitioners import Crc32NamePartitioner
+from frontera.contrib.backends.remote.codecs.msgpack import Decoder, Encoder
+from frontera.core.components import Metadata, Queue, States
+from frontera.core.models import Request
+from frontera.utils.misc import chunks, get_crc32
+from frontera.utils.url import parse_domain_from_url_fast
 
 _pack_functions = {
     'url': to_bytes,

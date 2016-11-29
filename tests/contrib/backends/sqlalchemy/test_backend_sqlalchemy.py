@@ -1,10 +1,10 @@
 from __future__ import absolute_import
+
 import os
 
 import pymysql
 from psycopg2 import connect
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-
 from tests import backends
 from tests.test_revisiting_backend import RevisitingBackendTest
 

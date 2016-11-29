@@ -1,9 +1,10 @@
 from __future__ import absolute_import
+
 import pprint
 
+from scrapy import log
 from scrapy.core.scheduler import Scheduler
 from scrapy.http import Request
-from scrapy import log
 
 from frontera import graphs
 

@@ -1,8 +1,7 @@
-from frontera.core.models import Request, Response
-from frontera.worker.db import DBWorker
-from frontera.settings import Settings
 from frontera.core.components import States
-
+from frontera.core.models import Request, Response
+from frontera.settings import Settings
+from frontera.worker.db import DBWorker
 
 r1 = Request('http://www.example.com/', meta={b'fingerprint': b'1', b'state': States.DEFAULT, b'jid': 0})
 r2 = Request('http://www.scrapy.org/', meta={b'fingerprint': b'2', b'state': States.DEFAULT, b'jid': 0})

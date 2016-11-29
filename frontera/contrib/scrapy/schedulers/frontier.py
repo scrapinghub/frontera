@@ -1,14 +1,15 @@
 from __future__ import absolute_import
-from scrapy.core.scheduler import Scheduler
-from scrapy.http import Request
-from logging import getLogger
 
 from collections import deque
+from logging import getLogger
 from time import time
+
+import six
+from scrapy.core.scheduler import Scheduler
+from scrapy.http import Request
 
 from frontera.contrib.scrapy.manager import ScrapyFrontierManager
 from frontera.contrib.scrapy.settings_adapter import ScrapySettingsAdapter
-import six
 
 STATS_PREFIX = 'frontera'
 

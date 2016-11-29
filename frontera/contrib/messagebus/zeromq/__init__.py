@@ -1,17 +1,19 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-from time import time, sleep
-from struct import pack, unpack
+
 from logging import getLogger
+from struct import pack, unpack
+from time import sleep, time
 
-import zmq
 import six
-
-from frontera.core.messagebus import BaseMessageBus, BaseSpiderLogStream, BaseStreamConsumer, \
-    BaseSpiderFeedStream, BaseScoringLogStream
-from frontera.contrib.backends.partitioners import FingerprintPartitioner, Crc32NamePartitioner
-from frontera.contrib.messagebus.zeromq.socket_config import SocketConfig
+import zmq
 from six.moves import range
+
+from frontera.contrib.backends.partitioners import Crc32NamePartitioner, FingerprintPartitioner
+from frontera.contrib.messagebus.zeromq.socket_config import SocketConfig
+from frontera.core.messagebus import (
+    BaseMessageBus, BaseScoringLogStream, BaseSpiderFeedStream, BaseSpiderLogStream, BaseStreamConsumer,
+)
 
 
 class Consumer(BaseStreamConsumer):

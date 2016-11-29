@@ -1,9 +1,8 @@
-from frontera.worker.strategy import StrategyWorker
-from frontera.worker.strategies.bfs import CrawlingStrategy
-from frontera.settings import Settings
-from frontera.core.models import Request, Response
 from frontera.core.components import States
-
+from frontera.core.models import Request, Response
+from frontera.settings import Settings
+from frontera.worker.strategies.bfs import CrawlingStrategy
+from frontera.worker.strategy import StrategyWorker
 
 r1 = Request('http://www.example.com/', meta={b'fingerprint': b'1', b'jid': 0})
 r2 = Request('http://www.scrapy.org/', meta={b'fingerprint': b'2', b'jid': 0})

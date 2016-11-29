@@ -1,25 +1,27 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
+
 import logging
-from traceback import format_stack
-from signal import signal, SIGUSR1
-from logging.config import fileConfig
 from argparse import ArgumentParser
-from time import asctime
+from logging.config import fileConfig
 from os.path import exists
+from signal import SIGUSR1, signal
+from time import asctime
+from traceback import format_stack
 
-from twisted.internet import reactor, task
-from frontera.core.components import DistributedBackend
-from frontera.core.manager import FrontierManager
-from frontera.utils.url import parse_domain_from_url_fast
-from frontera.logger.handlers import CONSOLE
-
-from frontera.settings import Settings
-from frontera.utils.misc import load_object
-from frontera.utils.async import CallLaterOnce
-from .server import WorkerJsonRpcService
 import six
 from six.moves import map
+from twisted.internet import reactor, task
+
+from frontera.core.components import DistributedBackend
+from frontera.core.manager import FrontierManager
+from frontera.logger.handlers import CONSOLE
+from frontera.settings import Settings
+from frontera.utils.async import CallLaterOnce
+from frontera.utils.misc import load_object
+from frontera.utils.url import parse_domain_from_url_fast
+
+from .server import WorkerJsonRpcService
 
 logger = logging.getLogger("db-worker")
 
@@ -302,4 +304,3 @@ if __name__ == '__main__':
     server = WorkerJsonRpcService(worker, settings)
     server.start_listening()
     worker.run()
-

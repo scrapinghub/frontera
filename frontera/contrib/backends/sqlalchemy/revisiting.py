@@ -1,20 +1,21 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-import logging
-from datetime import datetime, timedelta
-from time import time, sleep
-from calendar import timegm
 
-from sqlalchemy import Column, BigInteger
+import logging
+from calendar import timegm
+from datetime import datetime, timedelta
+from time import sleep, time
+
+from six.moves import range
+from sqlalchemy import BigInteger, Column
 
 from frontera import Request
 from frontera.contrib.backends.partitioners import Crc32NamePartitioner
 from frontera.contrib.backends.sqlalchemy import SQLAlchemyBackend
-from frontera.contrib.backends.sqlalchemy.models import QueueModelMixin, DeclarativeBase
+from frontera.contrib.backends.sqlalchemy.models import DeclarativeBase, QueueModelMixin
 from frontera.core.components import Queue as BaseQueue, States
 from frontera.utils.misc import get_crc32
 from frontera.utils.url import parse_domain_from_url_fast
-from six.moves import range
 
 
 def utcnow_timestamp():

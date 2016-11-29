@@ -1,10 +1,10 @@
 from __future__ import absolute_import
+
 import unittest
 
 from frontera.contrib.backends.remote.messagebus import MessageBusBackend
-from frontera.settings import Settings
 from frontera.core.models import Request, Response
-
+from frontera.settings import Settings
 
 r1 = Request('http://www.example.com/', meta={b'domain': {b'fingerprint': b'1'}})
 r2 = Request('http://www.scrapy.org/', meta={b'domain': {b'fingerprint': b'2'}})

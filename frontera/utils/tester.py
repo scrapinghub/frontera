@@ -1,9 +1,10 @@
 from __future__ import absolute_import
 
 from collections import OrderedDict, deque
-from six.moves.urllib.parse import urlparse
+
 import six
 from six.moves import range
+from six.moves.urllib.parse import urlparse
 
 
 class FrontierTester(object):

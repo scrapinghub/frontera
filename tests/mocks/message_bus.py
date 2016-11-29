@@ -1,5 +1,6 @@
-from frontera.core.messagebus import BaseMessageBus, BaseSpiderLogStream, BaseStreamConsumer, \
-    BaseScoringLogStream, BaseSpiderFeedStream
+from frontera.core.messagebus import (
+    BaseMessageBus, BaseScoringLogStream, BaseSpiderFeedStream, BaseSpiderLogStream, BaseStreamConsumer,
+)
 
 
 class Consumer(BaseStreamConsumer):

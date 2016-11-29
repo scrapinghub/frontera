@@ -1,20 +1,22 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
+
 import logging
 from datetime import datetime
-from time import time, sleep
+from time import sleep, time
 
+import six
 from cachetools import LRUCache
-from frontera.contrib.backends.partitioners import Crc32NamePartitioner
+from six.moves import range
+from w3lib.util import to_bytes, to_native_str
+
 from frontera.contrib.backends.memory import MemoryStates
+from frontera.contrib.backends.partitioners import Crc32NamePartitioner
 from frontera.contrib.backends.sqlalchemy.models import DeclarativeBase
 from frontera.core.components import Metadata as BaseMetadata, Queue as BaseQueue
 from frontera.core.models import Request, Response
-from frontera.utils.misc import get_crc32, chunks
+from frontera.utils.misc import chunks, get_crc32
 from frontera.utils.url import parse_domain_from_url_fast
-import six
-from six.moves import range
-from w3lib.util import to_native_str, to_bytes
 
 
 def retry_and_rollback(func):

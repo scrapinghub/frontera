@@ -1,6 +1,8 @@
 from __future__ import absolute_import
-from frontera.settings import Settings
+
 from six.moves import range
+
+from frontera.settings import Settings
 
 
 class FakeFrontierManager(object):
@@ -58,5 +60,3 @@ class FakeFrontierManager(object):
 
     def request_error(self, request, error):
         self.errors.append((request, error))
-
-

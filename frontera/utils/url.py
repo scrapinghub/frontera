@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+
 from six.moves.urllib import parse
 from w3lib.util import to_native_str
 

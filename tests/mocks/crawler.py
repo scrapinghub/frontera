@@ -1,7 +1,9 @@
 from __future__ import absolute_import
-from scrapy.settings import Settings
-from frontera.utils.misc import load_object
+
 import six
+from scrapy.settings import Settings
+
+from frontera.utils.misc import load_object
 
 
 class FakeCrawler(object):

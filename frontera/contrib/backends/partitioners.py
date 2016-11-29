@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-from struct import unpack
+
 from binascii import unhexlify
+from struct import unpack
 
 from frontera.core.components import Partitioner
 from frontera.utils.misc import get_crc32

@@ -3,11 +3,11 @@
 """
 from __future__ import absolute_import
 
+import six
 from msgpack import packb, unpackb
+from w3lib.util import to_native_str
 
 from frontera.core.codec import BaseDecoder, BaseEncoder
-import six
-from w3lib.util import to_native_str
 
 
 def _prepare_request_message(request):

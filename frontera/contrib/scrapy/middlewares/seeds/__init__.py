@@ -19,6 +19,3 @@ class SeedLoader(object):
 
     def load_seeds(self):
         raise NotImplementedError
-
-
-

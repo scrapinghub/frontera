@@ -1,7 +1,8 @@
 import unittest
 
-from frontera.logger.filters import PLAINVALUES, INCLUDEFIELDS, EXCLUDEFIELDS
 from tests.utils import LoggingCaptureMixin, SetupDefaultLoggingMixin
+
+from frontera.logger.filters import EXCLUDEFIELDS, INCLUDEFIELDS, PLAINVALUES
 
 
 class BaseTestFilters(SetupDefaultLoggingMixin, LoggingCaptureMixin, unittest.TestCase):

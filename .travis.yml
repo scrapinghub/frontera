@@ -12,6 +12,7 @@ env:
   matrix:
     - TOXENV=py27
     - TOXENV=flake8
+    - TOXENV=isort
 
 matrix:
   include:

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
+
 from frontera.contrib.canonicalsolvers import Basic, CorporateWebsiteFriendly
 from frontera.core.models import Request, Response
 from frontera.utils.fingerprint import sha1
@@ -38,4 +39,3 @@ def test_corporate_website_friendly():
     re = single_node_chain("http://www.yandex.ru", "http://www.yandex.ru/search")
     cs.page_crawled(re)
     assert re.url == "http://www.yandex.ru/search"
-

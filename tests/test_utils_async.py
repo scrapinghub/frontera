@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
+
 import pytest
-from twisted.test.proto_helpers import MemoryReactor
 from twisted.internet.protocol import Factory
 from twisted.internet.task import Clock
+from twisted.test.proto_helpers import MemoryReactor
+
 from frontera.utils.async import CallLaterOnce, listen_tcp
 
 
