@@ -98,7 +98,9 @@ class BaseCrawlingStrategy(object):
 
     def create_request(self, url, method=b'GET', headers=None, cookies=None, meta=None, body=b''):
         """
-        Creates request with specified fields, with state fetched from backend.
+        Creates request with specified fields, with state fetched from backend. This method only creates request, but
+        isn't getting it's state from storage. Use self.refresh_states on a batch of requests to get their states
+        from storage.
 
         :param url: str
         :param method: str
@@ -110,5 +112,12 @@ class BaseCrawlingStrategy(object):
         """
         r = Request(url, method=method, headers=headers, cookies=cookies, meta=meta, body=body)
         self.url_mw._add_fingerprint(r)
-        self._states_context.refresh_and_keep(r)
         return r
+
+    def refresh_states(self, requests):
+        """
+        Retrieves states for all requests from storage.
+
+        :param requests: list(:class:`Request <frontera.core.models.Request>`)
+        """
+        self._states_context.refresh_and_keep(requests)
