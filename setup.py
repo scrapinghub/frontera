@@ -64,7 +64,7 @@ setup(
         ],
         'zeromq': [
             'pyzmq',
-            'msgpack-python'
+            'msgpack-python>=0.4'
         ],
         'kafka': [
             'kafka-python>=1.0.0'
