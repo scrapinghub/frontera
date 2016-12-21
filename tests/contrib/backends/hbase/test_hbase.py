@@ -5,8 +5,9 @@ from frontera.contrib.backends.hbase import HBaseState, HBaseMetadata, HBaseQueu
 from frontera.core.models import Request, Response
 from frontera.core.components import States
 from binascii import unhexlify
-from time import sleep, time
+from time import time
 from w3lib.util import to_native_str
+from tests import mock
 
 r1 = Request('https://www.example.com', meta={b'fingerprint': b'10',
              b'domain': {b'name': b'www.example.com', b'fingerprint': b'81'}})
@@ -54,14 +55,17 @@ class TestHBaseBackend(object):
         connection = Connection(host='hbase-docker', port=9090)
         queue = HBaseQueue(connection, 1, b'queue', True)
         r5 = r3.copy()
-        r5.meta[b'crawl_at'] = int(time()) + 1
+        crawl_at = int(time()) + 1000
+        r5.meta[b'crawl_at'] = crawl_at
         batch = [(r5.meta[b'fingerprint'], 0.5, r5, True)]
         queue.schedule(batch)
-        assert queue.get_next_requests(10, 0, min_requests=3, min_hosts=1,
-                   max_requests_per_host=10) == []
-        sleep(1.5)
-        assert set([r.url for r in queue.get_next_requests(10, 0, min_requests=3, min_hosts=1,
-                   max_requests_per_host=10)]) == set([r5.url])
+        with mock.patch('frontera.contrib.backends.hbase.time') as mocked_time:
+            mocked_time.return_value = time()
+            assert queue.get_next_requests(10, 0, min_requests=3, min_hosts=1,
+                                           max_requests_per_host=10) == []
+            mocked_time.return_value = crawl_at + 1
+            assert set([r.url for r in queue.get_next_requests(10, 0, min_requests=3, min_hosts=1,
+                       max_requests_per_host=10)]) == set([r5.url])
 
     def test_state(self):
         connection = Connection(host='hbase-docker', port=9090)
