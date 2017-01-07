@@ -8,7 +8,7 @@ from frontera.contrib.backends.memory import MemoryStates
 from frontera.core.components import States
 
 
-class TestingCrawlingStrategy(BaseCrawlingStrategy):
+class DummyCrawlingStrategy(BaseCrawlingStrategy):
     def add_seeds(self, seeds):
         pass
 
@@ -37,7 +37,7 @@ class TestCrawlingStrategy(object):
         stream = MessageBusStream()
         states = MemoryStates(10)
         states_ctx = StatesContext(states)
-        return TestingCrawlingStrategy.from_worker(manager, stream, states_ctx)
+        return DummyCrawlingStrategy.from_worker(manager, stream, states_ctx)
 
     def test_create_request(self):
         s = self.strategy()
