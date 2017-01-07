@@ -5,7 +5,7 @@ from collections import deque, Iterable
 
 from frontera.contrib.backends import CommonBackend
 from frontera.core.components import Metadata, Queue, States
-from frontera.core import OverusedBuffer
+from frontera.core import LegacyOverusedBuffer as OverusedBuffer
 from frontera.utils.heap import Heap
 from frontera.contrib.backends.partitioners import Crc32NamePartitioner
 from frontera.utils.url import parse_domain_from_url_fast

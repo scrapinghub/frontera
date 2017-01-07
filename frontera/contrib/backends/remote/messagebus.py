@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 from frontera import Backend
-from frontera.core import OverusedBuffer
+from frontera.core import LegacyOverusedBuffer as OverusedBuffer
 from frontera.utils.misc import load_object
 import logging
 import six
