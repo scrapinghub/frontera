@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 from frontera import Backend
-from frontera.core import LegacyOverusedBuffer as OverusedBuffer
 from frontera.utils.misc import load_object
 import logging
 import six
@@ -26,8 +25,6 @@ class MessageBusBackend(Backend):
         self.consumer = spider_feed.consumer(partition_id=self.partition_id)
         self._get_timeout = float(settings.get('KAFKA_GET_TIMEOUT'))
         self._logger = logging.getLogger("messagebus-backend")
-        self._buffer = OverusedBuffer(self._get_next_requests,
-                                      self._logger.debug)
         self._logger.info("Consuming from partition id %d", self.partition_id)
 
     @classmethod
@@ -60,7 +57,7 @@ class MessageBusBackend(Backend):
         host_fprint = get_host_fprint(page)
         self.spider_log_producer.send(host_fprint, self._encoder.encode_request_error(page, error))
 
-    def _get_next_requests(self, max_n_requests, **kwargs):
+    def get_next_requests(self, max_n_requests, **kwargs):
         requests = []
         for encoded in self.consumer.get_messages(count=max_n_requests, timeout=self._get_timeout):
             try:
@@ -73,9 +70,6 @@ class MessageBusBackend(Backend):
                                       self._encoder.encode_offset(self.partition_id,
                                                                   self.consumer.get_offset(self.partition_id)))
         return requests
-
-    def get_next_requests(self, max_n_requests, **kwargs):
-        return self._buffer.get_next_requests(max_n_requests, **kwargs)
 
     def finished(self):
         return False
