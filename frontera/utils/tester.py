@@ -93,48 +93,7 @@ class BaseDownloaderSimulator(object):
         return self.requests
 
     def downloader_info(self):
-        return {
-            'key_type': 'domain',
-            'overused_keys': []
-        }
+        return {}
 
     def idle(self):
         return True
-
-
-class DownloaderSimulator(BaseDownloaderSimulator):
-    def __init__(self, rate):
-        self._requests_per_slot = rate
-        self.slots = OrderedDict()
-        super(DownloaderSimulator, self).__init__()
-
-    def update(self, requests):
-        for request in requests:
-            hostname = urlparse(request.url).hostname or ''
-            self.slots.setdefault(hostname, deque()).append(request)
-
-    def download(self):
-        output = []
-        _trash_can = []
-        for key, requests in six.iteritems(self.slots):
-            for i in range(min(len(requests), self._requests_per_slot)):
-                output.append(requests.popleft())
-            if not requests:
-                _trash_can.append(key)
-
-        for key in _trash_can:
-            del self.slots[key]
-        return output
-
-    def downloader_info(self):
-        info = {
-            'key_type': 'domain',
-            'overused_keys': []
-        }
-        for key, requests in six.iteritems(self.slots):
-            if len(requests) > self._requests_per_slot:
-                info['overused_keys'].append(key)
-        return info
-
-    def idle(self):
-        return len(self.slots) == 0

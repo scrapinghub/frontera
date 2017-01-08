@@ -70,13 +70,9 @@ class TestMessageBusBackend(unittest.TestCase):
         encoded_requests = [mbb._encoder.encode_request(r) for r in [r1, r2, r3]]
         mbb.consumer.put_messages(encoded_requests)
         mbb.consumer._set_offset(0)
-        requests = set(mbb.get_next_requests(10, overused_keys=[], key_type='domain'))
+        requests = set(mbb.get_next_requests(10))
         _, partition_id, offset = mbb._decoder.decode(mbb.spider_log_producer.messages[0])
         self.assertEqual((partition_id, offset), (0, 0))
         self.assertEqual(set([r.url for r in requests]), set([r1.url, r2.url, r3.url]))
-        requests = set(mbb.get_next_requests(10, overused_keys=[], key_type='domain'))
+        requests = set(mbb.get_next_requests(10))
         self.assertEqual([r.url for r in requests], [])
-        # test overused keys
-        mbb.consumer.put_messages(encoded_requests)
-        requests = set(mbb.get_next_requests(10, overused_keys=['www.example.com'], key_type='domain'))
-        self.assertEqual(set([r.url for r in requests]), set([r2.url, r3.url]))
