@@ -19,6 +19,10 @@ class FakeFrontierManager(object):
         self.errors = []
         self.get_next_requests_kwargs = []
 
+    @property
+    def max_next_requests(self):
+        return self.settings.get('MAX_NEXT_REQUESTS')
+
     @classmethod
     def from_settings(cls, settings=None):
         settings = Settings.object_from(settings)
@@ -40,7 +44,7 @@ class FakeFrontierManager(object):
 
     def get_next_requests(self, max_next_requests=0, **kwargs):
         self.get_next_requests_kwargs.append(kwargs)
-        max_next_requests = max_next_requests or self.settings.get('MAX_NEXT_REQUESTS')
+        max_next_requests = max_next_requests or self.max_next_requests
         lst = []
         for i in range(max_next_requests):
             if self.requests:
