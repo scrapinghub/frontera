@@ -7,6 +7,7 @@ from collections import deque
 from time import time
 
 from frontera.contrib.scrapy.manager import ScrapyFrontierManager
+from frontera.contrib.scrapy.overusedbuffer import OverusedBufferScrapy
 from frontera.contrib.scrapy.settings_adapter import ScrapySettingsAdapter
 import six
 
@@ -83,6 +84,10 @@ class FronteraScheduler(Scheduler):
         self._delay_on_empty = self.frontier.manager.settings.get('DELAY_ON_EMPTY')
         self._delay_next_call = 0.0
         self.logger = getLogger('frontera.contrib.scrapy.schedulers.FronteraScheduler')
+        self.buffer = OverusedBufferScrapy(
+            self.frontier.get_next_requests,
+            self.logger.debug,
+        )
 
     @classmethod
     def from_crawler(cls, crawler):
@@ -148,7 +153,11 @@ class FronteraScheduler(Scheduler):
                 self._delay_next_call < time():
 
             info = self._get_downloader_info()
-            requests = self.frontier.get_next_requests(key_type=info['key_type'], overused_keys=info['overused_keys'])
+            requests = self.buffer.get_next_requests(
+                self.frontier.manager.max_next_requests,
+                key_type=info['key_type'],
+                overused_keys=info['overused_keys'],
+            )
             for request in requests:
                 self._add_pending_request(request)
             self._delay_next_call = time() + self._delay_on_empty if not requests else 0.0

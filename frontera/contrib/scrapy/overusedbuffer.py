@@ -2,7 +2,7 @@ from __future__ import absolute_import
 from scrapy.utils.httpobj import urlparse_cached
 from scrapy.resolver import dnscache
 
-from frontera.core import OverusedBuffer
+from frontera.core import LegacyOverusedBuffer as OverusedBuffer
 
 
 class OverusedBufferScrapy(OverusedBuffer):

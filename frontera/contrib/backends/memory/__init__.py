@@ -5,7 +5,6 @@ from collections import deque, Iterable
 
 from frontera.contrib.backends import CommonBackend
 from frontera.core.components import Metadata, Queue, States
-from frontera.core import OverusedBuffer
 from frontera.utils.heap import Heap
 from frontera.contrib.backends.partitioners import Crc32NamePartitioner
 from frontera.utils.url import parse_domain_from_url_fast
@@ -243,15 +242,6 @@ class MemoryBFSBackend(MemoryBaseBackend):
 class MemoryRandomBackend(MemoryBaseBackend):
     def _create_queue(self, settings):
         return MemoryRandomQueue(settings.get('SPIDER_FEED_PARTITIONS'))
-
-
-class MemoryDFSOverusedBackend(MemoryDFSBackend):
-    def __init__(self, manager):
-        super(MemoryDFSOverusedBackend, self).__init__(manager)
-        self.overused_buffer = OverusedBuffer(super(MemoryDFSOverusedBackend, self).get_next_requests)
-
-    def get_next_requests(self, max_next_requests, **kwargs):
-        return self.overused_buffer.get_next_requests(max_next_requests, **kwargs)
 
 
 BASE = MemoryBaseBackend
