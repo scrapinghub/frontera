@@ -75,7 +75,6 @@ setup(
     },
     tests_require=[
         "pytest>=2.6.4",
-        "MySQL-python>=1.2.5",
         "PyMySQL>=0.6.3",
         "psycopg2>=2.5.4",
         "scrapy>=0.24",
