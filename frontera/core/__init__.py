@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 from six.moves.urllib.parse import urlparse
 from socket import getaddrinfo
-from collections import deque
+from collections import defaultdict, deque
 import six
 
 
@@ -33,45 +33,36 @@ class OverusedBuffer(object):
         :param _get_func: reference to get_next_requests() method of binded class
         :param log_func: optional logging function, for logging of internal state
         """
-        self._pending = dict()
+        self._pending = defaultdict(deque)
         self._get = _get_func
         self._log = log_func
 
     def _get_key(self, request, type):
         return get_slot_key(request, type)
 
+    def _get_pending_count(self):
+        return sum(six.moves.map(len, six.itervalues(self._pending)))
+
     def _get_pending(self, max_n_requests, overused_set):
-        requests = []
-        trash_can = []
-        try:
-            while True:
-                left = 0
-                for key, pending in six.iteritems(self._pending):
-                    if key in overused_set:
-                        continue
+        pending = self._pending
+        i, keys = 0, set(pending) - overused_set
 
-                    if pending:
-                        requests.append(pending.popleft())
-                        if not pending:
-                            trash_can.append(key)
-                        left += len(pending)
-
-                    if len(requests) == max_n_requests:
-                        return requests
-
-                if left == 0:
-                    return requests
-        finally:
-            for k in trash_can:
-                del self._pending[k]
+        while i < max_n_requests and keys:
+            for key in keys.copy():
+                try:
+                    yield pending[key].popleft()
+                    i += 1
+                except IndexError:
+                    keys.discard(key)
+                    del pending[key]
 
     def get_next_requests(self, max_n_requests, **kwargs):
         if self._log:
             self._log("Overused keys: %s" % str(kwargs['overused_keys']))
-            self._log("Pending: %i" % (sum([len(pending) for pending in six.itervalues(self._pending)])))
+            self._log("Pending: %d" % self._get_pending_count())
 
         overused_set = set(kwargs['overused_keys'])
-        requests = self._get_pending(max_n_requests, overused_set)
+        requests = list(self._get_pending(max_n_requests, overused_set))
 
         if len(requests) == max_n_requests:
             return requests
@@ -79,7 +70,7 @@ class OverusedBuffer(object):
         for request in self._get(max_n_requests-len(requests), **kwargs):
             key = self._get_key(request, kwargs['key_type'])
             if key in overused_set:
-                self._pending.setdefault(key, deque()).append(request)
+                self._pending[key].append(request)
             else:
                 requests.append(request)
         return requests
