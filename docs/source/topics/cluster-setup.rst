@@ -106,18 +106,17 @@ The logging can be configured according to https://docs.python.org/2/library/log
 6. Configure Scrapy settings module. It's located in Scrapy project folder and referenced in scrapy.cfg. Let's add
 there::
 
-    from scrapy.settings.default_settings import SPIDER_MIDDLEWARES, DOWNLOADER_MIDDLEWARES
-
     FRONTERA_SETTINGS = ''  # module path to your Frontera spider config module
 
     SCHEDULER = 'frontera.contrib.scrapy.schedulers.frontier.FronteraScheduler'
-    SPIDER_MIDDLEWARES.update({
+
+    SPIDER_MIDDLEWARES = {
         'frontera.contrib.scrapy.middlewares.schedulers.SchedulerSpiderMiddleware': 999,
         'frontera.contrib.scrapy.middlewares.seeds.file.FileSeedLoader': 1,
-    })
-    DOWNLOADER_MIDDLEWARES.update({
+    }
+    DOWNLOADER_MIDDLEWARES = {
         'frontera.contrib.scrapy.middlewares.schedulers.SchedulerDownloaderMiddleware': 999,
-    })
+    }
 
 
 Starting the cluster

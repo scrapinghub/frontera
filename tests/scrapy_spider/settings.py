@@ -17,18 +17,15 @@ CONCURRENT_REQUESTS_PER_DOMAIN = 2
 
 LOGSTATS_INTERVAL = 10
 
-SPIDER_MIDDLEWARES = {}
-DOWNLOADER_MIDDLEWARES = {}
-
 #--------------------------------------------------------------------------
 # Frontier Settings
 #--------------------------------------------------------------------------
-SPIDER_MIDDLEWARES.update(
-    {'frontera.contrib.scrapy.middlewares.schedulers.SchedulerSpiderMiddleware': 999},
-)
-DOWNLOADER_MIDDLEWARES.update(
-    {'frontera.contrib.scrapy.middlewares.schedulers.SchedulerDownloaderMiddleware': 999}
-)
+SPIDER_MIDDLEWARES = {
+    'frontera.contrib.scrapy.middlewares.schedulers.SchedulerSpiderMiddleware': 999
+}
+DOWNLOADER_MIDDLEWARES = {
+    'frontera.contrib.scrapy.middlewares.schedulers.SchedulerDownloaderMiddleware': 999
+}
 SCHEDULER = 'frontera.contrib.scrapy.schedulers.frontier.FronteraScheduler'
 FRONTERA_SETTINGS = 'tests.scrapy_spider.frontera.settings'
 

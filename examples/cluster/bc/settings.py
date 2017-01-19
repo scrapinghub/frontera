@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
-from scrapy.settings.default_settings import SPIDER_MIDDLEWARES, DOWNLOADER_MIDDLEWARES
-
 FRONTERA_SETTINGS = 'bc.config.spider'
 
 SCHEDULER = 'frontera.contrib.scrapy.schedulers.frontier.FronteraScheduler'
-SPIDER_MIDDLEWARES.update({
+SPIDER_MIDDLEWARES = {
     'frontera.contrib.scrapy.middlewares.schedulers.SchedulerSpiderMiddleware': 999,
     'frontera.contrib.scrapy.middlewares.seeds.file.FileSeedLoader': 1,
-})
-DOWNLOADER_MIDDLEWARES.update({
+}
+DOWNLOADER_MIDDLEWARES = {
     'frontera.contrib.scrapy.middlewares.schedulers.SchedulerDownloaderMiddleware': 999,
-})
+}
 
 BOT_NAME = 'bc'
 

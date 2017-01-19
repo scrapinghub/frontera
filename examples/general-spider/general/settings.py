@@ -1,14 +1,4 @@
 # -*- coding: utf-8 -*-
-
-# Scrapy settings for topic project
-#
-# For simplicity, this file contains only the most important settings by
-# default. All the other settings are documented here:
-#
-#     http://doc.scrapy.org/en/latest/topics/settings.html
-#
-from scrapy.settings.default_settings import SPIDER_MIDDLEWARES, DOWNLOADER_MIDDLEWARES
-
 BOT_NAME = 'general'
 
 SPIDER_MODULES = ['general.spiders']
@@ -17,22 +7,20 @@ NEWSPIDER_MODULE = 'general.spiders'
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'topic (+http://www.yourdomain.com)'
 
-SPIDER_MIDDLEWARES.update({
+SPIDER_MIDDLEWARES = {
+    'frontera.contrib.scrapy.middlewares.seeds.file.FileSeedLoader': 1,
     'frontera.contrib.scrapy.middlewares.schedulers.SchedulerSpiderMiddleware': 1000,
     'scrapy.spidermiddleware.depth.DepthMiddleware': None,
     'scrapy.spidermiddleware.offsite.OffsiteMiddleware': None,
     'scrapy.spidermiddleware.referer.RefererMiddleware': None,
     'scrapy.spidermiddleware.urllength.UrlLengthMiddleware': None
-})
+}
 
-DOWNLOADER_MIDDLEWARES.update({
+DOWNLOADER_MIDDLEWARES = {
     'frontera.contrib.scrapy.middlewares.schedulers.SchedulerDownloaderMiddleware': 1000,
-})
+}
 
 SCHEDULER = 'frontera.contrib.scrapy.schedulers.frontier.FronteraScheduler'
-SPIDER_MIDDLEWARES.update({
-    'frontera.contrib.scrapy.middlewares.seeds.file.FileSeedLoader': 1,
-})
 
 
 HTTPCACHE_ENABLED = False
@@ -58,4 +46,3 @@ LOG_LEVEL = 'INFO'
 
 REACTOR_THREADPOOL_MAXSIZE = 32
 DNS_TIMEOUT = 180
-
