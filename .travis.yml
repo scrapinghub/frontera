@@ -1,5 +1,10 @@
 language: python
 python: 2.7
+branches:
+  only:
+    - master
+    - /^\d\.\d+$/
+    - /^\d\.\d+\.\d+(rc\d+|dev\d+)?$/
 
 services:
   - docker
