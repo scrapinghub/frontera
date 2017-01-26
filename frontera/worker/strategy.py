@@ -15,7 +15,7 @@ from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
 
 from frontera.settings import Settings
-from collections import Sequence
+from collections import Iterable
 from binascii import hexlify
 import six
 
@@ -54,7 +54,7 @@ class StatesContext(object):
         self._fingerprints = set()
 
     def to_fetch(self, requests):
-        if isinstance(requests, Sequence):
+        if isinstance(requests, Iterable):
             self._fingerprints.update([x.meta[b'fingerprint'] for x in requests])
             return
         self._fingerprints.add(requests.meta[b'fingerprint'])
