@@ -55,7 +55,7 @@ class StatesContext(object):
 
     def to_fetch(self, requests):
         if isinstance(requests, Iterable):
-            self._fingerprints.update([x.meta[b'fingerprint'] for x in requests])
+            self._fingerprints.update(x.meta[b'fingerprint'] for x in requests)
             return
         self._fingerprints.add(requests.meta[b'fingerprint'])
 
