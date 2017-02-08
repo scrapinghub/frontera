@@ -106,7 +106,7 @@ class Decoder(json.JSONDecoder, BaseDecoder):
                                       meta=obj[b'meta'])
         return self._response_model(url=url,
                                     status_code=obj[b'status_code'],
-                                    body=b64decode(obj[b'body']),
+                                    body=b64decode(obj[b'body']) if obj[b'body'] is not None else None,
                                     request=request)
 
     def _request_from_object(self, obj):

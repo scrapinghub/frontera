@@ -7,18 +7,19 @@ from frontera.core.models import Request, Response
 import pytest
 
 
+@pytest.mark.parametrize('send_body', [True, False])
 @pytest.mark.parametrize(
     ('encoder', 'decoder'), [
         (MsgPackEncoder, MsgPackDecoder),
         (JsonEncoder, JsonDecoder)
     ]
 )
-def test_codec(encoder, decoder):
+def test_codec(encoder, decoder, send_body):
     def check_request(req1, req2):
         assert req1.url == req2.url and req1.meta == req2.meta and req1.headers == req2.headers \
             and req1.method == req2.method
 
-    enc = encoder(Request, send_body=True)
+    enc = encoder(Request, send_body=send_body)
     dec = decoder(Request, Response)
     req = Request(url="http://www.yandex.ru",method=b'GET', meta={b"test": b"shmest"}, headers={b'reqhdr': b'value'})
     req2 = Request(url="http://www.yandex.ru/search")
@@ -46,7 +47,11 @@ def test_codec(encoder, decoder):
     o = dec.decode(next(it))
     assert o[0] == 'page_crawled'
     assert type(o[1]) == Response
-    assert o[1].url == req.url and o[1].body == b'SOME CONTENT' and o[1].meta == req.meta
+    assert o[1].url == req.url and o[1].meta == req.meta
+    if send_body:
+        o[1].body == b'SOME CONTENT'
+    else:
+        o[1].body is None
 
     o = dec.decode(next(it))
     print(o)
