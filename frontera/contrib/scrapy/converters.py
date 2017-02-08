@@ -40,8 +40,8 @@ class RequestConverter(BaseRequestConverter):
             b'scrapy_meta': scrapy_meta,
             b'origin_is_frontier': True,
         })
-        if b'redirect_urls' in scrapy_meta:
-            meta[b'redirect_urls'] = scrapy_meta[b'redirect_urls']
+        if 'redirect_urls' in scrapy_meta:
+            meta[b'redirect_urls'] = scrapy_meta['redirect_urls']
         return FrontierRequest(url=scrapy_request.url,
                                method=scrapy_request.method,
                                headers=scrapy_request.headers,
@@ -81,8 +81,8 @@ class ResponseConverter(BaseResponseConverter):
         """response: Scrapy > Frontier"""
         frontier_request = scrapy_response.meta[b'frontier_request']
         frontier_request.meta[b'scrapy_meta'] = scrapy_response.meta
-        if b'redirect_urls' in scrapy_response.meta:
-            frontier_request.meta[b'redirect_urls'] = scrapy_response.meta[b'redirect_urls']
+        if 'redirect_urls' in scrapy_response.meta:
+            frontier_request.meta[b'redirect_urls'] = scrapy_response.meta['redirect_urls']
         del scrapy_response.meta[b'frontier_request']
         return FrontierResponse(url=scrapy_response.url,
                                 status_code=scrapy_response.status,
