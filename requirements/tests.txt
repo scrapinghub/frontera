@@ -6,7 +6,7 @@ scrapy>=0.24
 SQLAlchemy>=1.0.0
 cachetools
 pyzmq
-msgpack-python
+msgpack-python>=0.4
 kafka-python>=1.0.0
 pytest-cov
 happybase>=1.0.0

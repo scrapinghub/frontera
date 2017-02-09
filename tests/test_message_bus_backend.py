@@ -49,7 +49,7 @@ class TestMessageBusBackend(unittest.TestCase):
         resp = Response(r1.url, body='body', request=r1)
         mbb.page_crawled(resp)
         page = mbb._decoder.decode(mbb.spider_log_producer.messages[0])[1]
-        self.assertEqual((page.request.url, page.body), (resp.request.url, b'body'))
+        self.assertEqual((page.request.url, page.body), (resp.request.url, 'body'))
 
     def test_links_extracted(self):
         mbb = self.mbb_setup()
