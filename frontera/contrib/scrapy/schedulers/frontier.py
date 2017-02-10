@@ -167,7 +167,7 @@ class FronteraScheduler(Scheduler):
             return '?'
 
     def _request_is_redirected(self, request):
-        return request.meta.get(b'redirect_times', 0) > 0
+        return request.meta.get('redirect_times', 0) > 0
 
     def _get_downloader_info(self):
         downloader = self.crawler.engine.downloader
