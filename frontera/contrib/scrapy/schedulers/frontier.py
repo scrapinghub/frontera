@@ -126,6 +126,8 @@ class FronteraScheduler(Scheduler):
 
     def open(self, spider):
         self.frontier.set_spider(spider)
+        if hasattr(spider, 'setup_frontier'):
+            spider.setup_frontier(self.frontier)
         self.logger.info("Starting frontier")
         if not self.frontier.manager.auto_start:
             self.frontier.start()
