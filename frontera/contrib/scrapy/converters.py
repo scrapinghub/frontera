@@ -35,6 +35,7 @@ class RequestConverter(BaseRequestConverter):
             del scrapy_meta[b'frontier_request']
 
         meta.update({
+            b'scrapy_priority': scrapy_request.priority,
             b'scrapy_callback': cb,
             b'scrapy_errback': eb,
             b'scrapy_meta': scrapy_meta,
@@ -57,10 +58,12 @@ class RequestConverter(BaseRequestConverter):
         eb = frontier_request.meta.get(b'scrapy_errback', None)
         if eb and self.spider:
             eb = _get_method(self.spider, eb)
+        priority = frontier_request.meta.get(b'scrapy_priority', 0)
         body = frontier_request.body
         meta = frontier_request.meta.get(b'scrapy_meta', {})
         meta[b'frontier_request'] = frontier_request
         return ScrapyRequest(url=frontier_request.url,
+                             priority=priority,
                              callback=cb,
                              errback=eb,
                              body=body,
