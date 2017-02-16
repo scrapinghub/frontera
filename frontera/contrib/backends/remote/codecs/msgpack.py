@@ -30,7 +30,8 @@ def _prepare_request_message(request):
         elif hasattr(obj, '__dict__'):
             return serialize(obj.__dict__)
         else:
-            logger.warning('unable to serialize object: {}'.format(obj))
+            if obj:
+                logger.warning('unable to serialize object: {}'.format(obj))
             return None
     return [request.url, request.method, request.headers, request.cookies, serialize(request.meta)]
 
