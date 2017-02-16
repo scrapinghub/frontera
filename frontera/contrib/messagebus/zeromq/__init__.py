@@ -98,7 +98,7 @@ class Producer(object):
         pass
 
     def get_offset(self, partition_id):
-        return self.counters.get(partition_id,0)
+        return self.counters.get(partition_id, 0)
 
 
 class SpiderLogProducer(Producer):
