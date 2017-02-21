@@ -26,8 +26,6 @@ FIELD_STATE = b'state'
 FIELD_STATUS_CODE = b'status_code'
 FIELD_URL = b'url'
 
-logging.getLogger('boto3.resources.action').setLevel(logging.WARNING)
-
 
 class RedisQueue(Queue):
     MAX_SCORE = 1.0
@@ -52,15 +50,12 @@ class RedisQueue(Queue):
 
     def get_next_requests(self, max_n_requests, partition_id, **kwargs):
         """
-        Tries to get new batch from priority queue. It makes self.GET_RETRIES tries and stops, trying to fit all
-        parameters. Every new iteration evaluates a deeper batch. After batch is requested it is removed from the queue.
+        Fet new batch from priority queue.
         :param max_n_requests: maximum number of requests
         :param partition_id: partition id to get batch from
         :return: list of :class:`Request <frontera.core.models.Request>` objects.
         """
-        min_requests = kwargs.pop('min_requests')
         max_requests_per_host = kwargs.pop('max_requests_per_host')
-        assert (max_n_requests >= min_requests)
         connection = StrictRedis(connection_pool=self._pool)
         queue = {}
         count = 0
@@ -303,7 +298,6 @@ class RedisBackend(DistributedBackend):
         settings = manager.settings
         port = settings.get('REDIS_PORT')
         host = settings.get('REDIS_HOST')
-        self._min_requests = settings.get('BC_MIN_REQUESTS')
         self._min_hosts = settings.get('BC_MIN_HOSTS')
         self._max_requests_per_host = settings.get('BC_MAX_REQUESTS_PER_HOST')
 
@@ -379,7 +373,6 @@ class RedisBackend(DistributedBackend):
             if partition_id not in partitions:
                 continue
             results = self.queue.get_next_requests(max_next_requests, partition_id,
-                                                   min_requests=self._min_requests,
                                                    min_hosts=self._min_hosts,
                                                    max_requests_per_host=self._max_requests_per_host)
             next_pages.extend(results)
