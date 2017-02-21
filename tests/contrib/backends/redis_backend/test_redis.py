@@ -24,7 +24,7 @@ class Request:
 
 
 def get_pool():
-    port = 9763
+    port = 6379
     host = 'localhost'
     return ConnectionPool(host=host, port=port, db=0)
 
