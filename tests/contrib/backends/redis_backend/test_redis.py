@@ -2,7 +2,7 @@
 from __future__ import absolute_import
 from frontera.contrib.backends.redis_backend import FIELD_DOMAIN_FINGERPRINT, FIELD_ERROR, FIELD_STATE
 from frontera.contrib.backends.redis_backend import FIELD_STATUS_CODE, FIELD_URL
-from frontera.contrib.backends.redis_backend import RedisMetadata, RedisQueue, RedisState
+from frontera.contrib.backends.redis_backend import RedisBackend, RedisMetadata, RedisQueue, RedisState
 from frontera.core.manager import FrontierManager
 from frontera.settings import Settings
 from redis import ConnectionPool, StrictRedis
@@ -374,6 +374,29 @@ class RedisMetadataTest(TestCase):
         self.assertEqual(b'https://www.hellan.me/', connection.hmget("l3", FIELD_URL)[0])
         self.assertEqual(b'd_l3', connection.hmget('l3', FIELD_DOMAIN_FINGERPRINT)[0])
 
+class RedisBackendTest(TestCase):
+    @staticmethod
+    def setup_subject(partitions):
+        settings = Settings(module='frontera.settings.default_settings')
+        settings.set('SPIDER_FEED_PARTITIONS', partitions)
+        settings.set('REDIS_DROP_ALL_TABLES', True)
+        return RedisBackend.db_worker(FrontierManager.from_settings(settings))
+
+    def test_get_next_request(self):
+        subject = self.setup_subject(2)
+        requests = subject.get_next_requests(max_next_requests=10, partitions=['0', '1'])
+        self.assertEqual(0, len(requests))
+
+    def test_get_next_request_has_requests(self):
+        subject = self.setup_subject(2)
+        batch = [
+            ("1", 1, Request("1", int(time()) - 10, 'https://www.knuthellan.com/', domain='knuthellan.com'), True),
+            ("2", 0.1, Request("2", int(time()) - 10, 'https://www.khellan.com/', domain='khellan.com'), True),
+            ("3", 0.5, Request("3", int(time()) - 10, 'https://www.hellan.me/', domain='hellan.me'), True),
+        ]
+        subject.queue.schedule(batch)
+        requests = subject.get_next_requests(max_next_requests=10, partitions=['0', '1'])
+        self.assertEqual(3, len(requests))
 
 if __name__ == '__main__':
     main()

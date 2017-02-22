@@ -33,6 +33,8 @@ MIDDLEWARES = [
 NEW_BATCH_DELAY = 30.0
 OVERUSED_SLOT_FACTOR = 5.0
 QUEUE_HOSTNAME_PARTITIONING = False
+REDIS_HOST = 'localhost'
+REDIS_PORT = 6379
 REQUEST_MODEL = 'frontera.core.models.Request'
 RESPONSE_MODEL = 'frontera.core.models.Response'
 
