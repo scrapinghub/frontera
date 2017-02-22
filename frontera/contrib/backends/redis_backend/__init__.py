@@ -36,7 +36,7 @@ class RedisQueue(Queue):
         self._pool = pool
         self._partitions = [i for i in range(0, partitions)]
         self._partitioner = Crc32NamePartitioner(self._partitions)
-        self._logger = logging.getLogger("redis.queue")
+        self._logger = logging.getLogger("redis_backend.queue")
 
         if delete_all_keys:
             connection = StrictRedis(connection_pool=self._pool)
@@ -163,7 +163,7 @@ class RedisState(States):
         self._pool = pool
         self._cache = {}
         self._cache_size_limit = cache_size_limit
-        self._logger = logging.getLogger("redis.states")
+        self._logger = logging.getLogger("redis_backend.states")
 
     def update_cache(self, objs):
         objs = objs if isinstance(objs, Iterable) else [objs]
@@ -220,7 +220,7 @@ class RedisState(States):
 class RedisMetadata(Metadata):
     def __init__(self, pool, delete_all_keys):
         self._pool = pool
-        self._logger = logging.getLogger("redis.metadata")
+        self._logger = logging.getLogger("redis_backend.metadata")
         if delete_all_keys:
             connection = StrictRedis(connection_pool=self._pool)
             connection.flushdb()
@@ -294,7 +294,7 @@ class RedisBackend(DistributedBackend):
 
     def __init__(self, manager):
         self.manager = manager
-        self._logger = logging.getLogger("redis.backend")
+        self._logger = logging.getLogger("redis_backend.backend")
         settings = manager.settings
         port = settings.get('REDIS_PORT')
         host = settings.get('REDIS_HOST')
