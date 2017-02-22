@@ -4,10 +4,8 @@ from datetime import datetime
 from frontera.utils.url import parse_domain_from_url_fast
 from frontera import DistributedBackend
 from frontera.core.components import Metadata, Queue, States
-from frontera.core.models import Request
 from frontera.contrib.backends.partitioners import Crc32NamePartitioner
-from frontera.utils.misc import get_crc32
-from frontera.contrib.backends.remote.codecs.msgpack import Decoder, Encoder
+from frontera.utils.misc import get_crc32, load_object
 import logging
 from msgpack import packb, unpackb
 from redis import ConnectionPool, StrictRedis
@@ -32,7 +30,13 @@ class RedisQueue(Queue):
     MIN_SCORE = 0.0
     SCORE_STEP = 0.01
 
-    def __init__(self, pool, partitions, delete_all_keys=False):
+    def __init__(self, manager, pool, partitions, delete_all_keys=False):
+        settings = manager.settings
+        codec_path = settings.get('BACKEND_CODEC')
+        encoder_cls = load_object(codec_path + ".Encoder")
+        decoder_cls = load_object(codec_path + ".Decoder")
+        self._encoder = encoder_cls(manager.request_model)
+        self._decoder = decoder_cls(manager.request_model, manager.response_model)
         self._pool = pool
         self._partitions = [i for i in range(0, partitions)]
         self._partitioner = Crc32NamePartitioner(self._partitions)
@@ -41,12 +45,6 @@ class RedisQueue(Queue):
         if delete_all_keys:
             connection = StrictRedis(connection_pool=self._pool)
             connection.flushdb()
-
-        class DumbResponse:
-            pass
-
-        self._decoder = Decoder(Request, DumbResponse)
-        self._encoder = Encoder(Request)
 
     def get_next_requests(self, max_n_requests, partition_id, **kwargs):
         """
@@ -320,7 +318,7 @@ class RedisBackend(DistributedBackend):
         o = cls(manager)
         settings = manager.settings
         clear = settings.get('REDIS_DROP_ALL_TABLES')
-        o._queue = RedisQueue(o.pool, o.queue_partitions, delete_all_keys=clear)
+        o._queue = RedisQueue(manager, o.pool, o.queue_partitions, delete_all_keys=clear)
         o._metadata = RedisMetadata(
             o.pool,
             clear

@@ -3,6 +3,8 @@ from __future__ import absolute_import
 from frontera.contrib.backends.redis_backend import FIELD_DOMAIN_FINGERPRINT, FIELD_ERROR, FIELD_STATE
 from frontera.contrib.backends.redis_backend import FIELD_STATUS_CODE, FIELD_URL
 from frontera.contrib.backends.redis_backend import RedisMetadata, RedisQueue, RedisState
+from frontera.core.manager import FrontierManager
+from frontera.settings import Settings
 from redis import ConnectionPool, StrictRedis
 from time import time
 from unittest import main, TestCase
@@ -30,8 +32,10 @@ def get_pool():
 
 
 class RedisQueueTest(TestCase):
-    def setup_subject(self, partitions):
-        return RedisQueue(get_pool(), partitions, True)
+    @staticmethod
+    def setup_subject(partitions):
+        settings = Settings(module='frontera.settings.default_settings')
+        return RedisQueue(FrontierManager.from_settings(settings), get_pool(), partitions, True)
 
     def test_scheduling_past_1part_5(self):
         subject = self.setup_subject(1)

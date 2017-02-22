@@ -4,6 +4,7 @@ from datetime import timedelta
 
 AUTO_START = True
 BACKEND = 'frontera.contrib.backends.memory.FIFO'
+BACKEND_CODEC = 'frontera.contrib.backends.remote.codecs.msgpack'
 BC_MIN_REQUESTS = 64
 BC_MIN_HOSTS = 24
 BC_MAX_REQUESTS_PER_HOST = 128
