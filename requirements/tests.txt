@@ -14,4 +14,4 @@ mock
 boto>=2.42.0
 -r logging.txt
 redis>=2.10.5
-hiredis>=0.2x
+hiredis>=0.2
