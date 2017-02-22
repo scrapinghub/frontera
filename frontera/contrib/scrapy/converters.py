@@ -19,15 +19,17 @@ class RequestConverter(BaseRequestConverter):
             cookies = scrapy_request.cookies
         else:
             cookies = dict(sum([list(d.items()) for d in scrapy_request.cookies], []))
+
+        meta = {}
         cb = scrapy_request.callback
         if callable(cb):
-            cb = _find_method(self.spider, cb)
+            meta[b'scrapy_callback'] = _find_method(self.spider, cb)
+
         eb = scrapy_request.errback
         if callable(eb):
-            eb = _find_method(self.spider, eb)
+            meta[b'scrapy_errback'] = _find_method(self.spider, eb)
 
         scrapy_meta = scrapy_request.meta
-        meta = {}
         if b'frontier_request' in scrapy_meta:
             request = scrapy_meta[b'frontier_request']
             if isinstance(request, FrontierRequest):
@@ -36,8 +38,6 @@ class RequestConverter(BaseRequestConverter):
 
         meta.update({
             b'scrapy_priority': scrapy_request.priority,
-            b'scrapy_callback': cb,
-            b'scrapy_errback': eb,
             b'scrapy_meta': scrapy_meta,
             b'origin_is_frontier': True,
         })
