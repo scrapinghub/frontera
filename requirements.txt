@@ -1,4 +1,2 @@
 six>=1.8.0
 w3lib>=1.15.0
-redis>=2.10.5
-hiredis>=0.2
