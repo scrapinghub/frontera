@@ -71,6 +71,10 @@ setup(
         ],
         'distributed': [
             'Twisted'
+        ],
+        'redis': [
+            'redis>=2.10.5',
+            'hiredis>=0.2'
         ]
     },
     tests_require=[
