@@ -48,7 +48,7 @@ class RedisQueue(Queue):
 
     def get_next_requests(self, max_n_requests, partition_id, **kwargs):
         """
-        Fet new batch from priority queue.
+        Fetch new batch from priority queue.
         :param max_n_requests: maximum number of requests
         :param partition_id: partition id to get batch from
         :return: list of :class:`Request <frontera.core.models.Request>` objects.
@@ -60,23 +60,28 @@ class RedisQueue(Queue):
         now_ts = int(time())
         max_host_items = 0
         to_remove = []
-        for data in connection.zrevrange(partition_id, start=0, end=max_n_requests):
-            item = unpackb(data, use_list=False)
-            timestamp, fprint, host_crc32, _, score = item
-            if timestamp > now_ts:
-                continue
-            if host_crc32 not in queue:
-                queue[host_crc32] = []
-            if max_requests_per_host is not None and len(queue[host_crc32]) > max_requests_per_host:
-                continue
-            queue[host_crc32].append(item)
-            if len(queue[host_crc32]) > max_host_items:
-                max_host_items = len(queue[host_crc32])
-            count += 1
-            to_remove.append(data)
+        start = 0
+        last_start = -1
+        while count < max_n_requests and last_start < start:
+            last_start = start
+            for data in connection.zrevrange(partition_id, start=start, end=max_n_requests + start):
+                start += 1
+                item = unpackb(data, use_list=False)
+                timestamp, fprint, host_crc32, _, score = item
+                if timestamp > now_ts:
+                    continue
+                if host_crc32 not in queue:
+                    queue[host_crc32] = []
+                if max_requests_per_host is not None and len(queue[host_crc32]) > max_requests_per_host:
+                    continue
+                queue[host_crc32].append(item)
+                if len(queue[host_crc32]) > max_host_items:
+                    max_host_items = len(queue[host_crc32])
+                count += 1
+                to_remove.append(data)
 
-            if count >= max_n_requests:
-                break
+                if count >= max_n_requests:
+                    break
 
         self._logger.debug("Finished: hosts {}, requests {}".format(len(queue.keys()), count))
 

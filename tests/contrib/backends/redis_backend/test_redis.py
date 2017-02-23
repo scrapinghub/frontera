@@ -213,6 +213,25 @@ class RedisQueueTest(TestCase):
         self.assertTrue('https://www.khellan.com/' in urls)
         self.assertEqual(2, subject.count())
 
+    def test_scheduling_conflict_high_score_high_timestamp(self):
+        subject = self.setup_subject(1)
+        batch = [
+            ("1", 1, Request("1", int(time()) + 86400, 'https://www.knuthellan.com/', domain='knuthellan.com'), True),
+            ("2", 0.1, Request("2", int(time()) - 10, 'https://www.khellan.com/', domain='khellan.com'), True),
+            ("3", 0.5, Request("3", int(time()) + 86400, 'https://www.hellan.me/', domain='hellan.me'), True),
+            ("4", 0.7, Request("3", int(time()) + 86400, 'https://www.hellan.me/', domain='hellan.me'), True),
+            ("5", 0.8, Request("3", int(time()) + 86400, 'https://www.hellan.me/', domain='hellan.me'), True),
+            ("6", 0.9, Request("3", int(time()) + 86400, 'https://www.hellan.me/', domain='hellan.me'), True),
+        ]
+        subject.schedule(batch)
+        self.assertEqual(6, subject.count())
+
+        requests = subject.get_next_requests(2, 0, min_hosts=1, min_requests=1, max_requests_per_host=5)
+        self.assertEqual(1, len(requests))
+        urls = [request.url for request in requests]
+        self.assertTrue('https://www.khellan.com/' in urls)
+        self.assertEqual(5, subject.count())
+
 
 class RedisStateTest(TestCase):
     def test_update_cache(self):
