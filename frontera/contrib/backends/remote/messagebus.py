@@ -32,9 +32,14 @@ class MessageBusBackend(Backend):
         self.consumer = spider_feed.consumer(partition_id=self.partition_id)
         self._get_timeout = float(settings.get('KAFKA_GET_TIMEOUT'))
         self._logger = logging.getLogger("messagebus-backend")
-        self._buffer = OverusedBuffer(self._get_next_requests,
-                                      self._logger.debug)
         self._logger.info("Consuming from partition id %d", self.partition_id)
+
+        if settings.get('MESSAGE_BUS_USE_OVERUSED_BUFFER'):
+            self._buffer = OverusedBuffer(
+                self._get_next_requests_unbuffered,
+                self._logger.debug,
+            )
+            self.get_next_requests = self._get_next_requests_buffered
 
     @classmethod
     def from_manager(cls, manager):
@@ -70,7 +75,7 @@ class MessageBusBackend(Backend):
 
         self.spider_log_producer.send(key, message)
 
-    def _get_next_requests(self, max_n_requests, **kwargs):
+    def _get_next_requests_unbuffered(self, max_n_requests, **kwargs):
         requests = []
 
         for encoded in self.consumer.get_messages(count=max_n_requests, timeout=self._get_timeout):
@@ -89,8 +94,10 @@ class MessageBusBackend(Backend):
 
         return requests
 
-    def get_next_requests(self, max_n_requests, **kwargs):
+    def _get_next_requests_buffered(self, max_n_requests, **kwargs):
         return self._buffer.get_next_requests(max_n_requests, **kwargs)
+
+    get_next_requests = _get_next_requests_unbuffered
 
     def finished(self):
         return False

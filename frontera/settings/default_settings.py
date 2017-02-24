@@ -26,6 +26,7 @@ MAX_NEXT_REQUESTS = 64
 MAX_REQUESTS = 0
 MESSAGE_BUS = 'frontera.contrib.messagebus.zeromq.MessageBus'
 MESSAGE_BUS_CODEC = 'frontera.contrib.backends.remote.codecs.msgpack'
+MESSAGE_BUS_USE_OVERUSED_BUFFER = True
 MIDDLEWARES = [
     'frontera.contrib.middlewares.fingerprint.UrlFingerprintMiddleware',
 ]
