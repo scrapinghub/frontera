@@ -31,7 +31,7 @@ spiders using :term:`message bus`.
 
 1. Use :setting:`BACKEND` in spider processes set to
    :class:`MessageBusBackend <frontera.contrib.backends.remote.messgebus.MessageBusBackend>`
-2. In DB worker :setting:`BACKEND` should point to :class:`Backend <frontera.core.components.Backend>` subclasse.
+2. In DB worker :setting:`BACKEND` should point to :class:`Backend <frontera.core.components.Backend>` subclass.
 3. Every spider process should have it's own :setting:`SPIDER_PARTITION_ID`, starting from 0 to
    :setting:`SPIDER_FEED_PARTITIONS`.
 4. Both spiders and workers should have it's :setting:`MESSAGE_BUS` setting set to the message bus class of your choice,
