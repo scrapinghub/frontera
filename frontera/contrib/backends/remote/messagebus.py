@@ -20,6 +20,7 @@ class MessageBusBackend(Backend):
         encoder_cls = load_object(codec_path+".Encoder")
         decoder_cls = load_object(codec_path+".Decoder")
         store_content = settings.get('STORE_CONTENT')
+        self._aggregate = load_object(settings.get('MESSAGE_BUS_REQUEST_AGGREGATION_FUNCTION'))
         self._encoder = encoder_cls(manager.request_model, send_body=store_content)
         self._decoder = decoder_cls(manager.request_model, manager.response_model)
         self.spider_log_producer = self.mb.spider_log().producer()
@@ -52,7 +53,7 @@ class MessageBusBackend(Backend):
         self.spider_log_producer.flush()
 
     def add_seeds(self, seeds):
-        for key, host_links in six.iteritems(aggregate_per_host(seeds)):
+        for key, host_links in six.iteritems(self._aggregate(seeds)):
             message = self._encoder.encode_add_seeds(host_links)
 
             self.spider_log_producer.send(key, message)
@@ -64,7 +65,7 @@ class MessageBusBackend(Backend):
         self.spider_log_producer.send(key, message)
 
     def links_extracted(self, request, links):
-        for key, host_links in six.iteritems(aggregate_per_host(links)):
+        for key, host_links in six.iteritems(self._aggregate(links)):
             message = self._encoder.encode_links_extracted(request, host_links)
 
             self.spider_log_producer.send(key, message)
