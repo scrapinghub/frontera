@@ -32,7 +32,7 @@ class RedisQueue(Queue):
 
     def __init__(self, manager, pool, partitions, delete_all_keys=False):
         settings = manager.settings
-        codec_path = settings.get('BACKEND_CODEC')
+        codec_path = settings.get('REDIS_BACKEND_CODEC')
         encoder_cls = load_object(codec_path + ".Encoder")
         decoder_cls = load_object(codec_path + ".Decoder")
         self._encoder = encoder_cls(manager.request_model)

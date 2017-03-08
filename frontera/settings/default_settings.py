@@ -4,7 +4,6 @@ from datetime import timedelta
 
 AUTO_START = True
 BACKEND = 'frontera.contrib.backends.memory.FIFO'
-BACKEND_CODEC = 'frontera.contrib.backends.remote.codecs.msgpack'
 BC_MIN_REQUESTS = 64
 BC_MIN_HOSTS = 24
 BC_MAX_REQUESTS_PER_HOST = 128
@@ -33,6 +32,7 @@ MIDDLEWARES = [
 NEW_BATCH_DELAY = 30.0
 OVERUSED_SLOT_FACTOR = 5.0
 QUEUE_HOSTNAME_PARTITIONING = False
+REDIS_BACKEND_CODEC = 'frontera.contrib.backends.remote.codecs.msgpack'
 REDIS_HOST = 'localhost'
 REDIS_PORT = 6379
 REQUEST_MODEL = 'frontera.core.models.Request'
