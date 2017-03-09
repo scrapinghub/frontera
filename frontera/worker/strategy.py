@@ -7,12 +7,15 @@ from signal import signal, SIGUSR1
 from logging.config import fileConfig
 from argparse import ArgumentParser
 from os.path import exists
+from random import randint
 from frontera.utils.misc import load_object
+from frontera.utils.ossignal import install_shutdown_handlers
 
 from frontera.core.manager import FrontierManager
 from frontera.logger.handlers import CONSOLE
 from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
+from twisted.internet.defer import Deferred
 
 from frontera.settings import Settings
 from collections import Iterable
@@ -55,7 +58,7 @@ class StatesContext(object):
 
     def to_fetch(self, requests):
         if isinstance(requests, Iterable):
-            self._fingerprints.update(x.meta[b'fingerprint'] for x in requests)
+            self._fingerprints.update([x.meta[b'fingerprint'] for x in requests])
             return
         self._fingerprints.add(requests.meta[b'fingerprint'])
 
@@ -112,6 +115,8 @@ class StrategyWorker(object):
         self.task = LoopingCall(self.work)
         self._logging_task = LoopingCall(self.log_status)
         self._flush_states_task = LoopingCall(self.flush_states)
+        flush_interval = settings.get("SW_FLUSH_INTERVAL")
+        self._flush_interval = flush_interval + randint(-flush_interval / 2, flush_interval / 2)
         logger.info("Strategy worker is initialized and consuming partition %d", partition_id)
 
     def collect_unknown_message(self, msg):
@@ -205,10 +210,9 @@ class StrategyWorker(object):
         # Exiting, if crawl is finished
         if self.strategy.finished():
             logger.info("Successfully reached the crawling goal.")
-            logger.info("Closing crawling strategy.")
-            self.strategy.close()
             logger.info("Finishing.")
-            reactor.callFromThread(reactor.stop)
+            d = self.stop_tasks()
+            reactor.callLater(0, d.callback, None)
 
         self.stats['last_consumed'] = consumed
         self.stats['last_consumption_run'] = asctime()
@@ -219,11 +223,9 @@ class StrategyWorker(object):
             logger.exception(failure.value)
             if failure.frames:
                 logger.critical(str("").join(format_tb(failure.getTracebackObject())))
-
         def errback_main(failure):
             log_failure(failure)
             self.task.start(interval=0).addErrback(errback_main)
-
         def errback_flush_states(failure):
             log_failure(failure)
             self._flush_states_task.start(interval=300).addErrback(errback_flush_states)
@@ -232,12 +234,12 @@ class StrategyWorker(object):
             logger.critical("Signal received: printing stack trace")
             logger.critical(str("").join(format_stack(frame)))
 
+        install_shutdown_handlers(self._handle_shutdown)
         self.task.start(interval=0).addErrback(errback_main)
         self._logging_task.start(interval=30)
-        self._flush_states_task.start(interval=300).addErrback(errback_flush_states)
+        self._flush_states_task.start(interval=self._flush_interval).addErrback(errback_flush_states)
         signal(SIGUSR1, debug)
-        reactor.addSystemEventTrigger('before', 'shutdown', self.stop)
-        reactor.run()
+        reactor.run(installSignalHandlers=False)
 
     def log_status(self):
         for k, v in six.iteritems(self.stats):
@@ -246,11 +248,44 @@ class StrategyWorker(object):
     def flush_states(self):
         self.states_context.flush()
 
-    def stop(self):
+    def _handle_shutdown(self, signum, _):
+        def call_shutdown():
+            d = self.stop_tasks()
+            reactor.callLater(0, d.callback, None)
+
+        logger.info("Received shutdown signal %d, shutting down gracefully.", signum)
+        reactor.callFromThread(call_shutdown)
+
+    def stop_tasks(self):
+        logger.info("Stopping periodic tasks.")
+        if self.task.running:
+            self.task.stop()
+        if self._flush_states_task.running:
+            self._flush_states_task.stop()
+        if self._logging_task.running:
+            self._logging_task.stop()
+
+        d = Deferred()
+        d.addBoth(self._perform_shutdown)
+        d.addBoth(self._stop_reactor)
+        return d
+
+    def _stop_reactor(self, _=None):
+        logger.info("Stopping reactor.")
+        try:
+            reactor.stop()
+        except RuntimeError:  # raised if already stopped or in shutdown stage
+            pass
+
+    def _perform_shutdown(self, _=None):
+        self.flush_states()
         logger.info("Closing crawling strategy.")
         self.strategy.close()
         logger.info("Stopping frontier manager.")
         self._manager.stop()
+        logger.info("Closing message bus.")
+        self.scoring_log_producer.close()
+        self.consumer.close()
 
     def on_add_seeds(self, seeds):
         logger.debug('Adding %i seeds', len(seeds))

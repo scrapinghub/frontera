@@ -9,6 +9,7 @@ from time import asctime
 from os.path import exists
 
 from twisted.internet import reactor, task
+from twisted.internet.defer import Deferred
 from frontera.core.components import DistributedBackend
 from frontera.core.manager import FrontierManager
 from frontera.utils.url import parse_domain_from_url_fast
@@ -17,6 +18,7 @@ from frontera.logger.handlers import CONSOLE
 from frontera.settings import Settings
 from frontera.utils.misc import load_object
 from frontera.utils.async import CallLaterOnce
+from frontera.utils.ossignal import install_shutdown_handlers
 from .server import WorkerJsonRpcService
 import six
 from six.moves import map
@@ -59,6 +61,12 @@ class Slot(object):
         if not self.no_scoring_log:
             self.scoring_consumption.schedule()
         self.scheduling.schedule(5.0)
+
+    def cancel(self):
+        self.scheduling.cancel()
+        self.scoring_consumption.cancel()
+        self.new_batch.cancel()
+        self.consumption.cancel()
 
 
 class DBWorker(object):
@@ -110,13 +118,43 @@ class DBWorker(object):
 
         self.slot.schedule(on_start=True)
         self._logging_task.start(30)
+        install_shutdown_handlers(self._handle_shutdown)
         signal(SIGUSR1, debug)
-        reactor.addSystemEventTrigger('before', 'shutdown', self.stop)
-        reactor.run()
+        reactor.run(installSignalHandlers=False)
 
-    def stop(self):
+    def _handle_shutdown(self, signum, _):
+        def call_shutdown():
+            d = self.stop_tasks()
+            reactor.callLater(0, d.callback, None)
+
+        logger.info("Received shutdown signal %d, shutting down gracefully.", signum)
+        reactor.callFromThread(call_shutdown)
+
+    def stop_tasks(self):
+        logger.info("Stopping periodic tasks.")
+        self._logging_task.stop()
+        self.slot.cancel()
+
+        d = Deferred()
+        d.addBoth(self._perform_shutdown)
+        d.addBoth(self._stop_reactor)
+        return d
+
+    def _stop_reactor(self, _=None):
+        logger.info("Stopping reactor.")
+        try:
+            reactor.stop()
+        except RuntimeError:  # raised if already stopped or in shutdown stage
+            pass
+
+    def _perform_shutdown(self, _=None):
         logger.info("Stopping frontier manager.")
         self._manager.stop()
+        logger.info("Closing message bus.")
+        if not self.strategy_disabled:
+            self.scoring_log_consumer.close()
+        self.spider_feed_producer.close()
+        self.spider_log_consumer.close()
 
     def log_status(self):
         for k, v in six.iteritems(self.stats):
