@@ -42,6 +42,7 @@ class Consumer(BaseStreamConsumer):
             consumer_timeout_ms=100,
             client_id="%s-%s" % (self._topic, str(partition_id) if partition_id is not None else "all"),
             request_timeout_ms=120 * 1000,
+            heartbeat_interval_ms=10000,
             **kwargs
         )
 
