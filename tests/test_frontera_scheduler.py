@@ -113,12 +113,18 @@ class TestFronteraScheduler(object):
     def test_process_spider_output(self):
         i1 = {'name': 'item', 'item': 'i1'}
         i2 = {'name': 'item', 'item': 'i2'}
+        no_requests = 3
         result = [r1, r2, r3, i1, i2]
         resp = Response(fr1.url, request=Request(fr1.url, meta={b'frontier_request': fr1}))
         crawler = FakeCrawler()
         fs = FronteraScheduler(crawler, manager=FakeFrontierManager)
         fs.open(Spider)
-        assert sorted(list(fs.process_spider_output(resp, result, Spider)), key=lambda i: sorted(i['item'])) == \
+        out = list(fs.process_spider_output(resp, result, Spider))
+        assert len(out) == len(result)
+        out_request = out[:no_requests]
+        assert set(r.url for r in out_request) == set(r.url for r in result[:no_requests])
+        out_items = out[no_requests:]
+        assert sorted(out_items, key=lambda i: sorted(i['item'])) == \
             sorted([i1, i2], key=lambda i: sorted(i['item']))
         assert isinstance(fs.frontier.manager.responses[0], FResponse)
         assert fs.frontier.manager.responses[0].url == resp.url

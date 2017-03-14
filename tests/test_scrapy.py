@@ -1,11 +1,22 @@
 # -*- coding: utf-8 -*-
-
 from __future__ import absolute_import
-from frontera.contrib.scrapy.converters import RequestConverter, ResponseConverter
+
+import sys
+
+from scrapy.core.spidermw import SpiderMiddlewareManager
+from scrapy.http import Request, Response
 from scrapy.http.request import Request as ScrapyRequest
 from scrapy.http.response import Response as ScrapyResponse
-from frontera.core.models import Request as FrontierRequest
+from scrapy.spiders import Spider
+from scrapy.utils.test import get_crawler
+from twisted.internet.defer import Deferred
+from twisted.trial import unittest
 from w3lib.util import to_bytes
+
+from frontera.contrib.scrapy.converters import (RequestConverter,
+                                                ResponseConverter)
+from frontera.core.models import Request as FrontierRequest
+from frontera.contrib.scrapy.schedulers.frontier import FronteraScheduler
 
 
 class TestSpider(object):
@@ -75,3 +86,77 @@ def test_request_response_converters():
     frontier_request = FrontierRequest(url)
     request_converted = rc.from_frontier(frontier_request)
     assert frontier_request.url == url
+
+
+class TestFronteraMiddlewaresWithScrapy(unittest.TestCase):
+
+    def setUp(self):
+        class TestSpider(Spider):
+            name = 'test'
+
+        self.spider = TestSpider
+        scrapy_default_middlewares = {
+            'scrapy.spidermiddlewares.referer.RefererMiddleware': 700
+        }
+
+        # monkey patch SPIDER_MIDDLEWARES_BASE to include only referer middleware
+        sys.modules['scrapy.settings.default_settings'].SPIDER_MIDDLEWARES_BASE = scrapy_default_middlewares
+
+        custom_settings = {
+            'SPIDER_MIDDLEWARES': {'frontera.contrib.scrapy.middlewares.schedulers.SchedulerSpiderMiddleware': 1000}
+        }
+        crawler = get_crawler(self.spider, custom_settings)
+        self.add_frontera_scheduler(crawler)
+        self.smw = SpiderMiddlewareManager.from_crawler(crawler)
+
+    @staticmethod
+    def add_frontera_scheduler(crawler):
+        scheduler = FronteraScheduler(crawler)
+
+        # mock these functions
+        scheduler.frontier.page_crawled = lambda x: x
+        scheduler.frontier.links_extracted = lambda x, y: x
+        scheduler.stats_manager.add_crawled_page = lambda x, y: x
+
+        class Engine(object):
+            def __init__(self, scheduler):
+                self.slot = type('slot', (object,), {})
+                self.slot.scheduler = scheduler
+
+        crawler.engine = Engine(scheduler)
+
+    def test_frontera_scheduler_spider_middleware_with_referer_middleware(self):
+
+        def request_callback(response):
+            yield Request('http://frontera.org')
+
+        req = Request(
+            url='http://www.scrapy.org',
+            callback=request_callback,
+            meta={b'frontier_request': FrontierRequest('http://www.scrapy.org')}
+        )
+
+        res = Response(url='http://www.scrapy.org', request=req)
+
+        def call_request_callback(result, request, spider):
+            dfd = Deferred()
+            dfd.addCallback(request.callback)
+            return dfd
+
+        def test_middleware_output(result):
+            out = list(result)
+            self.assertEquals(len(out), 1)
+            self.assertIsInstance(out[0], Request)
+            self.assertIn('Referer', out[0].headers)
+            self.assertEquals(out[0].headers['Referer'], to_bytes(res.url))
+
+        def test_failure(failure):
+            # work around for test to fail with detailed traceback
+            self._observer._errors.append(failure)
+
+        dfd = self.smw.scrape_response(call_request_callback, res, req, self.spider)
+
+        dfd.addCallback(test_middleware_output)
+        dfd.addErrback(test_failure)
+
+        dfd.callback(res)
