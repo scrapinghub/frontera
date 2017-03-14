@@ -137,51 +137,57 @@ class DBWorker(object):
                 logger.error("Decoding error: %s", e)
                 continue
             else:
-                type = msg[0]
-                if type == 'add_seeds':
-                    _, seeds = msg
-                    logger.info('Adding %i seeds', len(seeds))
-                    for seed in seeds:
-                        logger.debug('URL: %s', seed.url)
-                    self._backend.add_seeds(seeds)
-                    continue
-                if type == 'page_crawled':
-                    _, response = msg
-                    logger.debug("Page crawled %s", response.url)
-                    if b'jid' not in response.meta or response.meta[b'jid'] != self.job_id:
+                try:
+                    type = msg[0]
+                    if type == 'add_seeds':
+                        _, seeds = msg
+                        logger.info('Adding %i seeds', len(seeds))
+                        for seed in seeds:
+                            logger.debug('URL: %s', seed.url)
+                        self._backend.add_seeds(seeds)
                         continue
-                    self._backend.page_crawled(response)
-                    continue
-                if type == 'links_extracted':
-                    _, request, links = msg
-                    logger.debug("Links extracted %s (%d)", request.url, len(links))
-                    if b'jid' not in request.meta or request.meta[b'jid'] != self.job_id:
-                        continue
-                    self._backend.links_extracted(request, links)
-                    continue
-                if type == 'request_error':
-                    _, request, error = msg
-                    logger.debug("Request error %s", request.url)
-                    if b'jid' not in request.meta or request.meta[b'jid'] != self.job_id:
-                        continue
-                    self._backend.request_error(request, error)
-                    continue
-                if type == 'offset':
-                    _, partition_id, offset = msg
-                    producer_offset = self.spider_feed_producer.get_offset(partition_id)
-                    if producer_offset is None:
-                        continue
-                    else:
-                        lag = producer_offset - offset
-                        if lag < 0:
-                            # non-sense in general, happens when SW is restarted and not synced yet with Spiders.
+                    if type == 'page_crawled':
+                        _, response = msg
+                        logger.debug("Page crawled %s", response.url)
+                        if b'jid' not in response.meta or response.meta[b'jid'] != self.job_id:
                             continue
-                        if lag < self.max_next_requests or offset == 0:
-                            self.spider_feed.mark_ready(partition_id)
+                        self._backend.page_crawled(response)
+                        continue
+                    if type == 'links_extracted':
+                        _, request, links = msg
+                        logger.debug("Links extracted %s (%d)", request.url, len(links))
+                        if b'jid' not in request.meta or request.meta[b'jid'] != self.job_id:
+                            continue
+                        self._backend.links_extracted(request, links)
+                        continue
+                    if type == 'request_error':
+                        _, request, error = msg
+                        logger.debug("Request error %s", request.url)
+                        if b'jid' not in request.meta or request.meta[b'jid'] != self.job_id:
+                            continue
+                        self._backend.request_error(request, error)
+                        continue
+                    if type == 'offset':
+                        _, partition_id, offset = msg
+                        producer_offset = self.spider_feed_producer.get_offset(partition_id)
+                        if producer_offset is None:
+                            continue
                         else:
-                            self.spider_feed.mark_busy(partition_id)
+                            lag = producer_offset - offset
+                            if lag < 0:
+                                # non-sense in general, happens when SW is restarted and not synced yet with Spiders.
+                                continue
+                            if lag < self.max_next_requests or offset == 0:
+                                self.spider_feed.mark_ready(partition_id)
+                            else:
+                                self.spider_feed.mark_busy(partition_id)
+                        continue
+                    logger.debug('Unknown message type %s', type)
+                except Exception as exc:
+                    logger.exception(exc)
+                    if logger.isEnabledFor(logging.DEBUG):
+                        logger.debug("Message caused the error %s", str(msg))
                     continue
-                logger.debug('Unknown message type %s', type)
             finally:
                 consumed += 1
         """
