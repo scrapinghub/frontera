@@ -71,7 +71,7 @@ class TestHBaseBackend(object):
 
     def test_state(self):
         connection = Connection(host='hbase-docker', port=9090)
-        state = HBaseState(connection, b'metadata', 300000)
+        state = HBaseState(connection, b'states', 300000, True)
         state.set_states([r1, r2, r3])
         assert [r.meta[b'state'] for r in [r1, r2, r3]] == [States.NOT_CRAWLED]*3
         state.update_cache([r1, r2, r3])
@@ -100,13 +100,16 @@ class TestHBaseBackend(object):
             connection.delete_table(table, True)
         hbase_queue_table = 'queue'
         hbase_metadata_table = 'metadata'
+        hbase_states_table = 'states'
         connection.create_table(hbase_queue_table, {'f': {'max_versions': 1}})
         connection.create_table(hbase_metadata_table, {'f': {'max_versions': 1}})
+        connection.create_table(hbase_states_table, {'f': {'max_versions': 1}})
         tables = connection.tables()
-        assert set(tables) == set([b'metadata', b'queue'])  # Failure of test itself
+        assert set(tables) == set([b'metadata', b'queue', b'states'])  # Failure of test itself
         try:
             HBaseQueue(connection=connection, partitions=1, table_name=hbase_queue_table, drop=True)
             HBaseMetadata(connection=connection, table_name=hbase_metadata_table, drop_all_tables=True,
                           use_snappy=False, batch_size=300000, store_content=True)
+            HBaseState(connection, hbase_states_table, 100, True)
         except AlreadyExists:
             assert False, "failed to drop hbase tables"

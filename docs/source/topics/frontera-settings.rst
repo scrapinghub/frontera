@@ -580,6 +580,15 @@ Default: ``3000000``
 
 Number of items in the :term:`state cache` of :term:`strategy worker`, before it get's flushed to HBase and cleared.
 
+.. setting:: HBASE_STATES_TABLE
+
+HBASE_STATES_TABLE
+^^^^^^^^^^^^^^^^^^
+
+Default: ``states``
+
+Name of the table used by :term:`strategy worker` to store link states.
+
 .. setting:: HBASE_THRIFT_HOST
 
 HBASE_THRIFT_HOST

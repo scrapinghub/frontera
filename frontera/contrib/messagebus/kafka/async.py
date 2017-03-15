@@ -221,6 +221,7 @@ class OffsetsFetcherAsync(object):
             _f.add_callback(self._handle_offset_response, partitions, future_request)
             _f.add_errback(lambda e: future_request.failure(e))
             futures.append(future_request)
+
         return futures
 
     def _handle_offset_response(self, partitions, future, response):
