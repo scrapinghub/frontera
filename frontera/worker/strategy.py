@@ -109,7 +109,11 @@ class StrategyWorker(object):
         self.strategy = strategy_class.from_worker(self._manager, self.update_score, self.states_context)
         self.states = self._manager.backend.states
         self.stats = {
-            'consumed_since_start': 0
+            'consumed_since_start': 0,
+            'consumed_add_seeds': 0,
+            'consumed_page_crawled': 0,
+            'consumed_links_extracted': 0,
+            'consumed_request_error': 0
         }
         self.job_id = 0
         self.task = LoopingCall(self.work)
@@ -176,24 +180,28 @@ class StrategyWorker(object):
                     for seed in seeds:
                         seed.meta[b'jid'] = self.job_id
                     self.on_add_seeds(seeds)
+                    self.stats['consumed_add_seeds'] += 1
                     continue
                 if type == 'page_crawled':
                     _, response = msg
                     if b'jid' not in response.meta or response.meta[b'jid'] != self.job_id:
                         continue
                     self.on_page_crawled(response)
+                    self.stats['consumed_page_crawled'] += 1
                     continue
                 if type == 'links_extracted':
                     _, request, links = msg
                     if b'jid' not in request.meta or request.meta[b'jid'] != self.job_id:
                         continue
                     self.on_links_extracted(request, links)
+                    self.stats['consumed_links_extracted'] += 1
                     continue
                 if type == 'request_error':
                     _, request, error = msg
                     if b'jid' not in request.meta or request.meta[b'jid'] != self.job_id:
                         continue
                     self.on_request_error(request, error)
+                    self.stats['consumed_request_error'] += 1
                     continue
                 self.on_unknown_message(msg)
             except Exception as exc:
