@@ -59,7 +59,7 @@ class Consumer(BaseStreamConsumer):
         self._consumer._update_fetch_positions(self._partition_ids)
         self._start_looping_call()
 
-    def _start_looping_call(self, interval=60):
+    def _start_looping_call(self, interval=10):
         def errback(failure):
             logger.exception(failure.value)
             if failure.frames:
