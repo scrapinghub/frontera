@@ -180,6 +180,7 @@ class OffsetsFetcherAsync(object):
                     refresh_future = self._client.cluster.request_update()
                     self._client.poll(future=refresh_future, sleep=True)
                     ok = False
+                    log.warning("Got exception %s and kept the loop.", future.exception)
                     break
             if ok:
                 return offsets
