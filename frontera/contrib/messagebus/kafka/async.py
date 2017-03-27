@@ -212,6 +212,7 @@ class OffsetsFetcherAsync(object):
         # Client returns a future that only fails on network issues
         # so create a separate future and attach a callback to update it
         # based on response error codes
+
         futures = []
         for node_id, partitions in six.iteritems(nodes_per_partitions):
             request = OffsetRequest[0](
@@ -220,7 +221,10 @@ class OffsetsFetcherAsync(object):
             future_request = Future()
             _f = self._client.send(node_id, request)
             _f.add_callback(self._handle_offset_response, partitions, future_request)
-            _f.add_errback(lambda e: future_request.failure(e))
+            def errback(e):
+                log.info("the future is %s", e)
+                future_request.failure(e)
+            _f.add_errback(errback)
             futures.append(future_request)
         return futures
 
