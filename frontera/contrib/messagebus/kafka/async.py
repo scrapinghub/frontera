@@ -202,11 +202,11 @@ class OffsetsFetcherAsync(object):
             if node_id is None:
                 log.debug("Partition %s is unknown for fetching offset,"
                           " wait for metadata refresh", partition)
-                return Future().failure(Errors.StaleMetadata(partition))
+                return [Future().failure(Errors.StaleMetadata(partition))]
             elif node_id == -1:
                 log.debug("Leader for partition %s unavailable for fetching offset,"
                           " wait for metadata refresh", partition)
-                return Future().failure(Errors.LeaderNotAvailableError(partition))
+                return [Future().failure(Errors.LeaderNotAvailableError(partition))]
             nodes_per_partitions.setdefault(node_id, []).append(partition)
 
         # Client returns a future that only fails on network issues
