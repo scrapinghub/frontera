@@ -161,7 +161,7 @@ To know the default activated :class:`Backend <frontera.core.components.Backend>
 
 Basic algorithms
 ^^^^^^^^^^^^^^^^
-Some of the built-in :class:`Backend <frontera.core.components.Backend>` objects implement basic algorithms as
+Some of the built-in :class:`Backend <frontera.core.components.Backend>` objects implement basic algorithms such
 as `FIFO`_/`LIFO`_ or `DFS`_/`BFS`_ for page visit ordering.
 
 Differences between them will be on storage engine used. For instance,
