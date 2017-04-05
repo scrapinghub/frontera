@@ -278,10 +278,7 @@ HBase backend
 
 Is more suitable for large scale web crawlers. Settings reference can be found here :ref:`hbase-settings`. Consider
 tunning a block cache to fit states within one block for average size website. To achieve this it's recommended to use
-:attr:`hostname_local_fingerprint <frontera.utils.fingerprint.hostname_local_fingerprint>`
-
-to achieve documents closeness within the same host. This function can be selected with :setting:`URL_FINGERPRINT_FUNCTION`
-setting.
+:attr:`hostname_local_fingerprint <frontera.utils.fingerprint.hostname_local_fingerprint>` to achieve documents closeness within the same host. This function can be selected with :setting:`URL_FINGERPRINT_FUNCTION` setting.
 
 ..  TODO: document details of block cache tuning,
     BC* settings and queue get operation concept,
