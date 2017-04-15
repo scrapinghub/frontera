@@ -190,7 +190,7 @@ class Decoder(json.JSONDecoder, BaseDecoder):
             return ('new_job_id', int(message['job_id']))
         if message['type'] == 'offset':
             return ('offset', int(message['partition_id']), int(message['offset']))
-        return TypeError('Unknown message type')
+        raise TypeError('Unknown message type')
 
     def decode_request(self, message):
         obj = _convert_from_saved_type(super(Decoder, self).decode(message))
