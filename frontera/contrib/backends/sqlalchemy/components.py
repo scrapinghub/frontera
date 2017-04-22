@@ -29,7 +29,7 @@ def retry_and_rollback(func):
                 sleep(5)
                 tries -= 1
                 if tries > 0:
-                    self.logger.info("Tries left %i" % tries)
+                    self.logger.info("Tries left %d", tries)
                     continue
                 else:
                     raise exc
