@@ -39,12 +39,15 @@ class MemoryMetadata(Metadata):
 
     def _get_or_create_request(self, request):
         fingerprint = request.meta[b'fingerprint']
+
         if fingerprint not in self.requests:
             new_request = request.copy()
             self.requests[fingerprint] = new_request
+
             return new_request, True
         else:
             page = self.requests[fingerprint]
+
             return page, False
 
     def update_score(self, batch):
@@ -56,12 +59,13 @@ class MemoryQueue(Queue):
         self.partitions = [i for i in range(0, partitions)]
         self.partitioner = Crc32NamePartitioner(self.partitions)
         self.logger = logging.getLogger("memory.queue")
-        self.heap = {}
-        for partition in self.partitions:
-            self.heap[partition] = Heap(self._compare_pages)
+        self.heap = {
+            partition: Heap(self._compare_pages)
+            for partition in self.partitions
+        }
 
     def count(self):
-        return sum([len(h.heap) for h in six.itervalues(self.heap)])
+        return sum(len(h.heap) for h in six.itervalues(self.heap))
 
     def get_next_requests(self, max_n_requests, partition_id, **kwargs):
         return self.heap[partition_id].pop(max_n_requests)
@@ -71,11 +75,17 @@ class MemoryQueue(Queue):
             if schedule:
                 request.meta[b'_scr'] = score
                 _, hostname, _, _, _, _ = parse_domain_from_url_fast(request.url)
-                if not hostname:
-                    self.logger.error("Can't get hostname for URL %s, fingerprint %s", request.url, fprint)
-                    partition_id = self.partitions[0]
-                else:
+
+                if hostname:
                     partition_id = self.partitioner.partition(hostname, self.partitions)
+                else:
+                    self.logger.error(
+                        "Can't get hostname for URL %s, fingerprint %s",
+                        request.url, fprint,
+                    )
+
+                    partition_id = self.partitions[0]
+
                 self.heap[partition_id].push(request)
 
     def _compare_pages(self, first, second):
@@ -92,20 +102,27 @@ class MemoryDequeQueue(Queue):
         self.partitions = [i for i in range(0, partitions)]
         self.partitioner = Crc32NamePartitioner(self.partitions)
         self.logger = logging.getLogger("memory.dequequeue")
-        self.queues = {}
+        self.queues = {
+            partition: deque()
+            for partition in self.partitions
+        }
         self.is_fifo = is_fifo
-        for partition in self.partitions:
-            self.queues[partition] = deque()
 
     def count(self):
-        return sum([len(h) for h in six.itervalues(self.queues)])
+        return sum(map(len, six.itervalues(self.queues)))
 
     def get_next_requests(self, max_n_requests, partition_id, **kwargs):
         batch = []
-        pop_op = self.queues[partition_id].popleft if self.is_fifo else self.queues[partition_id].pop
+
+        if self.is_fifo:
+            pop_op = self.queues[partition_id].popleft
+        else:
+            pop_op = self.queues[partition_id].pop
+
         while max_n_requests > 0 and self.queues[partition_id]:
             batch.append(pop_op())
             max_n_requests -= 1
+
         return batch
 
     def schedule(self, batch):
@@ -113,11 +130,17 @@ class MemoryDequeQueue(Queue):
             if schedule:
                 request.meta[b'_scr'] = score
                 _, hostname, _, _, _, _ = parse_domain_from_url_fast(request.url)
-                if not hostname:
-                    self.logger.error("Can't get hostname for URL %s, fingerprint %s", request.url, fprint)
-                    partition_id = self.partitions[0]
-                else:
+
+                if hostname:
                     partition_id = self.partitioner.partition(hostname, self.partitions)
+                else:
+                    self.logger.error(
+                        "Can't get hostname for URL %s, fingerprint %s",
+                        request.url, fprint,
+                    )
+
+                    partition_id = self.partitions[0]
+
                 self.queues[partition_id].append(request)
 
 
@@ -133,14 +156,17 @@ class MemoryStates(States):
 
     def _get(self, obj):
         fprint = obj.meta[b'fingerprint']
-        obj.meta[b'state'] = self._cache[fprint] if fprint in self._cache else States.DEFAULT
+
+        obj.meta[b'state'] = self._cache.get(fprint, States.DEFAULT)
 
     def update_cache(self, objs):
         objs = objs if isinstance(objs, Iterable) else [objs]
+
         [self._put(obj) for obj in objs]
 
     def set_states(self, objs):
         objs = objs if isinstance(objs, Iterable) else [objs]
+
         [self._get(obj) for obj in objs]
 
     def fetch(self, fingerprints):
@@ -149,6 +175,7 @@ class MemoryStates(States):
     def flush(self, force_clear=False):
         if len(self._cache) > self._cache_size_limit:
             force_clear = True
+
         if force_clear:
             self.logger.debug("Cache has %d items, clearing", len(self._cache))
             self._cache.clear()
@@ -191,12 +218,14 @@ class MemoryBaseBackend(CommonBackend):
         for seed in seeds:
             seed.meta[b'id'] = self._id
             self._id += 1
+
         super(MemoryBaseBackend, self).add_seeds(seeds)
 
     def links_extracted(self, request, links):
         for link in links:
             link.meta[b'id'] = self._id
             self._id += 1
+
         super(MemoryBaseBackend, self).links_extracted(request, links)
 
     def finished(self):
@@ -205,14 +234,18 @@ class MemoryBaseBackend(CommonBackend):
 
 class MemoryDFSQueue(MemoryQueue):
     def _compare_pages(self, first, second):
-        return cmp((second.meta[b'depth'], first.meta[b'id']),
-                   (first.meta[b'depth'], second.meta[b'id']))
+        return cmp(
+            (second.meta[b'depth'], first.meta[b'id']),
+            (first.meta[b'depth'], second.meta[b'id']),
+        )
 
 
 class MemoryBFSQueue(MemoryQueue):
     def _compare_pages(self, first, second):
-        return cmp((first.meta[b'depth'], first.meta[b'id']),
-                   (second.meta[b'depth'], second.meta[b'id']))
+        return cmp(
+            (first.meta[b'depth'], first.meta[b'id']),
+            (second.meta[b'depth'], second.meta[b'id']),
+        )
 
 
 class MemoryRandomQueue(MemoryQueue):
@@ -248,7 +281,10 @@ class MemoryRandomBackend(MemoryBaseBackend):
 class MemoryDFSOverusedBackend(MemoryDFSBackend):
     def __init__(self, manager):
         super(MemoryDFSOverusedBackend, self).__init__(manager)
-        self.overused_buffer = OverusedBuffer(super(MemoryDFSOverusedBackend, self).get_next_requests)
+
+        self.overused_buffer = OverusedBuffer(
+            super(MemoryDFSOverusedBackend, self).get_next_requests,
+        )
 
     def get_next_requests(self, max_next_requests, **kwargs):
         return self.overused_buffer.get_next_requests(max_next_requests, **kwargs)
