@@ -41,12 +41,12 @@ def _compare_dicts(dict1, dict2):
 
 @pytest.mark.parametrize('send_body', [True, False])
 @pytest.mark.parametrize(
-    ('encoder', 'decoder'), [
-        (MsgPackEncoder, MsgPackDecoder),
-        (JsonEncoder, JsonDecoder)
+    ('encoder', 'decoder', 'invalid_value'), [
+        (MsgPackEncoder, MsgPackDecoder, b'\x91\xc4\x04test'),
+        (JsonEncoder, JsonDecoder, b'["dict", [[["bytes", "type"], ["bytes", "test"]]]]')
     ]
 )
-def test_codec(encoder, decoder, send_body):
+def test_codec(encoder, decoder, send_body, invalid_value):
     def check_request(req1, req2):
         assert req1.url == req2.url and _compare_dicts(req1.meta, req2.meta) == True and \
                _compare_dicts(req1.headers, req2.headers) == True and req1.method == req2.method
@@ -65,7 +65,8 @@ def test_codec(encoder, decoder, send_body):
         enc.encode_update_score(req, 0.51, True),
         enc.encode_new_job_id(1),
         enc.encode_offset(0, 28796),
-        enc.encode_request(req)
+        enc.encode_request(req),
+        invalid_value,
     ]
 
     it = iter(msgs)
@@ -118,6 +119,9 @@ def test_codec(encoder, decoder, send_body):
 
     o = dec.decode_request(next(it))
     check_request(o, req)
+
+    with pytest.raises(TypeError):
+        dec.decode(next(it))
 
 
 class TestEncodeDecodeJson(unittest.TestCase):
