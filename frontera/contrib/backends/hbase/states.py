@@ -12,12 +12,14 @@ from frontera.utils.misc import chunks
 from .utils import prepare_hbase_object
 
 
+logger = logging.getLogger(__name__)
+
+
 class HBaseState(States):
 
     def __init__(self, connection, table_name, cache_size_limit):
         self.connection = connection
         self._table_name = table_name
-        self.logger = logging.getLogger("hbase.states")
         self._state_cache = {}
         self._cache_size_limit = cache_size_limit
 
@@ -56,7 +58,7 @@ class HBaseState(States):
                     b.put(unhexlify(fprint), hb_obj)
 
         if force_clear:
-            self.logger.debug(
+            logger.debug(
                 "Cache has %d requests, clearing", len(self._state_cache),
             )
             self._state_cache.clear()
@@ -64,8 +66,8 @@ class HBaseState(States):
     def fetch(self, fingerprints):
         to_fetch = [f for f in fingerprints if f not in self._state_cache]
 
-        self.logger.debug("cache size %s", len(self._state_cache))
-        self.logger.debug("to fetch %d from %d", len(to_fetch), len(fingerprints))
+        logger.debug("cache size %s", len(self._state_cache))
+        logger.debug("to fetch %d from %d", len(to_fetch), len(fingerprints))
 
         for chunk in chunks(to_fetch, 65536):
             keys = [unhexlify(fprint) for fprint in chunk]

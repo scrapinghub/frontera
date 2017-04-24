@@ -20,6 +20,9 @@ from frontera.utils.misc import get_crc32
 from frontera.utils.url import parse_domain_from_url_fast
 
 
+logger = logging.getLogger(__name__)
+
+
 class HBaseQueue(Queue):
 
     GET_RETRIES = 3
@@ -28,7 +31,6 @@ class HBaseQueue(Queue):
         self.connection = connection
         self.partitions = [i for i in range(0, partitions)]
         self.partitioner = Crc32NamePartitioner(self.partitions)
-        self.logger = logging.getLogger("hbase.queue")
         self.table_name = to_bytes(table_name)
 
         tables = set(self.connection.tables())
@@ -73,7 +75,7 @@ class HBaseQueue(Queue):
                     _, hostname, _, _, _, _ = parse_domain_from_url_fast(request.url)
 
                     if not hostname:
-                        self.logger.error(
+                        logger.error(
                             "Can't get hostname for URL %s, fingerprint %s",
                             request.url, fprint,
                         )
@@ -201,7 +203,7 @@ class HBaseQueue(Queue):
             tries += 1
             limit *= 5.5 if tries > 1 else 1.0
 
-            self.logger.debug(
+            logger.debug(
                 "Try %d, limit %d, last attempt: requests %d, hosts %d",
                 tries, limit, count, len(queue.keys()),
             )
@@ -248,7 +250,7 @@ class HBaseQueue(Queue):
 
             break
 
-        self.logger.debug(
+        logger.debug(
             "Finished: tries %d, hosts %d, requests %d", tries,
             len(queue.keys()), count,
         )
@@ -283,7 +285,7 @@ class HBaseQueue(Queue):
             for rk in trash_can:
                 b.delete(rk)
 
-        self.logger.debug("%d row keys removed", len(trash_can))
+        logger.debug("%d row keys removed", len(trash_can))
 
         return results
 

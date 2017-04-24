@@ -13,12 +13,14 @@ from .queue import HBaseQueue
 from .states import HBaseState
 
 
+logger = logging.getLogger(__name__)
+
+
 class HBaseBackend(DistributedBackend):
     component_name = 'HBase Backend'
 
     def __init__(self, manager):
         self.manager = manager
-        self.logger = logging.getLogger("hbase.backend")
         settings = manager.settings
         port = settings.get('HBASE_THRIFT_PORT')
         hosts = settings.get('HBASE_THRIFT_HOST')
@@ -124,7 +126,7 @@ class HBaseBackend(DistributedBackend):
         next_pages = []
         partitions = set(kwargs.pop('partitions', []))
 
-        self.logger.debug("Querying queue table.")
+        logger.debug("Querying queue table.")
 
         for partition_id in range(0, self.queue_partitions):
             if partition_id not in partitions:
@@ -139,7 +141,7 @@ class HBaseBackend(DistributedBackend):
             )
 
             next_pages.extend(results)
-            self.logger.debug(
+            logger.debug(
                 "Got %d requests for partition id %d", len(results),
                 partition_id,
             )
