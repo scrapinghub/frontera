@@ -144,7 +144,7 @@ class TestHBaseBackend(object):
 
         queue.schedule(batch)
 
-        with mock.patch(PREFIX + 'time') as mocked_time:
+        with mock.patch(PREFIX + 'queue.time') as mocked_time:
             mocked_time.return_value = time()
 
             next_requests = queue.get_next_requests(
