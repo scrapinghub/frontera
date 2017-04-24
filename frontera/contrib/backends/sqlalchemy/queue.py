@@ -15,11 +15,13 @@ from frontera.utils.url import parse_domain_from_url_fast
 from .utils import retry_and_rollback
 
 
+logger = logging.getLogger(__name__)
+
+
 class Queue(BaseQueue):
     def __init__(self, session_cls, queue_cls, partitions, ordering='default'):
         self.session = session_cls()
         self.queue_model = queue_cls
-        self.logger = logging.getLogger("sqlalchemy.queue")
         self.partitions = [i for i in range(0, partitions)]
         self.partitioner = Crc32NamePartitioner(self.partitions)
         self.ordering = ordering
@@ -65,7 +67,7 @@ class Queue(BaseQueue):
 
             self.session.commit()
         except Exception as exc:
-            self.logger.exception(exc)
+            logger.exception(exc)
             self.session.rollback()
 
         return results
@@ -79,7 +81,7 @@ class Queue(BaseQueue):
                 _, hostname, _, _, _, _ = parse_domain_from_url_fast(request.url)
 
                 if not hostname:
-                    self.logger.error(
+                    logger.error(
                         "Can't get hostname for URL %s, fingerprint %s",
                         request.url, fprint,
                     )

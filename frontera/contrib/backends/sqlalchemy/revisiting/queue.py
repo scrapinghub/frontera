@@ -18,6 +18,9 @@ from ..models import DeclarativeBase, QueueModelMixin
 from ..utils import retry_and_rollback, utcnow_timestamp
 
 
+logger = logging.getLogger(__name__)
+
+
 class RevisitingQueueModel(QueueModelMixin, DeclarativeBase):
     __tablename__ = 'revisiting_queue'
 
@@ -28,7 +31,6 @@ class RevisitingQueue(BaseQueue):
     def __init__(self, session_cls, queue_cls, partitions):
         self.session = session_cls()
         self.queue_model = queue_cls
-        self.logger = logging.getLogger("sqlalchemy.revisiting.queue")
         self.partitions = list(range(0, partitions))
         self.partitioner = Crc32NamePartitioner(self.partitions)
 
@@ -56,7 +58,7 @@ class RevisitingQueue(BaseQueue):
 
             self.session.commit()
         except Exception as exc:
-            self.logger.exception(exc)
+            logger.exception(exc)
             self.session.rollback()
 
         return results
@@ -73,7 +75,7 @@ class RevisitingQueue(BaseQueue):
                     partition_id = self.partitioner.partition(hostname, self.partitions)
                     host_crc32 = get_crc32(hostname)
                 else:
-                    self.logger.error(
+                    logger.error(
                         "Can't get hostname for URL %s, fingerprint %s",
                         request.url, fprint,
                     )

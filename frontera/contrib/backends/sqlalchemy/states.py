@@ -13,6 +13,9 @@ from .models import DeclarativeBase
 from .utils import retry_and_rollback
 
 
+logger = logging.getLogger(__name__)
+
+
 class States(MemoryStates):
 
     def __init__(self, session_cls, model_cls, cache_size_limit):
@@ -20,7 +23,6 @@ class States(MemoryStates):
         self.session = session_cls()
         self.model = model_cls
         self.table = DeclarativeBase.metadata.tables['states']
-        self.logger = logging.getLogger("sqlalchemy.states")
 
     @retry_and_rollback
     def frontier_stop(self):
@@ -31,8 +33,8 @@ class States(MemoryStates):
     def fetch(self, fingerprints):
         to_fetch = [to_native_str(f) for f in fingerprints if f not in self._cache]
 
-        self.logger.debug("cache size %s", len(self._cache))
-        self.logger.debug("to fetch %d from %d", len(to_fetch), len(fingerprints))
+        logger.debug("cache size %s", len(self._cache))
+        logger.debug("to fetch %d from %d", len(to_fetch), len(fingerprints))
 
         for chunk in chunks(to_fetch, 128):
             for state in self.session.query(self.model).filter(self.model.fingerprint.in_(chunk)):
@@ -46,6 +48,6 @@ class States(MemoryStates):
             self.session.merge(state)
 
         self.session.commit()
-        self.logger.debug("State cache has been flushed.")
+        logger.debug("State cache has been flushed.")
 
         super(States, self).flush(force_clear)

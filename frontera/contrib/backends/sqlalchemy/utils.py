@@ -1,8 +1,13 @@
 from __future__ import absolute_import
 
+import logging
+
 from calendar import timegm
 from datetime import datetime
 from time import sleep
+
+
+logger = logging.getLogger(__name__)
 
 
 def retry_and_rollback(func):
@@ -13,7 +18,7 @@ def retry_and_rollback(func):
             try:
                 return func(self, *args, **kwargs)
             except Exception as exc:
-                self.logger.exception(exc)
+                logger.exception(exc)
                 self.session.rollback()
 
                 sleep(5)
@@ -21,7 +26,7 @@ def retry_and_rollback(func):
                 tries -= 1
 
                 if tries > 0:
-                    self.logger.info("Tries left %d", tries)
+                    logger.info("Tries left %d", tries)
 
                     continue
                 else:

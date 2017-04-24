@@ -10,6 +10,9 @@ from .queue import Queue
 from .utils import retry_and_rollback
 
 
+logger = logging.getLogger(__name__)
+
+
 class BroadCrawlingQueue(Queue):
 
     GET_RETRIES = 3
@@ -44,7 +47,7 @@ class BroadCrawlingQueue(Queue):
             tries += 1
             limit *= 5.5 if tries > 1 else 1.0
 
-            self.logger.debug(
+            logger.debug(
                 "Try %d, limit %d, last attempt: requests %d, hosts %d",
                 tries, limit, count, len(queue.keys()),
             )
@@ -77,7 +80,7 @@ class BroadCrawlingQueue(Queue):
 
             break
 
-        self.logger.debug(
+        logger.debug(
             "Finished: tries %d, hosts %d, requests %d", tries,
             len(queue.keys()), count,
         )
