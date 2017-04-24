@@ -1,24 +1,21 @@
-# -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
 import logging
 
-from calendar import timegm
-from datetime import datetime, timedelta
-from time import sleep, time
+from time import time
 
 from six.moves import range
 
 from sqlalchemy import BigInteger, Column
 
 from frontera.contrib.backends.partitioners import Crc32NamePartitioner
-from frontera.contrib.backends.sqlalchemy import SQLAlchemyBackend
-from frontera.contrib.backends.sqlalchemy.models import DeclarativeBase, QueueModelMixin
-from frontera.contrib.backends.sqlalchemy.utils import retry_and_rollback, utcnow_timestamp
 from frontera.core.components import Queue as BaseQueue, States
 from frontera.core.models import Request
 from frontera.utils.misc import get_crc32
 from frontera.utils.url import parse_domain_from_url_fast
+
+from ..models import DeclarativeBase, QueueModelMixin
+from ..utils import retry_and_rollback, utcnow_timestamp
 
 
 class RevisitingQueueModel(QueueModelMixin, DeclarativeBase):
@@ -107,43 +104,3 @@ class RevisitingQueue(BaseQueue):
     @retry_and_rollback
     def count(self):
         return self.session.query(self.queue_model).count()
-
-
-class Backend(SQLAlchemyBackend):
-
-    def _create_queue(self, settings):
-        self.interval = settings.get("SQLALCHEMYBACKEND_REVISIT_INTERVAL")
-
-        assert isinstance(self.interval, timedelta)
-
-        self.interval = self.interval.total_seconds()
-
-        return RevisitingQueue(
-            self.session_cls,
-            RevisitingQueueModel,
-            settings.get('SPIDER_FEED_PARTITIONS'),
-        )
-
-    def _schedule(self, requests):
-        batch = []
-
-        for request in requests:
-            if request.meta[b'state'] in [States.NOT_CRAWLED]:
-                request.meta[b'crawl_at'] = utcnow_timestamp()
-            elif request.meta[b'state'] in [States.CRAWLED, States.ERROR]:
-                request.meta[b'crawl_at'] = utcnow_timestamp() + self.interval
-            else:
-                continue  # QUEUED
-
-            batch.append((request.meta[b'fingerprint'], self._get_score(request), request, True))
-
-        self.queue.schedule(batch)
-        self.metadata.update_score(batch)
-        self.queue_size += len(batch)
-
-    def page_crawled(self, response):
-        super(Backend, self).page_crawled(response)
-
-        self.states.set_states(response.request)
-        self._schedule([response.request])
-        self.states.update_cache(response.request)
