@@ -35,6 +35,7 @@ class SQLAlchemyBackend(CommonBackend):
             session = self.session_cls()
             for name, table in DeclarativeBase.metadata.tables.items():
                 session.execute(table.delete())
+            session.commit()
             session.close()
         self._metadata = Metadata(self.session_cls, self.models['MetadataModel'],
                                   settings.get('SQLALCHEMYBACKEND_CACHE_SIZE'))
