@@ -11,40 +11,17 @@ from frontera import Request
 from frontera.contrib.backends.partitioners import Crc32NamePartitioner
 from frontera.contrib.backends.sqlalchemy import SQLAlchemyBackend
 from frontera.contrib.backends.sqlalchemy.models import QueueModelMixin, DeclarativeBase
+from frontera.contrib.backends.sqlalchemy.utils import retry_and_rollback, utcnow_timestamp
 from frontera.core.components import Queue as BaseQueue, States
 from frontera.utils.misc import get_crc32
 from frontera.utils.url import parse_domain_from_url_fast
 from six.moves import range
 
 
-def utcnow_timestamp():
-    d = datetime.utcnow()
-    return timegm(d.timetuple())
-
-
 class RevisitingQueueModel(QueueModelMixin, DeclarativeBase):
     __tablename__ = 'revisiting_queue'
 
     crawl_at = Column(BigInteger, nullable=False)
-
-
-def retry_and_rollback(func):
-    def func_wrapper(self, *args, **kwargs):
-        tries = 5
-        while True:
-            try:
-                return func(self, *args, **kwargs)
-            except Exception as exc:
-                self.logger.exception(exc)
-                self.session.rollback()
-                sleep(5)
-                tries -= 1
-                if tries > 0:
-                    self.logger.info("Tries left %d", tries)
-                    continue
-                else:
-                    raise exc
-    return func_wrapper
 
 
 class RevisitingQueue(BaseQueue):

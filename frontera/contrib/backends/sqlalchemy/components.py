@@ -8,6 +8,7 @@ from cachetools import LRUCache
 from frontera.contrib.backends.partitioners import Crc32NamePartitioner
 from frontera.contrib.backends.memory import MemoryStates
 from frontera.contrib.backends.sqlalchemy.models import DeclarativeBase
+from frontera.contrib.backends.sqlalchemy.utils import retry_and_rollback
 from frontera.core.components import Metadata as BaseMetadata, Queue as BaseQueue
 from frontera.core.models import Request, Response
 from frontera.utils.misc import get_crc32, chunks
@@ -15,25 +16,6 @@ from frontera.utils.url import parse_domain_from_url_fast
 import six
 from six.moves import range
 from w3lib.util import to_native_str, to_bytes
-
-
-def retry_and_rollback(func):
-    def func_wrapper(self, *args, **kwargs):
-        tries = 5
-        while True:
-            try:
-                return func(self, *args, **kwargs)
-            except Exception as exc:
-                self.logger.exception(exc)
-                self.session.rollback()
-                sleep(5)
-                tries -= 1
-                if tries > 0:
-                    self.logger.info("Tries left %d", tries)
-                    continue
-                else:
-                    raise exc
-    return func_wrapper
 
 
 class Metadata(BaseMetadata):
