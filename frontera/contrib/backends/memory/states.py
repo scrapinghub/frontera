@@ -7,12 +7,14 @@ from collections import Iterable
 from frontera.core.components import States
 
 
+logger = logging.getLogger(__name__)
+
+
 class MemoryStates(States):
 
     def __init__(self, cache_size_limit):
         self._cache = dict()
         self._cache_size_limit = cache_size_limit
-        self.logger = logging.getLogger("memory.states")
 
     def _put(self, obj):
         self._cache[obj.meta[b'fingerprint']] = obj.meta[b'state']
@@ -40,5 +42,5 @@ class MemoryStates(States):
             force_clear = True
 
         if force_clear:
-            self.logger.debug("Cache has %d items, clearing", len(self._cache))
+            logger.debug("Cache has %d items, clearing", len(self._cache))
             self._cache.clear()

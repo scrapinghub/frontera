@@ -13,6 +13,9 @@ from frontera.core.components import Queue
 from frontera.utils.url import parse_domain_from_url_fast
 
 
+logger = logging.getLogger(__name__)
+
+
 class MemoryDequeQueue(Queue):
     def __init__(self, partitions, is_fifo=True):
         """
@@ -22,7 +25,6 @@ class MemoryDequeQueue(Queue):
         """
         self.partitions = [i for i in range(0, partitions)]
         self.partitioner = Crc32NamePartitioner(self.partitions)
-        self.logger = logging.getLogger("memory.dequequeue")
         self.queues = {
             partition: deque()
             for partition in self.partitions
@@ -55,7 +57,7 @@ class MemoryDequeQueue(Queue):
                 if hostname:
                     partition_id = self.partitioner.partition(hostname, self.partitions)
                 else:
-                    self.logger.error(
+                    logger.error(
                         "Can't get hostname for URL %s, fingerprint %s",
                         request.url, fprint,
                     )
