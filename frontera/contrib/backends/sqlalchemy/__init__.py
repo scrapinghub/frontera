@@ -99,7 +99,7 @@ class BFSBackend(SQLAlchemyBackend):
         return obj.meta[b'depth']
 
 
-BASE = CommonBackend
+BASE = SQLAlchemyBackend
 LIFO = LIFOBackend
 FIFO = FIFOBackend
 DFS = DFSBackend
