@@ -12,23 +12,24 @@ Loggers used
 ============
 
 * kafka
-* hbase.backend
-* hbase.states
-* hbase.queue
-* sqlalchemy.revisiting.queue
-* sqlalchemy.metadata
-* sqlalchemy.states
-* sqlalchemy.queue
 * offset-fetcher
-* messagebus-backend
 * cf-server
 * db-worker
 * strategy-worker
 * messagebus.kafka
-* memory.queue
-* memory.dequequeue
-* memory.states
 * manager.components
 * manager
+* frontera.contrib.backends.hbase.distributed_backend
+* frontera.contrib.backends.hbase.queue
+* frontera.contrib.backends.hbase.states
+* frontera.contrib.backends.memory.dequequeue
+* frontera.contrib.backends.memory.queue
+* frontera.contrib.backends.memory.states
+* frontera.contrib.backends.remote.messagebus
+* frontera.contrib.backends.sqlalchemy.broad_crawling_queue
+* frontera.contrib.backends.sqlalchemy.queue
+* frontera.contrib.backends.sqlalchemy.revisiting.queue
+* frontera.contrib.backends.sqlalchemy.states
+* frontera.contrib.backends.sqlalchemy.utils
 * frontera.contrib.scrapy.schedulers.FronteraScheduler
 
