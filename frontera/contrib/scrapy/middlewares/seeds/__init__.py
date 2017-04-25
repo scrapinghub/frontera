@@ -15,7 +15,12 @@ class SeedLoader(object):
 
     def process_start_requests(self, start_requests, spider):
         urls = [url for url in self.load_seeds() if not url.startswith('#')]
-        return [spider.make_requests_from_url(url) for url in urls]
+        for url in urls:
+            r = spider.make_requests_from_url(url)
+            r.meta['seed'] = True
+            yield r
+        for r in start_requests:
+            yield r
 
     def load_seeds(self):
         raise NotImplementedError
