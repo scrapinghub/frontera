@@ -72,31 +72,43 @@ class StatsManager(object):
 
 
 class FronteraScheduler(Scheduler):
+    """
+    Custom Scheduler for Scrapy.
+    Adapts Frontera manager interface to Scrapy.
+
+    Important remarks:
+     - it doesn't enqueue majority of requests produced by middlewares or direct calls to engine, see self.enqueue_request
+       method, and override if needed,
+     - requires SchedulerSpiderMiddleware and SchedulerDownloaderMiddleware.
+    """
 
     def __init__(self, crawler, manager=None):
         self.crawler = crawler
         self.stats_manager = StatsManager(crawler.stats)
         self._pending_requests = deque()
-        self.redirect_enabled = crawler.settings.get('REDIRECT_ENABLED')
         settings = ScrapySettingsAdapter(crawler.settings)
         self.frontier = ScrapyFrontierManager(settings, manager)
         self._delay_on_empty = self.frontier.manager.settings.get('DELAY_ON_EMPTY')
+        self._redirect_enabled = crawler.settings.get('REDIRECT_ENABLED')
         self._delay_next_call = 0.0
-        self.logger = getLogger('frontera.contrib.scrapy.schedulers.FronteraScheduler')
+        self.logger = getLogger('frontera.contrib.scrapy.schedulers.frontier.FronteraScheduler')
 
     @classmethod
     def from_crawler(cls, crawler):
         return cls(crawler)
 
     def enqueue_request(self, request):
-        if not self._request_is_redirected(request):
-            self.frontier.add_seeds([request])
-            self.stats_manager.add_seeds()
-            return True
-        elif self.redirect_enabled:
+        # add directly to in-memory queue if request comes as part of redirect chain from RedirectMiddleware
+        if self._redirect_enabled and self._request_is_redirected(request):
             self._add_pending_request(request)
             self.stats_manager.add_redirected_requests()
             return True
+        # add as seed if request is explicitly marked as seed
+        if self._request_is_seed(request):
+            self.frontier.add_seeds([request])
+            self.stats_manager.add_seeds()
+            return True
+        self.logger.warning("Request to URL %s is skipped.", request.url)
         return False
 
     def next_request(self):
@@ -166,7 +178,10 @@ class FronteraScheduler(Scheduler):
             return '?'
 
     def _request_is_redirected(self, request):
-        return request.meta.get(b'redirect_times', 0) > 0
+        return request.meta.get('redirect_times', 0) > 0
+
+    def _request_is_seed(self, request):
+        return bool(request.meta.get('seed', False))
 
     def _get_downloader_info(self):
         downloader = self.crawler.engine.downloader
