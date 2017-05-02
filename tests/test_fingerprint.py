@@ -32,11 +32,11 @@ class TestFingerprint(object):
         assert md5(url3) == b'5abf5c9aa02d870756032bdec0bd6522'
 
     def test_local_hostname_fingerprint_bytes(self):
-        assert hostname_local_fingerprint(to_bytes(url1)) == b'1be68ff556fd0bbe5802d1a100850da29f7f15b1'
-        assert hostname_local_fingerprint(to_bytes(url2)) == b'd598b03bee8866ae03b54cb6912efdfef107fd6d'
-        assert hostname_local_fingerprint(to_bytes(url3)) == b'2ed642bbdf514b8520ab28f5da589ab28eda10a6'
+        assert hostname_local_fingerprint(to_bytes(url1)) == b'1be68ff5587d241e22865288133b37d63ab49e13'
+        assert hostname_local_fingerprint(to_bytes(url2)) == b'97ddb3f898d2460d60d3f4d6cb7dbc5d0b8025f8'
+        assert hostname_local_fingerprint(to_bytes(url3)) == b'2ed642bb1e215e68ef283a1939252734e84c3c76'
 
     def test_local_hostname_frongerprint_unicode(self):
-        assert hostname_local_fingerprint(url1) == b'1be68ff556fd0bbe5802d1a100850da29f7f15b1'
-        assert hostname_local_fingerprint(url2) == b'd598b03bee8866ae03b54cb6912efdfef107fd6d'
-        assert hostname_local_fingerprint(url3) == b'2ed642bbdf514b8520ab28f5da589ab28eda10a6'
+        assert hostname_local_fingerprint(url1) == b'1be68ff5587d241e22865288133b37d63ab49e13'
+        assert hostname_local_fingerprint(url2) == b'97ddb3f898d2460d60d3f4d6cb7dbc5d0b8025f8'
+        assert hostname_local_fingerprint(url3) == b'2ed642bb1e215e68ef283a1939252734e84c3c76'
