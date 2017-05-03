@@ -253,7 +253,7 @@ class StrategyWorker(object):
         self._manager.stop()
 
     def on_add_seeds(self, seeds):
-        logger.debug('Adding %i seeds', len(seeds))
+        logger.debug('Adding %d seeds', len(seeds))
         for seed in seeds:
             logger.debug("URL: %s", seed.url)
         self.states.set_states(seeds)

@@ -7,6 +7,9 @@ import logging
 import six
 
 
+logger = logging.getLogger(__name__)
+
+
 class MessageBusBackend(Backend):
     def __init__(self, manager):
         settings = manager.settings
@@ -25,10 +28,10 @@ class MessageBusBackend(Backend):
             raise ValueError("Spider partition id cannot be less than 0 or more than SPIDER_FEED_PARTITIONS.")
         self.consumer = spider_feed.consumer(partition_id=self.partition_id)
         self._get_timeout = float(settings.get('KAFKA_GET_TIMEOUT'))
-        self._logger = logging.getLogger("messagebus-backend")
+
         self._buffer = OverusedBuffer(self._get_next_requests,
-                                      self._logger.debug)
-        self._logger.info("Consuming from partition id %d", self.partition_id)
+                                      logger.debug)
+        logger.info("Consuming from partition id %d", self.partition_id)
 
     @classmethod
     def from_manager(cls, manager):
@@ -66,7 +69,7 @@ class MessageBusBackend(Backend):
             try:
                 request = self._decoder.decode_request(encoded)
             except Exception as exc:
-                self._logger.warning("Could not decode message: {0}, error {1}".format(encoded, str(exc)))
+                logger.warning("Could not decode message: {0}, error {1}".format(encoded, str(exc)))
             else:
                 requests.append(request)
         self.spider_log_producer.send(b'0123456789abcdef0123456789abcdef012345678',

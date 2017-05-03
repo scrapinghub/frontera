@@ -141,7 +141,7 @@ class DBWorker(object):
                     type = msg[0]
                     if type == 'add_seeds':
                         _, seeds = msg
-                        logger.info('Adding %i seeds', len(seeds))
+                        logger.info('Adding %d seeds', len(seeds))
                         for seed in seeds:
                             logger.debug('URL: %s', seed.url)
                         self._backend.add_seeds(seeds)
