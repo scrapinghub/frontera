@@ -89,15 +89,9 @@ class FronteraScheduler(Scheduler):
         return cls(crawler)
 
     def enqueue_request(self, request):
-        if not self._request_is_redirected(request):
-            self.frontier.add_seeds([request])
-            self.stats_manager.add_seeds()
-            return True
-        elif self.redirect_enabled:
-            self._add_pending_request(request)
-            self.stats_manager.add_redirected_requests()
-            return True
-        return False
+        self._add_pending_request(request)
+        self.stats_manager.add_redirected_requests()
+        return True
 
     def next_request(self):
         request = self._get_next_request()
@@ -164,9 +158,6 @@ class FronteraScheduler(Scheduler):
             return exception.__class__.__name__
         except:
             return '?'
-
-    def _request_is_redirected(self, request):
-        return request.meta.get(b'redirect_times', 0) > 0
 
     def _get_downloader_info(self):
         downloader = self.crawler.engine.downloader
