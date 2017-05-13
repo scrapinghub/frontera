@@ -7,6 +7,8 @@ from frontera.core.models import Response as FrontierResponse
 from frontera.utils.converters import BaseRequestConverter, BaseResponseConverter
 from w3lib.util import to_bytes, to_native_str
 
+from frontera.utils.misc import dict_to_unicode, dict_to_bytes
+
 
 class RequestConverter(BaseRequestConverter):
     """Converts between frontera and Scrapy request objects"""
@@ -26,7 +28,7 @@ class RequestConverter(BaseRequestConverter):
         if callable(eb):
             eb = _find_method(self.spider, eb)
 
-        scrapy_meta = scrapy_request.meta
+        scrapy_meta = dict_to_bytes(scrapy_request.meta, keys_only=True)
         meta = {}
         if b'frontier_request' in scrapy_meta:
             request = scrapy_meta[b'frontier_request']
@@ -58,7 +60,8 @@ class RequestConverter(BaseRequestConverter):
         if eb and self.spider:
             eb = _get_method(self.spider, eb)
         body = frontier_request.body
-        meta = frontier_request.meta.get(b'scrapy_meta', {})
+        meta = dict_to_unicode(frontier_request.meta.get(b'scrapy_meta', {}),
+                               keys_only=True)
         meta[b'frontier_request'] = frontier_request
         return ScrapyRequest(url=frontier_request.url,
                              callback=cb,

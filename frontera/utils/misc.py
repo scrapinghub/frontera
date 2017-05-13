@@ -53,23 +53,23 @@ def chunks(l, n):
         yield l[i:i+n]
 
 
-def dict_to_bytes(obj):
+def dict_to_bytes(obj, keys_only=False):
     if isinstance(obj, dict):
-        return {dict_to_bytes(k): dict_to_bytes(v) for k, v in six.iteritems(obj)}
-    if isinstance(obj, six.text_type):
+        return {dict_to_bytes(k): dict_to_bytes(v, keys_only) for k, v in six.iteritems(obj)}
+    elif isinstance(obj, six.text_type) and not keys_only:
         return obj.encode('utf8')
-    if isinstance(obj, list):
+    elif isinstance(obj, list) and not keys_only:
         return map(dict_to_bytes, obj)
     else:
         return obj
 
 
-def dict_to_unicode(obj):
+def dict_to_unicode(obj, keys_only=False):
     if isinstance(obj, dict):
-        return {dict_to_unicode(k): dict_to_unicode(v) for k, v in six.iteritems(obj)}
-    if isinstance(obj, six.binary_type):
+        return {dict_to_unicode(k): dict_to_unicode(v, keys_only) for k, v in six.iteritems(obj)}
+    elif isinstance(obj, six.binary_type) and not keys_only:
         return obj.decode('utf8')
-    if isinstance(obj, list):
+    elif isinstance(obj, list) and not keys_only:
         return map(dict_to_unicode, obj)
     else:
         return obj

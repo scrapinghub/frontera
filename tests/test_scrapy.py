@@ -54,7 +54,7 @@ def test_request_response_converters():
     assert b'frontier_request' not in frontier_request.meta[b'scrapy_meta']
 
     request_converted = rc.from_frontier(frontier_request)
-    assert request_converted.meta[b'test_param'] == b'test_value'
+    assert request_converted.meta['test_param'] == b'test_value'
     assert request_converted.body == to_bytes(REQUEST_BODY)
     assert request_converted.url == url
     assert request_converted.method == 'GET'
@@ -71,14 +71,14 @@ def test_request_response_converters():
 
     frontier_response = rsc.to_frontier(response)
     assert frontier_response.body == RESPONSE_BODY
-    assert frontier_response.meta[b'scrapy_meta'][b'test_param'] == b'test_value'
+    assert frontier_response.meta[b'scrapy_meta']['test_param'] == b'test_value'
     assert frontier_response.meta[b'scrapy_meta'][b'middleware_stuff'] == b'appeared'
     assert frontier_response.status_code == 200
     assert b'frontier_request' not in frontier_response.meta[b'scrapy_meta']
 
     response_converted = rsc.from_frontier(frontier_response)
     assert response_converted.body == RESPONSE_BODY
-    assert response_converted.meta[b'test_param'] == b'test_value'
+    assert response_converted.meta['test_param'] == b'test_value'
     assert response_converted.url == url
     assert response_converted.status == 200
     assert response_converted.headers[b'TestHeader'] == b'Test value'
