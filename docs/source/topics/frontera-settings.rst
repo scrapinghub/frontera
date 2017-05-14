@@ -238,6 +238,25 @@ Default: ``frontera.contrib.backends.remote.codecs.msgpack``
 Points Frontera to :term:`message bus` codec implementation. Here is the :ref:`codec interface description <message_bus_protocol>`.
 Defaults to MsgPack.
 
+.. setting:: MESSAGE_BUS_REQUEST_AGGREGATION_FUNCTION
+
+MESSAGE_BUS_REQUEST_AGGREGATION_FUNCTION
+----------------------------------------
+
+Default: ``frontera.contrib.backends.remote.messagebus.aggregate_per_host``
+
+Defines a function used for aggregating requests between :term:`spider log` partitions. This function receives iterable ``requests`` of :class:`Request <frontera.core.models.Request>` instances as a single positional argument, result expected to be dictionary where keys are fingerprints and values are lists of :class:`Request <frontera.core.models.Request>` instances.
+Defaults to per-host aggregating function.
+
+.. setting:: MESSAGE_BUS_USE_OVERUSED_BUFFER
+
+MESSAGE_BUS_USE_OVERUSED_BUFFER
+-------------------------------
+
+Default: ``True``
+
+Enables use of :term:`overused buffer` in :class:`MessageBusBackend <frontera.contrib.backends.remote.messagebus.MessageBusBackend>`.
+
 .. setting:: MIDDLEWARES
 
 MIDDLEWARES
