@@ -51,6 +51,8 @@ before_script:
   - docker-compose --version
   - docker-compose --verbose -f tests/kafka/docker-compose.yml up -d
   - docker ps -a
+  - docker run --name cassandra -p 127.0.0.1:9042:9042 -d cassandra
+  - python tests/contrib/backends/cassandra/wait_for_cluster_up.py
 
 script: tox
 

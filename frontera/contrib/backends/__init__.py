@@ -1,9 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 from collections import OrderedDict
+from datetime import datetime
 
 from frontera import Backend
-from frontera.core.components import States
+from frontera.core.components import States, Queue as BaseQueue, DistributedBackend
+from frontera.core.models import Request, Response
+from frontera.utils.misc import utcnow_timestamp
+
+from w3lib.util import to_native_str
 
 
 class CommonBackend(Backend):
@@ -84,3 +89,120 @@ class CommonBackend(Backend):
 
     def finished(self):
         return self.queue_size == 0
+
+
+class CommonStorageBackend(CommonBackend):
+
+    @property
+    def queue(self):
+        return self._queue
+
+    @property
+    def metadata(self):
+        return self._metadata
+
+    @property
+    def states(self):
+        return self._states
+
+
+class CommonDistributedStorageBackend(DistributedBackend):
+
+    @property
+    def queue(self):
+        return self._queue
+
+    @property
+    def metadata(self):
+        return self._metadata
+
+    @property
+    def states(self):
+        return self._states
+
+    def frontier_start(self):
+        for component in [self.metadata, self.queue, self.states]:
+            if component:
+                component.frontier_start()
+
+    def frontier_stop(self):
+        for component in [self.metadata, self.queue, self.states]:
+            if component:
+                component.frontier_stop()
+
+    def add_seeds(self, seeds):
+        self.metadata.add_seeds(seeds)
+
+    def get_next_requests(self, max_next_requests, **kwargs):
+        partitions = kwargs.pop('partitions', [0])  # TODO: Collect from all known partitions
+        batch = []
+        for partition_id in partitions:
+            batch.extend(self.queue.get_next_requests(max_next_requests, partition_id, **kwargs))
+        return batch
+
+    def page_crawled(self, response):
+        self.metadata.page_crawled(response)
+
+    def links_extracted(self, request, links):
+        self.metadata.links_extracted(request, links)
+
+    def request_error(self, request, error):
+        self.metadata.request_error(request, error)
+
+    def finished(self):
+        raise NotImplementedError
+
+
+class CreateOrModifyPageMixin(object):
+
+    def _create_page(self, obj):
+        db_page = self.model()
+        db_page.fingerprint = to_native_str(obj.meta[b'fingerprint'])
+        db_page.url = obj.url
+        db_page.created_at = datetime.utcnow()
+        db_page.meta = obj.meta
+        db_page.depth = 0
+
+        if isinstance(obj, Request):
+            db_page.headers = obj.headers
+            db_page.method = to_native_str(obj.method)
+            db_page.cookies = obj.cookies
+        elif isinstance(obj, Response):
+            db_page.headers = obj.request.headers
+            db_page.method = to_native_str(obj.request.method)
+            db_page.cookies = obj.request.cookies
+            db_page.status_code = obj.status_code
+        return db_page
+
+    def _modify_page(self, obj):
+        db_page = self.cache[obj.meta[b'fingerprint']]
+        db_page.fetched_at = datetime.utcnow()
+        if isinstance(obj, Response):
+            db_page.headers = obj.request.headers
+            db_page.method = to_native_str(obj.request.method)
+            db_page.cookies = obj.request.cookies
+            db_page.status_code = obj.status_code
+        return db_page
+
+
+class CommonRevisitingStorageBackendMixin(object):
+
+    def _schedule(self, requests):
+        batch = []
+        for request in requests:
+            if request.meta[b'state'] in [States.NOT_CRAWLED]:
+                request.meta[b'crawl_at'] = utcnow_timestamp()
+            elif request.meta[b'state'] in [States.CRAWLED, States.ERROR]:
+                request.meta[b'crawl_at'] = utcnow_timestamp() + self.interval
+            else:
+                continue    # QUEUED
+            batch.append((request.meta[b'fingerprint'], self._get_score(request), request, True))
+        self.queue.schedule(batch)
+        self.metadata.update_score(batch)
+        self.queue_size += len(batch)
+
+    def page_crawled(self, response):
+        super(CommonRevisitingStorageBackendMixin, self).page_crawled(response)
+        self.states.set_states(response.request)
+        self._schedule([response.request])
+        self.states.update_cache(response.request)

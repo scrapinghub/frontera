@@ -1,138 +1,125 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
 import logging
-from time import time, sleep
+import uuid
+from time import time
 
-from cachetools import LRUCache
-from frontera.contrib.backends import CreateOrModifyPageMixin
-from frontera.contrib.backends.partitioners import Crc32NamePartitioner
-from frontera.contrib.backends.memory import MemoryStates
-from frontera.contrib.backends.sqlalchemy.models import DeclarativeBase
-from frontera.core.components import Metadata as BaseMetadata, Queue as BaseQueue
-from frontera.core.models import Request
-from frontera.utils.misc import get_crc32, chunks
-from frontera.utils.url import parse_domain_from_url_fast
 import six
-from six.moves import range
-from w3lib.util import to_native_str, to_bytes
+from cachetools import LRUCache
+from cassandra.cqlengine.management import sync_table
+from cassandra.cqlengine.query import BatchQuery
+from w3lib.util import to_bytes, to_native_str
 
-
-def retry_and_rollback(func):
-    def func_wrapper(self, *args, **kwargs):
-        tries = 5
-        while True:
-            try:
-                return func(self, *args, **kwargs)
-            except Exception as exc:
-                self.logger.exception(exc)
-                self.session.rollback()
-                sleep(5)
-                tries -= 1
-                if tries > 0:
-                    self.logger.info("Tries left %i" % tries)
-                    continue
-                else:
-                    raise exc
-    return func_wrapper
+from frontera.contrib.backends import CreateOrModifyPageMixin
+from frontera.contrib.backends.memory import MemoryStates
+from frontera.contrib.backends.partitioners import Crc32NamePartitioner
+from frontera.core.components import Metadata as BaseMetadata
+from frontera.core.components import Queue as BaseQueue
+from frontera.core.models import Request
+from frontera.utils.misc import chunks, get_crc32
+from frontera.utils.url import parse_domain_from_url_fast
 
 
 class Metadata(BaseMetadata, CreateOrModifyPageMixin):
-    def __init__(self, session_cls, model_cls, cache_size):
-        self.session = session_cls(expire_on_commit=False)   # FIXME: Should be explicitly mentioned in docs
+
+    def __init__(self, model_cls, cache_size):
         self.model = model_cls
-        self.table = DeclarativeBase.metadata.tables['metadata']
         self.cache = LRUCache(cache_size)
-        self.logger = logging.getLogger("sqlalchemy.metadata")
+        self.batch = BatchQuery()
+        self.logger = logging.getLogger("frontera.contrib.backends.cassandra.components.Metadata")
+        sync_table(model_cls)
 
     def frontier_stop(self):
-        self.session.close()
+        pass
 
-    @retry_and_rollback
     def add_seeds(self, seeds):
         for seed in seeds:
-            o = self._create_page(seed)
-            self.cache[to_bytes(o.fingerprint)] = self.session.merge(o)
-        self.session.commit()
+            page = self._create_page(seed)
+            self._add_to_batch_and_update_cache(page)
+        self.batch.execute()
 
-    @retry_and_rollback
     def request_error(self, page, error):
-        m = self._modify_page(page) if page.meta[b'fingerprint'] in self.cache else self._create_page(page)
-        m.error = error
-        self.cache[to_bytes(m.fingerprint)] = self.session.merge(m)
-        self.session.commit()
+        page = self._modify_page(page) if page.meta[b'fingerprint'] in self.cache else self._create_page(page)
+        page.error = error
+        self._add_to_batch_and_update_cache(page)
+        self.batch.execute()
 
-    @retry_and_rollback
     def page_crawled(self, response):
-        r = self._modify_page(response) if response.meta[b'fingerprint'] in self.cache else self._create_page(response)
-        self.cache[r.fingerprint] = self.session.merge(r)
-        self.session.commit()
+        page = self._modify_page(response) \
+            if response.meta[b'fingerprint'] in self.cache else self._create_page(response)
+        self._add_to_batch_and_update_cache(page)
+        self.batch.execute()
 
     def links_extracted(self, request, links):
         for link in links:
             if link.meta[b'fingerprint'] not in self.cache:
-                self.cache[link.meta[b'fingerprint']] = self.session.merge(self._create_page(link))
-        self.session.commit()
+                page = self._create_page(link)
+                self._add_to_batch_and_update_cache(page)
+        self.batch.execute()
 
-    @retry_and_rollback
     def update_score(self, batch):
-        for fprint, score, request, schedule in batch:
-            m = self.model(fingerprint=to_native_str(fprint), score=score)
-            self.session.merge(m)
-        self.session.commit()
+        if isinstance(batch, dict):
+            batch = [(fprint, score, url, schedule) for fprint, (score, url, schedule) in six.iteritems(batch)]
+        for fprint, score, url, schedule in batch:
+            page = self.cache[fprint]
+            page.fingerprint = to_native_str(fprint)
+            page.score = score
+            self._add_to_batch_and_update_cache(page)
+        self.batch.execute()
+
+    def _add_to_batch_and_update_cache(self, page):
+        self.cache[to_bytes(page.fingerprint)] = page.batch(self.batch).save()
 
 
 class States(MemoryStates):
 
-    def __init__(self, session_cls, model_cls, cache_size_limit):
+    def __init__(self, model_cls, cache_size_limit):
         super(States, self).__init__(cache_size_limit)
-        self.session = session_cls()
         self.model = model_cls
-        self.table = DeclarativeBase.metadata.tables['states']
-        self.logger = logging.getLogger("sqlalchemy.states")
+        self.batch = BatchQuery()
+        self.logger = logging.getLogger("frontera.contrib.backends.cassandra.components.States")
+        sync_table(model_cls)
 
-    @retry_and_rollback
     def frontier_stop(self):
         self.flush()
-        self.session.close()
 
-    @retry_and_rollback
     def fetch(self, fingerprints):
         to_fetch = [to_native_str(f) for f in fingerprints if f not in self._cache]
         self.logger.debug("cache size %s", len(self._cache))
         self.logger.debug("to fetch %d from %d", len(to_fetch), len(fingerprints))
 
         for chunk in chunks(to_fetch, 128):
-            for state in self.session.query(self.model).filter(self.model.fingerprint.in_(chunk)):
+            for state in self.model.objects.filter(fingerprint__in=chunk):
                 self._cache[to_bytes(state.fingerprint)] = state.state
 
-    @retry_and_rollback
     def flush(self, force_clear=False):
         for fingerprint, state_val in six.iteritems(self._cache):
             state = self.model(fingerprint=to_native_str(fingerprint), state=state_val)
-            self.session.merge(state)
-        self.session.commit()
+            state.batch(self.batch).save()
+        self.batch.execute()
         self.logger.debug("State cache has been flushed.")
         super(States, self).flush(force_clear)
 
 
 class Queue(BaseQueue):
-    def __init__(self, session_cls, queue_cls, partitions, ordering='default'):
-        self.session = session_cls()
+
+    def __init__(self, queue_cls, partitions, ordering='default'):
         self.queue_model = queue_cls
-        self.logger = logging.getLogger("sqlalchemy.queue")
+        self.logger = logging.getLogger("frontera.contrib.backends.cassandra.components.Queue")
         self.partitions = [i for i in range(0, partitions)]
         self.partitioner = Crc32NamePartitioner(self.partitions)
         self.ordering = ordering
+        self.batch = BatchQuery()
+        sync_table(queue_cls)
 
     def frontier_stop(self):
-        self.session.close()
+        pass
 
     def _order_by(self, query):
         if self.ordering == 'created':
-            return query.order_by(self.queue_model.created_at)
+            return query.order_by('created_at')
         if self.ordering == 'created_desc':
-            return query.order_by(self.queue_model.created_at.desc())
-        return query.order_by(self.queue_model.score, self.queue_model.created_at)  # TODO: remove second parameter,
+            return query.order_by('-created_at')
+        return query.order_by('score', 'created_at')  # TODO: remove second parameter,
         # it's not necessary for proper crawling, but needed for tests
 
     def get_next_requests(self, max_n_requests, partition_id, **kwargs):
@@ -145,23 +132,20 @@ class Queue(BaseQueue):
         """
         results = []
         try:
-            for item in self._order_by(self.session.query(self.queue_model).filter_by(partition_id=partition_id)).\
+            for item in self._order_by(self.queue_model.filter(partition_id=partition_id).allow_filtering()).\
                     limit(max_n_requests):
                 method = item.method or b'GET'
                 r = Request(item.url, method=method, meta=item.meta, headers=item.headers, cookies=item.cookies)
                 r.meta[b'fingerprint'] = to_bytes(item.fingerprint)
                 r.meta[b'score'] = item.score
                 results.append(r)
-                self.session.delete(item)
-            self.session.commit()
+                item.batch(self.batch).delete()
+            self.batch.execute()
         except Exception as exc:
             self.logger.exception(exc)
-            self.session.rollback()
         return results
 
-    @retry_and_rollback
     def schedule(self, batch):
-        to_save = []
         for fprint, score, request, schedule in batch:
             if schedule:
                 _, hostname, _, _, _, _ = parse_domain_from_url_fast(request.url)
@@ -172,24 +156,28 @@ class Queue(BaseQueue):
                 else:
                     partition_id = self.partitioner.partition(hostname, self.partitions)
                     host_crc32 = get_crc32(hostname)
-                q = self.queue_model(fingerprint=to_native_str(fprint), score=score, url=request.url, meta=request.meta,
-                                     headers=request.headers, cookies=request.cookies, method=to_native_str(request.method),
-                                     partition_id=partition_id, host_crc32=host_crc32, created_at=time()*1E+6)
-                to_save.append(q)
+                q = self.queue_model(id=uuid.uuid4(),
+                                     fingerprint=to_native_str(fprint),
+                                     score=score,
+                                     url=request.url,
+                                     meta=request.meta,
+                                     headers=request.headers,
+                                     cookies=request.cookies,
+                                     method=to_native_str(request.method),
+                                     partition_id=partition_id,
+                                     host_crc32=host_crc32,
+                                     created_at=time() * 1E+6)
+                q.batch(self.batch).save()
                 request.meta[b'state'] = States.QUEUED
-        self.session.bulk_save_objects(to_save)
-        self.session.commit()
+        self.batch.execute()
 
-    @retry_and_rollback
     def count(self):
-        return self.session.query(self.queue_model).count()
+        return self.queue_model.objects.count()
 
 
 class BroadCrawlingQueue(Queue):
-
     GET_RETRIES = 3
 
-    @retry_and_rollback
     def get_next_requests(self, max_n_requests, partition_id, **kwargs):
         """
         Dequeues new batch of requests for crawling.
@@ -220,8 +208,8 @@ class BroadCrawlingQueue(Queue):
                               tries, limit, count, len(queue.keys()))
             queue.clear()
             count = 0
-            for item in self._order_by(self.session.query(self.queue_model).filter_by(partition_id=partition_id)).\
-                    limit(limit):
+            for item in self._order_by(self.queue_model.filter(partition_id=partition_id).allow_filtering()).\
+                    limit(max_n_requests):
                 if item.host_crc32 not in queue:
                     queue[item.host_crc32] = []
                 if max_requests_per_host is not None and len(queue[item.host_crc32]) > max_requests_per_host:
@@ -241,8 +229,11 @@ class BroadCrawlingQueue(Queue):
         for items in six.itervalues(queue):
             for item in items:
                 method = item.method or b'GET'
-                results.append(Request(item.url, method=method,
-                                       meta=item.meta, headers=item.headers, cookies=item.cookies))
-                self.session.delete(item)
-        self.session.commit()
+                results.append(Request(item.url,
+                                       method=method,
+                                       meta=item.meta,
+                                       headers=item.headers,
+                                       cookies=item.cookies))
+                item.batch(self.batch).delete()
+        self.batch.execute()
         return results
