@@ -9,7 +9,8 @@ from frontera.utils.misc import get_crc32, load_object
 import logging
 from msgpack import packb, unpackb
 from redis import ConnectionPool, StrictRedis
-from time import time
+from redis.exceptions import ResponseError
+from time import sleep, time
 
 FIELD_CRAWL_AT = b'crawl_at'
 FIELD_CREATED_AT = b'created_at'
@@ -23,6 +24,13 @@ FIELD_SCORE = b'score'
 FIELD_STATE = b'state'
 FIELD_STATUS_CODE = b'status_code'
 FIELD_URL = b'url'
+
+
+# Timeout generator with backoff until 30 seconds
+def _get_retry_timeouts():
+    for timeout in [5, 10, 20, 30, 30]: yield timeout
+    while True:
+        yield 30
 
 
 class RedisQueue(Queue):
@@ -141,11 +149,18 @@ class RedisQueue(Queue):
             item = (timestamp, fingerprint, host_crc32, self._encoder.encode_request(request), score)
             interval_start = self.get_interval_start(score)
             data.setdefault(partition_id, []).extend([int(interval_start * 100), packb(item)])
-        connection = StrictRedis(connection_pool=self._pool)
-        pipe = connection.pipeline()
-        for key, items in data.items():
-            connection.zadd(key, *items)
-        pipe.execute()
+        timeout = _get_retry_timeouts()
+        while True:
+            try:
+                connection = StrictRedis(connection_pool=self._pool)
+                pipe = connection.pipeline()
+                for key, items in data.items():
+                    connection.zadd(key, *items)
+                pipe.execute()
+                break
+            except ResponseError as e:
+                self._logger.warning(e.message)
+                sleep(timeout.next())
 
     def count(self):
         connection = StrictRedis(connection_pool=self._pool)
@@ -188,11 +203,18 @@ class RedisState(States):
     def flush(self, force_clear):
         if len(self._cache) > self._cache_size_limit:
             force_clear = True
-        connection = StrictRedis(connection_pool=self._pool)
-        pipe = connection.pipeline()
-        for fprint, state in self._cache.items():
-            pipe.hmset(fprint, {FIELD_STATE: state})
-        pipe.execute()
+        timeout = _get_retry_timeouts()
+        while True:
+            try:
+                connection = StrictRedis(connection_pool=self._pool)
+                pipe = connection.pipeline()
+                for fprint, state in self._cache.items():
+                    pipe.hmset(fprint, {FIELD_STATE: state})
+                pipe.execute()
+                break
+            except ResponseError as e:
+                self._logger.warning(e.message)
+                sleep(timeout.next())
         if force_clear:
             self._logger.debug("Cache has %d requests, clearing" % len(self._cache))
             self._cache.clear()
@@ -233,57 +255,85 @@ class RedisMetadata(Metadata):
         return str(datetime.utcnow().replace(microsecond=0))
 
     def add_seeds(self, seeds):
-        connection = StrictRedis(connection_pool=self._pool)
-        pipe = connection.pipeline()
-        for seed in seeds:
-            pipe.hmset(
-                seed.meta[FIELD_FINGERPRINT],
-                {
-                    FIELD_URL: seed.url,
-                    FIELD_DEPTH: 0,
-                    FIELD_CREATED_AT: self.timestamp(),
-                    FIELD_DOMAIN_FINGERPRINT: seed.meta[FIELD_DOMAIN][FIELD_FINGERPRINT]
-                }
-            )
-        pipe.execute()
+        timeout = _get_retry_timeouts()
+        while True:
+            try:
+                connection = StrictRedis(connection_pool=self._pool)
+                pipe = connection.pipeline()
+                for seed in seeds:
+                    pipe.hmset(
+                        seed.meta[FIELD_FINGERPRINT],
+                        {
+                            FIELD_URL: seed.url,
+                            FIELD_DEPTH: 0,
+                            FIELD_CREATED_AT: self.timestamp(),
+                            FIELD_DOMAIN_FINGERPRINT: seed.meta[FIELD_DOMAIN][FIELD_FINGERPRINT]
+                        }
+                    )
+                pipe.execute()
+                break
+            except ResponseError as e:
+                self._logger.warning(e.message)
+                sleep(timeout.next())
 
     def request_error(self, page, error):
-        connection = StrictRedis(connection_pool=self._pool)
-        connection.hmset(
-            page.meta[FIELD_FINGERPRINT],
-            {
-                FIELD_URL: page.url,
-                FIELD_CREATED_AT: self.timestamp(),
-                FIELD_ERROR: error,
-                FIELD_DOMAIN_FINGERPRINT: page.meta[FIELD_DOMAIN][FIELD_FINGERPRINT]
-            }
-        )
+        timeout = _get_retry_timeouts()
+        while True:
+            try:
+                connection = StrictRedis(connection_pool=self._pool)
+                connection.hmset(
+                    page.meta[FIELD_FINGERPRINT],
+                    {
+                        FIELD_URL: page.url,
+                        FIELD_CREATED_AT: self.timestamp(),
+                        FIELD_ERROR: error,
+                        FIELD_DOMAIN_FINGERPRINT: page.meta[FIELD_DOMAIN][FIELD_FINGERPRINT]
+                    }
+                )
+                break
+            except ResponseError as e:
+                self._logger.warning(e.message)
+                sleep(timeout.next())
 
     def page_crawled(self, response):
-        connection = StrictRedis(connection_pool=self._pool)
-        connection.hmset(
-            response.meta[FIELD_FINGERPRINT],
-            {
-                FIELD_STATUS_CODE: response.status_code
-            }
-        )
+        timeout = _get_retry_timeouts()
+        while True:
+            try:
+                connection = StrictRedis(connection_pool=self._pool)
+                connection.hmset(
+                    response.meta[FIELD_FINGERPRINT],
+                    {
+                        FIELD_STATUS_CODE: response.status_code
+                    }
+                )
+                break
+            except ResponseError as e:
+                self._logger.warning(e.message)
+                sleep(timeout.next())
 
     def links_extracted(self, _, links):
-        links_processed = set()
-        connection = StrictRedis(connection_pool=self._pool)
-        for link in links:
-            link_fingerprint = link.meta[FIELD_FINGERPRINT]
-            if link_fingerprint in links_processed:
-                continue
-            connection.hmset(
-                link_fingerprint,
-                {
-                    FIELD_URL: link.url,
-                    FIELD_CREATED_AT: self.timestamp(),
-                    FIELD_DOMAIN_FINGERPRINT: link.meta[FIELD_DOMAIN][FIELD_FINGERPRINT]
-                }
-            )
-            links_processed.add(link_fingerprint)
+        timeout = _get_retry_timeouts()
+        while True:
+            try:
+                links_processed = set()
+                connection = StrictRedis(connection_pool=self._pool)
+                for link in links:
+                    link_fingerprint = link.meta[FIELD_FINGERPRINT]
+                    if link_fingerprint in links_processed:
+                        continue
+                    connection.hmset(
+                        link_fingerprint,
+                        {
+                            FIELD_URL: link.url,
+                            FIELD_CREATED_AT: self.timestamp(),
+                            FIELD_DOMAIN_FINGERPRINT: link.meta[FIELD_DOMAIN][FIELD_FINGERPRINT]
+                        }
+                    )
+                    links_processed.add(link_fingerprint)
+                break
+            except ResponseError as e:
+                self._logger.warning(e.message)
+                sleep(timeout.next())
 
     def frontier_start(self):
         pass
