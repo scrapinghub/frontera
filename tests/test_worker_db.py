@@ -78,12 +78,32 @@ class TestDBWorker(object):
         dbw.spider_feed_producer.offset = 100
         dbw.consume_incoming()
         assert 2 in dbw.spider_feed.available_partitions()
+
         msg1 = dbw._encoder.encode_offset(2, 20)
         msg2 = dbw._encoder.encode_offset(3, 0)
         dbw.spider_log_consumer.put_messages([msg1, msg2])
         dbw.consume_incoming()
         assert 3 in dbw.spider_feed.available_partitions()
         assert 2 not in dbw.spider_feed.available_partitions()
+
         dbw._backend.queue.put_requests([r1, r2, r3])
         assert dbw.new_batch() == 3
         assert 3 in dbw._backend.partitions
+
+    def test_busy_on_new_batch(self):
+        dbw = self.dbw_setup(True)
+        msg1 = dbw._encoder.encode_offset(0, 64)
+        msg2 = dbw._encoder.encode_offset(1, 64)
+        dbw.spider_log_consumer.put_messages([msg1, msg2])
+        dbw.spider_feed_producer.offset = 64
+        dbw.consume_incoming()
+
+        assert 0 in dbw.spider_feed.available_partitions()
+        assert 1 in dbw.spider_feed.available_partitions()
+        # Send 1 request to partition 1, marking it as busy.
+        # Partition 2 received no request, so it stays available.
+        dbw._backend.queue.put_requests([r1])
+        assert dbw.new_batch() == 1
+        assert 0 in dbw._backend.partitions
+        assert 0 not in dbw.spider_feed.available_partitions()
+        assert 1 in dbw.spider_feed.available_partitions()
