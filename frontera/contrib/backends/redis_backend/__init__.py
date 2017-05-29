@@ -73,7 +73,6 @@ class RedisQueue(Queue):
         :return: list of :class:`Request <frontera.core.models.Request>` objects.
         """
         max_requests_per_host = kwargs.pop('max_requests_per_host')
-        connection = StrictRedis(connection_pool=self._pool)
         queue = {}
         count = 0
         now_ts = int(time())
@@ -83,24 +82,37 @@ class RedisQueue(Queue):
         last_start = -1
         while count < max_n_requests and last_start < start:
             last_start = start
-            for data in connection.zrevrange(partition_id, start=start, end=max_n_requests + start):
-                start += 1
-                item = unpackb(data, use_list=False)
-                timestamp, fprint, host_crc32, _, score = item
-                if timestamp > now_ts:
-                    continue
-                if host_crc32 not in queue:
-                    queue[host_crc32] = []
-                if max_requests_per_host is not None and len(queue[host_crc32]) > max_requests_per_host:
-                    continue
-                queue[host_crc32].append(item)
-                if len(queue[host_crc32]) > max_host_items:
-                    max_host_items = len(queue[host_crc32])
-                count += 1
-                to_remove.append(data)
+            timeout = _get_retry_timeouts()
+            while True:
+                try:
+                    connection = StrictRedis(connection_pool=self._pool)
+                    for data in connection.zrevrange(partition_id, start=start, end=max_n_requests + start):
+                        start += 1
+                        item = unpackb(data, use_list=False)
+                        timestamp, fprint, host_crc32, _, score = item
+                        if timestamp > now_ts:
+                            continue
+                        if host_crc32 not in queue:
+                            queue[host_crc32] = []
+                        if max_requests_per_host is not None and len(queue[host_crc32]) > max_requests_per_host:
+                            continue
+                        queue[host_crc32].append(item)
+                        if len(queue[host_crc32]) > max_host_items:
+                            max_host_items = len(queue[host_crc32])
+                        count += 1
+                        to_remove.append(data)
 
-                if count >= max_n_requests:
+                        if count >= max_n_requests:
+                            break
                     break
+                except ConnectionError as e:
+                    self._logger.exception("Connection to Redis failed when attempting to get more requests")
+                    pause = timeout.next()
+                    if pause == None:
+                        raise
+                    sleep(pause)
+                except ResponseError as e:
+                    self._logger.exception("Writing to Redis failed when attempting to get more requests")
 
         self._logger.debug("Finished: hosts {}, requests {}".format(len(queue.keys()), count))
 
@@ -116,7 +128,20 @@ class RedisQueue(Queue):
                 request.meta[FIELD_SCORE] = score
                 results.append(request)
         if len(to_remove) > 0:
-            connection.zrem(partition_id, *to_remove)
+            timeout = _get_retry_timeouts()
+            while True:
+                try:
+                    connection = StrictRedis(connection_pool=self._pool)
+                    connection.zrem(partition_id, *to_remove)
+                    break
+                except ConnectionError as e:
+                    self._logger.exception("Connection to Redis failed when attempting to remove scheduled items")
+                    pause = timeout.next()
+                    if pause == None:
+                        raise
+                    sleep(pause)
+                except ResponseError as e:
+                    self._logger.exception("Writing to Redis failed when attempting to remove scheduled items")
         return results
 
     def schedule(self, batch):
@@ -177,13 +202,24 @@ class RedisQueue(Queue):
                 sleep(pause)
             except ResponseError as e:
                 self._logger.exception("Writing to Redis failed when attempting to schedule items")
-                raise
 
     def count(self):
-        connection = StrictRedis(connection_pool=self._pool)
-        count = 0
-        for partition_id in self._partitions:
-            count += connection.zcard(partition_id)
+        timeout = _get_retry_timeouts()
+        while True:
+            try:
+                connection = StrictRedis(connection_pool=self._pool)
+                count = 0
+                for partition_id in self._partitions:
+                    count += connection.zcard(partition_id)
+                break
+            except ConnectionError as e:
+                self._logger.exception("Connection to Redis failed when attempting to count items")
+                pause = timeout.next()
+                if pause == None:
+                    raise
+                sleep(pause)
+            except ResponseError as e:
+                self._logger.exception("Writing to Redis failed when attempting to count items")
         return count
 
     def frontier_start(self):
@@ -237,7 +273,6 @@ class RedisState(States):
                 sleep(pause)
             except ResponseError as e:
                 self._logger.exception("Writing to Redis failed when attempting to flush cache")
-                raise
         if force_clear:
             self._logger.debug("Cache has %d requests, clearing" % len(self._cache))
             self._cache.clear()
@@ -246,17 +281,29 @@ class RedisState(States):
         to_fetch = [f for f in fingerprints if f not in self._cache]
         self._logger.debug("cache size %s" % len(self._cache))
         self._logger.debug("to fetch %d from %d" % (len(to_fetch), len(fingerprints)))
-        connection = StrictRedis(connection_pool=self._pool)
-        pipe = connection.pipeline()
-        for key in to_fetch:
-            pipe.hgetall(key)
-        responses = pipe.execute()
-        for index, key in enumerate(to_fetch):
-            response = responses[index]
-            if len(response) > 0 and FIELD_STATE in response:
-                self._cache[key] = response[FIELD_STATE]
-            else:
-                self._cache[key] = self.NOT_CRAWLED
+        timeout = _get_retry_timeouts()
+        while True:
+            try:
+                connection = StrictRedis(connection_pool=self._pool)
+                pipe = connection.pipeline()
+                for key in to_fetch:
+                    pipe.hgetall(key)
+                responses = pipe.execute()
+                for index, key in enumerate(to_fetch):
+                    response = responses[index]
+                    if len(response) > 0 and FIELD_STATE in response:
+                        self._cache[key] = response[FIELD_STATE]
+                    else:
+                        self._cache[key] = self.NOT_CRAWLED
+                break
+            except ConnectionError as e:
+                self._logger.exception("Connection to Redis failed when attempting to fetch fingerprints")
+                pause = timeout.next()
+                if pause == None:
+                    raise
+                sleep(pause)
+            except ResponseError as e:
+                self._logger.exception("Writing to Redis failed when attempting to fetch fingerprints")
 
     def frontier_start(self):
         pass
@@ -270,8 +317,20 @@ class RedisMetadata(Metadata):
         self._pool = pool
         self._logger = logging.getLogger("redis_backend.metadata")
         if delete_all_keys:
-            connection = StrictRedis(connection_pool=self._pool)
-            connection.flushdb()
+            timeout = _get_retry_timeouts()
+            while True:
+                try:
+                    connection = StrictRedis(connection_pool=self._pool)
+                    connection.flushdb()
+                    break
+                except ConnectionError as e:
+                    self._logger.exception("Connection to Redis failed when attempting to flush database")
+                    pause = timeout.next()
+                    if pause == None:
+                        raise
+                    sleep(pause)
+                except ResponseError as e:
+                    self._logger.exception("Writing to Redis failed when attempting to flush database")
 
     @classmethod
     def timestamp(cls):
@@ -303,7 +362,6 @@ class RedisMetadata(Metadata):
                 sleep(pause)
             except ResponseError as e:
                 self._logger.exception("Writing to Redis failed when attempting to add seeds")
-                raise
 
     def request_error(self, page, error):
         timeout = _get_retry_timeouts()
@@ -328,7 +386,6 @@ class RedisMetadata(Metadata):
                 sleep(pause)
             except ResponseError as e:
                 self._logger.exception("Writing to Redis failed when attempting to write request error")
-                raise
 
     def page_crawled(self, response):
         timeout = _get_retry_timeouts()
@@ -350,7 +407,6 @@ class RedisMetadata(Metadata):
                 sleep(pause)
             except ResponseError as e:
                 self._logger.exception("Writing to Redis failed when attempting to write page crawled status")
-                raise
 
     def links_extracted(self, _, links):
         timeout = _get_retry_timeouts()
@@ -380,7 +436,6 @@ class RedisMetadata(Metadata):
                 sleep(pause)
             except ResponseError as e:
                 self._logger.exception("Writing to Redis failed when attempting to write links extracted")
-                raise
 
     def frontier_start(self):
         pass
