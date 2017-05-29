@@ -1,5 +1,5 @@
 from frontera.core.messagebus import BaseMessageBus, BaseSpiderLogStream, BaseStreamConsumer, \
-    BaseScoringLogStream, BaseSpiderFeedStream
+    BaseScoringLogStream, BaseSpiderFeedStream, BaseStreamProducer
 
 
 class Consumer(BaseStreamConsumer):
@@ -27,7 +27,7 @@ class Consumer(BaseStreamConsumer):
         return self.offset
 
 
-class Producer(object):
+class Producer(BaseStreamProducer):
 
     def __init__(self):
         self.messages = []
@@ -41,6 +41,9 @@ class Producer(object):
 
     def get_offset(self, partition_id):
         return self.offset
+
+    def partition(self, key):
+        return 0
 
 
 class ScoringLogStream(BaseScoringLogStream):

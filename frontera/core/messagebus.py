@@ -67,6 +67,13 @@ class BaseStreamProducer(object):
         """
         raise NotImplementedError
 
+    def partition(self, key):
+        """
+        Returns partition id for key.
+        :param key: str key used for partitioning, None for non-keyed channels
+        """
+        raise NotImplementedError
+
     def close(self):
         """
         Performs all necessary cleanup and closes the producer.

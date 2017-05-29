@@ -174,6 +174,7 @@ class DBWorker(object):
                             continue
                         else:
                             lag = producer_offset - offset
+                            logger.info('Spider lag: {} - {} = {}'.format(producer_offset, offset, lag))
                             if lag < 0:
                                 # non-sense in general, happens when SW is restarted and not synced yet with Spiders.
                                 continue
@@ -256,6 +257,7 @@ class DBWorker(object):
         else:
             raise Exception("Unexpected value in self.spider_feed_partitioning")
 
+        busy_partitions = set()
         for request in self._backend.get_next_requests(self.max_next_requests, partitions=partitions):
             try:
                 request.meta[b'jid'] = self.job_id
@@ -267,7 +269,12 @@ class DBWorker(object):
                 continue
             finally:
                 count += 1
-            self.spider_feed_producer.send(get_key(request), eo)
+            key = get_key(request)
+            self.spider_feed_producer.send(key, eo)
+            busy_partitions.add(self.spider_feed_producer.partition(key))
+
+        for partition_id in busy_partitions:
+            self.spider_feed.mark_busy(partition_id)
 
         self.stats['pushed_since_start'] += count
         self.stats['last_batch_size'] = count

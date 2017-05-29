@@ -8,7 +8,7 @@ import zmq
 import six
 
 from frontera.core.messagebus import BaseMessageBus, BaseSpiderLogStream, BaseStreamConsumer, \
-    BaseSpiderFeedStream, BaseScoringLogStream
+    BaseSpiderFeedStream, BaseScoringLogStream, BaseStreamProducer
 from frontera.contrib.backends.partitioners import FingerprintPartitioner, Crc32NamePartitioner
 from frontera.contrib.messagebus.zeromq.socket_config import SocketConfig
 from six.moves import range
@@ -61,7 +61,7 @@ class Consumer(BaseStreamConsumer):
         return self.counter
 
 
-class Producer(object):
+class Producer(BaseStreamProducer):
     def __init__(self, context, location, identity):
         self.identity = identity
         self.sender = context.zeromq.socket(zmq.PUB)
@@ -80,7 +80,7 @@ class Producer(object):
         # Raise TypeError if any message is not encoded as bytes
         if any(not isinstance(m, six.binary_type) for m in messages):
             raise TypeError("all produce message payloads must be type bytes")
-        partition = self.partitioner.partition(key)
+        partition = self.partition(key)
         counter = self.counters.get(partition, 0)
         for msg in messages:
             self.sender.send_multipart([self.identity + pack(">B", partition), msg,
@@ -99,6 +99,9 @@ class Producer(object):
 
     def get_offset(self, partition_id):
         return self.counters.get(partition_id, None)
+
+    def partition(self, key):
+        return self.partitioner.partition(key)
 
 
 class SpiderLogProducer(Producer):
