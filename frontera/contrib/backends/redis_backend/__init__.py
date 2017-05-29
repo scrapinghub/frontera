@@ -26,6 +26,18 @@ FIELD_STATUS_CODE = b'status_code'
 FIELD_URL = b'url'
 
 
+"""
+Error handling:
+* On Connection error:
+** Retry three times with increasing timout. 
+** Fail and report error if the third retry fails.
+* On Response error:
+** Report and continue.
+** Reponse error is usually caused by Redis using all available memory. Ideally, Redis should have enough memory
+ for this not to happen. Still, if Redis is full, the rest of the crawler may continue and free up some space in 
+ Redis after a while.
+"""
+
 # Timeout generator with backoff until 60 seconds
 def _get_retry_timeouts():
     for timeout in [0, 10, 30]: yield timeout
