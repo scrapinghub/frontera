@@ -9,7 +9,7 @@ from frontera.utils.misc import get_crc32, load_object
 import logging
 from msgpack import packb, unpackb
 from redis import ConnectionPool, StrictRedis
-from redis.exceptions import ResponseError
+from redis.exceptions import ConnectionError, ResponseError
 from time import sleep, time
 
 FIELD_CRAWL_AT = b'crawl_at'
@@ -26,11 +26,10 @@ FIELD_STATUS_CODE = b'status_code'
 FIELD_URL = b'url'
 
 
-# Timeout generator with backoff until 30 seconds
+# Timeout generator with backoff until 60 seconds
 def _get_retry_timeouts():
-    for timeout in [5, 10, 20, 30, 30]: yield timeout
-    while True:
-        yield 30
+    for timeout in [0, 10, 30]: yield timeout
+    yield None
 
 
 class RedisQueue(Queue):
@@ -158,9 +157,15 @@ class RedisQueue(Queue):
                     connection.zadd(key, *items)
                 pipe.execute()
                 break
+            except ConnectionError as e:
+                self._logger.exception("Connection to Redis failed when attempting to schedule items")
+                pause = timeout.next()
+                if pause == None:
+                    raise
+                sleep(pause)
             except ResponseError as e:
-                self._logger.warning(e.message)
-                sleep(timeout.next())
+                self._logger.exception("Writing to Redis failed when attempting to schedule items")
+                raise
 
     def count(self):
         connection = StrictRedis(connection_pool=self._pool)
@@ -212,9 +217,15 @@ class RedisState(States):
                     pipe.hmset(fprint, {FIELD_STATE: state})
                 pipe.execute()
                 break
+            except ConnectionError as e:
+                self._logger.exception("Connection to Redis failed when attempting to flush cache")
+                pause = timeout.next()
+                if pause == None:
+                    raise
+                sleep(pause)
             except ResponseError as e:
-                self._logger.warning(e.message)
-                sleep(timeout.next())
+                self._logger.exception("Writing to Redis failed when attempting to flush cache")
+                raise
         if force_clear:
             self._logger.debug("Cache has %d requests, clearing" % len(self._cache))
             self._cache.clear()
@@ -272,9 +283,15 @@ class RedisMetadata(Metadata):
                     )
                 pipe.execute()
                 break
+            except ConnectionError as e:
+                self._logger.exception("Connection to Redis failed when attempting to add seeds")
+                pause = timeout.next()
+                if pause == None:
+                    raise
+                sleep(pause)
             except ResponseError as e:
-                self._logger.warning(e.message)
-                sleep(timeout.next())
+                self._logger.exception("Writing to Redis failed when attempting to add seeds")
+                raise
 
     def request_error(self, page, error):
         timeout = _get_retry_timeouts()
@@ -291,9 +308,15 @@ class RedisMetadata(Metadata):
                     }
                 )
                 break
+            except ConnectionError as e:
+                self._logger.exception("Connection to Redis failed when attempting to write request error")
+                pause = timeout.next()
+                if pause == None:
+                    raise
+                sleep(pause)
             except ResponseError as e:
-                self._logger.warning(e.message)
-                sleep(timeout.next())
+                self._logger.exception("Writing to Redis failed when attempting to write request error")
+                raise
 
     def page_crawled(self, response):
         timeout = _get_retry_timeouts()
@@ -307,9 +330,15 @@ class RedisMetadata(Metadata):
                     }
                 )
                 break
+            except ConnectionError as e:
+                self._logger.exception("Connection to Redis failed when attempting to write page crawled status")
+                pause = timeout.next()
+                if pause == None:
+                    raise
+                sleep(pause)
             except ResponseError as e:
-                self._logger.warning(e.message)
-                sleep(timeout.next())
+                self._logger.exception("Writing to Redis failed when attempting to write page crawled status")
+                raise
 
     def links_extracted(self, _, links):
         timeout = _get_retry_timeouts()
@@ -331,9 +360,15 @@ class RedisMetadata(Metadata):
                     )
                     links_processed.add(link_fingerprint)
                 break
+            except ConnectionError as e:
+                self._logger.exception("Connection to Redis failed when attempting to write links extracted")
+                pause = timeout.next()
+                if pause == None:
+                    raise
+                sleep(pause)
             except ResponseError as e:
-                self._logger.warning(e.message)
-                sleep(timeout.next())
+                self._logger.exception("Writing to Redis failed when attempting to write links extracted")
+                raise
 
     def frontier_start(self):
         pass
