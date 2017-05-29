@@ -174,7 +174,6 @@ class DBWorker(object):
                             continue
                         else:
                             lag = producer_offset - offset
-                            logger.info('Spider lag: {} - {} = {}'.format(producer_offset, offset, lag))
                             if lag < 0:
                                 # non-sense in general, happens when SW is restarted and not synced yet with Spiders.
                                 continue
