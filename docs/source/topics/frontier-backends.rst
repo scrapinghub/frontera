@@ -295,9 +295,9 @@ Redis backend
 .. autoclass:: frontera.contrib.backends.redis_backend.RedisBackend
 
 This is similar to the HBase backend. It is suitable for large scale crawlers that still has a limited scope. It is
-recommended to ensure Redis is allowed to use enough memory to store all metadata the crawler needs. In case of Redis
-running out of memory, the crawler will log this and continue. When the crawler is unable to write metadata to the
-database; that metadata is lost.
+recommended to ensure Redis is allowed to use enough memory to store all data the crawler needs. In case of Redis
+running out of memory, the crawler will log this and continue. When the crawler is unable to write metadata or queue
+items to the database; that metadata or queue items are lost.
 
 In case of connection errors; the crawler will attempt to reconnect three times. If the third attempt at connecting
 to Redis fails, the worker will skip that Redis operation and continue operating.
