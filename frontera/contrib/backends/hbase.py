@@ -196,7 +196,7 @@ class HBaseQueue(Queue):
         tries = 0
         count = 0
         prefix = '%d_' % partition_id
-        now_ts = int(time())
+        #now_ts = int(time())
 
         while tries < self.GET_RETRIES:
             tries += 1
