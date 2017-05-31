@@ -25,7 +25,6 @@ FIELD_STATE = b'state'
 FIELD_STATUS_CODE = b'status_code'
 FIELD_URL = b'url'
 
-
 """
 Error handling:
 * On Connection error:
@@ -38,13 +37,50 @@ Error handling:
  Redis after a while.
 """
 
-# Timeout generator with backoff until 60 seconds
-def _get_retry_timeouts():
-    for timeout in [0, 10, 30]: yield timeout
-    yield None
+
+class RedisOperations:
+    @classmethod
+    def _get_retry_timeouts(cls):
+        # Timeout generator with backoff until 60 seconds
+        for timeout in [0, 10, 30]: yield timeout
+        yield None
+
+    def _redis_operation(self, message, operation, *args):
+        timeout = self._get_retry_timeouts()
+        while True:
+            try:
+                connection = StrictRedis(connection_pool=self._pool)
+                return operation(connection, *args)
+            except ConnectionError as e:
+                self._logger.exception("Connection to Redis failed when attempting to {0}".format(message))
+                pause = timeout.next()
+                if pause == None:
+                    break
+                sleep(pause)
+            except ResponseError as e:
+                self._logger.exception("Writing to Redis failed when attempting to {0}".format(message))
+                break
+
+    def _redis_pipeline(self, message, operation, *args):
+        timeout = self._get_retry_timeouts()
+        while True:
+            try:
+                connection = StrictRedis(connection_pool=self._pool)
+                pipe = connection.pipeline()
+                operation(pipe, *args)
+                return pipe.execute()
+            except ConnectionError as e:
+                self._exception("Connection to Redis failed when attempting to {0}".format(message))
+                pause = timeout.next()
+                if pause == None:
+                    break
+                sleep(pause)
+            except ResponseError as e:
+                self._logger.exception("Writing to Redis failed when attempting to {0}".format(message))
+                break
 
 
-class RedisQueue(Queue):
+class RedisQueue(Queue, RedisOperations):
     MAX_SCORE = 1.0
     MIN_SCORE = 0.0
     SCORE_STEP = 0.01
@@ -62,8 +98,27 @@ class RedisQueue(Queue):
         self._logger = logging.getLogger("redis_backend.queue")
 
         if delete_all_keys:
-            connection = StrictRedis(connection_pool=self._pool)
-            connection.flushdb()
+            self._redis_operation( "flushing db", lambda connection: connection.flushdb())
+
+    def _get_items(self, connection, partition_id, start, now_ts, queue, max_requests_per_host, max_host_items, count, max_n_requests, to_remove):
+        for data in connection.zrevrange(partition_id, start=start, end=max_n_requests + start):
+            start += 1
+            item = unpackb(data, use_list=False)
+            timestamp, fprint, host_crc32, _, score = item
+            if timestamp > now_ts:
+                continue
+            if host_crc32 not in queue:
+                queue[host_crc32] = []
+            if max_requests_per_host is not None and len(queue[host_crc32]) > max_requests_per_host:
+                continue
+            queue[host_crc32].append(item)
+            if len(queue[host_crc32]) > max_host_items:
+                max_host_items = len(queue[host_crc32])
+            count += 1
+            to_remove.append(data)
+            if count >= max_n_requests:
+                break
+        return start, count, max_host_items
 
     def get_next_requests(self, max_n_requests, partition_id, **kwargs):
         """
@@ -82,39 +137,12 @@ class RedisQueue(Queue):
         last_start = -1
         while count < max_n_requests and last_start < start:
             last_start = start
-            timeout = _get_retry_timeouts()
-            while True:
-                try:
-                    connection = StrictRedis(connection_pool=self._pool)
-                    for data in connection.zrevrange(partition_id, start=start, end=max_n_requests + start):
-                        start += 1
-                        item = unpackb(data, use_list=False)
-                        timestamp, fprint, host_crc32, _, score = item
-                        if timestamp > now_ts:
-                            continue
-                        if host_crc32 not in queue:
-                            queue[host_crc32] = []
-                        if max_requests_per_host is not None and len(queue[host_crc32]) > max_requests_per_host:
-                            continue
-                        queue[host_crc32].append(item)
-                        if len(queue[host_crc32]) > max_host_items:
-                            max_host_items = len(queue[host_crc32])
-                        count += 1
-                        to_remove.append(data)
-
-                        if count >= max_n_requests:
-                            break
-                    break
-                except ConnectionError as e:
-                    self._logger.exception("Connection to Redis failed when attempting to get more requests")
-                    pause = timeout.next()
-                    if pause == None:
-                        break
-                    sleep(pause)
-                except ResponseError as e:
-                    self._logger.exception("Writing to Redis failed when attempting to get more requests")
-                    break
-
+            start, count, max_host_items = self._redis_operation(
+                "get more requests",
+                lambda connection: self._get_items(
+                    connection, partition_id, start, now_ts, queue, max_requests_per_host, max_host_items, count,
+                    max_n_requests, to_remove)
+            )
         self._logger.debug("Finished: hosts {}, requests {}".format(len(queue.keys()), count))
 
         results = []
@@ -129,21 +157,9 @@ class RedisQueue(Queue):
                 request.meta[FIELD_SCORE] = score
                 results.append(request)
         if len(to_remove) > 0:
-            timeout = _get_retry_timeouts()
-            while True:
-                try:
-                    connection = StrictRedis(connection_pool=self._pool)
-                    connection.zrem(partition_id, *to_remove)
-                    break
-                except ConnectionError as e:
-                    self._logger.exception("Connection to Redis failed when attempting to remove scheduled items")
-                    pause = timeout.next()
-                    if pause == None:
-                        break
-                    sleep(pause)
-                except ResponseError as e:
-                    self._logger.exception("Writing to Redis failed when attempting to remove scheduled items")
-                    break
+            self._redis_operation(
+                "remove scheduled items", lambda connection: connection.zrem(partition_id, *to_remove)
+            )
         return results
 
     def schedule(self, batch):
@@ -187,44 +203,17 @@ class RedisQueue(Queue):
             item = (timestamp, fingerprint, host_crc32, self._encoder.encode_request(request), score)
             interval_start = self.get_interval_start(score)
             data.setdefault(partition_id, []).extend([int(interval_start * 100), packb(item)])
-        timeout = _get_retry_timeouts()
-        while True:
-            try:
-                connection = StrictRedis(connection_pool=self._pool)
-                pipe = connection.pipeline()
-                for key, items in data.items():
-                    connection.zadd(key, *items)
-                pipe.execute()
-                break
-            except ConnectionError as e:
-                self._logger.exception("Connection to Redis failed when attempting to schedule items")
-                pause = timeout.next()
-                if pause == None:
-                    break
-                sleep(pause)
-            except ResponseError as e:
-                self._logger.exception("Writing to Redis failed when attempting to schedule items")
-                break
+            self._redis_pipeline(
+                "schedule items",
+                lambda pipe, data: map(lambda (key, items): pipe.zadd(key, *items), data.items()), data
+            )
 
     def count(self):
-        timeout = _get_retry_timeouts()
-        while True:
-            try:
-                count = 0
-                connection = StrictRedis(connection_pool=self._pool)
-                for partition_id in self._partitions:
-                    count += connection.zcard(partition_id)
-                break
-            except ConnectionError as e:
-                self._logger.exception("Connection to Redis failed when attempting to count items")
-                pause = timeout.next()
-                if pause == None:
-                    break
-                sleep(pause)
-            except ResponseError as e:
-                self._logger.exception("Writing to Redis failed when attempting to count items")
-                break
-        return count
+        return self._redis_operation(
+            "count items",
+            lambda connection, partitions: sum(map(lambda partition_id: connection.zcard(partition_id), partitions)),
+            self._partitions
+        )
 
     def frontier_start(self):
         pass
@@ -233,7 +222,7 @@ class RedisQueue(Queue):
         pass
 
 
-class RedisState(States):
+class RedisState(States, RedisOperations):
     def __init__(self, pool, cache_size_limit):
         self._pool = pool
         self._cache = {}
@@ -260,24 +249,11 @@ class RedisState(States):
     def flush(self, force_clear):
         if len(self._cache) > self._cache_size_limit:
             force_clear = True
-        timeout = _get_retry_timeouts()
-        while True:
-            try:
-                connection = StrictRedis(connection_pool=self._pool)
-                pipe = connection.pipeline()
-                for fprint, state in self._cache.items():
-                    pipe.hmset(fprint, {FIELD_STATE: state})
-                pipe.execute()
-                break
-            except ConnectionError as e:
-                self._logger.exception("Connection to Redis failed when attempting to flush cache")
-                pause = timeout.next()
-                if pause == None:
-                    break
-                sleep(pause)
-            except ResponseError as e:
-                self._logger.exception("Writing to Redis failed when attempting to flush cache")
-                break
+        self._redis_pipeline(
+            "flush cache",
+            lambda pipe, cache: map(lambda (fprint, state): pipe.hmset(fprint, {FIELD_STATE: state}), cache.items()),
+            self._cache
+        )
         if force_clear:
             self._logger.debug("Cache has %d requests, clearing" % len(self._cache))
             self._cache.clear()
@@ -286,30 +262,16 @@ class RedisState(States):
         to_fetch = [f for f in fingerprints if f not in self._cache]
         self._logger.debug("cache size %s" % len(self._cache))
         self._logger.debug("to fetch %d from %d" % (len(to_fetch), len(fingerprints)))
-        timeout = _get_retry_timeouts()
-        while True:
-            try:
-                connection = StrictRedis(connection_pool=self._pool)
-                pipe = connection.pipeline()
-                for key in to_fetch:
-                    pipe.hgetall(key)
-                responses = pipe.execute()
-                for index, key in enumerate(to_fetch):
-                    response = responses[index]
-                    if len(response) > 0 and FIELD_STATE in response:
-                        self._cache[key] = response[FIELD_STATE]
-                    else:
-                        self._cache[key] = self.NOT_CRAWLED
-                break
-            except ConnectionError as e:
-                self._logger.exception("Connection to Redis failed when attempting to fetch fingerprints")
-                pause = timeout.next()
-                if pause == None:
-                    break
-                sleep(pause)
-            except ResponseError as e:
-                self._logger.exception("Writing to Redis failed when attempting to fetch fingerprints")
-                break
+        responses = self._redis_pipeline(
+            "fetch fingerprints",
+            lambda pipe, to_fetch: map(lambda key: pipe.hgetall(key), to_fetch), to_fetch
+        )
+        for index, key in enumerate(to_fetch):
+            response = responses[index]
+            if len(response) > 0 and FIELD_STATE in response:
+                self._cache[key] = response[FIELD_STATE]
+            else:
+                self._cache[key] = self.NOT_CRAWLED
 
     def frontier_start(self):
         pass
@@ -318,135 +280,77 @@ class RedisState(States):
         self.flush(False)
 
 
-class RedisMetadata(Metadata):
+class RedisMetadata(Metadata, RedisOperations):
     def __init__(self, pool, delete_all_keys):
         self._pool = pool
         self._logger = logging.getLogger("redis_backend.metadata")
         if delete_all_keys:
-            timeout = _get_retry_timeouts()
-            while True:
-                try:
-                    connection = StrictRedis(connection_pool=self._pool)
-                    connection.flushdb()
-                    break
-                except ConnectionError as e:
-                    self._logger.exception("Connection to Redis failed when attempting to flush database")
-                    pause = timeout.next()
-                    if pause == None:
-                        break
-                    sleep(pause)
-                except ResponseError as e:
-                    self._logger.exception("Writing to Redis failed when attempting to flush database")
-                    break
+            self._redis_operation("flush database", lambda connection: connection.flushdb())
 
     @classmethod
     def timestamp(cls):
         return str(datetime.utcnow().replace(microsecond=0))
 
+    def _create_seed(self, seed):
+        return {
+            FIELD_URL: seed.url,
+            FIELD_DEPTH: 0,
+            FIELD_CREATED_AT: self.timestamp(),
+            FIELD_DOMAIN_FINGERPRINT: seed.meta[FIELD_DOMAIN][FIELD_FINGERPRINT]
+        }
+
     def add_seeds(self, seeds):
-        timeout = _get_retry_timeouts()
-        while True:
-            try:
-                connection = StrictRedis(connection_pool=self._pool)
-                pipe = connection.pipeline()
-                for seed in seeds:
-                    pipe.hmset(
-                        seed.meta[FIELD_FINGERPRINT],
-                        {
-                            FIELD_URL: seed.url,
-                            FIELD_DEPTH: 0,
-                            FIELD_CREATED_AT: self.timestamp(),
-                            FIELD_DOMAIN_FINGERPRINT: seed.meta[FIELD_DOMAIN][FIELD_FINGERPRINT]
-                        }
-                    )
-                pipe.execute()
-                break
-            except ConnectionError as e:
-                self._logger.exception("Connection to Redis failed when attempting to add seeds")
-                pause = timeout.next()
-                if pause == None:
-                    break
-                sleep(pause)
-            except ResponseError as e:
-                self._logger.exception("Writing to Redis failed when attempting to add seeds")
-                break
+        self._redis_pipeline(
+            "add seeds",
+            lambda pipe, seeds: map(
+                lambda seed: pipe.hmset(seed.meta[FIELD_FINGERPRINT], self._create_seed(seed)), seeds), seeds
+        )
+
+    def _create_request_error(self, page, error):
+        return {
+            FIELD_URL: page.url,
+            FIELD_CREATED_AT: self.timestamp(),
+            FIELD_ERROR: error,
+            FIELD_DOMAIN_FINGERPRINT: page.meta[FIELD_DOMAIN][FIELD_FINGERPRINT]
+        }
 
     def request_error(self, page, error):
-        timeout = _get_retry_timeouts()
-        while True:
-            try:
-                connection = StrictRedis(connection_pool=self._pool)
-                connection.hmset(
-                    page.meta[FIELD_FINGERPRINT],
-                    {
-                        FIELD_URL: page.url,
-                        FIELD_CREATED_AT: self.timestamp(),
-                        FIELD_ERROR: error,
-                        FIELD_DOMAIN_FINGERPRINT: page.meta[FIELD_DOMAIN][FIELD_FINGERPRINT]
-                    }
-                )
-                break
-            except ConnectionError as e:
-                self._logger.exception("Connection to Redis failed when attempting to write request error")
-                pause = timeout.next()
-                if pause == None:
-                    break
-                sleep(pause)
-            except ResponseError as e:
-                self._logger.exception("Writing to Redis failed when attempting to write request error")
-                break
+        self._redis_operation(
+            "write requests error",
+            lambda connection, page, error: connection.hmset(page.meta[FIELD_FINGERPRINT], self._create_request_error(page, error)), page, error
+        )
+
+    def _create_crawl_info(self, response):
+        return {
+            FIELD_STATUS_CODE: response.status_code
+        }
 
     def page_crawled(self, response):
-        timeout = _get_retry_timeouts()
-        while True:
-            try:
-                connection = StrictRedis(connection_pool=self._pool)
-                connection.hmset(
-                    response.meta[FIELD_FINGERPRINT],
-                    {
-                        FIELD_STATUS_CODE: response.status_code
-                    }
-                )
-                break
-            except ConnectionError as e:
-                self._logger.exception("Connection to Redis failed when attempting to write page crawled status")
-                pause = timeout.next()
-                if pause == None:
-                    break
-                sleep(pause)
-            except ResponseError as e:
-                self._logger.exception("Writing to Redis failed when attempting to write page crawled status")
-                break
+        self._redis_operation(
+            "write page crawled status",
+            lambda connection, response: connection.hmset(response.meta[FIELD_FINGERPRINT], self._create_crawl_info(response)), response
+        )
+
+    def _create_link_extracted(self, link):
+        return {
+            FIELD_URL: link.url,
+            FIELD_CREATED_AT: self.timestamp(),
+            FIELD_DOMAIN_FINGERPRINT: link.meta[FIELD_DOMAIN][FIELD_FINGERPRINT]
+        }
 
     def links_extracted(self, _, links):
-        timeout = _get_retry_timeouts()
-        while True:
-            try:
-                links_processed = set()
-                connection = StrictRedis(connection_pool=self._pool)
-                for link in links:
-                    link_fingerprint = link.meta[FIELD_FINGERPRINT]
-                    if link_fingerprint in links_processed:
-                        continue
-                    connection.hmset(
-                        link_fingerprint,
-                        {
-                            FIELD_URL: link.url,
-                            FIELD_CREATED_AT: self.timestamp(),
-                            FIELD_DOMAIN_FINGERPRINT: link.meta[FIELD_DOMAIN][FIELD_FINGERPRINT]
-                        }
-                    )
-                    links_processed.add(link_fingerprint)
-                break
-            except ConnectionError as e:
-                self._logger.exception("Connection to Redis failed when attempting to write links extracted")
-                pause = timeout.next()
-                if pause == None:
-                    break
-                sleep(pause)
-            except ResponseError as e:
-                self._logger.exception("Writing to Redis failed when attempting to write links extracted")
-                break
+        links_deduped = {}
+        for link in links:
+            link_fingerprint = link.meta[FIELD_FINGERPRINT]
+            if link_fingerprint in links_deduped:
+                continue
+            links_deduped[link_fingerprint] = link
+        self._redis_pipeline(
+            "write links extracted",
+            lambda pipe, links: map(
+                lambda (fingerprint, link): pipe.hmset(fingerprint, self._create_link_extracted(link)), links.items()),
+            links_deduped
+        )
 
     def frontier_start(self):
         pass
