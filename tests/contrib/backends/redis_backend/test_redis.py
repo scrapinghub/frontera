@@ -9,6 +9,10 @@ from redis import ConnectionPool, StrictRedis
 from time import time
 from unittest import main, TestCase
 
+from logging import basicConfig, INFO
+
+basicConfig(level=INFO)
+
 
 class Request:
     def __init__(self, fingerprint, crawl_at, url, domain=None):
@@ -393,6 +397,7 @@ class RedisMetadataTest(TestCase):
         self.assertEqual(b'https://www.hellan.me/', connection.hmget("l3", FIELD_URL)[0])
         self.assertEqual(b'd_l3', connection.hmget('l3', FIELD_DOMAIN_FINGERPRINT)[0])
 
+
 class RedisBackendTest(TestCase):
     @staticmethod
     def setup_subject(partitions):
@@ -416,6 +421,7 @@ class RedisBackendTest(TestCase):
         subject.queue.schedule(batch)
         requests = subject.get_next_requests(max_next_requests=10, partitions=['0', '1'])
         self.assertEqual(3, len(requests))
+
 
 if __name__ == '__main__':
     main()
