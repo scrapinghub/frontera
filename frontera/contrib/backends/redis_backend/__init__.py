@@ -72,13 +72,10 @@ class RedisOperation(object):
 
 class RedisPipeline(object):
     def __init__(self, pool):
-        self._connection = StrictRedis(connection_pool=pool)
-        self._pipeline = None
+        self._pipeline = self._connection.pipeline()
         self._logger = logging.getLogger("redis_backend.RedisPipeline")
 
     def __getattr__(self, _api):
-        if not self._pipeline:
-            self._pipeline = self._connection.pipeline()
         return getattr(self._pipeline, _api)
 
     def execute(self):
@@ -99,7 +96,6 @@ class RedisPipeline(object):
                 break
 
 
-
 class RedisQueue(Queue):
     MAX_SCORE = 1.0
     MIN_SCORE = 0.0
@@ -112,16 +108,18 @@ class RedisQueue(Queue):
         decoder_cls = load_object(codec_path + ".Decoder")
         self._encoder = encoder_cls(manager.request_model)
         self._decoder = decoder_cls(manager.request_model, manager.response_model)
-        self._pool = pool
+        self._redis = RedisOperation(pool)
+        self._redis_pipeline = RedisPipeline(pool)
         self._partitions = [i for i in range(0, partitions)]
         self._partitioner = Crc32NamePartitioner(self._partitions)
         self._logger = logging.getLogger("redis_backend.queue")
 
         if delete_all_keys:
-            RedisOperation(self._pool).flushdb()
+            self._redis.flushdb()
 
-    def _get_items(self, connection, partition_id, start, now_ts, queue, max_requests_per_host, max_host_items, count, max_n_requests, to_remove):
-        for data in connection.zrevrange(partition_id, start=start, end=max_n_requests + start):
+    def _get_items(self, partition_id, start, now_ts, queue, max_requests_per_host, max_host_items, count,
+                   max_n_requests, to_remove):
+        for data in self._redis.zrevrange(partition_id, start=start, end=max_n_requests + start):
             start += 1
             item = unpackb(data, use_list=False)
             timestamp, fprint, host_crc32, _, score = item
@@ -155,12 +153,11 @@ class RedisQueue(Queue):
         to_remove = []
         start = 0
         last_start = -1
-        connection = RedisOperation(self._pool)
         while count < max_n_requests and last_start < start:
             last_start = start
             start, count, max_host_items = self._get_items(
-                    connection, partition_id, start, now_ts, queue, max_requests_per_host, max_host_items, count,
-                    max_n_requests, to_remove)
+                partition_id, start, now_ts, queue, max_requests_per_host, max_host_items, count,
+                max_n_requests, to_remove)
         self._logger.debug("Finished: hosts {}, requests {}".format(len(queue.keys()), count))
 
         results = []
@@ -175,7 +172,7 @@ class RedisQueue(Queue):
                 request.meta[FIELD_SCORE] = score
                 results.append(request)
         if len(to_remove) > 0:
-            connection.zrem(partition_id, *to_remove)
+            self._redis.zrem(partition_id, *to_remove)
         return results
 
     def schedule(self, batch):
@@ -219,14 +216,12 @@ class RedisQueue(Queue):
             item = (timestamp, fingerprint, host_crc32, self._encoder.encode_request(request), score)
             interval_start = self.get_interval_start(score)
             data.setdefault(partition_id, []).extend([int(interval_start * 100), packb(item)])
-            pipeline = RedisPipeline(self._pool)
             for (key, items) in data.items():
-                pipeline.zadd(key, *items), data.items()
-            pipeline.execute()
+                self._redis_pipeline.zadd(key, *items), data.items()
+            self._redis_pipeline.execute()
 
     def count(self):
-        connection = RedisOperation(self._pool)
-        return sum([connection.zcard(partition_id) for partition_id in self._partitions])
+        return sum([self._redis.zcard(partition_id) for partition_id in self._partitions])
 
     def frontier_start(self):
         pass
@@ -237,7 +232,8 @@ class RedisQueue(Queue):
 
 class RedisState(States):
     def __init__(self, pool, cache_size_limit):
-        self._pool = pool
+        self._redis = RedisOperation(pool)
+        self._redis_pipeline = RedisPipeline(pool)
         self._cache = {}
         self._cache_size_limit = cache_size_limit
         self._logger = logging.getLogger("redis_backend.states")
@@ -262,9 +258,8 @@ class RedisState(States):
     def flush(self, force_clear):
         if len(self._cache) > self._cache_size_limit:
             force_clear = True
-        pipeline = RedisPipeline(self._pool)
-        [pipeline.hmset(fprint, {FIELD_STATE: state}) for (fprint, state) in self._cache.items()]
-        pipeline.execute()
+        [self._redis_pipeline.hmset(fprint, {FIELD_STATE: state}) for (fprint, state) in self._cache.items()]
+        self._redis_pipeline.execute()
         if force_clear:
             self._logger.debug("Cache has %d requests, clearing" % len(self._cache))
             self._cache.clear()
@@ -273,9 +268,8 @@ class RedisState(States):
         to_fetch = [f for f in fingerprints if f not in self._cache]
         self._logger.debug("cache size %s" % len(self._cache))
         self._logger.debug("to fetch %d from %d" % (len(to_fetch), len(fingerprints)))
-        pipeline = RedisPipeline(self._pool)
-        [pipeline.hgetall(key) for key in to_fetch]
-        responses = pipeline.execute()
+        [self._redis_pipeline.hgetall(key) for key in to_fetch]
+        responses = self._redis_pipeline.execute()
         for index, key in enumerate(to_fetch):
             response = responses[index]
             if len(response) > 0 and FIELD_STATE in response:
@@ -292,10 +286,11 @@ class RedisState(States):
 
 class RedisMetadata(Metadata):
     def __init__(self, pool, delete_all_keys):
-        self._pool = pool
+        self._redis = RedisOperation(pool)
+        self._redis_pipeline = RedisPipeline(pool)
         self._logger = logging.getLogger("redis_backend.metadata")
         if delete_all_keys:
-            RedisOperation(self._pool).flushdb()
+            self._redis.flushdb()
 
     @classmethod
     def timestamp(cls):
@@ -310,9 +305,8 @@ class RedisMetadata(Metadata):
         }
 
     def add_seeds(self, seeds):
-        pipeline = RedisPipeline(self._pool)
-        [pipeline.hmset(seed.meta[FIELD_FINGERPRINT], self._create_seed(seed)) for seed in seeds]
-        pipeline.execute()
+        [self._redis_pipeline.hmset(seed.meta[FIELD_FINGERPRINT], self._create_seed(seed)) for seed in seeds]
+        self._redis_pipeline.execute()
 
     def _create_request_error(self, page, error):
         return {
@@ -323,7 +317,7 @@ class RedisMetadata(Metadata):
         }
 
     def request_error(self, page, error):
-        RedisOperation(self._pool).hmset(page.meta[FIELD_FINGERPRINT], self._create_request_error(page, error))
+        self._redis.hmset(page.meta[FIELD_FINGERPRINT], self._create_request_error(page, error))
 
     def _create_crawl_info(self, response):
         return {
@@ -331,7 +325,7 @@ class RedisMetadata(Metadata):
         }
 
     def page_crawled(self, response):
-        RedisOperation(self._pool).hmset(response.meta[FIELD_FINGERPRINT], self._create_crawl_info(response))
+        self._redis.hmset(response.meta[FIELD_FINGERPRINT], self._create_crawl_info(response))
 
     def _create_link_extracted(self, link):
         return {
@@ -347,9 +341,9 @@ class RedisMetadata(Metadata):
             if link_fingerprint in links_deduped:
                 continue
             links_deduped[link_fingerprint] = link
-        pipeline = RedisPipeline(self._pool)
-        [pipeline.hmset(fingerprint, self._create_link_extracted(link)) for (fingerprint, link) in links_deduped.items()]
-        pipeline.execute()
+        [self._redis_pipeline.hmset(fingerprint, self._create_link_extracted(link)) for (fingerprint, link) in
+         links_deduped.items()]
+        self._redis_pipeline.execute()
 
     def frontier_start(self):
         pass
