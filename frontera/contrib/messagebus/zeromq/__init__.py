@@ -11,6 +11,7 @@ from frontera.core.messagebus import BaseMessageBus, BaseSpiderLogStream, BaseSt
     BaseSpiderFeedStream, BaseScoringLogStream
 from frontera.contrib.backends.partitioners import FingerprintPartitioner, Crc32NamePartitioner
 from frontera.contrib.messagebus.zeromq.socket_config import SocketConfig
+from frontera.utils.misc import load_object
 from six.moves import range
 
 
@@ -102,9 +103,9 @@ class Producer(object):
 
 
 class SpiderLogProducer(Producer):
-    def __init__(self, context, location, partitions):
+    def __init__(self, context, location, partitioner):
         super(SpiderLogProducer, self).__init__(context, location, b'sl')
-        self.partitioner = FingerprintPartitioner(partitions)
+        self.partitioner = partitioner
 
 
 class SpiderLogStream(BaseSpiderLogStream):
@@ -113,10 +114,10 @@ class SpiderLogStream(BaseSpiderLogStream):
         self.sw_in_location = messagebus.socket_config.sw_in()
         self.db_in_location = messagebus.socket_config.db_in()
         self.out_location = messagebus.socket_config.spiders_out()
-        self.partitions = messagebus.spider_log_partitions
+        self.partitioner = messagebus.spider_log_partitioner
 
     def producer(self):
-        return SpiderLogProducer(self.context, self.out_location, self.partitions)
+        return SpiderLogProducer(self.context, self.out_location, self.partitioner)
 
     def consumer(self, partition_id, type):
         location = self.sw_in_location if type == b'sw' else self.db_in_location
@@ -159,10 +160,9 @@ class ScoringLogStream(BaseScoringLogStream):
 
 
 class SpiderFeedProducer(Producer):
-    def __init__(self, context, location, partitions, hwm, hostname_partitioning):
+    def __init__(self, context, location, partitions, hwm, partitioner):
         super(SpiderFeedProducer, self).__init__(context, location, b'sf')
-        self.partitioner = Crc32NamePartitioner(partitions) if hostname_partitioning else \
-            FingerprintPartitioner(partitions)
+        self.partitioner = partitioner
         self.sender.set(zmq.SNDHWM, hwm)
 
 
@@ -172,17 +172,17 @@ class SpiderFeedStream(BaseSpiderFeedStream):
         self.in_location = messagebus.socket_config.db_out()
         self.out_location = messagebus.socket_config.spiders_in()
         self.partitions = messagebus.spider_feed_partitions
+        self.partitioner = messagebus.spider_feed_partitioner
         self.ready_partitions = set(self.partitions)
         self.consumer_hwm = messagebus.spider_feed_rcvhwm
         self.producer_hwm = messagebus.spider_feed_sndhwm
-        self.hostname_partitioning = messagebus.hostname_partitioning
 
     def consumer(self, partition_id):
         return Consumer(self.context, self.out_location, partition_id, b'sf', seq_warnings=True, hwm=self.consumer_hwm)
 
     def producer(self):
         return SpiderFeedProducer(self.context, self.in_location, self.partitions,
-                                  self.producer_hwm, self.hostname_partitioning)
+                                  self.producer_hwm, self.partitioner)
 
     def available_partitions(self):
         return self.ready_partitions
@@ -205,8 +205,15 @@ class MessageBus(BaseMessageBus):
         self.context = Context()
         self.socket_config = SocketConfig(settings.get('ZMQ_ADDRESS'),
                                           settings.get('ZMQ_BASE_PORT'))
+
         self.spider_log_partitions = [i for i in range(settings.get('SPIDER_LOG_PARTITIONS'))]
+        spider_log_partitioner_cls = load_object(settings.get('SPIDER_LOG_PARTITIONER'))
+        self.spider_log_partitioner = spider_log_partitioner_cls(self.spider_log_partitions)
+
         self.spider_feed_partitions = [i for i in range(settings.get('SPIDER_FEED_PARTITIONS'))]
+        spider_feed_partitioner_cls = load_object(settings.get('SPIDER_FEED_PARTITIONER'))
+        self.spider_feed_partitioner = spider_feed_partitioner_cls(self.spider_feed_partitions)
+
         self.spider_feed_sndhwm = int(settings.get('MAX_NEXT_REQUESTS') * len(self.spider_feed_partitions) * 1.2)
         self.spider_feed_rcvhwm = int(settings.get('MAX_NEXT_REQUESTS') * 2.0)
         self.hostname_partitioning = settings.get('QUEUE_HOSTNAME_PARTITIONING')
