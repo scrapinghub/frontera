@@ -18,7 +18,7 @@ class MessageBusTester(object):
     def __init__(self, cls, settings=Settings()):
         settings.set('SPIDER_FEED_PARTITIONS', 1)
         settings.set('SPIDER_LOG_PARTITIONS', 1)
-        settings.set('QUEUE_HOSTNAME_PARTITIONING', True)
+        settings.set('SPIDER_FEED_PARTITIONER', 'frontera.contrib.backends.partitioners.Crc32NamePartitioner')
         self.messagebus = cls(settings)
         spiderlog = self.messagebus.spider_log()
 

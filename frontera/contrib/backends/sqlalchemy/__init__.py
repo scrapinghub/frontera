@@ -37,6 +37,11 @@ class SQLAlchemyBackend(CommonBackend):
                 session.execute(table.delete())
             session.commit()
             session.close()
+
+        partitions = list(range(settings.get('SPIDER_FEED_PARTITIONS')))
+        partitioner_cls = load_object(settings.get('SPIDER_FEED_PARTITIONER'))
+        self.partitioner = partitioner_cls(partitions)
+
         self._metadata = Metadata(self.session_cls, self.models['MetadataModel'],
                                   settings.get('SQLALCHEMYBACKEND_CACHE_SIZE'))
         self._states = States(self.session_cls, self.models['StateModel'],
@@ -48,7 +53,7 @@ class SQLAlchemyBackend(CommonBackend):
         self.engine.dispose()
 
     def _create_queue(self, settings):
-        return Queue(self.session_cls, self.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'))
+        return Queue(self.session_cls, self.models['QueueModel'], self.partitioner)
 
     @property
     def queue(self):
@@ -67,7 +72,7 @@ class FIFOBackend(SQLAlchemyBackend):
     component_name = 'SQLAlchemy FIFO Backend'
 
     def _create_queue(self, settings):
-        return Queue(self.session_cls, self.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'),
+        return Queue(self.session_cls, self.models['QueueModel'], self.partitioner,
                      ordering='created')
 
 
@@ -75,7 +80,7 @@ class LIFOBackend(SQLAlchemyBackend):
     component_name = 'SQLAlchemy LIFO Backend'
 
     def _create_queue(self, settings):
-        return Queue(self.session_cls, self.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'),
+        return Queue(self.session_cls, self.models['QueueModel'], self.partitioner,
                      ordering='created_desc')
 
 
@@ -83,7 +88,7 @@ class DFSBackend(SQLAlchemyBackend):
     component_name = 'SQLAlchemy DFS Backend'
 
     def _create_queue(self, settings):
-        return Queue(self.session_cls, self.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'))
+        return Queue(self.session_cls, self.models['QueueModel'], self.partitioner)
 
     def _get_score(self, obj):
         return -obj.meta[b'depth']
@@ -93,7 +98,7 @@ class BFSBackend(SQLAlchemyBackend):
     component_name = 'SQLAlchemy BFS Backend'
 
     def _create_queue(self, settings):
-        return Queue(self.session_cls, self.models['QueueModel'], settings.get('SPIDER_FEED_PARTITIONS'))
+        return Queue(self.session_cls, self.models['QueueModel'], self.partitioner)
 
     def _get_score(self, obj):
         return obj.meta[b'depth']
@@ -170,7 +175,7 @@ class Distributed(DistributedBackend):
 
         b._metadata = Metadata(b.session_cls, metadata_m,
                                settings.get('SQLALCHEMYBACKEND_CACHE_SIZE'))
-        b._queue = Queue(b.session_cls, queue_m, settings.get('SPIDER_FEED_PARTITIONS'))
+        b._queue = Queue(b.session_cls, queue_m, b.partitioner)
         return b
 
     @property

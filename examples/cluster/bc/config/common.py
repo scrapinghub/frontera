@@ -14,7 +14,7 @@ MIDDLEWARES.extend([
 #--------------------------------------------------------
 # Crawl frontier backend
 #--------------------------------------------------------
-QUEUE_HOSTNAME_PARTITIONING = True
+SPIDER_FEED_PARTITIONER = 'frontera.contrib.backends.partitioners.Crc32NamePartitioner'
 URL_FINGERPRINT_FUNCTION='frontera.utils.fingerprint.hostname_local_fingerprint'
 
 #MESSAGE_BUS='frontera.contrib.messagebus.kafkabus.MessageBus'

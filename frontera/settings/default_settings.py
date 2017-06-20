@@ -35,10 +35,13 @@ QUEUE_HOSTNAME_PARTITIONING = False
 REQUEST_MODEL = 'frontera.core.models.Request'
 RESPONSE_MODEL = 'frontera.core.models.Response'
 
+
 SCORING_PARTITION_ID = 0
 SCORING_LOG_CONSUMER_BATCH_SIZE = 512
 SPIDER_LOG_CONSUMER_BATCH_SIZE = 512
+SPIDER_LOG_PARTITIONER = 'frontera.contrib.backends.partitioners.FingerprintPartitioner'
 SPIDER_LOG_PARTITIONS = 1
+SPIDER_FEED_PARTITIONER = 'frontera.contrib.backends.partitioners.FingerprintPartitioner'
 SPIDER_FEED_PARTITIONS = 1
 SPIDER_PARTITION_ID = 0
 SQLALCHEMYBACKEND_CACHE_SIZE = 10000

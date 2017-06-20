@@ -5,7 +5,6 @@ from datetime import datetime
 from time import time, sleep
 
 from cachetools import LRUCache
-from frontera.contrib.backends.partitioners import Crc32NamePartitioner
 from frontera.contrib.backends.memory import MemoryStates
 from frontera.contrib.backends.sqlalchemy.models import DeclarativeBase
 from frontera.core.components import Metadata as BaseMetadata, Queue as BaseQueue
@@ -145,12 +144,11 @@ class States(MemoryStates):
 
 
 class Queue(BaseQueue):
-    def __init__(self, session_cls, queue_cls, partitions, ordering='default'):
+    def __init__(self, session_cls, queue_cls, partitioner, ordering='default'):
         self.session = session_cls()
         self.queue_model = queue_cls
         self.logger = logging.getLogger("sqlalchemy.queue")
-        self.partitions = [i for i in range(0, partitions)]
-        self.partitioner = Crc32NamePartitioner(self.partitions)
+        self.partitioner = partitioner
         self.ordering = ordering
 
     def frontier_stop(self):
@@ -193,14 +191,14 @@ class Queue(BaseQueue):
         to_save = []
         for fprint, score, request, schedule in batch:
             if schedule:
-                _, hostname, _, _, _, _ = parse_domain_from_url_fast(request.url)
-                if not hostname:
-                    self.logger.error("Can't get hostname for URL %s, fingerprint %s" % (request.url, fprint))
-                    partition_id = self.partitions[0]
+                key = self.partitioner.get_key(request)
+                if key is None:
+                    self.logger.error("Can't get partition key for URL %s, fingerprint %s" % (request.url, fprint))
+                    partition_id = self.partitioner.partitions[0]
                     host_crc32 = 0
                 else:
-                    partition_id = self.partitioner.partition(hostname, self.partitions)
-                    host_crc32 = get_crc32(hostname)
+                    partition_id = self.partitioner.partition(key)
+                    host_crc32 = get_crc32(key)
                 q = self.queue_model(fingerprint=to_native_str(fprint), score=score, url=request.url, meta=request.meta,
                                      headers=request.headers, cookies=request.cookies, method=to_native_str(request.method),
                                      partition_id=partition_id, host_crc32=host_crc32, created_at=time()*1E+6)

@@ -282,4 +282,13 @@ class Partitioner(object):
         """
         raise NotImplementedError('partition function has to be implemented')
 
+    @staticmethod
+    def get_key(request):
+        """
+        Takes a :class:`Request <frontera.core.models.Request>` and return an
+        extracted value used by the partitioner.
+        """
+        raise NotImplementedError('partition function has to be implemented')
 
+    def __call__(self, key, all_partitions, available):
+        return self.partition(key, all_partitions)

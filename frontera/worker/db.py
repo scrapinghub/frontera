@@ -11,7 +11,6 @@ from os.path import exists
 from twisted.internet import reactor, task
 from frontera.core.components import DistributedBackend
 from frontera.core.manager import FrontierManager
-from frontera.utils.url import parse_domain_from_url_fast
 from frontera.logger.handlers import CONSOLE
 
 from frontera.settings import Settings
@@ -88,7 +87,11 @@ class DBWorker(object):
             self.strategy_disabled = True
         self.spider_log_consumer_batch_size = settings.get('SPIDER_LOG_CONSUMER_BATCH_SIZE')
         self.scoring_log_consumer_batch_size = settings.get('SCORING_LOG_CONSUMER_BATCH_SIZE')
-        self.spider_feed_partitioning = 'fingerprint' if not settings.get('QUEUE_HOSTNAME_PARTITIONING') else 'hostname'
+
+        if settings.get('QUEUE_HOSTNAME_PARTITIONING'):
+            self.logger.warning('QUEUE_HOSTNAME_PARTITIONING is deprecated, use SPIDER_FEED_PARTITIONER instead.')
+            settings.set('SPIDER_FEED_PARTITIONER', 'frontera.contrib.backends.partitioners.Crc32NamePartitioner')
+        self.partitioner_cls = load_object(settings.get('SPIDER_FEED_PARTITIONER'))
         self.max_next_requests = settings.MAX_NEXT_REQUESTS
         self.slot = Slot(self.new_batch, self.consume_incoming, self.consume_scoring, no_batches,
                          self.strategy_disabled, settings.get('NEW_BATCH_DELAY'), no_incoming)
@@ -230,32 +233,12 @@ class DBWorker(object):
         self.slot.schedule()
 
     def new_batch(self, *args, **kwargs):
-        def get_hostname(request):
-            try:
-                netloc, name, scheme, sld, tld, subdomain = parse_domain_from_url_fast(request.url)
-            except Exception as e:
-                logger.error("URL parsing error %s, fingerprint %s, url %s" % (e, request.meta[b'fingerprint'],
-                                                                               request.url))
-                return None
-            else:
-                return name.encode('utf-8', 'ignore')
-
-        def get_fingerprint(request):
-            return request.meta[b'fingerprint']
-
         partitions = self.spider_feed.available_partitions()
         logger.info("Getting new batches for partitions %s" % str(",").join(map(str, partitions)))
         if not partitions:
             return 0
 
         count = 0
-        if self.spider_feed_partitioning == 'hostname':
-            get_key = get_hostname
-        elif self.spider_feed_partitioning == 'fingerprint':
-            get_key = get_fingerprint
-        else:
-            raise Exception("Unexpected value in self.spider_feed_partitioning")
-
         for request in self._backend.get_next_requests(self.max_next_requests, partitions=partitions):
             try:
                 request.meta[b'jid'] = self.job_id
@@ -267,7 +250,7 @@ class DBWorker(object):
                 continue
             finally:
                 count += 1
-            self.spider_feed_producer.send(get_key(request), eo)
+            self.spider_feed_producer.send(self.partitioner_cls.get_key(request), eo)
 
         self.stats['pushed_since_start'] += count
         self.stats['last_batch_size'] = count

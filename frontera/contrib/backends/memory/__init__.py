@@ -7,8 +7,8 @@ from frontera.contrib.backends import CommonBackend
 from frontera.core.components import Metadata, Queue, States
 from frontera.core import OverusedBuffer
 from frontera.utils.heap import Heap
-from frontera.contrib.backends.partitioners import Crc32NamePartitioner
 from frontera.utils.url import parse_domain_from_url_fast
+from frontera.utils.misc import load_object
 import six
 from six.moves import map
 from six.moves import range
@@ -52,12 +52,11 @@ class MemoryMetadata(Metadata):
 
 
 class MemoryQueue(Queue):
-    def __init__(self, partitions):
-        self.partitions = [i for i in range(0, partitions)]
-        self.partitioner = Crc32NamePartitioner(self.partitions)
+    def __init__(self, partitioner):
+        self.partitioner = partitioner
         self.logger = logging.getLogger("memory.queue")
         self.heap = {}
-        for partition in self.partitions:
+        for partition in self.partitioner.partitions:
             self.heap[partition] = Heap(self._compare_pages)
 
     def count(self):
@@ -70,12 +69,8 @@ class MemoryQueue(Queue):
         for fprint, score, request, schedule in batch:
             if schedule:
                 request.meta[b'_scr'] = score
-                _, hostname, _, _, _, _ = parse_domain_from_url_fast(request.url)
-                if not hostname:
-                    self.logger.error("Can't get hostname for URL %s, fingerprint %s", request.url, fprint)
-                    partition_id = self.partitions[0]
-                else:
-                    partition_id = self.partitioner.partition(hostname, self.partitions)
+                key = self.partitioner.get_key(request)
+                partition_id = self.partitioner.partition(key)
                 self.heap[partition_id].push(request)
 
     def _compare_pages(self, first, second):
@@ -83,18 +78,17 @@ class MemoryQueue(Queue):
 
 
 class MemoryDequeQueue(Queue):
-    def __init__(self, partitions, is_fifo=True):
+    def __init__(self, partitioner, is_fifo=True):
         """
         Deque-based queue (see collections module). Efficient queue for LIFO and FIFO strategies.
-        :param partitions: int count of partitions
+        :param partitioner: Partitioner
         :param type: bool, True for FIFO, False for LIFO
         """
-        self.partitions = [i for i in range(0, partitions)]
-        self.partitioner = Crc32NamePartitioner(self.partitions)
+        self.partitioner = partitioner
         self.logger = logging.getLogger("memory.dequequeue")
         self.queues = {}
         self.is_fifo = is_fifo
-        for partition in self.partitions:
+        for partition in self.partitioner.partitions:
             self.queues[partition] = deque()
 
     def count(self):
@@ -112,12 +106,8 @@ class MemoryDequeQueue(Queue):
         for fprint, score, request, schedule in batch:
             if schedule:
                 request.meta[b'_scr'] = score
-                _, hostname, _, _, _, _ = parse_domain_from_url_fast(request.url)
-                if not hostname:
-                    self.logger.error("Can't get hostname for URL %s, fingerprint %s", request.url, fprint)
-                    partition_id = self.partitions[0]
-                else:
-                    partition_id = self.partitioner.partition(hostname, self.partitions)
+                key = self.partitioner.get_key(request)
+                partition_id = self.partitioner.partition(key)
                 self.queues[partition_id].append(request)
 
 
@@ -165,6 +155,9 @@ class MemoryBaseBackend(CommonBackend):
         settings = manager.settings
         self._metadata = MemoryMetadata()
         self._states = MemoryStates(settings.get("STATE_CACHE_SIZE"))
+        partitions = list(range(settings.get('SPIDER_FEED_PARTITIONS')))
+        partitioner_cls = load_object(settings.get('SPIDER_FEED_PARTITIONER'))
+        self._partitioner = partitioner_cls(partitions)
         self._queue = self._create_queue(settings)
         self._id = 0
 
@@ -222,27 +215,27 @@ class MemoryRandomQueue(MemoryQueue):
 
 class MemoryFIFOBackend(MemoryBaseBackend):
     def _create_queue(self, settings):
-        return MemoryDequeQueue(settings.get('SPIDER_FEED_PARTITIONS'))
+        return MemoryDequeQueue(self._partitioner)
 
 
 class MemoryLIFOBackend(MemoryBaseBackend):
     def _create_queue(self, settings):
-        return MemoryDequeQueue(settings.get('SPIDER_FEED_PARTITIONS'), is_fifo=False)
+        return MemoryDequeQueue(self._partitioner, is_fifo=False)
 
 
 class MemoryDFSBackend(MemoryBaseBackend):
     def _create_queue(self, settings):
-        return MemoryDFSQueue(settings.get('SPIDER_FEED_PARTITIONS'))
+        return MemoryDFSQueue(self._partitioner)
 
 
 class MemoryBFSBackend(MemoryBaseBackend):
     def _create_queue(self, settings):
-        return MemoryBFSQueue(settings.get('SPIDER_FEED_PARTITIONS'))
+        return MemoryBFSQueue(self._partitioner)
 
 
 class MemoryRandomBackend(MemoryBaseBackend):
     def _create_queue(self, settings):
-        return MemoryRandomQueue(settings.get('SPIDER_FEED_PARTITIONS'))
+        return MemoryRandomQueue(self._partitioner)
 
 
 class MemoryDFSOverusedBackend(MemoryDFSBackend):

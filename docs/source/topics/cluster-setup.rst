@@ -58,7 +58,8 @@ a common modules and import settings from it in component's modules.
         'frontera.contrib.middlewares.fingerprint.DomainFingerprintMiddleware'
     ])
 
-    QUEUE_HOSTNAME_PARTITIONING = True
+
+    SPIDER_FEED_PARTITIONER = 'frontera.contrib.backends.partitioners.Crc32NamePartitioner'
     KAFKA_LOCATION = 'localhost:9092' # your Kafka broker host:port
     SCORING_TOPIC = 'frontier-scoring'
     URL_FINGERPRINT_FUNCTION='frontera.utils.fingerprint.hostname_local_fingerprint'
