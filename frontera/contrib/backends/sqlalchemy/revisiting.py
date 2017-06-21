@@ -48,12 +48,11 @@ def retry_and_rollback(func):
 
 
 class RevisitingQueue(BaseQueue):
-    def __init__(self, session_cls, queue_cls, partitions):
+    def __init__(self, session_cls, queue_cls, partitioner):
         self.session = session_cls()
         self.queue_model = queue_cls
         self.logger = logging.getLogger("sqlalchemy.revisiting.queue")
-        self.partitions = [i for i in range(0, partitions)]
-        self.partitioner = Crc32NamePartitioner(self.partitions)
+        self.partitioner = partitioner
 
     def frontier_stop(self):
         self.session.close()
@@ -80,14 +79,14 @@ class RevisitingQueue(BaseQueue):
         to_save = []
         for fprint, score, request, schedule in batch:
             if schedule:
-                _, hostname, _, _, _, _ = parse_domain_from_url_fast(request.url)
-                if not hostname:
-                    self.logger.error("Can't get hostname for URL %s, fingerprint %s" % (request.url, fprint))
-                    partition_id = self.partitions[0]
+                key = self.partitioner.get_key(request)
+                if key is None:
+                    self.logger.error("Can't get partition key for URL %s, fingerprint %s" % (request.url, fprint))
+                    partition_id = self.partitioner.partitions[0]
                     host_crc32 = 0
                 else:
-                    partition_id = self.partitioner.partition(hostname, self.partitions)
-                    host_crc32 = get_crc32(hostname)
+                    partition_id = self.partitioner.partition(key)
+                    host_crc32 = get_crc32(key)
                 schedule_at = request.meta[b'crawl_at'] if b'crawl_at' in request.meta else utcnow_timestamp()
                 q = self.queue_model(fingerprint=fprint, score=score, url=request.url, meta=request.meta,
                                      headers=request.headers, cookies=request.cookies, method=request.method,
@@ -109,7 +108,7 @@ class Backend(SQLAlchemyBackend):
         self.interval = settings.get("SQLALCHEMYBACKEND_REVISIT_INTERVAL")
         assert isinstance(self.interval, timedelta)
         self.interval = self.interval.total_seconds()
-        return RevisitingQueue(self.session_cls, RevisitingQueueModel, settings.get('SPIDER_FEED_PARTITIONS'))
+        return RevisitingQueue(self.session_cls, RevisitingQueueModel, self.partitioner)
 
     def _schedule(self, requests):
         batch = []

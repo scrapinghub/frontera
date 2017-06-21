@@ -11,6 +11,7 @@ from frontera.contrib.backends.partitioners import FingerprintPartitioner, Crc32
 from frontera.contrib.messagebus.kafka.async import OffsetsFetcherAsync
 from frontera.core.messagebus import BaseMessageBus, BaseSpiderLogStream, BaseSpiderFeedStream, \
     BaseStreamConsumer, BaseScoringLogStream, BaseStreamProducer
+from frontera.utils.misc import load_object
 from twisted.internet.task import LoopingCall
 from traceback import format_tb
 
@@ -139,10 +140,10 @@ class SpiderLogStream(BaseSpiderLogStream):
         self._sw_group = messagebus.spiderlog_sw_group
         self._topic = messagebus.topic_done
         self._codec = messagebus.codec
-        self._partitions = messagebus.spider_log_partitions
+        self._partitioner = messagebus.spider_log_partitioner
 
     def producer(self):
-        return KeyedProducer(self._location, self._topic, FingerprintPartitioner(self._partitions),
+        return KeyedProducer(self._location, self._topic, self._partitioner,
                              self._codec)
 
     def consumer(self, partition_id, type):
@@ -154,7 +155,7 @@ class SpiderLogStream(BaseSpiderLogStream):
         """
         group = self._sw_group if type == b'sw' else self._db_group
         c = Consumer(self._location, self._topic, group, partition_id)
-        assert len(c._consumer.partitions_for_topic(self._topic)) == self._partitions
+        assert len(c._consumer.partitions_for_topic(self._topic)) == len(self._partitioner.partitions)
         return c
 
 
@@ -164,15 +165,14 @@ class SpiderFeedStream(BaseSpiderFeedStream):
         self._general_group = messagebus.spider_feed_group
         self._topic = messagebus.topic_todo
         self._max_next_requests = messagebus.max_next_requests
-        self._hostname_partitioning = messagebus.hostname_partitioning
         self._offset_fetcher = OffsetsFetcherAsync(bootstrap_servers=self._location, topic=self._topic,
                                                    group_id=self._general_group)
         self._codec = messagebus.codec
-        self._partitions = messagebus.spider_feed_partitions
+        self._partitioner = messagebus.spider_feed_partitioner
 
     def consumer(self, partition_id):
         c = Consumer(self._location, self._topic, self._general_group, partition_id)
-        assert len(c._consumer.partitions_for_topic(self._topic)) == self._partitions
+        assert len(c._consumer.partitions_for_topic(self._topic)) == len(self._partitioner.partitions)
         return c
 
     def available_partitions(self):
@@ -184,9 +184,7 @@ class SpiderFeedStream(BaseSpiderFeedStream):
         return partitions
 
     def producer(self):
-        partitioner = Crc32NamePartitioner(self._partitions) if self._hostname_partitioning \
-            else FingerprintPartitioner(self._partitions)
-        return KeyedProducer(self._location, self._topic, partitioner, self._codec)
+        return KeyedProducer(self._location, self._topic, self._partitioner, self._codec)
 
 
 class ScoringLogStream(BaseScoringLogStream):
@@ -218,8 +216,14 @@ class MessageBus(BaseMessageBus):
         self.hostname_partitioning = settings.get('QUEUE_HOSTNAME_PARTITIONING')
         self.codec = settings.get('KAFKA_CODEC')
         self.kafka_location = settings.get('KAFKA_LOCATION')
+
         self.spider_log_partitions = settings.get('SPIDER_LOG_PARTITIONS')
+        spider_log_partitioner_cls = load_object(settings.get('SPIDER_LOG_PARTITIONER'))
+        self.spider_log_partitioner = spider_log_partitioner_cls(self.spider_log_partitions)
+
         self.spider_feed_partitions = settings.get('SPIDER_FEED_PARTITIONS')
+        spider_feed_partitioner_cls = load_object(settings.get('SPIDER_FEED_PARTITIONER'))
+        self.spider_feed_partitioner = spider_feed_partitioner_cls(self.spider_feed_partitions)
 
     def spider_log(self):
         return SpiderLogStream(self)
