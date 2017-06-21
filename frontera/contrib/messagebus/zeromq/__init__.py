@@ -228,3 +228,4 @@ class MessageBus(BaseMessageBus):
 
     def spider_feed(self):
         return SpiderFeedStream(self)
+

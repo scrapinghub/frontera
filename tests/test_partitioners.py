@@ -30,6 +30,9 @@ def test_crc32name_partitioner():
     partition = cp.partition(key, partitions)
     assert partition == 3
 
+    partition = cp.partition(42, partitions)
+    assert partition == 2
+
     partition = cp.partition(None, partitions)
     assert partition == 0
 
