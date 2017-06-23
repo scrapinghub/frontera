@@ -29,12 +29,12 @@ FIELD_URL = b'url'
 """
 Error handling:
 * On Connection error:
-** Retry three times with increasing timeout. 
+** Retry three times with increasing timeout.
 ** Skip the operation if the third retry fails.
 * On Response error:
 ** Report and continue.
 ** Response error is usually caused by Redis using all available memory. Ideally, Redis should have enough memory
- for this not to happen. Still, if Redis is full, the rest of the crawler may continue and free up some space in 
+ for this not to happen. Still, if Redis is full, the rest of the crawler may continue and free up some space in
  Redis after a while.
 """
 
