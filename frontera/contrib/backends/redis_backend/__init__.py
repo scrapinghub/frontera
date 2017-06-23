@@ -29,19 +29,20 @@ FIELD_URL = b'url'
 """
 Error handling:
 * On Connection error:
-** Retry three times with increasing timout. 
+** Retry three times with increasing timeout. 
 ** Skip the operation if the third retry fails.
 * On Response error:
 ** Report and continue.
-** Reponse error is usually caused by Redis using all available memory. Ideally, Redis should have enough memory
+** Response error is usually caused by Redis using all available memory. Ideally, Redis should have enough memory
  for this not to happen. Still, if Redis is full, the rest of the crawler may continue and free up some space in 
  Redis after a while.
 """
 
 
 def _get_retry_timeouts():
-    # Timeout generator with backoff until 60 seconds
-    for timeout in [0, 10, 30]: yield timeout
+    # Timeout generator with back off until 60 seconds
+    for timeout in [0, 10, 30]:
+        yield timeout
     yield None
 
 
@@ -58,14 +59,14 @@ class RedisOperation(object):
         while True:
             try:
                 return getattr(self._connection, _api)(*args, **kwargs)
-            except ConnectionError as e:
+            except ConnectionError:
                 print('conn err')
                 self._logger.exception("Connection to Redis failed operation")
                 pause = timeout.next()
-                if pause == None:
+                if pause is None:
                     break
                 sleep(pause)
-            except ResponseError as e:
+            except ResponseError:
                 self._logger.exception("Redis operation failed")
                 break
 
@@ -85,14 +86,14 @@ class RedisPipeline(object):
         while True:
             try:
                 return self._pipeline.execute()
-            except ConnectionError as e:
+            except ConnectionError:
                 self._logger.exception("Connection to Redis failed when executing pipeline")
                 pause = timeout.next()
-                if pause == None:
+                if pause is None:
                     break
                 sleep(pause)
                 self._pipeline.command_stack = stack
-            except ResponseError as e:
+            except ResponseError:
                 self._logger.exception("Redis operation failed when executing pipeline")
                 break
 
@@ -320,7 +321,8 @@ class RedisMetadata(Metadata):
     def request_error(self, page, error):
         self._redis.hmset(page.meta[FIELD_FINGERPRINT], self._create_request_error(page, error))
 
-    def _create_crawl_info(self, response):
+    @staticmethod
+    def _create_crawl_info(response):
         return {
             FIELD_STATUS_CODE: response.status_code
         }
