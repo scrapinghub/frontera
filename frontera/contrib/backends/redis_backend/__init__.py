@@ -72,7 +72,8 @@ class RedisOperation(object):
 
 class RedisPipeline(object):
     def __init__(self, pool):
-        self._pipeline = self._connection.pipeline()
+        connection = StrictRedis(connection_pool=pool)
+        self._pipeline = connection.pipeline()
         self._logger = logging.getLogger("redis_backend.RedisPipeline")
 
     def __getattr__(self, _api):
