@@ -13,6 +13,8 @@ from frontera.utils.ossignal import install_shutdown_handlers
 
 from frontera.core.manager import FrontierManager
 from frontera.logger.handlers import CONSOLE
+from frontera.contrib.messagebus.stats import StatsExportMixin
+
 from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred
@@ -82,7 +84,9 @@ class StatesContext(object):
         logger.info("Flushing of states finished")
 
 
-class StrategyWorker(object):
+class BaseStrategyWorker(object):
+    """Base strategy worker class."""
+
     def __init__(self, settings, strategy_class):
         partition_id = settings.get('SCORING_PARTITION_ID')
         if partition_id is None or type(partition_id) != int:
@@ -324,6 +328,16 @@ class StrategyWorker(object):
         self.states.set_states(request)
         self.strategy.page_error(request, error)
         self.states.update_cache(request)
+
+
+class StrategyWorker(StatsExportMixin, BaseStrategyWorker):
+    """Main strategy worker class with useful extensions.
+
+    The additional features are provided by using mixin classes:
+     - sending crawl stats to message bus
+     """
+    def get_stats_tags(self, settings, *args, **kwargs):
+        return {'source': 'sw', 'partition_id': settings.get('SCORING_PARTITION_ID')}
 
 
 def setup_environment():

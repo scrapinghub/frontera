@@ -56,6 +56,8 @@ def test_codec(encoder, decoder, send_body, invalid_value):
     req = Request(url="http://www.yandex.ru", method=b'GET',
                   meta={b'test': b'shmest', b'scrapy_meta': {'rule': 0, 'key': 'value'}}, headers={b'reqhdr': b'value'})
     req2 = Request(url="http://www.yandex.ru/search")
+    stats = {'_timestamp': 1499241748, 'tags': {'source': 'spider', 'partition_id': 0},
+             'crawled_pages_count': 2, 'links_extracted_count': 3}
     msgs = [
         enc.encode_add_seeds([req]),
         enc.encode_page_crawled(Response(url="http://www.yandex.ru", body=b'SOME CONTENT', headers={b'hdr': b'value'},
@@ -66,6 +68,7 @@ def test_codec(encoder, decoder, send_body, invalid_value):
         enc.encode_new_job_id(1),
         enc.encode_offset(0, 28796),
         enc.encode_request(req),
+        enc.encode_stats(stats),
         invalid_value,
     ]
 
@@ -120,9 +123,12 @@ def test_codec(encoder, decoder, send_body, invalid_value):
     o = dec.decode_request(next(it))
     check_request(o, req)
 
+    o_type, stats = dec.decode(next(id))
+    assert o_type == 'stats'
+    assert stats == stats
+
     with pytest.raises(TypeError):
         dec.decode(next(it))
-
 
 class TestEncodeDecodeJson(unittest.TestCase):
     """

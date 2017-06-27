@@ -1,9 +1,17 @@
 from __future__ import absolute_import
-from importlib import import_module
+
+import time
+import calendar
 from zlib import crc32
+from importlib import import_module
+
+import six
 from six.moves import range
 from w3lib.util import to_bytes
-import six
+
+
+def utc_timestamp():
+    return calendar.timegm(time.gmtime())
 
 
 def load_object(path):

@@ -118,3 +118,13 @@ class BaseEncoder(object):
         :return: bytes encoded message
         """
         pass
+
+    @abstractmethod
+    def encode_stats(self, stats):
+        """
+        Encodes current crawl stats.
+
+        :param stats: a dictionary with stats
+        :return: bytes encoded message
+        """
+        pass

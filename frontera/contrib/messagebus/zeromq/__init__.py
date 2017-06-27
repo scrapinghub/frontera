@@ -221,3 +221,7 @@ class MessageBus(BaseMessageBus):
 
     def spider_feed(self):
         return SpiderFeedStream(self)
+
+    def stats_log(self):
+        # FIXME implement it for completeness
+        self.logger.warning("Exporting stats is not implemented for ZeroMQ yet")
