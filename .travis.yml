@@ -3,6 +3,7 @@ python: 2.7
 branches:
   only:
     - master
+    - busy-partitions
     - /^\d\.\d+$/
     - /^\d\.\d+\.\d+(rc\d+|dev\d+)?$/
 

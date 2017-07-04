@@ -73,23 +73,28 @@ class SpiderLogStream(BaseSpiderLogStream):
 class SpiderFeedStream(BaseSpiderFeedStream):
 
     def __init__(self, messagebus):
-        self.ready_partitions = set(messagebus.spider_feed_partitions)
+        self._producer = Producer()
+        self.max_next_requests = messagebus.max_next_requests
+        self.partitions_offset = {}
+        for partition_id in messagebus.spider_feed_partitions:
+            self.partitions_offset[partition_id] = 0
 
     def producer(self):
-        return Producer()
+        return self._producer
 
     def consumer(self, partition_id):
         return Consumer()
 
     def available_partitions(self):
-        return self.ready_partitions
+        partitions = []
+        for partition_id, last_offset in self.partitions_offset.items():
+            lag = self._producer.get_offset(partition_id) - last_offset
+            if lag < self.max_next_requests or last_offset == 0:
+                partitions.append(partition_id)
+        return partitions
 
-    def mark_ready(self, partition_id):
-        self.ready_partitions.add(partition_id)
-
-    def mark_busy(self, partition_id):
-        self.ready_partitions.discard(partition_id)
-
+    def set_spider_offset(self, partition_id, offset):
+        self.partitions_offset[partition_id] = offset
 
 class FakeMessageBus(BaseMessageBus):
 

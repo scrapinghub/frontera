@@ -165,18 +165,11 @@ class BaseSpiderFeedStream(object):
         """
         raise NotImplementedError
 
-    def mark_ready(self, partition_id):
+    def set_spider_offset(self, partition_id, offset):
         """
-        Marks partition as ready/available for receiving new batches.
+        Set a partition's message sent offset.
         :param partition_id: int
-        :return: nothing
-        """
-        pass
-
-    def mark_busy(self, partition_id):
-        """
-        Marks partition as busy, so that spider assigned to this partition is busy processing previous batches.
-        :param partition_id: int
+        :param offset: int
         :return: nothing
         """
         pass

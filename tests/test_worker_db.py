@@ -11,8 +11,8 @@ r3 = Request('https://www.dmoz.org', meta={b'fingerprint': b'3', b'state': State
 
 class TestDBWorker(object):
 
-    def dbw_setup(self, distributed=False):
-        settings = Settings()
+    def dbw_setup(self, distributed=False, settings=None):
+        settings = settings or Settings()
         settings.MAX_NEXT_REQUESTS = 64
         settings.MESSAGE_BUS = 'tests.mocks.message_bus.FakeMessageBus'
         if distributed:
@@ -90,20 +90,22 @@ class TestDBWorker(object):
         assert dbw.new_batch() == 3
         assert 3 in dbw._backend.partitions
 
-    def test_busy_on_new_batch(self):
+    def test_partition_available(self):
         dbw = self.dbw_setup(True)
         msg1 = dbw._encoder.encode_offset(0, 64)
-        msg2 = dbw._encoder.encode_offset(1, 64)
+        msg2 = dbw._encoder.encode_offset(1, 0)
         dbw.spider_log_consumer.put_messages([msg1, msg2])
         dbw.spider_feed_producer.offset = 64
         dbw.consume_incoming()
 
         assert 0 in dbw.spider_feed.available_partitions()
+        assert 1 not in dbw.spider_feed.available_partitions()
+
+        msg3 = dbw._encoder.encode_offset(1, 1)
+        dbw.spider_log_consumer.put_messages([msg3])
+        dbw.consume_incoming()
         assert 1 in dbw.spider_feed.available_partitions()
-        # Send 1 request to partition 1, marking it as busy.
-        # Partition 2 received no request, so it stays available.
-        dbw._backend.queue.put_requests([r1])
-        assert dbw.new_batch() == 1
-        assert 0 in dbw._backend.partitions
+
+        dbw.spider_feed_producer.offset = 128
         assert 0 not in dbw.spider_feed.available_partitions()
-        assert 1 in dbw.spider_feed.available_partitions()
+        assert 1 not in dbw.spider_feed.available_partitions()
