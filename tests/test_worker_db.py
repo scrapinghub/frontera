@@ -92,20 +92,25 @@ class TestDBWorker(object):
 
     def test_partition_available(self):
         dbw = self.dbw_setup(True)
-        msg1 = dbw._encoder.encode_offset(0, 64)
+        msg1 = dbw._encoder.encode_offset(0, 128)
         msg2 = dbw._encoder.encode_offset(1, 0)
         dbw.spider_log_consumer.put_messages([msg1, msg2])
-        dbw.spider_feed_producer.offset = 64
+        dbw.spider_feed_producer.offset = 128
         dbw.consume_incoming()
 
         assert 0 in dbw.spider_feed.available_partitions()
+        assert 1 in dbw.spider_feed.available_partitions()
+
+        msg3 = dbw._encoder.encode_offset(1, 1)
+        dbw.spider_log_consumer.put_messages([msg3])
+        dbw.consume_incoming()
         assert 1 not in dbw.spider_feed.available_partitions()
 
         msg3 = dbw._encoder.encode_offset(1, 1)
         dbw.spider_log_consumer.put_messages([msg3])
         dbw.consume_incoming()
-        assert 1 in dbw.spider_feed.available_partitions()
+        assert 1 not in dbw.spider_feed.available_partitions()
 
-        dbw.spider_feed_producer.offset = 128
+        dbw.spider_feed_producer.offset = 256
         assert 0 not in dbw.spider_feed.available_partitions()
         assert 1 not in dbw.spider_feed.available_partitions()
