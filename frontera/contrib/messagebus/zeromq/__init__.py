@@ -80,7 +80,7 @@ class Producer(BaseStreamProducer):
         # Raise TypeError if any message is not encoded as bytes
         if any(not isinstance(m, six.binary_type) for m in messages):
             raise TypeError("all produce message payloads must be type bytes")
-        partition = self.partition(key)
+        partition = self.partitioner.partition(key)
         counter = self.counters.get(partition, 0)
         for msg in messages:
             self.sender.send_multipart([self.identity + pack(">B", partition), msg,
@@ -99,9 +99,6 @@ class Producer(BaseStreamProducer):
 
     def get_offset(self, partition_id):
         return self.counters.get(partition_id, None)
-
-    def partition(self, key):
-        return self.partitioner.partition(key)
 
 
 class SpiderLogProducer(Producer):
@@ -223,7 +220,7 @@ class MessageBus(BaseMessageBus):
         self.spider_feed_sndhwm = int(settings.get('MAX_NEXT_REQUESTS') * len(self.spider_feed_partitions) * 1.2)
         self.spider_feed_rcvhwm = int(settings.get('MAX_NEXT_REQUESTS') * 2.0)
         self.hostname_partitioning = settings.get('QUEUE_HOSTNAME_PARTITIONING')
-        self.max_next_requests = settings.get('MAX_NEXT_REQUESTS')
+        self.max_next_requests = int(settings.get('MAX_NEXT_REQUESTS'))
         if self.socket_config.is_ipv6:
             self.context.zeromq.setsockopt(zmq.IPV6, True)
 

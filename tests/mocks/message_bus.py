@@ -42,9 +42,6 @@ class Producer(BaseStreamProducer):
     def get_offset(self, partition_id):
         return self.offset
 
-    def partition(self, key):
-        return 0
-
 
 class ScoringLogStream(BaseScoringLogStream):
 

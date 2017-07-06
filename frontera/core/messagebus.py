@@ -67,13 +67,6 @@ class BaseStreamProducer(object):
         """
         raise NotImplementedError
 
-    def partition(self, key):
-        """
-        Returns partition id for key.
-        :param key: str key used for partitioning, None for non-keyed channels
-        """
-        raise NotImplementedError
-
     def close(self):
         """
         Performs all necessary cleanup and closes the producer.
@@ -167,7 +160,9 @@ class BaseSpiderFeedStream(object):
 
     def set_spider_offset(self, partition_id, offset):
         """
-        Set a partition's message sent offset.
+        Set the message processed offset for a given partition. Used to
+        calculate the lag between the message sent and message processed
+        to prevent overflowing the queue of an unresponsive partition.
         :param partition_id: int
         :param offset: int
         :return: nothing

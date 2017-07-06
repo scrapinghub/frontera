@@ -131,9 +131,6 @@ class KeyedProducer(BaseStreamProducer):
     def get_offset(self, partition_id):
         pass
 
-    def partition(self, key):
-        return self._partitioner(key)
-
 
 class SpiderLogStream(BaseSpiderLogStream):
     def __init__(self, messagebus):

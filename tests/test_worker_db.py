@@ -11,8 +11,8 @@ r3 = Request('https://www.dmoz.org', meta={b'fingerprint': b'3', b'state': State
 
 class TestDBWorker(object):
 
-    def dbw_setup(self, distributed=False, settings=None):
-        settings = settings or Settings()
+    def dbw_setup(self, distributed=False):
+        settings = Settings()
         settings.MAX_NEXT_REQUESTS = 64
         settings.MESSAGE_BUS = 'tests.mocks.message_bus.FakeMessageBus'
         if distributed:
@@ -78,14 +78,12 @@ class TestDBWorker(object):
         dbw.spider_feed_producer.offset = 100
         dbw.consume_incoming()
         assert 2 in dbw.spider_feed.available_partitions()
-
         msg1 = dbw._encoder.encode_offset(2, 20)
         msg2 = dbw._encoder.encode_offset(3, 0)
         dbw.spider_log_consumer.put_messages([msg1, msg2])
         dbw.consume_incoming()
         assert 3 in dbw.spider_feed.available_partitions()
         assert 2 not in dbw.spider_feed.available_partitions()
-
         dbw._backend.queue.put_requests([r1, r2, r3])
         assert dbw.new_batch() == 3
         assert 3 in dbw._backend.partitions
