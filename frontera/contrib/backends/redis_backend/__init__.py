@@ -60,7 +60,6 @@ class RedisOperation(object):
             try:
                 return getattr(self._connection, _api)(*args, **kwargs)
             except ConnectionError:
-                print('conn err')
                 self._logger.exception("Connection to Redis failed operation")
                 pause = timeout.next()
                 if pause is None:
