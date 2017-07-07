@@ -236,6 +236,71 @@ class RedisQueueTest(TestCase):
         self.assertTrue('https://www.khellan.com/' in urls)
         self.assertEqual(5, subject.count())
 
+    def test_get_next_requests_max_requests(self):
+        subject = self.setup_subject(2)
+        batch = [
+            ("1", 1, Request("1", int(time()) - 10, 'https://www.knuthellan.com/', domain='knuthellan.com'), True),
+            ("2", 0.1, Request("2", int(time()) - 10, 'https://www.khellan.com/', domain='khellan.com'), True),
+            ("3", 0.5, Request("3", int(time()) - 10, 'https://www.hellan.me/', domain='hellan.me'), True),
+        ]
+        subject.schedule(batch)
+        self.assertEqual(3, subject.count())
+        requests = subject.get_next_requests(1, partition_id=0, min_hosts=1, min_requests=1, max_requests_per_host=5)
+        self.assertEqual(1, len(requests))
+        urls = [request.url for request in requests]
+        self.assertTrue('https://www.knuthellan.com/' in urls)
+        self.assertEqual(2, subject.count())
+
+    def test_get_next_requests_min_hosts(self):
+        subject = self.setup_subject(2)
+        batch = [
+            ("1", 1, Request("1", int(time()) - 10, 'https://www.knuthellan.com/', domain='knuthellan.com'), True),
+            ("2", 0.1, Request("2", int(time()) - 10, 'https://www.khellan.com/', domain='khellan.com'), True),
+            ("3", 0.5, Request("3", int(time()) - 10, 'https://www.hellan.me/', domain='hellan.me'), True),
+        ]
+        subject.schedule(batch)
+        self.assertEqual(3, subject.count())
+        requests = subject.get_next_requests(1, partition_id=0, min_hosts=2, min_requests=1, max_requests_per_host=5)
+        self.assertEqual(2, len(requests))
+        urls = [request.url for request in requests]
+        self.assertTrue('https://www.knuthellan.com/' in urls)
+        self.assertTrue('https://www.khellan.com/' in urls)
+        self.assertEqual(1, subject.count())
+
+    def test_get_next_requests_min_hosts_high_number(self):
+        subject = self.setup_subject(2)
+        batch = [
+            ("1", 1, Request("1", int(time()) - 10, 'https://www.knuthellan.com/', domain='knuthellan.com'), True),
+            ("2", 0.1, Request("2", int(time()) - 10, 'https://www.khellan.com/', domain='khellan.com'), True),
+            ("3", 0.5, Request("3", int(time()) - 10, 'https://www.hellan.me/', domain='hellan.me'), True),
+        ]
+        subject.schedule(batch)
+        self.assertEqual(3, subject.count())
+        requests = subject.get_next_requests(1, partition_id=0, min_hosts=5, min_requests=1, max_requests_per_host=5)
+        self.assertEqual(2, len(requests))
+        urls = [request.url for request in requests]
+        self.assertTrue('https://www.knuthellan.com/' in urls)
+        self.assertTrue('https://www.khellan.com/' in urls)
+        self.assertEqual(1, subject.count())
+
+    def test_get_next_requests_max_requests(self):
+        subject = self.setup_subject(2)
+        batch = [
+            ("1", 1, Request("1", int(time()) - 10, 'https://www.knuthellan.com/', domain='knuthellan.com'), True),
+            ("1", 0.99, Request("1", int(time()) - 10, 'https://www.knuthellan.com/a', domain='knuthellan.com'), True),
+            ("1", 0.98, Request("1", int(time()) - 10, 'https://www.knuthellan.com/c', domain='knuthellan.com'), True),
+            ("2", 0.1, Request("2", int(time()) - 10, 'https://www.khellan.com/', domain='khellan.com'), True),
+            ("3", 0.5, Request("3", int(time()) - 10, 'https://www.hellan.me/', domain='hellan.me'), True),
+        ]
+        subject.schedule(batch)
+        self.assertEqual(5, subject.count())
+        requests = subject.get_next_requests(5, partition_id=0, min_hosts=1, min_requests=1, max_requests_per_host=2)
+        self.assertGreaterEqual(len(requests), 2)
+        urls = [request.url for request in requests]
+        self.assertTrue('https://www.knuthellan.com/' in urls)
+        self.assertTrue('https://www.knuthellan.com/a' in urls)
+        self.assertFalse('https://www.knuthellan.com/c' in urls)
+
 
 class RedisStateTest(TestCase):
     def test_update_cache(self):

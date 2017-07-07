@@ -128,7 +128,7 @@ class RedisQueue(Queue):
                 continue
             if host_crc32 not in queue:
                 queue[host_crc32] = []
-            if max_requests_per_host is not None and len(queue[host_crc32]) > max_requests_per_host:
+            if max_requests_per_host is not None and len(queue[host_crc32]) >= max_requests_per_host:
                 continue
             queue[host_crc32].append(item)
             if len(queue[host_crc32]) > max_host_items:
@@ -144,9 +144,12 @@ class RedisQueue(Queue):
         Fetch new batch from priority queue.
         :param max_n_requests: maximum number of requests
         :param partition_id: partition id to get batch from
+        :param min_hosts: minimum number of hosts
+        :param max_requests_per_host: maximum number of requests per host
         :return: list of :class:`Request <frontera.core.models.Request>` objects.
         """
         max_requests_per_host = kwargs.pop('max_requests_per_host')
+        min_hosts = kwargs.pop('min_hosts')
         queue = {}
         count = 0
         now_ts = int(time())
@@ -154,19 +157,18 @@ class RedisQueue(Queue):
         to_remove = []
         start = 0
         last_start = -1
-        while count < max_n_requests and last_start < start:
+        while (count < max_n_requests or len(queue) < min_hosts) and last_start < start :
             last_start = start
-            start, count, max_host_items = self._get_items(
+            start, subset_count, max_host_items = self._get_items(
                 partition_id, start, now_ts, queue, max_requests_per_host, max_host_items, count,
                 max_n_requests, to_remove)
+            count += subset_count
+
         self._logger.debug("Finished: hosts {}, requests {}".format(len(queue.keys()), count))
 
         results = []
-        for i in range(max_host_items):
-            for host_crc32, items in queue.items():
-                if len(items) <= i:
-                    continue
-                item = items[i]
+        for host_crc32, items in queue.items():
+            for item in items:
                 (_, _, _, encoded, score) = item
                 to_remove.append(packb(item))
                 request = self._decoder.decode_request(encoded)
