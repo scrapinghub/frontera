@@ -157,7 +157,7 @@ class RedisQueue(Queue):
         to_remove = []
         start = 0
         last_start = -1
-        while (count < max_n_requests or len(queue) < min_hosts) and last_start < start :
+        while (count < max_n_requests or len(queue) < min_hosts) and last_start < start:
             last_start = start
             start, subset_count, max_host_items = self._get_items(
                 partition_id, start, now_ts, queue, max_requests_per_host, max_host_items, count,
