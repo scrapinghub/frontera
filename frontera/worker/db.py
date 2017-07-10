@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
+
+import os
 import logging
 from traceback import format_stack
 from signal import signal, SIGUSR1
@@ -347,7 +349,12 @@ class DBWorker(StatsExportMixin, BaseDBWorker):
                            "(no-scoring {}, no-batches {}, no-incoming {})"
                            .format(no_scoring, no_batches, no_incoming))
             db_worker_type = 'none'
-        return {'source': 'dbw-{}'.format(db_worker_type)}
+        tags = {'source': 'dbw-{}'.format(db_worker_type)}
+        # add mesos task id as a tag if running via marathon
+        mesos_task_id = os.environ.get('MESOS_TASK_ID')
+        if mesos_task_id:
+            tags['mesos_task_id'] = mesos_task_id
+        return tags
 
 
 if __name__ == '__main__':
