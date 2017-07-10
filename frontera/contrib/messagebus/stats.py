@@ -93,6 +93,7 @@ class StatsExportMixin(object):
         stats = {stats_key: self.stats[stats_key]
                  for stats_key in self.stats
                  if stats_key.split('_', 1)[0] in self.STATS_PREFIXES}
+        stats.update(self._manager.backend.get_stats() or {})
         if not stats:
             return
         stats['_timestamp'] = utc_timestamp()
