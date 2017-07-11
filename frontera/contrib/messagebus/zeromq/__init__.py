@@ -197,7 +197,10 @@ class SpiderFeedStream(BaseSpiderFeedStream):
 
         partitions = []
         for partition_id, last_offset in self.partitions_offset.items():
-            lag = self._producer.get_offset(partition_id) - last_offset
+            producer_offset = self._producer.get_offset(partition_id)
+            if producer_offset is None:
+                producer_offset = 0
+            lag = producer_offset - last_offset
             if lag < self.max_next_requests:
                 partitions.append(partition_id)
         return partitions
