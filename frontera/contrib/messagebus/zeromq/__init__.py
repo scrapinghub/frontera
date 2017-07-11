@@ -172,7 +172,9 @@ class SpiderFeedStream(BaseSpiderFeedStream):
         self.in_location = messagebus.socket_config.db_out()
         self.out_location = messagebus.socket_config.spiders_in()
         self.partitions = messagebus.spider_feed_partitions
-        self.ready_partitions = set(self.partitions)
+        self.partitions_offset = {}
+        for partition_id in self.partitions:
+            self.partitions_offset[partition_id] = 0
         self.consumer_hwm = messagebus.spider_feed_rcvhwm
         self.producer_hwm = messagebus.spider_feed_sndhwm
         self.hostname_partitioning = messagebus.hostname_partitioning
