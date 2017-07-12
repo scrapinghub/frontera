@@ -146,10 +146,8 @@ class MemoryStates(States):
     def fetch(self, fingerprints):
         pass
 
-    def flush(self, force_clear=False):
+    def flush(self):
         if len(self._cache) > self._cache_size_limit:
-            force_clear = True
-        if force_clear:
             self.logger.debug("Cache has %d items, clearing", len(self._cache))
             self._cache.clear()
 

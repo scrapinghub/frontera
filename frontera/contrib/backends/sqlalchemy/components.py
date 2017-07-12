@@ -135,13 +135,13 @@ class States(MemoryStates):
                 self._cache[to_bytes(state.fingerprint)] = state.state
 
     @retry_and_rollback
-    def flush(self, force_clear=False):
+    def flush(self):
         for fingerprint, state_val in six.iteritems(self._cache):
             state = self.model(fingerprint=to_native_str(fingerprint), state=state_val)
             self.session.merge(state)
         self.session.commit()
         self.logger.debug("State cache has been flushed.")
-        super(States, self).flush(force_clear)
+        super(States, self).flush()
 
 
 class Queue(BaseQueue):
