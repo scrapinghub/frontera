@@ -2,136 +2,145 @@
 from __future__ import absolute_import
 
 import os
+import time
 import logging
+import threading
 from traceback import format_stack
 from signal import signal, SIGUSR1
-from logging.config import fileConfig
+from collections import defaultdict
 from argparse import ArgumentParser
-from time import asctime
-from os.path import exists
+from logging.config import fileConfig
 
-from twisted.internet import reactor, task
+import six
+from twisted.internet import reactor, task, defer
 from twisted.internet.defer import Deferred
-from frontera.core.components import DistributedBackend
-from frontera.core.manager import FrontierManager
-from frontera.utils.url import parse_domain_from_url_fast
-from frontera.logger.handlers import CONSOLE
 
 from frontera.settings import Settings
 from frontera.utils.misc import load_object
-from frontera.utils.async import CallLaterOnce
+from frontera.logger.handlers import CONSOLE
+from frontera.exceptions import NotConfigured
+from frontera.core.manager import FrontierManager
+from frontera.worker.server import WorkerJsonRpcService
 from frontera.utils.ossignal import install_shutdown_handlers
-
 from frontera.worker.stats import StatsExportMixin
-from .server import WorkerJsonRpcService
-import six
-from six.moves import map
+
+from .components.incoming_consumer import IncomingConsumer
+from .components.scoring_consumer import ScoringConsumer
+from .components.batch_generator import BatchGenerator
+
+
+ALL_COMPONENTS = [ScoringConsumer, IncomingConsumer, BatchGenerator]
+LOGGING_TASK_INTERVAL = 30
 
 logger = logging.getLogger("db-worker")
 
 
 class Slot(object):
-    def __init__(self, new_batch, consume_incoming, consume_scoring, no_batches, no_scoring_log,
-                 new_batch_delay, no_spider_log):
-        self.new_batch = CallLaterOnce(new_batch)
-        self.new_batch.setErrback(self.error)
+    """Slot component to manage worker components.
 
-        self.consumption = CallLaterOnce(consume_incoming)
-        self.consumption.setErrback(self.error)
+    Slot is responsible for scheduling all the components, modify its behaviour
+    and stop them gracefully on worker's discretion.
+    """
+    def __init__(self, worker, settings, **kwargs):
+        # single event to stop all the components at once
+        self.stop_event = threading.Event()
+        self.components = self._load_components(worker, settings, **kwargs)
+        self._setup_managing_batches()
+        self._deferred = None
 
-        self.scheduling = CallLaterOnce(self.schedule)
-        self.scheduling.setErrback(self.error)
+    def _load_components(self, worker, settings, **kwargs):
+        # each component is stored as (cls, instance) pair
+        components = {}
+        for cls in ALL_COMPONENTS:
+            try:
+                component = cls(worker, settings, self.stop_event, **kwargs)
+            except NotConfigured:
+                logger.info("Component {} is disabled".format(cls.NAME))
+            else:
+                components[cls] = component
+        if not components:
+            raise NotConfigured("No components to run, please check your input args")
+        return components
 
-        self.scoring_consumption = CallLaterOnce(consume_scoring)
-        self.scoring_consumption.setErrback(self.error)
+    def schedule(self):
+        components = [component.schedule() for component in self.components.values()]
+        self._deferred = defer.DeferredList(components)
 
-        self.no_batches = no_batches
-        self.no_scoring_log = no_scoring_log
-        self.no_spider_log = no_spider_log
-        self.new_batch_delay = new_batch_delay
+    def stop(self):
+        if self._deferred:
+            # set stop flag and return a defferred connected with all running threads
+            self.stop_event.set()
+            return self._deferred
 
-    def error(self, f):
-        logger.exception(f.value)
-        return f
+    # Additional functions to manage specific components
 
-    def schedule(self, on_start=False):
-        if on_start and not self.no_batches:
-            self.new_batch.schedule(0)
+    # XXX do we actually use this feature to disable/enable new batches?
+    # it should be easier to just stop the batchgen component and start it again when needed
 
-        if not self.no_spider_log:
-            self.consumption.schedule()
-        if not self.no_batches:
-            self.new_batch.schedule(self.new_batch_delay)
-        if not self.no_scoring_log:
-            self.scoring_consumption.schedule()
-        self.scheduling.schedule(5.0)
+    def _setup_managing_batches(self):
+        """Save batch-gen specific event to disable/enable it via RPC calls."""
+        batchgen = self.components.get(BatchGenerator)
+        self.batches_disabled_event = batchgen.disabled_event if batchgen else None
 
-    def cancel(self):
-        self.scheduling.cancel()
-        self.scoring_consumption.cancel()
-        self.new_batch.cancel()
-        self.consumption.cancel()
+    def manage_new_batches(self, enable):
+        if self.batches_disabled_event:
+            self.batches_disabled_event.clear() if enable else self.batches_disabled_event.set()
 
 
 class BaseDBWorker(object):
     """Base database worker class."""
 
     def __init__(self, settings, no_batches, no_incoming, no_scoring):
-        messagebus = load_object(settings.get('MESSAGE_BUS'))
-        self.mb = messagebus(settings)
-        spider_log = self.mb.spider_log()
 
-        self.spider_feed = self.mb.spider_feed()
-        self.spider_log_consumer = spider_log.consumer(partition_id=None, type=b'db')
-        self.spider_feed_producer = self.spider_feed.producer()
+        messagebus = load_object(settings.get('MESSAGE_BUS'))
+        self.message_bus = messagebus(settings)
 
         self._manager = FrontierManager.from_settings(settings, db_worker=True)
-        self._backend = self._manager.backend
+        self.backend = self._manager.backend
+
         codec_path = settings.get('MESSAGE_BUS_CODEC')
         encoder_cls = load_object(codec_path+".Encoder")
         decoder_cls = load_object(codec_path+".Decoder")
         self._encoder = encoder_cls(self._manager.request_model)
         self._decoder = decoder_cls(self._manager.request_model, self._manager.response_model)
 
-        if isinstance(self._backend, DistributedBackend) and not no_scoring:
-            scoring_log = self.mb.scoring_log()
-            self.scoring_log_consumer = scoring_log.consumer()
-            self.queue = self._backend.queue
-            self.strategy_disabled = False
-        else:
-            self.strategy_disabled = True
-        self.spider_log_consumer_batch_size = settings.get('SPIDER_LOG_CONSUMER_BATCH_SIZE')
-        self.scoring_log_consumer_batch_size = settings.get('SCORING_LOG_CONSUMER_BATCH_SIZE')
-        self.spider_feed_partitioning = 'fingerprint' if not settings.get('QUEUE_HOSTNAME_PARTITIONING') else 'hostname'
-        self.max_next_requests = settings.MAX_NEXT_REQUESTS
-        self.slot = Slot(self.new_batch, self.consume_incoming, self.consume_scoring, no_batches,
-                         self.strategy_disabled, settings.get('NEW_BATCH_DELAY'), no_incoming)
-        self.job_id = 0
-        self.stats = {
-            'consumed_since_start': 0,
-            'consumed_scoring_since_start': 0,
-            'pushed_since_start': 0,
-            'consumed_add_seeds': 0,
-            'consumed_page_crawled': 0,
-            'consumed_links_extracted': 0,
-            'consumed_request_error': 0,
-            'consumed_offset': 0
-        }
-        self._logging_task = task.LoopingCall(self.log_status)
+        slot_kwargs = {'no_batches': no_batches,
+                       'no_incoming': no_incoming,
+                       'no_scoring': no_scoring}
+        self.slot = Slot(self, settings, **slot_kwargs)
 
-    def set_process_info(self, process_info):
-        self.process_info = process_info
+        self.stats = defaultdict(int)
+        self._logging_task = task.LoopingCall(self.log_status)
 
     def run(self):
         def debug(sig, frame):
             logger.critical("Signal received: printing stack trace")
             logger.critical(str("").join(format_stack(frame)))
 
-        self.slot.schedule(on_start=True)
-        self._logging_task.start(30)
+        self.slot.schedule()
+        self._logging_task.start(LOGGING_TASK_INTERVAL)
         install_shutdown_handlers(self._handle_shutdown)
         signal(SIGUSR1, debug)
         reactor.run(installSignalHandlers=False)
+
+    # Auxiliary methods
+
+    def update_stats(self, replacements=None, increments=None):
+        if replacements:
+            for key, value in replacements.items():
+                self.stats[key] = value
+        if increments:
+            for key, value in increments.items():
+                self.stats[key] += value
+
+    def set_process_info(self, process_info):
+        self.process_info = process_info
+
+    def log_status(self):
+        for k, v in six.iteritems(self.stats):
+            logger.info("%s=%s", k, v)
+
+    # Graceful shutdown
 
     def _handle_shutdown(self, signum, _):
         def call_shutdown():
@@ -144,12 +153,20 @@ class BaseDBWorker(object):
     def stop_tasks(self):
         logger.info("Stopping periodic tasks.")
         self._logging_task.stop()
-        self.slot.cancel()
 
         d = Deferred()
+        d.addBoth(self._stop_slot)
         d.addBoth(self._perform_shutdown)
         d.addBoth(self._stop_reactor)
         return d
+
+    def _stop_slot(self, _=None):
+        logger.info("Stopping DB worker slot.")
+        return self.slot.stop()
+
+    def _perform_shutdown(self, _=None):
+        logger.info("Stopping frontier manager.")
+        self._manager.stop()
 
     def _stop_reactor(self, _=None):
         logger.info("Stopping reactor.")
@@ -157,178 +174,6 @@ class BaseDBWorker(object):
             reactor.stop()
         except RuntimeError:  # raised if already stopped or in shutdown stage
             pass
-
-    def _perform_shutdown(self, _=None):
-        logger.info("Stopping frontier manager.")
-        self._manager.stop()
-        logger.info("Closing message bus.")
-        if not self.strategy_disabled:
-            self.scoring_log_consumer.close()
-        self.spider_feed_producer.close()
-        self.spider_log_consumer.close()
-
-    def log_status(self):
-        for k, v in six.iteritems(self.stats):
-            logger.info("%s=%s", k, v)
-
-    def disable_new_batches(self):
-        self.slot.no_batches = True
-
-    def enable_new_batches(self):
-        self.slot.no_batches = False
-
-    def consume_incoming(self, *args, **kwargs):
-        consumed = 0
-        for m in self.spider_log_consumer.get_messages(timeout=1.0, count=self.spider_log_consumer_batch_size):
-            try:
-                msg = self._decoder.decode(m)
-            except (KeyError, TypeError) as e:
-                logger.error("Decoding error: %s", e)
-                continue
-            else:
-                try:
-                    type = msg[0]
-                    if type == 'add_seeds':
-                        _, seeds = msg
-                        logger.info('Adding %i seeds', len(seeds))
-                        for seed in seeds:
-                            logger.debug('URL: %s', seed.url)
-                        self._backend.add_seeds(seeds)
-                        self.stats['consumed_add_seeds'] += 1
-                        continue
-                    if type == 'page_crawled':
-                        _, response = msg
-                        logger.debug("Page crawled %s", response.url)
-                        if b'jid' not in response.meta or response.meta[b'jid'] != self.job_id:
-                            continue
-                        self._backend.page_crawled(response)
-                        self.stats['consumed_page_crawled'] += 1
-                        continue
-                    if type == 'links_extracted':
-                        _, request, links = msg
-                        logger.debug("Links extracted %s (%d)", request.url, len(links))
-                        if b'jid' not in request.meta or request.meta[b'jid'] != self.job_id:
-                            continue
-                        self._backend.links_extracted(request, links)
-                        self.stats['consumed_links_extracted'] += 1
-                        continue
-                    if type == 'request_error':
-                        _, request, error = msg
-                        logger.debug("Request error %s", request.url)
-                        if b'jid' not in request.meta or request.meta[b'jid'] != self.job_id:
-                            continue
-                        self._backend.request_error(request, error)
-                        self.stats['consumed_request_error'] += 1
-                        continue
-                    if type == 'offset':
-                        _, partition_id, offset = msg
-                        producer_offset = self.spider_feed_producer.get_offset(partition_id)
-                        if producer_offset is None:
-                            continue
-                        else:
-                            lag = producer_offset - offset
-                            if lag < 0:
-                                # non-sense in general, happens when SW is restarted and not synced yet with Spiders.
-                                continue
-                            if lag < self.max_next_requests or offset == 0:
-                                self.spider_feed.mark_ready(partition_id)
-                            else:
-                                self.spider_feed.mark_busy(partition_id)
-                        self.stats['consumed_offset'] += 1
-                        continue
-                    logger.debug('Unknown message type %s', type)
-                except Exception as exc:
-                    logger.exception(exc)
-                    if logger.isEnabledFor(logging.DEBUG):
-                        logger.debug("Message caused the error %s", str(msg))
-                    continue
-            finally:
-                consumed += 1
-        """
-        # TODO: Think how it should be implemented in DB-worker only mode.
-        if not self.strategy_disabled and self._backend.finished():
-            logger.info("Crawling is finished.")
-            reactor.stop()
-        """
-        self.stats['consumed_since_start'] += consumed
-        self.stats['last_consumed'] = consumed
-        self.stats['last_consumption_run'] = asctime()
-        self.slot.schedule()
-        return consumed
-
-    def consume_scoring(self, *args, **kwargs):
-        consumed = 0
-        seen = set()
-        batch = []
-        for m in self.scoring_log_consumer.get_messages(count=self.scoring_log_consumer_batch_size):
-            try:
-                msg = self._decoder.decode(m)
-            except (KeyError, TypeError) as e:
-                logger.error("Decoding error: %s", e)
-                continue
-            else:
-                if msg[0] == 'update_score':
-                    _, request, score, schedule = msg
-                    if request.meta[b'fingerprint'] not in seen:
-                        batch.append((request.meta[b'fingerprint'], score, request, schedule))
-                        seen.add(request.meta[b'fingerprint'])
-                if msg[0] == 'new_job_id':
-                    self.job_id = msg[1]
-            finally:
-                consumed += 1
-        self.queue.schedule(batch)
-
-        self.stats['consumed_scoring_since_start'] += consumed
-        self.stats['last_consumed_scoring'] = consumed
-        self.stats['last_consumption_run_scoring'] = asctime()
-        self.slot.schedule()
-
-    def new_batch(self, *args, **kwargs):
-        def get_hostname(request):
-            try:
-                netloc, name, scheme, sld, tld, subdomain = parse_domain_from_url_fast(request.url)
-            except Exception as e:
-                logger.error("URL parsing error %s, fingerprint %s, url %s" % (e, request.meta[b'fingerprint'],
-                                                                               request.url))
-                return None
-            else:
-                return name.encode('utf-8', 'ignore')
-
-        def get_fingerprint(request):
-            return request.meta[b'fingerprint']
-
-        partitions = self.spider_feed.available_partitions()
-        logger.info("Getting new batches for partitions %s" % str(",").join(map(str, partitions)))
-        if not partitions:
-            return 0
-
-        count = 0
-        if self.spider_feed_partitioning == 'hostname':
-            get_key = get_hostname
-        elif self.spider_feed_partitioning == 'fingerprint':
-            get_key = get_fingerprint
-        else:
-            raise Exception("Unexpected value in self.spider_feed_partitioning")
-
-        for request in self._backend.get_next_requests(self.max_next_requests, partitions=partitions):
-            try:
-                request.meta[b'jid'] = self.job_id
-                eo = self._encoder.encode_request(request)
-            except Exception as e:
-                logger.error("Encoding error, %s, fingerprint: %s, url: %s" % (e,
-                                                                               request.meta[b'fingerprint'],
-                                                                               request.url))
-                continue
-            finally:
-                count += 1
-            self.spider_feed_producer.send(get_key(request), eo)
-
-        self.stats['pushed_since_start'] += count
-        self.stats['last_batch_size'] = count
-        self.stats.setdefault('batches_after_start', 0)
-        self.stats['batches_after_start'] += 1
-        self.stats['last_batch_generated'] = asctime()
-        return count
 
 
 class DBWorker(StatsExportMixin, BaseDBWorker):
@@ -377,7 +222,7 @@ if __name__ == '__main__':
         settings.set("JSONRPC_PORT", [args.port])
 
     logging_config_path = settings.get("LOGGING_CONFIG")
-    if logging_config_path and exists(logging_config_path):
+    if logging_config_path and os.path.exists(logging_config_path):
         fileConfig(logging_config_path, disable_existing_loggers=False)
     else:
         logging.basicConfig(level=args.log_level)

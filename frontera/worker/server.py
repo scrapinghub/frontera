@@ -79,9 +79,11 @@ class StatusResource(JsonResource):
         JsonResource.__init__(self)
 
     def render_GET(self, txrequest):
+        batches_disabled_event = self.worker.slot.batches_disabled_event
+        disable_new_batches = batches_disabled_event.is_set() if batches_disabled_event else None
         return {
-            'is_finishing': self.worker.slot.is_finishing,
-            'disable_new_batches': self.worker.slot.no_batches,
+            'is_finishing': self.worker.slot.stop_event.is_set(),
+            'disable_new_batches': disable_new_batches,
             'stats': self.worker.stats
         }
 
@@ -116,11 +118,11 @@ class WorkerJsonRpcResource(JsonRpcResource):
 
     def process_request(self, method, jrequest):
         if method == 'disable_new_batches':
-            self.worker.disable_new_batches()
+            self.worker.slot.manage_new_batches(enable=False)
             return jsonrpc_result(jrequest['id'], "success")
 
         if method == 'enable_new_batches':
-            self.worker.enable_new_batches()
+            self.worker.slot.manage_new_batches(enable=True)
             return jsonrpc_result(jrequest['id'], "success")
         raise JsonRpcError(400, "Unknown method")
 
@@ -148,7 +150,7 @@ class JsonRpcService(server.Site):
     def start_listening(self):
         self.port = listen_tcp(self.portrange, self.host, self)
         h = self.port.getHost()
-        logger.info('Web service listening on %(host)s:%(port)d'.format(host=h.host, port=h.port))
+        logger.info('Web service listening on {host}:{port}'.format(host=h.host, port=h.port))
 
     def stop_listening(self):
         self.port.stopListening()
