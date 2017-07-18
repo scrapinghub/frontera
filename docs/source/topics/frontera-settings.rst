@@ -637,6 +637,24 @@ Default: ``None``
 Kafka-python 1.0.x version compression codec to use, is a string or None and could be one of ``snappy``, ``gzip`` or
 ``lz4``.
 
+.. setting:: KAFKA_ENABLE_SSL
+
+KAFKA_ENABLE_SSL
+----------------
+
+Default: ``False``
+
+Boolean to enable Kafka SSL authentication.
+
+.. setting:: KAFKA_CERT_PATH
+
+KAFKA_CERT_PATH
+---------------
+
+Default: ``None``
+
+OS path to a folder with SSL certificates.
+
 .. setting:: SPIDER_LOG_DBW_GROUP
 
 SPIDER_LOG_DBW_GROUP

@@ -78,3 +78,5 @@ SCORING_LOG_DBW_GROUP = "dbw-scoring-log"
 SPIDER_FEED_GROUP = "fetchers-spider-feed"
 
 KAFKA_CODEC = None
+KAFKA_CERT_PATH = None
+KAFKA_ENABLE_SSL = False
