@@ -9,10 +9,10 @@ def test_fingerprint_partitioner():
     fp = FingerprintPartitioner(partitions)
     key = '1be68ff556fd0bbe5802d1a100850da29f7f15b1'
     partition = fp.partition(key, partitions)
-    assert partition == 4
+    assert partition == 2
 
     partition = fp.partition(key, None)
-    assert partition == 4
+    assert partition == 2
 
 
 def test_crc32name_partitioner():
