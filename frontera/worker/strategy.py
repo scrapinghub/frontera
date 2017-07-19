@@ -13,7 +13,7 @@ from frontera.utils.misc import load_object
 from frontera.core.manager import FrontierManager
 from frontera.logger.handlers import CONSOLE
 from twisted.internet.task import LoopingCall
-from twisted.internet import reactor
+from twisted.internet import reactor, task
 
 from frontera.settings import Settings
 from collections import Iterable
@@ -76,7 +76,7 @@ class StatesContext(object):
 
     def flush(self):
         logger.info("Flushing states")
-        self._states.flush(force_clear=False)
+        self._states.flush()
         logger.info("Flushing of states finished")
 
 
@@ -113,8 +113,7 @@ class StrategyWorker(object):
         self.task = LoopingCall(self.work)
         self._logging_task = LoopingCall(self.log_status)
         self._flush_states_task = LoopingCall(self.flush_states)
-        flush_interval = settings.get("SW_FLUSH_INTERVAL")
-        self._flush_interval = flush_interval + randint(-flush_interval / 2, flush_interval / 2)
+        self._flush_interval = settings.get("SW_FLUSH_INTERVAL")
         logger.info("Strategy worker is initialized and consuming partition %d", partition_id)
 
     def collect_unknown_message(self, msg):
@@ -227,9 +226,13 @@ class StrategyWorker(object):
             log_failure(failure)
             self.task.start(interval=0).addErrback(errback_main)
 
+        def run_flush_states_task():
+            (self._flush_states_task.start(interval=self._flush_interval)
+                                    .addErrback(errback_flush_states))
+
         def errback_flush_states(failure):
             log_failure(failure)
-            self._flush_states_task.start(interval=300).addErrback(errback_flush_states)
+            run_flush_states_task()
 
         def debug(sig, frame):
             logger.critical("Signal received: printing stack trace")
@@ -237,7 +240,10 @@ class StrategyWorker(object):
 
         self.task.start(interval=0).addErrback(errback_main)
         self._logging_task.start(interval=30)
-        self._flush_states_task.start(interval=self._flush_interval).addErrback(errback_flush_states)
+        # run flushing states LoopingCall with random delay
+        flush_states_task_delay = randint(0, self._flush_interval)
+        logger.info("Starting flush-states task in %d seconds", flush_states_task_delay)
+        task.deferLater(reactor, flush_states_task_delay, run_flush_states_task)
         signal(SIGUSR1, debug)
         reactor.addSystemEventTrigger('before', 'shutdown', self.stop)
         reactor.run()

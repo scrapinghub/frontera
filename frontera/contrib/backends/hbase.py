@@ -13,6 +13,7 @@ from msgpack import Unpacker, Packer
 import six
 from six.moves import range
 from w3lib.util import to_bytes
+from cachetools import LRUCache
 
 from struct import pack, unpack
 from datetime import datetime
@@ -272,45 +273,37 @@ class HBaseQueue(Queue):
 
 class HBaseState(States):
 
-    def __init__(self, connection, table_name, cache_size_limit):
+    def __init__(self, connection, table_name, cache_size_limit, write_log_size):
         self.connection = connection
         self._table_name = table_name
         self.logger = logging.getLogger("hbase.states")
-        self._state_cache = {}
-        self._cache_size_limit = cache_size_limit
+        self._state_cache = LRUCache(maxsize=cache_size_limit)
+        self._state_batch = self.connection.table(
+            self._table_name).batch(batch_size=write_log_size)
 
     def update_cache(self, objs):
         objs = objs if isinstance(objs, Iterable) else [objs]
-
-        def put(obj):
-            self._state_cache[obj.meta[b'fingerprint']] = obj.meta[b'state']
-        [put(obj) for obj in objs]
+        for obj in objs:
+            fingerprint, state = obj.meta[b'fingerprint'], obj.meta[b'state']
+            # prepare & write state change to happybase batch
+            self._state_batch.put(unhexlify(fingerprint), prepare_hbase_object(state=state))
+            # update LRU cache with the state update
+            self._state_cache[fingerprint] = state
 
     def set_states(self, objs):
         objs = objs if isinstance(objs, Iterable) else [objs]
+        for obj in objs:
+            obj.meta[b'state'] = self._state_cache.get(obj.meta[b'fingerprint'], States.DEFAULT)
 
-        def get(obj):
-            fprint = obj.meta[b'fingerprint']
-            obj.meta[b'state'] = self._state_cache[fprint] if fprint in self._state_cache else States.DEFAULT
-        [get(obj) for obj in objs]
-
-    def flush(self, force_clear):
-        if len(self._state_cache) > self._cache_size_limit:
-            force_clear = True
-        table = self.connection.table(self._table_name)
-        for chunk in chunks(list(self._state_cache.items()), 32768):
-            with table.batch(transaction=True) as b:
-                for fprint, state in chunk:
-                    hb_obj = prepare_hbase_object(state=state)
-                    b.put(unhexlify(fprint), hb_obj)
-        if force_clear:
-            self.logger.debug("Cache has %d requests, clearing" % len(self._state_cache))
-            self._state_cache.clear()
+    def flush(self):
+        self._state_batch.send()
 
     def fetch(self, fingerprints):
         to_fetch = [f for f in fingerprints if f not in self._state_cache]
-        self.logger.debug("cache size %s" % len(self._state_cache))
-        self.logger.debug("to fetch %d from %d" % (len(to_fetch), len(fingerprints)))
+        if not to_fetch:
+            return
+        self.logger.debug('Fetching %d/%d elements from HBase (cache size %d)',
+                          len(to_fetch), len(fingerprints), len(self._state_cache))
         for chunk in chunks(to_fetch, 65536):
             keys = [unhexlify(fprint) for fprint in chunk]
             table = self.connection.table(self._table_name)
@@ -428,8 +421,10 @@ class HBaseBackend(DistributedBackend):
     def strategy_worker(cls, manager):
         o = cls(manager)
         settings = manager.settings
-        o._states = HBaseState(o.connection, settings.get('HBASE_METADATA_TABLE'),
-                               settings.get('HBASE_STATE_CACHE_SIZE_LIMIT'))
+        o._states = HBaseState(connection=o.connection,
+                               table_name=settings.get('HBASE_METADATA_TABLE'),
+                               cache_size_limit=settings.get('HBASE_STATE_CACHE_SIZE_LIMIT'),
+                               write_log_size=settings.get('HBASE_STATE_WRITE_LOG_SIZE'))
         return o
 
     @classmethod

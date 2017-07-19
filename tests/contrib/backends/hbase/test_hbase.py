@@ -1,14 +1,18 @@
 from __future__ import absolute_import
+
+from time import time
+from binascii import unhexlify
+
+import pytest
 from happybase import Connection
+from w3lib.util import to_native_str
 from Hbase_thrift import AlreadyExists  # module loaded at runtime in happybase
+
 from frontera.contrib.backends.hbase import HBaseState, HBaseMetadata, HBaseQueue
 from frontera.core.models import Request, Response
 from frontera.core.components import States
-from binascii import unhexlify
-from time import time
-from w3lib.util import to_native_str
 from tests import mock
-import pytest
+
 
 r1 = Request('https://www.example.com', meta={b'fingerprint': b'10',
              b'domain': {b'name': b'www.example.com', b'fingerprint': b'81'}})
@@ -43,7 +47,8 @@ class TestHBaseBackend(object):
 
     def test_queue(self):
         connection = Connection(host='hbase-docker', port=9090)
-        queue = HBaseQueue(connection, 2, b'queue', True)
+        queue = HBaseQueue(connection=connection, partitions=2,
+                           table_name=b'queue', drop=True)
         batch = [('10', 0.5, r1, True), ('11', 0.6, r2, True),
                  ('12', 0.7, r3, True)]
         queue.schedule(batch)
@@ -55,7 +60,7 @@ class TestHBaseBackend(object):
     @pytest.mark.xfail
     def test_queue_with_delay(self):
         connection = Connection(host='hbase-docker', port=9090)
-        queue = HBaseQueue(connection, 1, b'queue', True)
+        queue = HBaseQueue(connection, 1, b'queue', drop=True)
         r5 = r3.copy()
         crawl_at = int(time()) + 1000
         r5.meta[b'crawl_at'] = crawl_at
@@ -71,28 +76,38 @@ class TestHBaseBackend(object):
 
     def test_state(self):
         connection = Connection(host='hbase-docker', port=9090)
-        state = HBaseState(connection, b'metadata', 300000)
+        state = HBaseState(connection=connection, table_name=b'metadata',
+                           cache_size_limit=5, write_log_size=2)
+        # validate default states if entries are not cached yet
         state.set_states([r1, r2, r3])
-        assert [r.meta[b'state'] for r in [r1, r2, r3]] == [States.NOT_CRAWLED]*3
+        assert [r.meta[b'state'] for r in [r1, r2, r3]] == [States.NOT_CRAWLED] * 3
+        # write object states to write log and LRU
         state.update_cache([r1, r2, r3])
-        assert state._state_cache == {b'10': States.NOT_CRAWLED,
-                                      b'11': States.NOT_CRAWLED,
-                                      b'12': States.NOT_CRAWLED}
+        assert dict(state._state_cache) == {b'10': States.NOT_CRAWLED,
+                                            b'11': States.NOT_CRAWLED,
+                                            b'12': States.NOT_CRAWLED}
+        assert state._state_batch._mutation_count == 1
+        state.update_cache([r1])
+        # validate auto-flush works on filling write log
+        assert state._state_batch._mutation_count == 0
+        assert len(state._state_cache) == 3
         r1.meta[b'state'] = States.CRAWLED
         r2.meta[b'state'] = States.CRAWLED
         r3.meta[b'state'] = States.CRAWLED
+
         state.update_cache([r1, r2, r3])
-        state.flush(True)
-        assert state._state_cache == {}
+        assert state._state_batch._mutation_count == 1
+        state.flush()
+        assert state._state_batch._mutation_count == 0
         state.fetch([b'10', b'11', b'12'])
-        assert state._state_cache == {b'10': States.CRAWLED,
-                                      b'11': States.CRAWLED,
-                                      b'12': States.CRAWLED}
+        assert dict(state._state_cache) == {b'10': States.CRAWLED,
+                                            b'11': States.CRAWLED,
+                                            b'12': States.CRAWLED}
         r4.meta[b'state'] = States.ERROR
         state.set_states([r1, r2, r4])
         assert r4.meta[b'state'] == States.CRAWLED
-        state.flush(True)
-        assert state._state_cache == {}
+        state.flush()
+        assert state._state_batch._mutation_count == 0
 
     def test_drop_all_tables_when_table_name_is_str(self):
         connection = Connection(host='hbase-docker', port=9090)

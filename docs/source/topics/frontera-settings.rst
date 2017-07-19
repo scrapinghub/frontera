@@ -355,10 +355,10 @@ Determines if content should be sent over the message bus and stored in the back
 SW_FLUSH_INTERVAL
 -----------------
 
-Default: ``900``
+Default: ``300``
 
-Mean interval between flushing of states in :term:`strategy worker`. Selected randomly using formula
-SW_FLUSH_INTERVAL + RANDINT(-SW_FLUSH_INTERVAL/2, SW_FLUSH_INTERVAL/2)
+Interval between flushing of states in :term:`strategy worker`. Also used to set initial random delay to flush states
+periodically, using formula ``RANDINT(SW_FLUSH_INTERVAL)``.
 
 .. setting:: TEST_MODE
 
@@ -546,6 +546,16 @@ Default: ``queue``
 
 Name of HBase priority queue table.
 
+.. settings:: HBASE_STATE_WRITE_LOG_SIZE
+
+HBASE_STATE_WRITE_LOG_SIZE
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Default: ``15000``
+
+Number of state changes in the :term:`state cache` of :term:`strategy worker`,
+before it get's flushed to HBase and cleared.
+
 .. setting:: HBASE_STATE_CACHE_SIZE_LIMIT
 
 HBASE_STATE_CACHE_SIZE_LIMIT
@@ -553,7 +563,9 @@ HBASE_STATE_CACHE_SIZE_LIMIT
 
 Default: ``3000000``
 
-Number of items in the :term:`state cache` of :term:`strategy worker`, before it get's flushed to HBase and cleared.
+Number of cached state changes in the :term:`state cache` of :term:`strategy worker`.
+Internally there is ``cachetools.LRUCache`` storing all the recent state changes,
+discarding least recently used when the cache gets over its capacity.
 
 .. setting:: HBASE_THRIFT_HOST
 
