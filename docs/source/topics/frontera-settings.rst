@@ -350,6 +350,16 @@ Default: ``False``
 
 Determines if content should be sent over the message bus and stored in the backend: a serious performance killer.
 
+.. setting:: SW_FLUSH_INTERVAL
+
+SW_FLUSH_INTERVAL
+-----------------
+
+Default: ``900``
+
+Mean interval between flushing of states in :term:`strategy worker`. Selected randomly using formula
+SW_FLUSH_INTERVAL + RANDINT(-SW_FLUSH_INTERVAL/2, SW_FLUSH_INTERVAL/2)
+
 .. setting:: TEST_MODE
 
 TEST_MODE
@@ -358,8 +368,6 @@ TEST_MODE
 Default: ``False``
 
 Whether to enable frontier test mode. See :ref:`Frontier test mode <frontier-test-mode>`
-
-
 
 
 Built-in fingerprint middleware settings

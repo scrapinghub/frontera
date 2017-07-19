@@ -7,6 +7,7 @@ from signal import signal, SIGUSR1
 from logging.config import fileConfig
 from argparse import ArgumentParser
 from os.path import exists
+from random import randint
 from frontera.utils.misc import load_object
 
 from frontera.core.manager import FrontierManager
@@ -112,6 +113,8 @@ class StrategyWorker(object):
         self.task = LoopingCall(self.work)
         self._logging_task = LoopingCall(self.log_status)
         self._flush_states_task = LoopingCall(self.flush_states)
+        flush_interval = settings.get("SW_FLUSH_INTERVAL")
+        self._flush_interval = flush_interval + randint(-flush_interval / 2, flush_interval / 2)
         logger.info("Strategy worker is initialized and consuming partition %d", partition_id)
 
     def collect_unknown_message(self, msg):
@@ -234,7 +237,7 @@ class StrategyWorker(object):
 
         self.task.start(interval=0).addErrback(errback_main)
         self._logging_task.start(interval=30)
-        self._flush_states_task.start(interval=300).addErrback(errback_flush_states)
+        self._flush_states_task.start(interval=self._flush_interval).addErrback(errback_flush_states)
         signal(SIGUSR1, debug)
         reactor.addSystemEventTrigger('before', 'shutdown', self.stop)
         reactor.run()
