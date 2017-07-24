@@ -5,10 +5,10 @@ from time import asctime
 
 from frontera.exceptions import NotConfigured
 from frontera.core.components import DistributedBackend
-from . import DBWorkerComponent
+from . import DBWorkerPeriodicComponent
 
 
-class ScoringConsumer(DBWorkerComponent):
+class ScoringConsumer(DBWorkerPeriodicComponent):
     """Component to get data from scoring log and send it to backend queue."""
 
     NAME = 'scoring'
@@ -46,9 +46,9 @@ class ScoringConsumer(DBWorkerComponent):
             finally:
                 consumed += 1
         self.backend_queue.schedule(batch)
-        self.update_stats(increments={'consumed_scoring_since_start': consumed},
-                          replacements={'last_consumed_scoring': consumed,
-                                        'last_consumption_run_scoring': asctime()})
+        self.worker.update_stats(increments={'consumed_scoring_since_start': consumed},
+                                 replacements={'last_consumed_scoring': consumed,
+                                               'last_consumption_run_scoring': asctime()})
 
-    def close(self):
+    def stop(self):
         self.scoring_log_consumer.close()

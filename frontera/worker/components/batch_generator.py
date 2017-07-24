@@ -8,10 +8,10 @@ from six.moves import map
 
 from frontera.exceptions import NotConfigured
 from frontera.utils.url import parse_domain_from_url_fast
-from . import DBWorkerComponent
+from . import DBWorkerThreadComponent
 
 
-class BatchGenerator(DBWorkerComponent):
+class BatchGenerator(DBWorkerThreadComponent):
     """Component to get data from backend and send it to spider feed log."""
 
     NAME = 'batchgen'
@@ -80,7 +80,7 @@ class BatchGenerator(DBWorkerComponent):
                 return True
         return False
 
-    def close(self):
+    def stop(self):
         self.spider_feed_producer.close()
 
     # --------------------------- Auxiliary tools --------------------------------

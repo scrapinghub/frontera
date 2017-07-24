@@ -5,10 +5,10 @@ from time import asctime
 from collections import defaultdict
 
 from frontera.exceptions import NotConfigured
-from . import DBWorkerComponent
+from . import DBWorkerPeriodicComponent
 
 
-class IncomingConsumer(DBWorkerComponent):
+class IncomingConsumer(DBWorkerPeriodicComponent):
     """Component to get data from spider log and handle it with backend."""
 
     NAME = 'incoming'
@@ -51,9 +51,9 @@ class IncomingConsumer(DBWorkerComponent):
         """
         stats_increments = {'consumed_since_start': consumed}
         stats_increments.update(stats)
-        self.update_stats(increments=stats_increments,
-                          replacements={'last_consumed': consumed,
-                                        'last_consumption_run': asctime()})
+        self.worker.update_stats(increments=stats_increments,
+                                 replacements={'last_consumed': consumed,
+                                               'last_consumption_run': asctime()})
 
     def _handle_message(self, msg, stats):
         """Base logic to safely handle a message."""
@@ -116,6 +116,6 @@ class IncomingConsumer(DBWorkerComponent):
         else:
             self.logger.debug('Unknown message type %s', msg[0])
 
-    def close(self):
+    def stop(self):
         self.spider_feed_producer.close()
         self.spider_log_consumer.close()

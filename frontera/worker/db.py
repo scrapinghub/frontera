@@ -53,7 +53,7 @@ class Slot(object):
         components = {}
         for cls in ALL_COMPONENTS:
             try:
-                component = cls(worker, settings, self.stop_event, **kwargs)
+                component = cls(worker, settings, stop_event=self.stop_event, **kwargs)
             except NotConfigured:
                 logger.info("Component {} is disabled".format(cls.NAME))
             else:
@@ -63,10 +63,13 @@ class Slot(object):
         return components
 
     def schedule(self):
-        components = [component.schedule() for component in self.components.values()]
-        self._deferred = defer.DeferredList(components)
+        # component.schedule() function must return None or Deferred
+        deferred = filter(None, (component.schedule() for component in self.components.values()))
+        self._deferred = defer.DeferredList(deferred)
 
     def stop(self):
+        for component in self.components.values():
+            component.stop()
         if self._deferred:
             # set stop flag and return a defferred connected with all running threads
             self.stop_event.set()
