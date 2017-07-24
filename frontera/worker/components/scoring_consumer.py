@@ -50,5 +50,5 @@ class ScoringConsumer(DBWorkerPeriodicComponent):
                                  replacements={'last_consumed_scoring': consumed,
                                                'last_consumption_run_scoring': asctime()})
 
-    def stop(self):
+    def close(self):
         self.scoring_log_consumer.close()

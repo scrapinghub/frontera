@@ -80,7 +80,7 @@ class BatchGenerator(DBWorkerThreadComponent):
                 return True
         return False
 
-    def stop(self):
+    def close(self):
         self.spider_feed_producer.close()
 
     # --------------------------- Auxiliary tools --------------------------------

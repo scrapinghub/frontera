@@ -116,6 +116,6 @@ class IncomingConsumer(DBWorkerPeriodicComponent):
         else:
             self.logger.debug('Unknown message type %s', msg[0])
 
-    def stop(self):
+    def close(self):
         self.spider_feed_producer.close()
         self.spider_log_consumer.close()

@@ -64,16 +64,19 @@ class Slot(object):
 
     def schedule(self):
         # component.schedule() function must return None or Deferred
-        deferred = filter(None, (component.schedule() for component in self.components.values()))
+        scheduled = [component.schedule() for component in self.components.values()]
+        deferred = [result for result in scheduled if isinstance(result, Deferred)]
         self._deferred = defer.DeferredList(deferred)
 
     def stop(self):
-        for component in self.components.values():
-            component.stop()
+        """Set stop flag and return a defferred connected with all running threads."""
+        self.stop_event.set()
         if self._deferred:
-            # set stop flag and return a defferred connected with all running threads
-            self.stop_event.set()
             return self._deferred
+
+    def close(self):
+        for component in self.components.values():
+            component.close()
 
     # Additional functions to manage specific components
 
@@ -160,6 +163,7 @@ class BaseDBWorker(object):
 
         d = Deferred()
         d.addBoth(self._stop_slot)
+        d.addBoth(self._close_slot)
         d.addBoth(self._perform_shutdown)
         d.addBoth(self._stop_reactor)
         return d
@@ -167,6 +171,10 @@ class BaseDBWorker(object):
     def _stop_slot(self, _=None):
         logger.info("Stopping DB worker slot.")
         return self.slot.stop()
+
+    def _close_slot(self, _=None):
+        logger.info('Closing DB worker slot resources.')
+        self.slot.close()
 
     def _perform_shutdown(self, _=None):
         logger.info("Stopping frontier manager.")

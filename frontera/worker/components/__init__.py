@@ -15,9 +15,10 @@ class DBWorkerBaseComponent(object):
 
     NAME = None
 
-    def __init__(self, worker, settings):
+    def __init__(self, worker, settings, stop_event):
         self.worker = worker
         self.settings = settings
+        self.stop_event = stop_event
         self.logger = logging.getLogger('db-worker.{}'.format(self.NAME))
 
     def schedule(self, delay=0):
@@ -30,33 +31,33 @@ class DBWorkerBaseComponent(object):
         """Iteration logic, must be implemented in a subclass."""
         raise NotImplementedError
 
-    def stop(self):
-        """Optional stop logic called by the reactor thread."""
+    def close(self):
+        """Optional cleanup logic when component loop is stopped."""
 
 
 class DBWorkerPeriodicComponent(DBWorkerBaseComponent):
 
-    def __init__(self, worker, settings, *args, **kwargs):
-        super(DBWorkerPeriodicComponent, self).__init__(worker, settings)
-        self.periodic_task = CallLaterOnce(self.run_with_callback)
+    def __init__(self, worker, settings, stop_event, *args, **kwargs):
+        super(DBWorkerPeriodicComponent, self).__init__(worker, settings, stop_event)
+        self.periodic_task = CallLaterOnce(self.run_and_reschedule)
         self.periodic_task.setErrback(self.run_errback)
 
     def schedule(self, delay=0):
-        self.logger.info('Periodic scheduled!')
         self.periodic_task.schedule(delay)
 
-    def run_with_callback(self):
-        self.logger.info('Run with callback!')
-        self.run()
-        self.periodic_task.schedule()
-        self.logger.info('Scheduled again!')
+    def run_and_reschedule(self):
+        if not self.stopped:
+            self.run()
+            self.periodic_task.schedule()
 
     def run_errback(self, failure):
         self.logger.exception(failure.value)
-        self.periodic_task.schedule()
+        if not self.stopped:
+            self.periodic_task.schedule()
 
-    def stop(self):
-        self.periodic_task.cancel()
+    @property
+    def stopped(self):
+        return self.stop_event.is_set()
 
 
 class DBWorkerThreadComponent(DBWorkerBaseComponent):
@@ -67,7 +68,7 @@ class DBWorkerThreadComponent(DBWorkerBaseComponent):
     """
 
     def __init__(self, worker, settings, stop_event, *args, **kwargs):
-        self.stop_event = stop_event
+        super(DBWorkerThreadComponent, self).__init__(worker, settings, stop_event)
         self.run_backoff = 0  # replace it with a proper value in subclass
 
     def schedule(self):
@@ -76,7 +77,6 @@ class DBWorkerThreadComponent(DBWorkerBaseComponent):
     def loop(self):
         """Main entrypoint for the thread running loop."""
         while not self.stop_event.is_set():
-            self.logger.info('Thread iteration!')
             try:
                 self.run()
             except Exception as exc:
