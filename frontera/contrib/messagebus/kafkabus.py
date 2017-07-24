@@ -116,6 +116,7 @@ class SimpleProducer(BaseStreamProducer):
         self._producer = KafkaProducer(bootstrap_servers=self._location,
                                        retries=5,
                                        compression_type=self._compression,
+                                       max_request_size=4 * 1024 * 1024,
                                        **kwargs)
 
     def send(self, key, *messages):
@@ -140,6 +141,7 @@ class KeyedProducer(BaseStreamProducer):
                                        partitioner=partitioner,
                                        retries=5,
                                        compression_type=self._compression,
+                                       max_request_size=4 * 1024 * 1024,
                                        **kwargs)
 
     def send(self, key, *messages):
