@@ -66,13 +66,12 @@ class Slot(object):
         # component.schedule() function must return None or Deferred
         scheduled = [component.schedule() for component in self.components.values()]
         deferred = [result for result in scheduled if isinstance(result, Deferred)]
-        self._deferred = defer.DeferredList(deferred)
+        self._deferred = defer.DeferredList(deferred) if deferred else None
 
     def stop(self):
         """Set stop flag and return a defferred connected with all running threads."""
         self.stop_event.set()
-        if self._deferred:
-            return self._deferred
+        return self._deferred if self._deferred else None
 
     def close(self):
         for component in self.components.values():
