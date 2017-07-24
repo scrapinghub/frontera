@@ -110,6 +110,7 @@ class BaseDBWorker(object):
         self.slot = Slot(self, settings, **slot_kwargs)
 
         self.stats = defaultdict(int)
+        self.job_id = None
         self._logging_task = task.LoopingCall(self.log_status)
 
     def run(self):
