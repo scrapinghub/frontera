@@ -37,11 +37,11 @@ class BatchGenerator(DBWorkerThreadComponent):
 
     def run(self):
         if self.disabled_event.is_set():
-            return
+            return True
 
         partitions = self.spider_feed.available_partitions()
         if not partitions:
-            return
+            return True
         self.logger.info("Getting new batches for partitions %s",
                          str(",").join(map(str, partitions)))
 

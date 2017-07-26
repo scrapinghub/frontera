@@ -78,17 +78,21 @@ class DBWorkerThreadComponent(DBWorkerBaseComponent):
         """Main entrypoint for the thread running loop."""
         while not self.stop_event.is_set():
             try:
-                self.run()
+                is_backoff_needed = self.run()
             except Exception as exc:
                 self.logger.exception('Exception in the main loop')
-            if self.run_backoff:
-                self.logger.debug('Sleep for {} seconds before next run()'
-                                  .format(self.run_backoff))
-                time.sleep(self.run_backoff)
+            else:
+                if is_backoff_needed and self.run_backoff:
+                    delay_msg = 'Sleep for {} seconds before next run()'
+                    self.logger.debug(delay_msg.format(self.run_backoff))
+                    time.sleep(self.run_backoff)
         self.logger.debug("Main loop was stopped")
 
     def run(self):
-        """Logic for single iteration of the component."""
+        """Logic for single iteration of the component.
+
+        The method must return True-ish value if backoff is needed between iteration.
+        """
         raise NotImplementedError
 
     def update_stats(self, **kwargs):
