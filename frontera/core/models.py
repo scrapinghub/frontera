@@ -83,6 +83,10 @@ class Request(FrontierObject):
                                                                                str(self.meta), str(self.body[:20]),
                                                                                str(self.cookies), str(self.headers))
 
+    def __hash__(self):
+        return hash(self.meta[b'fingerprint'])
+
+
     __repr__ = __str__
 
 
