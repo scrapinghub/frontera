@@ -61,7 +61,8 @@ class BatchGenerator(DBWorkerThreadComponent):
                 self.spider_feed_producer.send(self.get_key_function(request), eo)
             finally:
                 count += 1
-
+        if not count:
+            return True
         self.update_stats(increments={'pushed_since_start': count, 'batches_after_start': 1},
                           replacements={'last_batch_size': count,
                                         'last_batch_generated': asctime()})
