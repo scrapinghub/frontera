@@ -32,6 +32,7 @@ MIDDLEWARES = [
     'frontera.contrib.middlewares.fingerprint.UrlFingerprintMiddleware',
 ]
 NEW_BATCH_DELAY = 30.0
+BATCH_PARTITIONS = None
 DOMAINS_BLACKLIST = None
 OVERUSED_SLOT_FACTOR = 5.0
 OVERUSED_MAX_PER_KEY = None

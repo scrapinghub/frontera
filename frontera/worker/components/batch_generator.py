@@ -32,14 +32,20 @@ class BatchGenerator(DBWorkerThreadComponent):
 
         self.domains_blacklist = settings.get('DOMAINS_BLACKLIST')
         self.max_next_requests = settings.MAX_NEXT_REQUESTS
+        self.partitions = settings.get('BATCH_PARTITIONS')
         # create an event to disable/enable batches generation via RPC
         self.disabled_event = threading.Event()
+
+    def get_partitions(self):
+        pending_partitions = self.spider_feed.available_partitions()
+        if not self.partitions:
+            return pending_partitions
+        return list(set(pending_partitions) & set(self.partitions))
 
     def run(self):
         if self.disabled_event.is_set():
             return True
-
-        partitions = self.spider_feed.available_partitions()
+        partitions = self.get_partitions()
         if not partitions:
             return True
         self.logger.info("Getting new batches for partitions %s",
