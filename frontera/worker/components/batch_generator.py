@@ -16,7 +16,8 @@ class BatchGenerator(DBWorkerThreadComponent):
 
     NAME = 'batchgen'
 
-    def __init__(self, worker, settings, stop_event, no_batches=False, **kwargs):
+    def __init__(self, worker, settings, stop_event,
+                 no_batches=False, partitions=None, **kwargs):
         super(BatchGenerator, self).__init__(worker, settings, stop_event, **kwargs)
         if no_batches:
             raise NotConfigured('BatchGenerator is disabled with --no-batches')
@@ -32,7 +33,7 @@ class BatchGenerator(DBWorkerThreadComponent):
 
         self.domains_blacklist = settings.get('DOMAINS_BLACKLIST')
         self.max_next_requests = settings.MAX_NEXT_REQUESTS
-        self.partitions = settings.get('BATCH_PARTITIONS')
+        self.partitions = partitions
         # create an event to disable/enable batches generation via RPC
         self.disabled_event = threading.Event()
 
