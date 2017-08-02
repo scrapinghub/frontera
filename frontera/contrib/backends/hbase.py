@@ -511,19 +511,17 @@ class HBaseBackend(DistributedBackend):
         raise NotImplementedError
 
     def get_next_requests(self, max_next_requests, **kwargs):
-        next_pages = []
         self.logger.debug("Querying queue table.")
-        partitions = set(kwargs.pop('partitions', []))
-        for partition_id in range(0, self.queue_partitions):
-            if partition_id not in partitions:
-                continue
-            results = self.queue.get_next_requests(max_next_requests, partition_id,
-                                                   min_requests=self._min_requests,
-                                                   min_hosts=self._min_hosts,
-                                                   max_requests_per_host=self._max_requests_per_host)
-            next_pages.extend(results)
-            self.logger.debug("Got %d requests for partition id %d", len(results), partition_id)
-        return next_pages
+        for partition_id in set(kwargs.pop('partitions', [])):
+            count = 0
+            for request in self.queue.get_next_requests(
+                    max_next_requests, partition_id,
+                    min_requests=self._min_requests,
+                    min_hosts=self._min_hosts,
+                    max_requests_per_host=self._max_requests_per_host):
+                count += 1
+                yield request
+            self.logger.debug("Got %d requests for partition id %d", count, partition_id)
 
     def get_stats(self):
         """Helper to get stats dictionary for the backend.

@@ -48,12 +48,18 @@ class BatchGenerator(DBWorkerThreadComponent):
         partitions = self.get_partitions()
         if not partitions:
             return True
-        self.logger.info("Getting new batches for partitions %s",
-                         str(",").join(map(str, partitions)))
+        batch_count = sum(self._handle_partition(partition_id)
+                          for partition_id in partitions)
+        # let's count full batches in the same way as before
+        self.update_stats(increments={'batches_after_start': 1},
+                          replacements={'last_batch_size': batch_count,
+                                        'last_batch_generated': asctime()})
 
+    def _handle_partition(self, partition_id):
+        self.logger.info("Getting new batches for partition %d", partition_id)
         count = 0
         for request in self.backend.get_next_requests(self.max_next_requests,
-                                                      partitions=partitions):
+                                                      partitions=[partition_id]):
             if self._is_domain_blacklisted(request):
                 continue
             try:
@@ -67,11 +73,8 @@ class BatchGenerator(DBWorkerThreadComponent):
                 self.spider_feed_producer.send(self.get_key_function(request), eo)
             finally:
                 count += 1
-        if not count:
-            return True
-        self.update_stats(increments={'pushed_since_start': count, 'batches_after_start': 1},
-                          replacements={'last_batch_size': count,
-                                        'last_batch_generated': asctime()})
+        self.update_stats(increments={'pushed_since_start': count})
+        return count
 
     def _is_domain_blacklisted(self, request):
         if not self.domains_blacklist:
