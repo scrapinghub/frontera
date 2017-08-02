@@ -80,7 +80,7 @@ class StatsExportMixin(object):
         # self._encoder is defined as a part of worker initialization
         encoded_msg = self._encoder.encode_stats(stats)
         self.stats_producer.send(stats_key, encoded_msg)
-        logger.info("Sent stats for {} to message bus: {}".format(stats_key, stats))
+        logger.debug("Sent stats for {} to message bus: {}".format(stats_key, stats))
 
     def get_stats(self):
         """Return default stats with a timestamp.
