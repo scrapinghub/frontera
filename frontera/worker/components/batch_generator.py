@@ -37,7 +37,7 @@ class BatchGenerator(DBWorkerThreadComponent):
         # create an event to disable/enable batches generation via RPC
         self.disabled_event = threading.Event()
 
-    def get_partitions(self):
+    def get_ready_partitions(self):
         pending_partitions = self.spider_feed.available_partitions()
         if not self.partitions:
             return pending_partitions
@@ -46,11 +46,13 @@ class BatchGenerator(DBWorkerThreadComponent):
     def run(self):
         if self.disabled_event.is_set():
             return True
-        partitions = self.get_partitions()
+        partitions = self.get_ready_partitions()
         if not partitions:
             return True
         batch_count = sum(self._handle_partition(partition_id)
                           for partition_id in partitions)
+        if not batch_count:
+            return True
         # let's count full batches in the same way as before
         self.update_stats(increments={'batches_after_start': 1},
                           replacements={'last_batch_size': batch_count,
