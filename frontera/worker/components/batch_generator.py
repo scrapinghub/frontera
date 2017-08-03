@@ -56,9 +56,13 @@ class BatchGenerator(DBWorkerThreadComponent):
             except Exception as e:
                 self.logger.error("Encoding error, %s, fingerprint: %s, url: %s" %
                                   (e, self.get_fingerprint(request), request.url))
+                count += 1  # counts as a processed request
                 continue
-            else:
+            try:
                 self.spider_feed_producer.send(self.get_key_function(request), eo)
+            except Exception as exc:
+                self.logger.error("Sending message error, %s, fingerprint: %s, url: %s" %
+                                  (exc, self.get_fingerprint(request), request.url))
             finally:
                 count += 1
         if not count:
