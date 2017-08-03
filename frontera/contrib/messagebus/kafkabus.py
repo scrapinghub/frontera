@@ -16,6 +16,8 @@ from traceback import format_tb
 from os.path import join as os_path_join
 
 
+DEFAULT_MAX_REQUEST_SIZE = 4 * 1024 * 1024
+
 logger = getLogger("messagebus.kafka")
 
 
@@ -105,18 +107,19 @@ class Consumer(BaseStreamConsumer):
 
 
 class SimpleProducer(BaseStreamProducer):
-    def __init__(self, location, enable_ssl, cert_path, topic, compression):
+    def __init__(self, location, enable_ssl, cert_path, topic, compression, **kwargs):
         self._location = location
         self._topic = topic
         self._compression = compression
-        self._create(enable_ssl, cert_path)
+        self._create(enable_ssl, cert_path, **kwargs)
 
-    def _create(self, enable_ssl, cert_path):
-        kwargs = _prepare_kafka_ssl_kwargs(cert_path) if enable_ssl else {}
+    def _create(self, enable_ssl, cert_path, **kwargs):
+        max_request_size = kwargs.pop('max_request_size', DEFAULT_MAX_REQUEST_SIZE)
+        kwargs.update(_prepare_kafka_ssl_kwargs(cert_path) if enable_ssl else {})
         self._producer = KafkaProducer(bootstrap_servers=self._location,
                                        retries=5,
                                        compression_type=self._compression,
-                                       max_request_size=4 * 1024 * 1024,
+                                       max_request_size=max_request_size,
                                        **kwargs)
 
     def send(self, key, *messages):
@@ -131,17 +134,18 @@ class SimpleProducer(BaseStreamProducer):
 
 
 class KeyedProducer(BaseStreamProducer):
-    def __init__(self, location, enable_ssl, cert_path, topic_done, partitioner, compression):
+    def __init__(self, location, enable_ssl, cert_path, topic_done, partitioner, compression, **kwargs):
         self._location = location
         self._topic_done = topic_done
         self._partitioner = partitioner
         self._compression = compression
-        kwargs = _prepare_kafka_ssl_kwargs(cert_path) if enable_ssl else {}
+        max_request_size = kwargs.pop('max_request_size', DEFAULT_MAX_REQUEST_SIZE)
+        kwargs.update(_prepare_kafka_ssl_kwargs(cert_path) if enable_ssl else {})
         self._producer = KafkaProducer(bootstrap_servers=self._location,
                                        partitioner=partitioner,
                                        retries=5,
                                        compression_type=self._compression,
-                                       max_request_size=4 * 1024 * 1024,
+                                       max_request_size=max_request_size,
                                        **kwargs)
 
     def send(self, key, *messages):
@@ -168,7 +172,9 @@ class SpiderLogStream(BaseSpiderLogStream):
 
     def producer(self):
         return KeyedProducer(self._location, self._enable_ssl, self._cert_path, self._topic,
-                             FingerprintPartitioner(self._partitions), self._codec)
+                             FingerprintPartitioner(self._partitions), self._codec,
+                             batch_size=1024 * 1024,
+                             buffer_memory=130 * 1024 * 1024)
 
     def consumer(self, partition_id, type):
         """
@@ -219,7 +225,9 @@ class SpiderFeedStream(BaseSpiderFeedStream):
     def producer(self):
         partitioner = Crc32NamePartitioner(self._partitions) if self._hostname_partitioning \
             else FingerprintPartitioner(self._partitions)
-        return KeyedProducer(self._location, self._enable_ssl, self._cert_path, self._topic, partitioner, self._codec)
+        return KeyedProducer(self._location, self._enable_ssl, self._cert_path, self._topic, partitioner, self._codec,
+                             batch_size=1024 * 1024,
+                             buffer_memory=130 * 1024 * 1024)
 
 
 class ScoringLogStream(BaseScoringLogStream):
@@ -235,7 +243,9 @@ class ScoringLogStream(BaseScoringLogStream):
         return Consumer(self._location, self._enable_ssl, self._cert_path, self._topic, self._group, partition_id=None)
 
     def producer(self):
-        return SimpleProducer(self._location, self._enable_ssl, self._cert_path, self._topic, self._codec)
+        return SimpleProducer(self._location, self._enable_ssl, self._cert_path, self._topic, self._codec,
+                              batch_size=1024 * 1024,
+                              buffer_memory=130 * 1024 * 1024)
 
 
 class StatsLogStream(BaseStatsLogStream, ScoringLogStream):
