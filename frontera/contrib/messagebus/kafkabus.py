@@ -16,6 +16,8 @@ from traceback import format_tb
 from os.path import join as os_path_join
 
 
+DEFAULT_BATCH_SIZE = 1024 * 1024
+DEFAULT_BUFFER_MEMORY = 130 * 1024 * 1024
 DEFAULT_MAX_REQUEST_SIZE = 4 * 1024 * 1024
 
 logger = getLogger("messagebus.kafka")
@@ -173,8 +175,8 @@ class SpiderLogStream(BaseSpiderLogStream):
     def producer(self):
         return KeyedProducer(self._location, self._enable_ssl, self._cert_path, self._topic,
                              FingerprintPartitioner(self._partitions), self._codec,
-                             batch_size=1024 * 1024,
-                             buffer_memory=130 * 1024 * 1024)
+                             batch_size=DEFAULT_BATCH_SIZE,
+                             buffer_memory=DEFAULT_BUFFER_MEMORY)
 
     def consumer(self, partition_id, type):
         """
@@ -226,8 +228,8 @@ class SpiderFeedStream(BaseSpiderFeedStream):
         partitioner = Crc32NamePartitioner(self._partitions) if self._hostname_partitioning \
             else FingerprintPartitioner(self._partitions)
         return KeyedProducer(self._location, self._enable_ssl, self._cert_path, self._topic, partitioner, self._codec,
-                             batch_size=1024 * 1024,
-                             buffer_memory=130 * 1024 * 1024)
+                             batch_size=DEFAULT_BATCH_SIZE,
+                             buffer_memory=DEFAULT_BUFFER_MEMORY)
 
 
 class ScoringLogStream(BaseScoringLogStream):
@@ -244,8 +246,8 @@ class ScoringLogStream(BaseScoringLogStream):
 
     def producer(self):
         return SimpleProducer(self._location, self._enable_ssl, self._cert_path, self._topic, self._codec,
-                              batch_size=1024 * 1024,
-                              buffer_memory=130 * 1024 * 1024)
+                              batch_size=DEFAULT_BATCH_SIZE,
+                              buffer_memory=DEFAULT_BUFFER_MEMORY)
 
 
 class StatsLogStream(BaseStatsLogStream, ScoringLogStream):
