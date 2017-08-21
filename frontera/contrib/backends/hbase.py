@@ -22,7 +22,7 @@ from time import time
 from binascii import hexlify, unhexlify
 from io import BytesIO
 from random import choice
-from collections import Iterable
+from collections import defaultdict, Iterable
 import logging
 
 
@@ -81,10 +81,10 @@ class HBaseQueue(Queue):
             self.connection.delete_table(self.table_name, disable=True)
             tables.remove(self.table_name)
 
-        schema = {'f': {'max_versions': 1}}
-        if use_snappy:
-            schema['f']['compression'] = 'SNAPPY'
         if self.table_name not in tables:
+            schema = {'f': {'max_versions': 1}}
+            if use_snappy:
+                schema['f']['compression'] = 'SNAPPY'
             self.connection.create_table(self.table_name, schema)
 
         class DumbResponse:
@@ -283,6 +283,7 @@ class HBaseState(States):
         self._table_name = to_bytes(table_name)
         self.logger = logging.getLogger("hbase.states")
         self._state_cache = LRUCache(maxsize=cache_size_limit)
+        self._state_cache_stats = defaultdict(int)
         self._state_batch = self.connection.table(
             self._table_name).batch(batch_size=write_log_size)
 
@@ -316,6 +317,8 @@ class HBaseState(States):
 
     def fetch(self, fingerprints):
         to_fetch = [f for f in fingerprints if f not in self._state_cache]
+        self._update_cache_stats(hits=len(fingerprints)-len(to_fetch),
+                                 misses=len(to_fetch))
         if not to_fetch:
             return
         self.logger.debug('Fetching %d/%d elements from HBase (cache size %d)',
@@ -328,6 +331,15 @@ class HBaseState(States):
                 if b's:state' in cells:
                     state = unpack('>B', cells[b's:state'])[0]
                     self._state_cache[hexlify(key)] = state
+
+    def _update_cache_stats(self, hits, misses):
+        self._state_cache_stats['states.cache.hits'] += hits
+        self._state_cache_stats['states.cache.misses'] += misses
+
+    def get_stats(self):
+        stats = self._state_cache_stats.copy()
+        self._state_cache_stats.clear()
+        return stats
 
 
 class HBaseMetadata(Metadata):
@@ -530,5 +542,9 @@ class HBaseBackend(DistributedBackend):
 
         For now it provides only HBase client stats.
         """
+        stats = {}
         with time_elapsed('Call HBase backend get_stats()'):
-            return self.connection.client.get_stats()
+            stats.update(self.connection.client.get_stats())
+        if self._states:
+            stats.update(self._states.get_stats())
+        return stats
