@@ -286,6 +286,7 @@ class HBaseState(States):
         self._state_batch = self.connection.table(
             self._table_name).batch(batch_size=write_log_size)
         self._state_stats = defaultdict(int)
+        self._state_last_updates = 0
 
         tables = set(connection.tables())
         if drop_all_tables and self._table_name in tables:
@@ -306,7 +307,7 @@ class HBaseState(States):
             self._state_batch.put(unhexlify(fingerprint), prepare_hbase_object(state=state))
             # update LRU cache with the state update
             self._state_cache[fingerprint] = state
-            self._state_stats['_state_updates'] += 1
+            self._state_last_updates += 1
         self._update_batch_stats()
 
     def set_states(self, objs):
@@ -335,8 +336,8 @@ class HBaseState(States):
                     self._state_cache[hexlify(key)] = state
 
     def _update_batch_stats(self):
-        new_batches_count, self._state_stats['_state_updates'] = divmod(
-            self._state_stats['_state_updates'], self._state_batch._batch_size)
+        new_batches_count, self._state_last_updates = divmod(
+            self._state_last_updates, self._state_batch._batch_size)
         self._state_stats['states.batches.sent'] += new_batches_count
 
     def _update_cache_stats(self, hits, misses):
@@ -348,8 +349,7 @@ class HBaseState(States):
         self._state_stats['states.cache.ratio'] = total_hits / total if total else 0
 
     def get_stats(self):
-        stats = {stat: value for stat, value in self._state_stats.items()
-                 if not stat.startswith('_')}  # do not report entries with _-prefix
+        stats = self._state_stats.copy()
         self._state_stats.clear()
         return stats
 
