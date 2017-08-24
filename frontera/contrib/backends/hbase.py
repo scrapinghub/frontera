@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 from frontera.utils.url import parse_domain_from_url_fast
 from frontera import DistributedBackend
 from frontera.core.components import Metadata, Queue, States
@@ -333,8 +333,12 @@ class HBaseState(States):
                     self._state_cache[hexlify(key)] = state
 
     def _update_cache_stats(self, hits, misses):
-        self._state_cache_stats['states.cache.hits'] += hits
-        self._state_cache_stats['states.cache.misses'] += misses
+        total_hits = self._state_cache_stats['states.cache.hits'] + hits
+        total_misses = self._state_cache_stats['states.cache.misses'] + misses
+        total = total_hits + total_misses
+        self._state_cache_stats['states.cache.hits'] = total_hits
+        self._state_cache_stats['states.cache.misses'] = total_misses
+        self._state_cache_stats['states.cache.ratio'] = total_hits / total if total else 0
 
     def get_stats(self):
         stats = self._state_cache_stats.copy()
