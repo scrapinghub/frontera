@@ -301,6 +301,20 @@ class RedisQueueTest(TestCase):
         self.assertTrue('https://www.knuthellan.com/a' in urls)
         self.assertFalse('https://www.knuthellan.com/c' in urls)
 
+    def test_get_next_requests_few_items_few_hosts(self):
+        subject = self.setup_subject(2)
+        batch = [
+            ("1", 1, Request("1", int(time()) - 10, 'https://www.knuthellan.com/', domain='knuthellan.com'), True)
+        ]
+        subject.schedule(batch)
+        self.assertEqual(1, subject.count())
+        requests = subject.get_next_requests(1, partition_id=0, min_hosts=2, min_requests=1, max_requests_per_host=5)
+        self.assertEqual(1, len(requests))
+        urls = [request.url for request in requests]
+        self.assertTrue('https://www.knuthellan.com/' in urls)
+        self.assertEqual(0, subject.count())
+
+
 
 class RedisStateTest(TestCase):
     def test_update_cache(self):
