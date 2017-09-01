@@ -52,9 +52,24 @@ class BaseCrawlingStrategy(object):
         """
 
     @abstractmethod
+    def filter_extracted_links(self, request, links):
+        """
+        Called every time on receiving links_extracted event by strategy worker. This call is preceding the call
+        to links_extracted handler and is aiming to filter unused links and return only those where states
+        information is needed.
+
+        :param object request: The :class:`Request <frontera.core.models.Request>` object for the crawled page.
+        :param list links: A list of :class:`Request <frontera.core.models.Request>` objects generated from \
+        the links extracted for the crawled page.
+
+        :return: A subset of :class:`Request <frontera.core.models.Request>` input objects.
+        """
+
+    @abstractmethod
     def links_extracted(self, request, links):
         """
-        Called every time document was successfully crawled, and receiving page_crawled event from spider log.
+        Called every time document was successfully crawled, and receiving links_extracted event from spider log,
+        after the links states are fetched from backend. Should be used to schedule links according to some rules.
 
         :param object request: The :class:`Request <frontera.core.models.Request>` object for the crawled page.
         :param list links: A list of :class:`Request <frontera.core.models.Request>` objects generated from \

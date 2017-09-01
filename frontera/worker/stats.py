@@ -16,7 +16,7 @@ class StatsExportMixin(object):
     you to define your custom logic for get_stats_tags() logic in your child
     classes to store a dictionary with tags as a part of your metrics.
     """
-    STATS_PREFIXES = ['consumed', 'pushed']
+    STATS_PREFIXES = ['consumed', 'pushed', 'dropped']
 
     def __init__(self, settings, *args, **kwargs):
         super(StatsExportMixin, self).__init__(settings, *args, **kwargs)
