@@ -65,6 +65,24 @@ def utcnow_timestamp():
     return timegm(d.timetuple())
 
 
+class LRUCacheWithStats(LRUCache):
+    """Extended version of standard LRUCache with counting stats."""
+
+    EVICTED_STATNAME = 'states.cache.evicted'
+
+    def __init__(self, stats=None, *args, **kwargs):
+        super(LRUCacheWithStats, self).__init__(*args, **kwargs)
+        self._stats = stats
+        if self._stats is not None:
+            self._stats.setdefault(self.EVICTED_STATNAME, 0)
+
+    def popitem(self):
+        key, val = super(LRUCacheWithStats, self).popitem()
+        if self._stats:
+            self._stats[self.EVICTED_STATNAME] += 1
+        return key, val
+
+
 class HBaseQueue(Queue):
 
     GET_RETRIES = 3
@@ -282,10 +300,11 @@ class HBaseState(States):
         self.connection = connection
         self._table_name = to_bytes(table_name)
         self.logger = logging.getLogger("hbase.states")
-        self._state_cache = LRUCache(maxsize=cache_size_limit)
         self._state_batch = self.connection.table(
             self._table_name).batch(batch_size=write_log_size)
         self._state_stats = defaultdict(int)
+        self._state_cache = LRUCacheWithStats(maxsize=cache_size_limit,
+                                              stats=self._state_stats)
         self._state_last_updates = 0
 
         tables = set(connection.tables())
