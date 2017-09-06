@@ -298,14 +298,17 @@ class BaseStrategyWorker(object):
             pass
 
     def _perform_shutdown(self, _=None):
-        self.flush_states()
-        logger.info("Closing crawling strategy.")
-        self.strategy.close()
-        logger.info("Stopping frontier manager.")
-        self._manager.stop()
-        logger.info("Closing message bus.")
-        self.scoring_log_producer.close()
-        self.consumer.close()
+        try:
+            self.flush_states()
+            logger.info("Closing crawling strategy.")
+            self.strategy.close()
+            logger.info("Stopping frontier manager.")
+            self._manager.stop()
+            logger.info("Closing message bus.")
+            self.scoring_log_producer.close()
+            self.consumer.close()
+        except:
+            logger.exception('Error on shutdown')
 
     def on_add_seeds(self, seeds):
         logger.debug('Adding %i seeds', len(seeds))
