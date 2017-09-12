@@ -5,22 +5,43 @@ from binascii import unhexlify
 
 from frontera.core.components import Partitioner
 from frontera.utils.misc import get_crc32
+from frontera.utils.url import parse_domain_from_url_fast
 
 
 class Crc32NamePartitioner(Partitioner):
     def partition(self, key, partitions=None):
+        if not partitions:
+            partitions = self.partitions
         if key is None:
-            return self.partitions[0]
-        value = get_crc32(key)
-        return self.partition_by_hash(value, partitions if partitions else self.partitions)
+            return partitions[0]
+        elif type(key) == int:
+            value = key
+        else:
+            value = get_crc32(key)
+        return self.partition_by_hash(value, partitions)
 
     def partition_by_hash(self, value, partitions):
         size = len(partitions)
         idx = value % size
         return partitions[idx]
 
-    def __call__(self, key, all_partitions, available):
-        return self.partition(key, all_partitions)
+    @staticmethod
+    def get_key(request):
+        domain = request.meta.get(b'domain')
+        if domain is not None:
+            if type(domain) == dict:
+                return domain[b'name']
+            elif type(domain) == int:
+                return domain
+            else:
+                raise TypeError("domain of unknown type.")
+
+        try:
+            _, name, _, _, _, _ = parse_domain_from_url_fast(request.url)
+        except Exception:
+            return None
+        else:
+            return name.encode('utf-8', 'ignore')
 
 
 class FingerprintPartitioner(Partitioner):
@@ -32,5 +53,6 @@ class FingerprintPartitioner(Partitioner):
         idx = value[0] % len(partitions)
         return partitions[idx]
 
-    def __call__(self, key, all_partitions, available):
-        return self.partition(key, all_partitions)
+    @staticmethod
+    def get_key(request):
+        return request.meta[b'fingerprint']

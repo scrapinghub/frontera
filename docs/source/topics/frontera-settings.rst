@@ -332,6 +332,28 @@ Default: ``0``
 
 Per-spider setting, pointing spider to it's assigned partition.
 
+.. setting:: SPIDER_FEED_PARTITIONER
+
+SPIDER_LOG_PARTITIONER
+-----------------------
+
+Default: ``frontera.contrib.backends.partitioners.FingerprintPartitioner``
+
+Partitioner used to calculate a :term:`spider feed` partition id. This affect the distribution of extracted links to the
+spiders. Default value partition based on the request ``fingerprint``. The other available built-in value is
+``frontera.contrib.backends.partitioners.Crc32NamePartitioner`` to partition based on the hostname.
+
+.. setting:: SPIDER_FEED_PARTITIONER
+
+SPIDER_FEED_PARTITIONER
+-----------------------
+
+Default: ``frontera.contrib.backends.partitioners.FingerprintPartitioner``
+
+Partitioner used to calculate a :term:`spider feed` partition id. This affect the distribution of requests to the
+spiders. Default value partition based on the request ``fingerprint``. The other available built-in value is
+``frontera.contrib.backends.partitioners.Crc32NamePartitioner`` to partition based on the hostname.
+
 .. setting:: STATE_CACHE_SIZE
 
 STATE_CACHE_SIZE

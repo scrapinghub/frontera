@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from happybase import Connection
 from Hbase_thrift import AlreadyExists  # module loaded at runtime in happybase
 from frontera.contrib.backends.hbase import HBaseState, HBaseMetadata, HBaseQueue
+from frontera.contrib.backends.partitioners import Crc32NamePartitioner
 from frontera.core.models import Request, Response
 from frontera.core.components import States
 from binascii import unhexlify
@@ -43,7 +44,7 @@ class TestHBaseBackend(object):
 
     def test_queue(self):
         connection = Connection(host='hbase-docker', port=9090)
-        queue = HBaseQueue(connection, 2, b'queue', True)
+        queue = HBaseQueue(connection, Crc32NamePartitioner([0,1]), b'queue', True)
         batch = [('10', 0.5, r1, True), ('11', 0.6, r2, True),
                  ('12', 0.7, r3, True)]
         queue.schedule(batch)
@@ -55,7 +56,7 @@ class TestHBaseBackend(object):
     @pytest.mark.xfail
     def test_queue_with_delay(self):
         connection = Connection(host='hbase-docker', port=9090)
-        queue = HBaseQueue(connection, 1, b'queue', True)
+        queue = HBaseQueue(connection, Crc32NamePartitioner([0]), b'queue', True)
         r5 = r3.copy()
         crawl_at = int(time()) + 1000
         r5.meta[b'crawl_at'] = crawl_at
@@ -105,7 +106,7 @@ class TestHBaseBackend(object):
         tables = connection.tables()
         assert set(tables) == set([b'metadata', b'queue'])  # Failure of test itself
         try:
-            HBaseQueue(connection=connection, partitions=1, table_name=hbase_queue_table, drop=True)
+            HBaseQueue(connection=connection, partitioner=Crc32NamePartitioner([0]), table_name=hbase_queue_table, drop=True)
             HBaseMetadata(connection=connection, table_name=hbase_metadata_table, drop_all_tables=True,
                           use_snappy=False, batch_size=300000, store_content=True)
         except AlreadyExists:

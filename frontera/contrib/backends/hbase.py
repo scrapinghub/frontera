@@ -5,7 +5,7 @@ from frontera import DistributedBackend
 from frontera.core.components import Metadata, Queue, States
 from frontera.core.models import Request
 from frontera.contrib.backends.partitioners import Crc32NamePartitioner
-from frontera.utils.misc import chunks, get_crc32
+from frontera.utils.misc import chunks, get_crc32, load_object
 from frontera.contrib.backends.remote.codecs.msgpack import Decoder, Encoder
 
 from happybase import Connection
@@ -66,10 +66,9 @@ class HBaseQueue(Queue):
 
     GET_RETRIES = 3
 
-    def __init__(self, connection, partitions, table_name, drop=False):
+    def __init__(self, connection, partitioner, table_name, drop=False):
         self.connection = connection
-        self.partitions = [i for i in range(0, partitions)]
-        self.partitioner = Crc32NamePartitioner(self.partitions)
+        self.partitioner = partitioner
         self.logger = logging.getLogger("hbase.queue")
         self.table_name = to_bytes(table_name)
 
@@ -141,14 +140,9 @@ class HBaseQueue(Queue):
         for request, score in batch:
             domain = request.meta[b'domain']
             fingerprint = request.meta[b'fingerprint']
-            if type(domain) == dict:
-                partition_id = self.partitioner.partition(domain[b'name'], self.partitions)
-                host_crc32 = get_crc32(domain[b'name'])
-            elif type(domain) == int:
-                partition_id = self.partitioner.partition_by_hash(domain, self.partitions)
-                host_crc32 = domain
-            else:
-                raise TypeError("domain of unknown type.")
+            key = self.partitioner.get_key(request)
+            partition_id = self.partitioner.partition(key)
+            host_crc32 = domain if type(domain) == int else get_crc32(key)
             item = (unhexlify(fingerprint), host_crc32, self.encoder.encode_request(request), score)
             score = 1 - score  # because of lexicographical sort in HBase
             rk = "%d_%s_%d" % (partition_id, "%0.2f_%0.2f" % get_interval(score, 0.01), random_str)
@@ -406,7 +400,9 @@ class HBaseBackend(DistributedBackend):
         self._min_hosts = settings.get('BC_MIN_HOSTS')
         self._max_requests_per_host = settings.get('BC_MAX_REQUESTS_PER_HOST')
 
-        self.queue_partitions = settings.get('SPIDER_FEED_PARTITIONS')
+        partitions = list(range(settings.get('SPIDER_FEED_PARTITIONS')))
+        partitioner_cls = load_object(settings.get('SPIDER_FEED_PARTITIONER'))
+        self.partitioner = partitioner_cls(partitions)
         host = choice(hosts) if type(hosts) in [list, tuple] else hosts
         kwargs = {
             'host': host,
@@ -437,7 +433,7 @@ class HBaseBackend(DistributedBackend):
         o = cls(manager)
         settings = manager.settings
         drop_all_tables = settings.get('HBASE_DROP_ALL_TABLES')
-        o._queue = HBaseQueue(o.connection, o.queue_partitions,
+        o._queue = HBaseQueue(o.connection, o.partitioner,
                               settings.get('HBASE_QUEUE_TABLE'), drop=drop_all_tables)
         o._metadata = HBaseMetadata(o.connection, settings.get('HBASE_METADATA_TABLE'), drop_all_tables,
                                     settings.get('HBASE_USE_SNAPPY'), settings.get('HBASE_BATCH_SIZE'),
@@ -486,7 +482,7 @@ class HBaseBackend(DistributedBackend):
         next_pages = []
         self.logger.debug("Querying queue table.")
         partitions = set(kwargs.pop('partitions', []))
-        for partition_id in range(0, self.queue_partitions):
+        for partition_id in self.partitioner.partitions:
             if partition_id not in partitions:
                 continue
             results = self.queue.get_next_requests(max_next_requests, partition_id,
