@@ -13,3 +13,5 @@ happybase>=1.0.0
 mock
 boto>=2.42.0
 -r logging.txt
+redis>=2.10.5
+hiredis>=0.2

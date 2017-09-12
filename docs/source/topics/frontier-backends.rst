@@ -286,6 +286,19 @@ tunning a block cache to fit states within one block for average size website. T
     Queue exploration
     shuffling with MR jobs
 
+Redis backend
+^^^^^^^^^^^^^
+
+.. autoclass:: frontera.contrib.backends.redis_backend.RedisBackend
+
+This is similar to the HBase backend. It is suitable for large scale crawlers that still has a limited scope. It is
+recommended to ensure Redis is allowed to use enough memory to store all data the crawler needs. In case of Redis
+running out of memory, the crawler will log this and continue. When the crawler is unable to write metadata or queue
+items to the database; that metadata or queue items are lost.
+
+In case of connection errors; the crawler will attempt to reconnect three times. If the third attempt at connecting
+to Redis fails, the worker will skip that Redis operation and continue operating.
+
 .. _FIFO: http://en.wikipedia.org/wiki/FIFO
 .. _LIFO: http://en.wikipedia.org/wiki/LIFO_(computing)
 .. _DFS: http://en.wikipedia.org/wiki/Depth-first_search
@@ -295,3 +308,4 @@ tunning a block cache to fit states within one block for average size website. T
 .. _SQLAlchemy: http://www.sqlalchemy.org/
 .. _any databases supported by SQLAlchemy: http://docs.sqlalchemy.org/en/latest/dialects/index.html
 .. _declarative sqlalchemy models: http://docs.sqlalchemy.org/en/latest/orm/extensions/declarative/index.html
+

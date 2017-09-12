@@ -71,6 +71,10 @@ setup(
         ],
         'distributed': [
             'Twisted'
+        ],
+        'redis': [
+            'redis>=2.10.5',
+            'hiredis>=0.2'
         ]
     },
     tests_require=[
@@ -84,6 +88,8 @@ setup(
         "mock",
         "boto>=2.42.0",
         "colorlog>=2.4.0",
-        "python-json-logger>=0.1.5"
+        "python-json-logger>=0.1.5",
+        "redis>=2.10.5",
+        "hiredis>=0.2"
     ]
 )

@@ -10,6 +10,7 @@ services:
   - docker
   - mysql
   - postgresql
+  - redis-server
 
 env:
   global:
@@ -26,6 +27,7 @@ matrix:
         - docker
         - mysql
         - postgresql
+        - redis-server
 
 install:
   - pip install -U tox wheel codecov
