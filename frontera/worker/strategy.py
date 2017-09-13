@@ -46,9 +46,7 @@ class UpdateScoreStream(object):
             self.flush()
 
     def flush(self):
-        if self._buffer:
-            self._producer.send(None, *self._buffer)
-            self._buffer = []
+        pass
 
 
 class StatesContext(object):
