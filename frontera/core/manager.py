@@ -81,9 +81,11 @@ class ComponentsPipelineMixin(object):
 
         return mws
 
-    def _process_components(self, method_name, obj=None, return_classes=None, **kwargs):
+    def _process_components(self, method_name, obj=None, return_classes=None, components=None, **kwargs):
+        pipeline = self._components_pipeline if components is None else \
+            [self._components_pipeline[c] for c in components]
         return_obj = obj
-        for component_category, component, check_response in self._components_pipeline:
+        for component_category, component, check_response in pipeline:
             components = component if isinstance(component, list) else [component]
             for component in components:
                 result = self._process_component(component=component, method_name=method_name,
@@ -245,6 +247,7 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
                                          strategy_worker=strategy_worker)
 
         # Init frontier components pipeline
+        # Some code relies on the order, modify carefully
         self._components_pipeline = [
             ('Middleware', self.middlewares, True),
             ('CanonicalSolver', self.canonicalsolver, False),
@@ -492,6 +495,24 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
                                                   return_classes=self.request_model,
                                                   error=error)
         return processed_page
+
+    def create_request(self, url, method=b'GET', headers=None, cookies=None, meta=None, body=b''):
+        """
+        Creates request and applies middleware and canonical solver pipelines.
+
+        :param url: str
+        :param method: bytes
+        :param headers: dict
+        :param cookies: dict
+        :param meta: dict
+        :param body: bytes
+        :return: :class:`Request <frontera.core.models.Request>` object
+        """
+        r = self.request_model(url, method=method, headers=headers, cookies=cookies, meta=meta, body=body)
+        return self._process_components('create_request',
+                                          obj=r,
+                                          return_classes=self.request_model,
+                                          components=(0,1))
 
     def _check_startstop(self):
         assert self._started, "Frontier not started!"

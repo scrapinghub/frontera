@@ -31,6 +31,9 @@ class BasicCanonicalSolver(CanonicalSolver):
     def request_error(self, page, error):
         self._set_canonical(page)
 
+    def create_request(self, request):
+        self._set_canonical(request)
+
     def _set_canonical(self, obj):
         if b'redirect_urls' in obj.meta:
             redirect_urls = obj.meta[b'redirect_urls']

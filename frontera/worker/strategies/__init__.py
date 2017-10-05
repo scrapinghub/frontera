@@ -22,7 +22,7 @@ class BaseCrawlingStrategy(object):
     def __init__(self, manager, mb_stream, states_context):
         self._mb_stream = mb_stream
         self._states_context = states_context
-        self.url_mw = UrlFingerprintMiddleware(manager)
+        self._manager = manager
 
     @classmethod
     def from_worker(cls, manager, mb_stream, states_context):
@@ -110,9 +110,7 @@ class BaseCrawlingStrategy(object):
         :param body: str
         :return: :class:`Request <frontera.core.models.Request>`
         """
-        r = Request(url, method=method, headers=headers, cookies=cookies, meta=meta, body=body)
-        self.url_mw._add_fingerprint(r)
-        return r
+        return self._manager.create_request(url, method=method, headers=headers, cookies=cookies, meta=meta, body=body)
 
     def refresh_states(self, requests):
         """
