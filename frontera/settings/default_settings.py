@@ -30,7 +30,7 @@ MIDDLEWARES = [
     'frontera.contrib.middlewares.fingerprint.UrlFingerprintMiddleware',
 ]
 NEW_BATCH_DELAY = 30.0
-OVERUSED_SLOT_FACTOR = 5.0
+OVERUSED_SLOT_FACTOR = 1.0
 QUEUE_HOSTNAME_PARTITIONING = False
 REDIS_BACKEND_CODEC = 'frontera.contrib.backends.remote.codecs.msgpack'
 REDIS_HOST = 'localhost'
