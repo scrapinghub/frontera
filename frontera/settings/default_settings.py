@@ -29,7 +29,7 @@ MAX_REQUESTS = 0
 MESSAGE_BUS = 'frontera.contrib.messagebus.zeromq.MessageBus'
 MESSAGE_BUS_CODEC = 'frontera.contrib.backends.remote.codecs.msgpack'
 MIDDLEWARES = [
-    'frontera.contrib.middlewares.fingerprint.DomainMiddleware',
+    'frontera.contrib.middlewares.domain.DomainMiddleware',
     'frontera.contrib.middlewares.fingerprint.UrlFingerprintMiddleware'
 ]
 NEW_BATCH_DELAY = 30.0
