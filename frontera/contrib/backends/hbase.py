@@ -103,12 +103,7 @@ class HBaseQueue(Queue):
         now = int(time())
         for fprint, score, request, schedule in batch:
             if schedule:
-                if b'domain' not in request.meta:    # TODO: this have to be done always by DomainMiddleware,
-                    # so I propose to require DomainMiddleware by HBaseBackend and remove that code
-                    _, hostname, _, _, _, _ = parse_domain_from_url_fast(request.url)
-                    if not hostname:
-                        self.logger.error("Can't get hostname for URL %s, fingerprint %s", request.url, fprint)
-                    request.meta[b'domain'] = {'name': hostname}
+                assert b'domain' in request.meta
                 timestamp = request.meta[b'crawl_at'] if b'crawl_at' in request.meta else now
                 to_schedule.setdefault(timestamp, []).append((request, score))
         for timestamp, batch in six.iteritems(to_schedule):
