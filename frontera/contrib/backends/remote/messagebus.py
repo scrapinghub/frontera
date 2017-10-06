@@ -27,7 +27,8 @@ class MessageBusBackend(Backend):
         self._get_timeout = float(settings.get('KAFKA_GET_TIMEOUT'))
         self._logger = logging.getLogger("messagebus-backend")
         self._buffer = OverusedBuffer(self._get_next_requests,
-                                      self._logger.debug)
+                                      self._logger.debug,
+                                      settings.get('OVERUSED_MAX_QUEUE_SIZE'))
         self._logger.info("Consuming from partition id %d", self.partition_id)
 
     @classmethod
