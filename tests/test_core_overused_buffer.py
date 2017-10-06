@@ -10,6 +10,7 @@ r3 = Request('htttp://www.example.com/some/page/')
 r4 = Request('http://example.com')
 r5 = Request('http://example.com/some/page')
 r6 = Request('http://example1.com')
+r7 = Request('http://www.example.com/some/page/overflowing')
 
 
 class TestOverusedBuffer(object):
@@ -21,15 +22,15 @@ class TestOverusedBuffer(object):
         lst = []
         for _ in range(max_n_requests):
             if self.requests:
-                lst.append(self.requests.pop())
+                lst.append(self.requests.pop(0))
         return lst
 
     def log_func(self, msg):
         self.logs.append(msg)
 
     def test(self):
-        ob = OverusedBuffer(self.get_func, self.log_func)
-        self.requests = [r1, r2, r3, r4, r5, r6]
+        ob = OverusedBuffer(self.get_func, self.log_func, 3)
+        self.requests = [r1, r2, r3, r4, r5, r6, r7]
         assert set(ob.get_next_requests(10, overused_keys=['www.example.com', 'example1.com'],
                                         key_type='domain')) == set([r4, r5])
         assert set(self.logs) == set(["Overused keys: ['www.example.com', 'example1.com']",

@@ -272,6 +272,16 @@ Default: ``5.0``
 (in progress + queued requests in that slot) / max allowed concurrent downloads per slot before slot is considered
 overused. This affects only Scrapy scheduler."
 
+.. setting:: OVERUSED_MAX_QUEUE_SIZE
+
+OVERUSED_MAX_QUEUE_SIZE
+--------------------
+
+Default: ``None``
+
+Max pending requests kept in the overused buffer for a slot. Use ``None`` or ``0`` to set no limit. Must be used with
+a queue backend that support spiders dropping requests.
+
 .. setting:: REQUEST_MODEL
 
 REQUEST_MODEL
