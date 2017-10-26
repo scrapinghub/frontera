@@ -26,12 +26,11 @@ def hostname_local_fingerprint(key):
     :return: str 20 bytes hex string
     """
     result = parse_url(key)
-    if not result.hostname:
-        return sha1(key)
-    host_checksum = get_crc32(result.hostname)
-    doc_uri_combined = result.path+';'+result.params+result.query+result.fragment
+    hostname = result.hostname if result.hostname else '-'
+    host_checksum = get_crc32(hostname)
+    combined = hostname+result.path+';'+result.params+result.query+result.fragment
 
-    doc_uri_combined = to_bytes(doc_uri_combined, 'utf8', 'ignore')
-    doc_fprint = hashlib.md5(doc_uri_combined).digest()
+    combined = to_bytes(combined, 'utf8', 'ignore')
+    doc_fprint = hashlib.md5(combined).digest()
     fprint = hexlify(pack(">i16s", host_checksum, doc_fprint))
     return fprint
