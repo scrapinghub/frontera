@@ -31,6 +31,8 @@ MIDDLEWARES = [
 ]
 NEW_BATCH_DELAY = 30.0
 OVERUSED_SLOT_FACTOR = 5.0
+OVERUSED_MAX_PER_KEY = None
+OVERUSED_MAX_KEYS = None
 QUEUE_HOSTNAME_PARTITIONING = False
 REDIS_BACKEND_CODEC = 'frontera.contrib.backends.remote.codecs.msgpack'
 REDIS_HOST = 'localhost'

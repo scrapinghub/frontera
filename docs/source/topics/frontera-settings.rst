@@ -262,6 +262,29 @@ Default: ``30.0``
 Used in DB worker, and it's a time interval between production of new batches for all partitions. If partition is busy,
 it will be skipped.
 
+
+.. setting:: OVERUSED_MAX_PER_KEY
+
+OVERUSED_MAX_PER_KEY
+--------------------
+
+Default: ``None``
+
+The maximum number of keys to store per OverusedBuffer slot. When the specified amount is reached the purging is
+performed leaving 0.1 * specified value requests.
+
+
+.. setting:: OVERUSED_MAX_KEYS
+
+OVERUSED_MAX_KEYS
+-----------------
+
+Default: ``None``
+
+The maximum number of slots in OverusedBuffer. When this limit is reached the purging is performed
+leaving 0.1 * specified value keys.
+
+
 .. setting:: OVERUSED_SLOT_FACTOR
 
 OVERUSED_SLOT_FACTOR

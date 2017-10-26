@@ -248,7 +248,10 @@ class MemoryRandomBackend(MemoryBaseBackend):
 class MemoryDFSOverusedBackend(MemoryDFSBackend):
     def __init__(self, manager):
         super(MemoryDFSOverusedBackend, self).__init__(manager)
-        self.overused_buffer = OverusedBuffer(super(MemoryDFSOverusedBackend, self).get_next_requests)
+        settings = manager.settings
+        self.overused_buffer = OverusedBuffer(super(MemoryDFSOverusedBackend, self).get_next_requests,
+                                              settings.get("OVERUSED_MAX_QUEUE_SIZE"),
+                                              settings.get("OVERUSED_MAX_KEYS"))
 
     def get_next_requests(self, max_next_requests, **kwargs):
         return self.overused_buffer.get_next_requests(max_next_requests, **kwargs)

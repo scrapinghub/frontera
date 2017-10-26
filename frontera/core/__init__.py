@@ -30,7 +30,7 @@ class OverusedBuffer(object):
     A buffering object for implementing the buffer of Frontera requests for overused domains/ips. It can be used
     when customizing backend to address efficient downloader pool usage.
     """
-    def __init__(self, _get_func, log_func=None):
+    def __init__(self, _get_func, max_per_key, max_keys):
         """
         :param _get_func: reference to get_next_requests() method of binded class
         :param log_func: optional logging function, for logging of internal state
@@ -38,10 +38,10 @@ class OverusedBuffer(object):
         self._pending = defaultdict(deque)
         self._get = _get_func
         self._log = getLogger("overusedbuffer")
-        self._max_per_key = 100
-        self._keep_per_key = 10
-        self._max_keys = 1000
-        self._keep_keys = 100
+        self._max_per_key = max_per_key
+        self._keep_per_key = int(max_per_key * 0.1) if max_per_key else None
+        self._max_keys = max_keys
+        self._keep_keys = int(max_keys * 0.1) if max_keys else None
 
     def _get_key(self, request, type):
         return get_slot_key(request, type)
@@ -58,7 +58,8 @@ class OverusedBuffer(object):
                 try:
                     yield pending[key].popleft()
                     # contacts-crawler strategy related hack
-                    self._check_and_purge(key)
+                    if self._max_per_key:
+                        self._check_and_purge(key)
                     i += 1
                 except IndexError:
                     keys.discard(key)
@@ -90,7 +91,8 @@ class OverusedBuffer(object):
         if self._log.isEnabledFor(DEBUG):
             self._log.debug("Overused keys: %s", str(kwargs['overused_keys']))
             self._log.debug("Pending: %i", (sum([len(pending) for pending in six.itervalues(self._pending)])))
-        self._check_and_purge_keys()
+        if self._max_keys:
+            self._check_and_purge_keys()
         overused_set = set(kwargs['overused_keys'])
         requests = list(self._get_pending(max_n_requests, overused_set))
 
@@ -102,7 +104,8 @@ class OverusedBuffer(object):
             if key in overused_set:
                 self._pending[key].append(request)
                 # contacts-crawler strategy related hack
-                self._check_and_purge(key)
+                if self._max_per_key:
+                    self._check_and_purge(key)
             else:
                 requests.append(request)
         return requests
