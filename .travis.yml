@@ -58,6 +58,7 @@ script: tox
 
 after_success:
   - codecov
+  - cat broker.log
 
 deploy:
   provider: pypi
