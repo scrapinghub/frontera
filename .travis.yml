@@ -58,6 +58,8 @@ script: tox
 
 after_success:
   - codecov
+
+after_script:
   - cat broker.log
 
 deploy:
