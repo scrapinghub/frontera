@@ -68,7 +68,7 @@ class HBaseQueue(Queue):
 
     GET_RETRIES = 3
 
-    def __init__(self, connection, partitions, table_name, drop=False):
+    def __init__(self, connection, partitions, table_name, drop=False, use_snappy=False):
         self.connection = connection
         self.partitions = [i for i in range(0, partitions)]
         self.partitioner = Crc32NamePartitioner(self.partitions)
@@ -80,8 +80,11 @@ class HBaseQueue(Queue):
             self.connection.delete_table(self.table_name, disable=True)
             tables.remove(self.table_name)
 
+        schema = {'f': {'max_versions': 1}}
+        if use_snappy:
+            schema['f']['compression'] = 'SNAPPY'
         if self.table_name not in tables:
-            self.connection.create_table(self.table_name, {'f': {'max_versions': 1, 'compression': 'SNAPPY'}})
+            self.connection.create_table(self.table_name, schema)
 
         class DumbResponse:
             pass
@@ -456,7 +459,8 @@ class HBaseBackend(DistributedBackend):
         settings = manager.settings
         drop_all_tables = settings.get('HBASE_DROP_ALL_TABLES')
         o._queue = HBaseQueue(o.connection, o.queue_partitions,
-                              settings.get('HBASE_QUEUE_TABLE'), drop=drop_all_tables)
+                              settings.get('HBASE_QUEUE_TABLE'), drop=drop_all_tables,
+                              use_snappy=settings.get('HBASE_USE_SNAPPY'))
         o._metadata = HBaseMetadata(o.connection, settings.get('HBASE_METADATA_TABLE'), drop_all_tables,
                                     settings.get('HBASE_USE_SNAPPY'), settings.get('HBASE_BATCH_SIZE'),
                                     settings.get('STORE_CONTENT'))

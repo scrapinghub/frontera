@@ -49,6 +49,9 @@ class OverusedBuffer(object):
     def _get_pending_count(self):
         return sum(six.moves.map(len, six.itervalues(self._pending)))
 
+    def _get_key_count(self):
+        return len(self._pending)
+
     def _get_pending(self, max_n_requests, overused_set):
         pending = self._pending
         i, keys = 0, set(pending) - overused_set
@@ -90,7 +93,7 @@ class OverusedBuffer(object):
     def get_next_requests(self, max_n_requests, **kwargs):
         if self._log.isEnabledFor(DEBUG):
             self._log.debug("Overused keys: %s", str(kwargs['overused_keys']))
-            self._log.debug("Pending: %i", (sum([len(pending) for pending in six.itervalues(self._pending)])))
+            self._log.debug("Pending: %i", self._get_pending_count())
         if self._max_keys:
             self._check_and_purge_keys()
         overused_set = set(kwargs['overused_keys'])
