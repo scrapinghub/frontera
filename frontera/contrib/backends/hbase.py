@@ -9,7 +9,7 @@ from frontera.utils.misc import chunks, get_crc32
 from frontera.contrib.backends.remote.codecs.msgpack import Decoder, Encoder
 
 from happybase import Connection
-from msgpack import Unpacker, Packer
+from msgpack import Unpacker, Packer, packb
 import six
 from six.moves import range
 from w3lib.util import to_bytes
@@ -32,9 +32,11 @@ _pack_functions = {
     'status_code': lambda x: pack('>H', x),
     'state': lambda x: pack('>B', x),
     'error': to_bytes,
-    'domain_fingerprint': to_bytes,
+    'domain_fprint': to_bytes,
     'score': lambda x: pack('>f', x),
-    'content': to_bytes
+    'content': to_bytes,
+    'headers': packb,
+    'dest_fprint': to_bytes
 }
 
 
@@ -66,7 +68,7 @@ class HBaseQueue(Queue):
 
     GET_RETRIES = 3
 
-    def __init__(self, connection, partitions, table_name, drop=False):
+    def __init__(self, connection, partitions, table_name, drop=False, use_snappy=False):
         self.connection = connection
         self.partitions = [i for i in range(0, partitions)]
         self.partitioner = Crc32NamePartitioner(self.partitions)
@@ -78,8 +80,11 @@ class HBaseQueue(Queue):
             self.connection.delete_table(self.table_name, disable=True)
             tables.remove(self.table_name)
 
+        schema = {'f': {'max_versions': 1}}
+        if use_snappy:
+            schema['f']['compression'] = 'SNAPPY'
         if self.table_name not in tables:
-            self.connection.create_table(self.table_name, {'f': {'max_versions': 1, 'block_cache_enabled': 1}})
+            self.connection.create_table(self.table_name, schema)
 
         class DumbResponse:
             pass
@@ -195,9 +200,10 @@ class HBaseQueue(Queue):
         limit = min_requests
         tries = 0
         count = 0
-        prefix = '%d_' % partition_id
-        #now_ts = int(time())
-
+        prefix = to_bytes('%d_' % partition_id)
+        # now_ts = int(time())
+        # TODO: figure out how to use filter here, Thrift filter above causes full scan
+        # filter = "PrefixFilter ('%s') AND SingleColumnValueFilter ('f', 't', <=, 'binary:%d')" % (prefix, now_ts)
         while tries < self.GET_RETRIES:
             tries += 1
             limit *= 5.5 if tries > 1 else 1.0
@@ -206,9 +212,7 @@ class HBaseQueue(Queue):
             meta_map.clear()
             queue.clear()
             count = 0
-            # filter = "PrefixFilter ('%s') AND SingleColumnValueFilter ('f', 't', <=, 'binary:%d')" % (prefix, now_ts)
-            # TODO: figure out how to use filter here, Thrift filter above causes full scan
-            for rk, data in table.scan(limit=int(limit), batch_size=256, row_prefix=to_bytes(prefix)):
+            for rk, data in table.scan(limit=int(limit), batch_size=256, row_prefix=prefix):  # filter=filter
                 for cq, buf in six.iteritems(data):
                     if cq == b'f:t':
                         continue
@@ -357,12 +361,21 @@ class HBaseMetadata(Metadata):
             obj = prepare_hbase_object(url=seed.url,
                                        depth=0,
                                        created_at=utcnow_timestamp(),
-                                       domain_fingerprint=seed.meta[b'domain'][b'fingerprint'])
+                                       domain_fprint=seed.meta[b'domain'][b'fingerprint'])
             self.batch.put(unhexlify(seed.meta[b'fingerprint']), obj)
 
     def page_crawled(self, response):
-        obj = prepare_hbase_object(status_code=response.status_code, content=response.body) if self.store_content else \
-            prepare_hbase_object(status_code=response.status_code)
+        headers = response.headers
+        redirect_urls = response.request.meta.get(b'redirect_urls')
+        redirect_fprints = response.request.meta.get(b'redirect_fingerprints')
+        if redirect_urls:
+            for url, fprint in zip(redirect_urls, redirect_fprints):
+                obj = prepare_hbase_object(url=url,
+                                           created_at=utcnow_timestamp(),
+                                           dest_fprint=redirect_fprints[-1])
+                self.batch.put(fprint, obj)
+        obj = prepare_hbase_object(status_code=response.status_code, headers=headers, content=response.body) if self.store_content else \
+            prepare_hbase_object(status_code=response.status_code, headers=headers)
         self.batch.put(unhexlify(response.meta[b'fingerprint']), obj)
 
     def links_extracted(self, request, links):
@@ -372,16 +385,22 @@ class HBaseMetadata(Metadata):
         for link_fingerprint, (link, link_url, link_domain) in six.iteritems(links_dict):
             obj = prepare_hbase_object(url=link_url,
                                        created_at=utcnow_timestamp(),
-                                       domain_fingerprint=link_domain[b'fingerprint'])
+                                       domain_fprint=link_domain[b'fingerprint'])
             self.batch.put(link_fingerprint, obj)
 
     def request_error(self, request, error):
         obj = prepare_hbase_object(url=request.url,
                                    created_at=utcnow_timestamp(),
                                    error=error,
-                                   domain_fingerprint=request.meta[b'domain'][b'fingerprint'])
+                                   domain_fprint=request.meta[b'domain'][b'fingerprint'])
         rk = unhexlify(request.meta[b'fingerprint'])
         self.batch.put(rk, obj)
+        if b'redirect_urls' in request.meta:
+            for url, fprint in zip(request.meta[b'redirect_urls'], request.meta[b'redirect_fingerprints']):
+                obj = prepare_hbase_object(url=url,
+                                           created_at=utcnow_timestamp(),
+                                           dest_fprint=request.meta[b'redirect_fingerprints'][-1])
+                self.batch.put(fprint, obj)
 
     def update_score(self, batch):
         if not isinstance(batch, dict):
@@ -412,13 +431,15 @@ class HBaseBackend(DistributedBackend):
             'host': host,
             'port': int(port),
             'table_prefix': namespace,
-            'table_prefix_separator': ':'
+            'table_prefix_separator': ':',
+            'timeout': 60000
         }
         if settings.get('HBASE_USE_FRAMED_COMPACT'):
             kwargs.update({
                 'protocol': 'compact',
                 'transport': 'framed'
             })
+        self.logger.info("Connecting to %s:%d thrift server.", host, port)
         self.connection = Connection(**kwargs)
         self._metadata = None
         self._queue = None
@@ -438,7 +459,8 @@ class HBaseBackend(DistributedBackend):
         settings = manager.settings
         drop_all_tables = settings.get('HBASE_DROP_ALL_TABLES')
         o._queue = HBaseQueue(o.connection, o.queue_partitions,
-                              settings.get('HBASE_QUEUE_TABLE'), drop=drop_all_tables)
+                              settings.get('HBASE_QUEUE_TABLE'), drop=drop_all_tables,
+                              use_snappy=settings.get('HBASE_USE_SNAPPY'))
         o._metadata = HBaseMetadata(o.connection, settings.get('HBASE_METADATA_TABLE'), drop_all_tables,
                                     settings.get('HBASE_USE_SNAPPY'), settings.get('HBASE_BATCH_SIZE'),
                                     settings.get('STORE_CONTENT'))

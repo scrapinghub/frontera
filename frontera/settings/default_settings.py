@@ -31,6 +31,8 @@ MIDDLEWARES = [
 ]
 NEW_BATCH_DELAY = 30.0
 OVERUSED_SLOT_FACTOR = 5.0
+OVERUSED_MAX_PER_KEY = None
+OVERUSED_MAX_KEYS = None
 QUEUE_HOSTNAME_PARTITIONING = False
 REDIS_BACKEND_CODEC = 'frontera.contrib.backends.remote.codecs.msgpack'
 REDIS_HOST = 'localhost'
@@ -58,6 +60,7 @@ SQLALCHEMYBACKEND_REVISIT_INTERVAL = timedelta(days=1)
 STATE_CACHE_SIZE = 1000000
 STATE_CACHE_SIZE_LIMIT = 0
 STORE_CONTENT = False
+SW_FLUSH_INTERVAL = 900
 TEST_MODE = False
 TLDEXTRACT_DOMAIN_INFO = False
 URL_FINGERPRINT_FUNCTION = 'frontera.utils.fingerprint.sha1'
@@ -81,3 +84,5 @@ SCORING_LOG_DBW_GROUP = "dbw-scoring-log"
 SPIDER_FEED_GROUP = "fetchers-spider-feed"
 
 KAFKA_CODEC = None
+KAFKA_CERT_PATH = '/mnt/mesos/sandbox'
+KAFKA_ENABLE_SSL = False

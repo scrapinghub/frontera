@@ -22,7 +22,7 @@ class OffsetsFetcherAsync(object):
         'heartbeat_interval_ms': 3000,
         'retry_backoff_ms': 100,
         'api_version': (0, 9),
-        'metric_group_prefix': '',
+        'metric_group_prefix': ''
     }
 
     def __init__(self, **configs):

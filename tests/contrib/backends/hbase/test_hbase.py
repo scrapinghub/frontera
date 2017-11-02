@@ -43,7 +43,7 @@ class TestHBaseBackend(object):
 
     def test_queue(self):
         connection = Connection(host='hbase-docker', port=9090)
-        queue = HBaseQueue(connection, 2, b'queue', True)
+        queue = HBaseQueue(connection, 2, b'queue', drop=True, use_snappy=False)
         batch = [('10', 0.5, r1, True), ('11', 0.6, r2, True),
                  ('12', 0.7, r3, True)]
         queue.schedule(batch)

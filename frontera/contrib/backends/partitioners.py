@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-from struct import unpack
-from binascii import unhexlify
 
 from frontera.core.components import Partitioner
+from cityhash import CityHash64
 from frontera.utils.misc import get_crc32
 
 
@@ -27,9 +26,8 @@ class FingerprintPartitioner(Partitioner):
     def partition(self, key, partitions=None):
         if not partitions:
             partitions = self.partitions
-        digest = unhexlify(key[0:2] + key[5:7] + key[10:12] + key[15:17])
-        value = unpack("<I", digest)
-        idx = value[0] % len(partitions)
+        value = CityHash64(key)
+        idx = value % len(partitions)
         return partitions[idx]
 
     def __call__(self, key, all_partitions, available):

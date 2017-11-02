@@ -262,6 +262,29 @@ Default: ``30.0``
 Used in DB worker, and it's a time interval between production of new batches for all partitions. If partition is busy,
 it will be skipped.
 
+
+.. setting:: OVERUSED_MAX_PER_KEY
+
+OVERUSED_MAX_PER_KEY
+--------------------
+
+Default: ``None``
+
+The maximum number of keys to store per OverusedBuffer slot. When the specified amount is reached the purging is
+performed leaving 0.1 * specified value requests.
+
+
+.. setting:: OVERUSED_MAX_KEYS
+
+OVERUSED_MAX_KEYS
+-----------------
+
+Default: ``None``
+
+The maximum number of slots in OverusedBuffer. When this limit is reached the purging is performed
+leaving 0.1 * specified value keys.
+
+
 .. setting:: OVERUSED_SLOT_FACTOR
 
 OVERUSED_SLOT_FACTOR
@@ -349,6 +372,16 @@ STORE_CONTENT
 Default: ``False``
 
 Determines if content should be sent over the message bus and stored in the backend: a serious performance killer.
+
+.. setting:: SW_FLUSH_INTERVAL
+
+SW_FLUSH_INTERVAL
+-----------------
+
+Default: ``900``
+
+Mean interval between flushing of states in :term:`strategy worker`. Selected randomly using formula
+SW_FLUSH_INTERVAL + RANDINT(-SW_FLUSH_INTERVAL/2, SW_FLUSH_INTERVAL/2)
 
 .. setting:: TEST_MODE
 
@@ -632,10 +665,27 @@ Hostname and port of kafka broker, separated with :. Can be a string with hostna
 KAFKA_CODEC
 -----------
 
-Default: ``None``
+Default: ``KAFKA_CODEC``
 
-Kafka-python 1.0.x version compression codec to use, is a string or None and could be one of ``snappy``, ``gzip`` or
+Kafka-python 1.0.x version compression codec to use, is a string and could be one of ``none``, ``snappy``, ``gzip`` or
 ``lz4``.
+
+
+.. setting:: KAFKA_CERT_PATH
+
+KAFKA_CERT_PATH
+---------------
+
+OS path to the folder with three certificate files: ca-cert.pem, client-cert.pem, client-key.pem.
+
+
+.. setting:: KAFKA_ENABLE_SSL
+
+KAFKA_ENABLE_SSL
+----------------
+
+Boolean. Set to True to enable SSL connection in Kafka client.
+
 
 .. setting:: SPIDER_LOG_DBW_GROUP
 

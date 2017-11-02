@@ -36,7 +36,7 @@ def _prepare_request_message(request):
 
 
 def _prepare_response_message(response, send_body):
-    return [response.url, response.status_code, response.meta, response.body if send_body else None]
+    return [response.url, response.status_code, response.meta, response.headers, response.body if send_body else None]
 
 
 class Encoder(BaseEncoder):
@@ -78,7 +78,8 @@ class Decoder(BaseDecoder):
         url = to_native_str(obj[0])
         return self._response_model(url=url,
                                     status_code=obj[1],
-                                    body=obj[3],
+                                    body=obj[4],
+                                    headers=obj[3],
                                     request=self._request_model(url=url,
                                                                 meta=obj[2]))
 

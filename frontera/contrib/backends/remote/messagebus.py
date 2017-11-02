@@ -26,8 +26,8 @@ class MessageBusBackend(Backend):
         self.consumer = spider_feed.consumer(partition_id=self.partition_id)
         self._get_timeout = float(settings.get('KAFKA_GET_TIMEOUT'))
         self._logger = logging.getLogger("messagebus-backend")
-        self._buffer = OverusedBuffer(self._get_next_requests,
-                                      self._logger.debug)
+        self._buffer = OverusedBuffer(self._get_next_requests, settings.get("OVERUSED_MAX_QUEUE_SIZE"),
+                                      settings.get("OVERUSED_MAX_KEYS"))
         self._logger.info("Consuming from partition id %d", self.partition_id)
 
     @classmethod

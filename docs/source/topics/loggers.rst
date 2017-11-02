@@ -20,6 +20,7 @@ Loggers used
 * sqlalchemy.states
 * sqlalchemy.queue
 * offset-fetcher
+* overusedbuffer
 * messagebus-backend
 * cf-server
 * db-worker

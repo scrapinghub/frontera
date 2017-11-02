@@ -59,6 +59,9 @@ script: tox
 after_success:
   - codecov
 
+after_script:
+  - cat broker.log
+
 deploy:
   provider: pypi
   distributions: sdist bdist_wheel
