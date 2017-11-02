@@ -223,9 +223,11 @@ class StrategyWorker(object):
             logger.exception(failure.value)
             if failure.frames:
                 logger.critical(str("").join(format_tb(failure.getTracebackObject())))
+
         def errback_main(failure):
             log_failure(failure)
             self.task.start(interval=0).addErrback(errback_main)
+
         def errback_flush_states(failure):
             log_failure(failure)
             self._flush_states_task.start(interval=300).addErrback(errback_flush_states)

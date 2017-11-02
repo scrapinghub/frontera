@@ -144,5 +144,5 @@ class RecorderScheduler(Scheduler):
     def _get_exception_code(self, exception):
         try:
             return exception.__class__.__name__
-        except:
+        except Exception:
             return '?'

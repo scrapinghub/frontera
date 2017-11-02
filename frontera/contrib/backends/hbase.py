@@ -212,7 +212,7 @@ class HBaseQueue(Queue):
             meta_map.clear()
             queue.clear()
             count = 0
-            for rk, data in table.scan(limit=int(limit), batch_size=256, row_prefix=prefix): # filter=filter
+            for rk, data in table.scan(limit=int(limit), batch_size=256, row_prefix=prefix):  # filter=filter
                 for cq, buf in six.iteritems(data):
                     if cq == b'f:t':
                         continue
