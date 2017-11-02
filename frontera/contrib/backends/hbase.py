@@ -200,7 +200,7 @@ class HBaseQueue(Queue):
         limit = min_requests
         tries = 0
         count = 0
-        prefix = '%d_' % partition_id
+        prefix = to_bytes('%d_' % partition_id)
         # now_ts = int(time())
         # TODO: figure out how to use filter here, Thrift filter above causes full scan
         # filter = "PrefixFilter ('%s') AND SingleColumnValueFilter ('f', 't', <=, 'binary:%d')" % (prefix, now_ts)
