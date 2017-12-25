@@ -162,9 +162,9 @@ class OffsetsFetcherAsync(object):
         Returns:
             dict: TopicPartition and message offsets
         """
-        while True:
+        retries = 3
+        while retries > 0:
             offsets = {}
-            ok = True
             for future in self._send_offset_request(partitions, timestamp):
                 self._client.poll(future=future)
 
@@ -179,11 +179,13 @@ class OffsetsFetcherAsync(object):
                 if future.exception.invalid_metadata:
                     refresh_future = self._client.cluster.request_update()
                     self._client.poll(future=refresh_future, sleep=True)
-                    ok = False
-                    log.warning("Got exception %s and kept the loop.", future.exception)
-                    break
-            if ok:
+                    log.warning("Got exception %s and kept the loop", future.exception)
+            if offsets:
                 return offsets
+            retries -= 1
+            log.warning("Retrying the offsets fetch loop (%d retries left)", retries)
+        log.error("Unsuccessful offsets retrieval")
+        return {}
 
     def _send_offset_request(self, partitions, timestamp):
         """Fetch a single offset before the given timestamp for the partition.
