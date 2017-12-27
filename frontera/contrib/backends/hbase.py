@@ -190,8 +190,8 @@ class HBaseQueue(Queue):
         :return: list of :class:`Request <frontera.core.models.Request>` objects.
         """
         min_requests = kwargs.pop('min_requests')
-        min_hosts = kwargs.pop('min_hosts')
-        max_requests_per_host = kwargs.pop('max_requests_per_host')
+        min_hosts = kwargs.pop('min_hosts', None)
+        max_requests_per_host = kwargs.pop('max_requests_per_host', None)
         assert(max_n_requests > min_requests)
         table = self.connection.table(self.table_name)
 
