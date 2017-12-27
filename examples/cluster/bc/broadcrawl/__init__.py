@@ -58,10 +58,6 @@ class BCPerHostLimit(BaseCrawlingStrategy):
         self.logger = logging.getLogger("bcperhostlimit-strategy")
         super(BCPerHostLimit, self).__init__(manager, mb_stream, states_context)
 
-    @classmethod
-    def from_worker(cls, manager, mb_scheduler, states_context):
-        return cls(manager, mb_scheduler, states_context)
-
     def add_seeds(self, seeds):
         self._schedule_and_count(seeds)
 
