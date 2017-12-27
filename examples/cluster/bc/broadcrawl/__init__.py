@@ -74,7 +74,7 @@ class BCPerHostLimit(BaseCrawlingStrategy):
         self._schedule_and_count(links)
 
     def page_error(self, request, error):
-        request.meta['state'] = States.ERROR
+        request.meta[b'state'] = States.ERROR
         self.schedule(request, score=0.0, dont_queue=True)
 
     def _schedule_and_count(self, links):
