@@ -76,7 +76,8 @@ class DBWorker(object):
         spider_log = self.mb.spider_log()
 
         self.spider_feed = self.mb.spider_feed()
-        self.spider_log_consumer = spider_log.consumer(partition_id=None, type=b'db')
+        if not no_incoming:
+            self.spider_log_consumer = spider_log.consumer(partition_id=None, type=b'db')
         self.spider_feed_producer = self.spider_feed.producer()
 
         self._manager = FrontierManager.from_settings(settings, db_worker=True)
