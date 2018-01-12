@@ -336,7 +336,7 @@ if __name__ == '__main__':
 
     logging_config_path = settings.get("LOGGING_CONFIG")
     if logging_config_path and exists(logging_config_path):
-        fileConfig(logging_config_path)
+        fileConfig(logging_config_path, disable_existing_loggers=False)
     else:
         logging.basicConfig(level=args.log_level)
         logger.setLevel(args.log_level)
