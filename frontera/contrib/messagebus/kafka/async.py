@@ -180,6 +180,7 @@ class OffsetsFetcherAsync(object):
                     refresh_future = self._client.cluster.request_update()
                     self._client.poll(future=refresh_future, sleep=True)
                     ok = False
+                    log.warning("Got exception %s and kept the loop.", future.exception)
                     break
             if ok:
                 return offsets
@@ -201,16 +202,17 @@ class OffsetsFetcherAsync(object):
             if node_id is None:
                 log.debug("Partition %s is unknown for fetching offset,"
                           " wait for metadata refresh", partition)
-                return Future().failure(Errors.StaleMetadata(partition))
+                return [Future().failure(Errors.StaleMetadata(partition))]
             elif node_id == -1:
                 log.debug("Leader for partition %s unavailable for fetching offset,"
                           " wait for metadata refresh", partition)
-                return Future().failure(Errors.LeaderNotAvailableError(partition))
+                return [Future().failure(Errors.LeaderNotAvailableError(partition))]
             nodes_per_partitions.setdefault(node_id, []).append(partition)
 
         # Client returns a future that only fails on network issues
         # so create a separate future and attach a callback to update it
         # based on response error codes
+
         futures = []
         for node_id, partitions in six.iteritems(nodes_per_partitions):
             request = OffsetRequest[0](
@@ -219,7 +221,10 @@ class OffsetsFetcherAsync(object):
             future_request = Future()
             _f = self._client.send(node_id, request)
             _f.add_callback(self._handle_offset_response, partitions, future_request)
-            _f.add_errback(lambda e: future_request.failure(e))
+            def errback(e):
+                log.error("Offset request errback error %s", e)
+                future_request.failure(e)
+            _f.add_errback(errback)
             futures.append(future_request)
         return futures
 
