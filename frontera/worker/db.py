@@ -104,7 +104,12 @@ class DBWorker(object):
         self.stats = {
             'consumed_since_start': 0,
             'consumed_scoring_since_start': 0,
-            'pushed_since_start': 0
+            'pushed_since_start': 0,
+            'consumed_add_seeds': 0,
+            'consumed_page_crawled': 0,
+            'consumed_links_extracted': 0,
+            'consumed_request_error': 0,
+            'consumed_offset': 0
         }
         self._logging_task = task.LoopingCall(self.log_status)
 
@@ -183,6 +188,7 @@ class DBWorker(object):
                         for seed in seeds:
                             logger.debug('URL: %s', seed.url)
                         self._backend.add_seeds(seeds)
+                        self.stats['consumed_add_seeds'] += 1
                         continue
                     if type == 'page_crawled':
                         _, response = msg
@@ -190,6 +196,7 @@ class DBWorker(object):
                         if b'jid' not in response.meta or response.meta[b'jid'] != self.job_id:
                             continue
                         self._backend.page_crawled(response)
+                        self.stats['consumed_page_crawled'] += 1
                         continue
                     if type == 'links_extracted':
                         _, request, links = msg
@@ -197,6 +204,7 @@ class DBWorker(object):
                         if b'jid' not in request.meta or request.meta[b'jid'] != self.job_id:
                             continue
                         self._backend.links_extracted(request, links)
+                        self.stats['consumed_links_extracted'] += 1
                         continue
                     if type == 'request_error':
                         _, request, error = msg
@@ -204,6 +212,7 @@ class DBWorker(object):
                         if b'jid' not in request.meta or request.meta[b'jid'] != self.job_id:
                             continue
                         self._backend.request_error(request, error)
+                        self.stats['consumed_request_error'] += 1
                         continue
                     if type == 'offset':
                         _, partition_id, offset = msg
@@ -219,6 +228,7 @@ class DBWorker(object):
                                 self.spider_feed.mark_ready(partition_id)
                             else:
                                 self.spider_feed.mark_busy(partition_id)
+                        self.stats['consumed_offset'] += 1
                         continue
                     logger.debug('Unknown message type %s', type)
                 except Exception as exc:
