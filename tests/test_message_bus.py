@@ -121,7 +121,7 @@ class KafkaMessageBusTest(unittest.TestCase):
         logging.basicConfig()
         handler = logging.StreamHandler(stdout)
         logger = logging.getLogger("kafka")
-        logger.setLevel(logging.DEBUG)
+        logger.setLevel(logging.INFO)
         logger.addHandler(handler)
 
         kafka_location = "127.0.0.1:9092"

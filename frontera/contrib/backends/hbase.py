@@ -276,12 +276,23 @@ class HBaseQueue(Queue):
 
 class HBaseState(States):
 
-    def __init__(self, connection, table_name, cache_size_limit):
+    def __init__(self, connection, table_name, cache_size_limit, drop_all_tables):
         self.connection = connection
-        self._table_name = table_name
+        self._table_name = to_bytes(table_name)
         self.logger = logging.getLogger("hbase.states")
         self._state_cache = {}
         self._cache_size_limit = cache_size_limit
+
+        tables = set(connection.tables())
+        if drop_all_tables and self._table_name in tables:
+            connection.delete_table(self._table_name, disable=True)
+            tables.remove(self._table_name)
+
+        if self._table_name not in tables:
+            schema = {'s': {'max_versions': 1, 'block_cache_enabled': 1,
+                            'bloom_filter_type': 'ROW', 'in_memory': True, }
+                      }
+            connection.create_table(self._table_name, schema)
 
     def update_cache(self, objs):
         objs = objs if isinstance(objs, Iterable) else [objs]
@@ -335,8 +346,6 @@ class HBaseMetadata(Metadata):
 
         if self._table_name not in tables:
             schema = {'m': {'max_versions': 1},
-                      's': {'max_versions': 1, 'block_cache_enabled': 1,
-                            'bloom_filter_type': 'ROW', 'in_memory': True, },
                       'c': {'max_versions': 1}
                       }
             if use_snappy:
@@ -449,8 +458,8 @@ class HBaseBackend(DistributedBackend):
     def strategy_worker(cls, manager):
         o = cls(manager)
         settings = manager.settings
-        o._states = HBaseState(o.connection, settings.get('HBASE_METADATA_TABLE'),
-                               settings.get('HBASE_STATE_CACHE_SIZE_LIMIT'))
+        o._states = HBaseState(o.connection, settings.get('HBASE_STATES_TABLE'),
+                               settings.get('HBASE_STATE_CACHE_SIZE_LIMIT'), settings.get('HBASE_DROP_ALL_TABLES'))
         return o
 
     @classmethod
