@@ -308,7 +308,10 @@ class HBaseState(States):
             fprint = obj.meta[b'fingerprint']
             obj.meta[b'state'] = self._state_cache[fprint] if fprint in self._state_cache else States.DEFAULT
         [get(obj) for obj in objs]
-
+        
+    def frontier_stop(self):
+        self.flush(True)
+        
     def flush(self, force_clear):
         if len(self._state_cache) > self._cache_size_limit:
             force_clear = True
