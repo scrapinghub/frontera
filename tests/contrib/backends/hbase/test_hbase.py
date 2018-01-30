@@ -1,6 +1,13 @@
 from __future__ import absolute_import
+
+from time import sleep, time
+from binascii import unhexlify
+
+from msgpack import unpackb
 from happybase import Connection
+from w3lib.util import to_native_str
 from Hbase_thrift import AlreadyExists  # module loaded at runtime in happybase
+
 from frontera.contrib.backends.hbase import HBaseState, HBaseMetadata, HBaseQueue
 from frontera.core.models import Request, Response
 from frontera.core.components import States
@@ -55,7 +62,7 @@ class TestHBaseBackend(object):
     @pytest.mark.xfail
     def test_queue_with_delay(self):
         connection = Connection(host='hbase-docker', port=9090)
-        queue = HBaseQueue(connection, 1, b'queue', True)
+        queue = HBaseQueue(connection, 1, b'queue', use_snappy=False, drop=True)
         r5 = r3.copy()
         crawl_at = int(time()) + 1000
         r5.meta[b'crawl_at'] = crawl_at
@@ -71,28 +78,31 @@ class TestHBaseBackend(object):
 
     def test_state(self):
         connection = Connection(host='hbase-docker', port=9090)
-        state = HBaseState(connection, b'states', 300000, True)
+        state = HBaseState(connection, b'states', cache_size_limit=300000,
+                           write_log_size=5000, drop_all_tables=True)
         state.set_states([r1, r2, r3])
         assert [r.meta[b'state'] for r in [r1, r2, r3]] == [States.NOT_CRAWLED]*3
         state.update_cache([r1, r2, r3])
-        assert state._state_cache == {b'10': States.NOT_CRAWLED,
-                                      b'11': States.NOT_CRAWLED,
-                                      b'12': States.NOT_CRAWLED}
+        assert dict(state._state_cache) == {b'10': States.NOT_CRAWLED,
+                                            b'11': States.NOT_CRAWLED,
+                                            b'12': States.NOT_CRAWLED}
+        assert state._state_batch._mutation_count == 3
         r1.meta[b'state'] = States.CRAWLED
         r2.meta[b'state'] = States.CRAWLED
         r3.meta[b'state'] = States.CRAWLED
         state.update_cache([r1, r2, r3])
-        state.flush(True)
-        assert state._state_cache == {}
+        assert state._state_batch._mutation_count == 6
+        state.flush()
+        assert state._state_batch._mutation_count == 0
         state.fetch([b'10', b'11', b'12'])
-        assert state._state_cache == {b'10': States.CRAWLED,
-                                      b'11': States.CRAWLED,
-                                      b'12': States.CRAWLED}
+        assert dict(state._state_cache) == {b'10': States.CRAWLED,
+                                            b'11': States.CRAWLED,
+                                            b'12': States.CRAWLED}
         r4.meta[b'state'] = States.ERROR
         state.set_states([r1, r2, r4])
         assert r4.meta[b'state'] == States.CRAWLED
-        state.flush(True)
-        assert state._state_cache == {}
+        state.flush()
+        assert state._state_batch._mutation_count == 0
 
     def test_drop_all_tables_when_table_name_is_str(self):
         connection = Connection(host='hbase-docker', port=9090)
@@ -107,9 +117,11 @@ class TestHBaseBackend(object):
         tables = connection.tables()
         assert set(tables) == set([b'metadata', b'queue', b'states'])  # Failure of test itself
         try:
-            HBaseQueue(connection=connection, partitions=1, table_name=hbase_queue_table, drop=True)
+            HBaseQueue(connection=connection, partitions=1,
+                       table_name=hbase_queue_table, use_snappy=False, drop=True)
             HBaseMetadata(connection=connection, table_name=hbase_metadata_table, drop_all_tables=True,
                           use_snappy=False, batch_size=300000, store_content=True)
-            HBaseState(connection, hbase_states_table, 100, True)
+            HBaseState(connection, hbase_states_table, cache_size_limit=100,
+                       write_log_size=10, drop_all_tables=True)
         except AlreadyExists:
             assert False, "failed to drop hbase tables"

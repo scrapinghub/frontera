@@ -126,11 +126,9 @@ class States(StartStopMixin):
         raise NotImplementedError
 
     @abstractmethod
-    def flush(self, force_clear):
+    def flush(self):
         """
         Flushes internal cache to storage.
-
-        :param force_clear: boolean, True - signals to clear cache after flush
         """
         raise NotImplementedError
 
