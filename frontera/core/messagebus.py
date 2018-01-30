@@ -125,11 +125,24 @@ class BaseScoringLogStream(object):
 
 
 @six.add_metaclass(ABCMeta)
-class BaseStatsLogStream(BaseScoringLogStream):
+class BaseStatsLogStream(object):
     """
     Stats log stream base class. This stream is transfering stats metrics from workers and spiders to external
     data sources. This type of stream isn't requiring any partitioning.
     """
+    @abstractmethod
+    def consumer(self):
+        """
+        :return: BaseStreamConsumer instance
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def producer(self):
+        """
+        :return: BaseStreamProducer instance
+        """
+        raise NotImplementedError
 
 
 @six.add_metaclass(ABCMeta)
