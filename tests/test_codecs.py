@@ -123,7 +123,7 @@ def test_codec(encoder, decoder, send_body, invalid_value):
     o = dec.decode_request(next(it))
     check_request(o, req)
 
-    o_type, stats = dec.decode(next(id))
+    o_type, stats = dec.decode(next(it))
     assert o_type == 'stats'
     assert stats == stats
 
