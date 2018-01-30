@@ -88,6 +88,10 @@ class SpiderFeedStream(BaseSpiderFeedStream):
         self.ready_partitions.discard(partition_id)
 
 
+class StatsLogStream(ScoringLogStream):
+    pass
+
+
 class FakeMessageBus(BaseMessageBus):
 
     def __init__(self, settings):
@@ -103,3 +107,6 @@ class FakeMessageBus(BaseMessageBus):
 
     def spider_feed(self):
         return SpiderFeedStream(self)
+
+    def stats_log(self):
+        return StatsLogStream(self)
