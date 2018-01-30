@@ -106,10 +106,4 @@ class BatchGenerator(DBWorkerThreadComponent):
         return request.meta[b'fingerprint']
 
     def get_hostname(self, request):
-        try:
-            _, hostname, _, _, _, _ = parse_domain_from_url_fast(request.url)
-        except Exception as e:
-            self.logger.error("URL parsing error %s, fingerprint %s, url %s" %
-                              (e, request.meta[b'fingerprint'], request.url))
-        else:
-            return hostname.encode('utf-8', 'ignore')
+        return request.meta[b'domain'][b'name']
