@@ -1,9 +1,22 @@
 from __future__ import absolute_import
-from importlib import import_module
+
+import time
+import logging
+import calendar
 from zlib import crc32
+from timeit import default_timer
+from importlib import import_module
+
+import six
 from six.moves import range
 from w3lib.util import to_bytes
-import six
+
+
+logger = logging.getLogger("utils.misc")
+
+
+def utc_timestamp():
+    return calendar.timegm(time.gmtime())
 
 
 def load_object(path):
@@ -73,3 +86,18 @@ def dict_to_unicode(obj):
         return map(dict_to_unicode, obj)
     else:
         return obj
+
+
+class time_elapsed(object):
+    """Useful context manager to measure elapsed time."""
+
+    def __init__(self, name):
+        self.name = name
+
+    def __enter__(self):
+        self.start = default_timer()
+
+    def __exit__(self, ty, val, tb):
+        end = default_timer()
+        logger.debug("%s : %0.3f seconds" % (self.name, end-self.start))
+        return False

@@ -5,7 +5,7 @@ from frontera import DistributedBackend
 from frontera.core.components import Metadata, Queue, States
 from frontera.core.models import Request
 from frontera.contrib.backends.partitioners import Crc32NamePartitioner
-from frontera.utils.misc import chunks, get_crc32
+from frontera.utils.misc import chunks, get_crc32, time_elapsed
 from frontera.contrib.backends.remote.codecs.msgpack import Decoder, Encoder
 
 from happybase import Connection
@@ -524,3 +524,11 @@ class HBaseBackend(DistributedBackend):
             next_pages.extend(results)
             self.logger.debug("Got %d requests for partition id %d", len(results), partition_id)
         return next_pages
+
+    def get_stats(self):
+        """Helper to get stats dictionary for the backend.
+
+        For now it provides only HBase client stats.
+        """
+        with time_elapsed('Call HBase backend get_stats()'):
+            return self.connection.client.get_stats()

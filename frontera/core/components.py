@@ -255,6 +255,17 @@ class DistributedBackend(Backend):
     def db_worker(cls, manager):
         raise NotImplementedError
 
+    def get_stats(self):
+        """
+        Returns a dictionary with distributed backend stats.
+
+        Depending on a backend type the method may return different stats to be sent to a message bus.
+        Called by :class:`StatsExportMixin <frontera.contrib.messagebus.stats.StatsExportMixin>` for workers.
+
+        :return: dict of stats key/values.
+        """
+        return None
+
 
 class Partitioner(object):
     """

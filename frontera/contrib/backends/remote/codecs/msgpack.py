@@ -68,6 +68,9 @@ class Encoder(BaseEncoder):
     def encode_offset(self, partition_id, offset):
         return packb([b'of', int(partition_id), int(offset)], use_bin_type=True)
 
+    def encode_stats(self, stats):
+        return packb([b'st', stats], use_bin_type=True)
+
 
 class Decoder(BaseDecoder):
     def __init__(self, request_model, response_model, *a, **kw):
@@ -109,6 +112,8 @@ class Decoder(BaseDecoder):
             return ('new_job_id', int(obj[1]))
         if obj[0] == b'of':
             return ('offset', int(obj[1]), int(obj[2]))
+        if obj[0] == b'st':
+            return ('stats', obj[1])
         raise TypeError('Unknown message type')
 
     def decode_request(self, buffer):

@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
+
+import os
 import logging
 from traceback import format_stack
 from signal import signal, SIGUSR1
@@ -19,6 +21,8 @@ from frontera.settings import Settings
 from frontera.utils.misc import load_object
 from frontera.utils.async import CallLaterOnce
 from frontera.utils.ossignal import install_shutdown_handlers
+
+from frontera.worker.stats import StatsExportMixin
 from .server import WorkerJsonRpcService
 import six
 from six.moves import map
@@ -69,7 +73,9 @@ class Slot(object):
         self.consumption.cancel()
 
 
-class DBWorker(object):
+class BaseDBWorker(object):
+    """Base database worker class."""
+
     def __init__(self, settings, no_batches, no_incoming, no_scoring):
         messagebus = load_object(settings.get('MESSAGE_BUS'))
         self.mb = messagebus(settings)
@@ -323,6 +329,32 @@ class DBWorker(object):
         self.stats['batches_after_start'] += 1
         self.stats['last_batch_generated'] = asctime()
         return count
+
+
+class DBWorker(StatsExportMixin, BaseDBWorker):
+    """Main database worker class with useful extensions.
+
+    The additional features are provided by using mixin classes:
+     - sending crawl stats to message bus
+     """
+    def get_stats_tags(self, settings, no_batches, no_incoming, no_scoring):
+        if no_batches and no_scoring:
+            db_worker_type = 'linksdb'
+        elif no_batches and no_incoming:
+            db_worker_type = 'scoring'
+        elif no_incoming and no_scoring:
+            db_worker_type = 'batchgen'
+        else:
+            logger.warning("Can't identify DB worker type "
+                           "(no-scoring {}, no-batches {}, no-incoming {})"
+                           .format(no_scoring, no_batches, no_incoming))
+            db_worker_type = 'none'
+        tags = {'source': 'dbw-{}'.format(db_worker_type)}
+        # add mesos task id as a tag if running via marathon
+        mesos_task_id = os.environ.get('MESOS_TASK_ID')
+        if mesos_task_id:
+            tags['mesos_task_id'] = mesos_task_id
+        return tags
 
 
 if __name__ == '__main__':

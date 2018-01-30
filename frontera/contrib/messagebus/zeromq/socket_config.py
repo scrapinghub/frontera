@@ -61,3 +61,9 @@ class SocketConfig(object):
         TCP socket for outgoing DW messages
         """
         return 'tcp://%s:%d' % (self.ip_addr, self.base_port + 5)
+
+    def stats_out(self):
+        """
+        TCP socket for outgoing stats
+        """
+        return 'tcp://%s:%d' % (self.ip_addr, self.base_port + 6)

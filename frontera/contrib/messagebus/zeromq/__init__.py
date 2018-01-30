@@ -8,7 +8,7 @@ import zmq
 import six
 
 from frontera.core.messagebus import BaseMessageBus, BaseSpiderLogStream, BaseStreamConsumer, \
-    BaseSpiderFeedStream, BaseScoringLogStream
+    BaseSpiderFeedStream, BaseScoringLogStream, BaseStatsLogStream
 from frontera.contrib.backends.partitioners import FingerprintPartitioner, Crc32NamePartitioner
 from frontera.contrib.messagebus.zeromq.socket_config import SocketConfig
 from six.moves import range
@@ -194,6 +194,18 @@ class SpiderFeedStream(BaseSpiderFeedStream):
         self.ready_partitions.discard(partition_id)
 
 
+class StatsLogStream(BaseStatsLogStream):
+    def __init__(self, messagebus):
+        self.context = messagebus.context
+        self.in_location = messagebus.socket_config.stats_out()
+
+    def consumer(self):
+        pass
+
+    def producer(self):
+        return Producer(self.context, self.in_location, b'st')
+
+
 class Context(object):
 
     zeromq = zmq.Context()
@@ -221,3 +233,6 @@ class MessageBus(BaseMessageBus):
 
     def spider_feed(self):
         return SpiderFeedStream(self)
+
+    def stats_log(self):
+        return StatsLogStream(self)

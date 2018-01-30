@@ -125,6 +125,27 @@ class BaseScoringLogStream(object):
 
 
 @six.add_metaclass(ABCMeta)
+class BaseStatsLogStream(object):
+    """
+    Stats log stream base class. This stream is transfering stats metrics from workers and spiders to external
+    data sources. This type of stream isn't requiring any partitioning.
+    """
+    @abstractmethod
+    def consumer(self):
+        """
+        :return: BaseStreamConsumer instance
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def producer(self):
+        """
+        :return: BaseStreamProducer instance
+        """
+        raise NotImplementedError
+
+
+@six.add_metaclass(ABCMeta)
 class BaseSpiderFeedStream(object):
     """
     Spider Feed Stream base class. This stream transfers new batches from DB worker to spiders. Every consumer is
@@ -202,5 +223,13 @@ class BaseMessageBus(object):
         """
         Create or return spider feed stream.
         :return: instance of SpiderFeedStream
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def stats_log(self):
+        """
+        Create or return stats log stream.
+        :return: instance of StatsLogStream
         """
         raise NotImplementedError

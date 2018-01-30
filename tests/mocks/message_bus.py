@@ -1,5 +1,5 @@
 from frontera.core.messagebus import BaseMessageBus, BaseSpiderLogStream, BaseStreamConsumer, \
-    BaseScoringLogStream, BaseSpiderFeedStream
+    BaseScoringLogStream, BaseSpiderFeedStream, BaseStatsLogStream
 
 
 class Consumer(BaseStreamConsumer):
@@ -88,6 +88,17 @@ class SpiderFeedStream(BaseSpiderFeedStream):
         self.ready_partitions.discard(partition_id)
 
 
+class StatsLogStream(BaseStatsLogStream):
+    def __init__(self, messagebus):
+        pass
+
+    def producer(self):
+        return Producer()
+
+    def consumer(self):
+        return Consumer()
+
+
 class FakeMessageBus(BaseMessageBus):
 
     def __init__(self, settings):
@@ -103,3 +114,6 @@ class FakeMessageBus(BaseMessageBus):
 
     def spider_feed(self):
         return SpiderFeedStream(self)
+
+    def stats_log(self):
+        return StatsLogStream(self)

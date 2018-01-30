@@ -10,13 +10,23 @@ from kafka import KafkaConsumer, KafkaProducer, TopicPartition
 from frontera.contrib.backends.partitioners import FingerprintPartitioner, Crc32NamePartitioner
 from frontera.contrib.messagebus.kafka.async import OffsetsFetcherAsync
 from frontera.core.messagebus import BaseMessageBus, BaseSpiderLogStream, BaseSpiderFeedStream, \
-    BaseStreamConsumer, BaseScoringLogStream, BaseStreamProducer
+    BaseStreamConsumer, BaseScoringLogStream, BaseStreamProducer, BaseStatsLogStream
 from twisted.internet.task import LoopingCall
 from traceback import format_tb
 from os.path import join as os_path_join
 
 
 logger = getLogger("messagebus.kafka")
+
+
+def _prepare_kafka_ssl_kwargs(cert_path):
+    """Prepare SSL kwargs for Kafka producer/consumer."""
+    return {
+        'security_protocol': 'SSL',
+        'ssl_cafile': os_path_join(cert_path, 'ca-cert.pem'),
+        'ssl_certfile': os_path_join(cert_path, 'client-cert.pem'),
+        'ssl_keyfile': os_path_join(cert_path, 'client-key.pem')
+    }
 
 
 class Consumer(BaseStreamConsumer):
@@ -27,14 +37,7 @@ class Consumer(BaseStreamConsumer):
         self._location = location
         self._group = group
         self._topic = topic
-        kwargs = {}
-        if enable_ssl:
-            kwargs.update({
-                'security_protocol': 'SSL',
-                'ssl_cafile': os_path_join(cert_path, 'ca-cert.pem'),
-                'ssl_certfile': os_path_join(cert_path, 'client-cert.pem'),
-                'ssl_keyfile': os_path_join(cert_path, 'client-key.pem')
-            })
+        kwargs = _prepare_kafka_ssl_kwargs(cert_path) if enable_ssl else {}
         self._consumer = KafkaConsumer(
             bootstrap_servers=self._location,
             group_id=self._group,
@@ -109,14 +112,7 @@ class SimpleProducer(BaseStreamProducer):
         self._create(enable_ssl, cert_path)
 
     def _create(self, enable_ssl, cert_path):
-        kwargs = {}
-        if enable_ssl:
-            kwargs.update({
-                'security_protocol': 'SSL',
-                'ssl_cafile': os_path_join(cert_path, 'ca-cert.pem'),
-                'ssl_certfile': os_path_join(cert_path, 'client-cert.pem'),
-                'ssl_keyfile': os_path_join(cert_path, 'client-key.pem')
-            })
+        kwargs = _prepare_kafka_ssl_kwargs(cert_path) if enable_ssl else {}
         self._producer = KafkaProducer(bootstrap_servers=self._location,
                                        retries=5,
                                        compression_type=self._compression,
@@ -139,14 +135,7 @@ class KeyedProducer(BaseStreamProducer):
         self._topic_done = topic_done
         self._partitioner = partitioner
         self._compression = compression
-        kwargs = {}
-        if enable_ssl:
-            kwargs.update({
-                'security_protocol': 'SSL',
-                'ssl_cafile': os_path_join(cert_path, 'ca-cert.pem'),
-                'ssl_certfile': os_path_join(cert_path, 'client-cert.pem'),
-                'ssl_keyfile': os_path_join(cert_path, 'client-key.pem')
-            })
+        kwargs = _prepare_kafka_ssl_kwargs(cert_path) if enable_ssl else {}
         self._producer = KafkaProducer(bootstrap_servers=self._location,
                                        partitioner=partitioner,
                                        retries=5,
@@ -207,12 +196,7 @@ class SpiderFeedStream(BaseSpiderFeedStream):
             'group_id': self._general_group,
         }
         if self._enable_ssl:
-            kwargs.update({
-                'security_protocol': 'SSL',
-                'ssl_cafile': os_path_join(self._cert_path, 'ca-cert.pem'),
-                'ssl_certfile': os_path_join(self._cert_path, 'client-cert.pem'),
-                'ssl_keyfile': os_path_join(self._cert_path, 'client-key.pem')
-            })
+            kwargs.update(_prepare_kafka_ssl_kwargs(self._cert_path))
         self._offset_fetcher = OffsetsFetcherAsync(**kwargs)
         self._codec = messagebus.codec
         self._partitions = messagebus.spider_feed_partitions
@@ -252,15 +236,29 @@ class ScoringLogStream(BaseScoringLogStream):
         return SimpleProducer(self._location, self._enable_ssl, self._cert_path, self._topic, self._codec)
 
 
+class StatsLogStream(BaseStatsLogStream, ScoringLogStream):
+    """Stats log stream implementation for Kafka message bus.
+
+    The interface is the same as for scoring log stream, so it's better
+    to reuse it with proper topic and group.
+    """
+    def __init__(self, messagebus):
+        super(StatsLogStream, self).__init__(messagebus)
+        self._topic = messagebus.topic_stats
+        self._group = messagebus.statslog_reader_group
+
+
 class MessageBus(BaseMessageBus):
     def __init__(self, settings):
         self.topic_todo = settings.get('SPIDER_FEED_TOPIC')
         self.topic_done = settings.get('SPIDER_LOG_TOPIC')
         self.topic_scoring = settings.get('SCORING_LOG_TOPIC')
+        self.topic_stats = settings.get('STATS_LOG_TOPIC')
 
         self.spiderlog_dbw_group = settings.get('SPIDER_LOG_DBW_GROUP')
         self.spiderlog_sw_group = settings.get('SPIDER_LOG_SW_GROUP')
         self.scoringlog_dbw_group = settings.get('SCORING_LOG_DBW_GROUP')
+        self.statslog_reader_group = settings.get('STATS_LOG_READER_GROUP')
         self.spider_feed_group = settings.get('SPIDER_FEED_GROUP')
         self.spider_partition_id = settings.get('SPIDER_PARTITION_ID')
         self.max_next_requests = settings.MAX_NEXT_REQUESTS
@@ -280,3 +278,6 @@ class MessageBus(BaseMessageBus):
 
     def scoring_log(self):
         return ScoringLogStream(self)
+
+    def stats_log(self):
+        return StatsLogStream(self)

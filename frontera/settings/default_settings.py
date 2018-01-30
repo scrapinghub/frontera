@@ -79,11 +79,13 @@ LOGGING_CONFIG = 'logging.conf'
 SPIDER_FEED_TOPIC = "frontier-todo"
 SPIDER_LOG_TOPIC = "frontier-done"
 SCORING_LOG_TOPIC = "frontier-score"
+STATS_LOG_TOPIC = 'frontier-stats'
 
 SPIDER_LOG_DBW_GROUP = "dbw-spider-log"
 SPIDER_LOG_SW_GROUP = "sw-spider-log"
 SCORING_LOG_DBW_GROUP = "dbw-scoring-log"
 SPIDER_FEED_GROUP = "fetchers-spider-feed"
+STATS_LOG_READER_GROUP = 'stats-reader-log'
 
 KAFKA_CODEC = None
 KAFKA_CERT_PATH = '/mnt/mesos/sandbox'
