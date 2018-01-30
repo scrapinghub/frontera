@@ -13,7 +13,7 @@ from frontera.utils.ossignal import install_shutdown_handlers
 
 from frontera.core.manager import FrontierManager
 from frontera.logger.handlers import CONSOLE
-from frontera.contrib.messagebus.stats import StatsExportMixin
+from frontera.worker.stats import StatsExportMixin
 
 from twisted.internet.task import LoopingCall
 from twisted.internet import reactor

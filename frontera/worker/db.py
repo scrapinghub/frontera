@@ -22,7 +22,7 @@ from frontera.utils.misc import load_object
 from frontera.utils.async import CallLaterOnce
 from frontera.utils.ossignal import install_shutdown_handlers
 
-from frontera.contrib.messagebus.stats import StatsExportMixin
+from frontera.worker.stats import StatsExportMixin
 from .server import WorkerJsonRpcService
 import six
 from six.moves import map

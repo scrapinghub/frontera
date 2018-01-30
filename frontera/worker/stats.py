@@ -5,7 +5,6 @@ from twisted.internet.task import LoopingCall
 
 from frontera.utils.misc import load_object, utc_timestamp
 
-
 logger = getLogger("messagebus.stats")
 
 
