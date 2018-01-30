@@ -26,6 +26,7 @@ class MetadataModel(DeclarativeBase):
     error = Column(String(128))
     meta = Column(PickleType())
     headers = Column(PickleType())
+    body = Column(PickleType())
     cookies = Column(PickleType())
     method = Column(String(6))
 
@@ -76,6 +77,7 @@ class QueueModelMixin(object):
     meta = Column(PickleType())
     headers = Column(PickleType())
     cookies = Column(PickleType())
+    body = Column(PickleType())
     method = Column(String(6))
     created_at = Column(BigInteger, index=True)
     depth = Column(SmallInteger)
