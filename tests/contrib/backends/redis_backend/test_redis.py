@@ -27,6 +27,14 @@ class Request:
         self.headers = {}
         self.cookies = None
         self.status_code = 200
+        self.body=''
+
+
+class PostRequest(Request):
+    def __init__(self, fingerprint, crawl_at, url, body, domain=None):
+        super(PostRequest, self).__init__(fingerprint, crawl_at, url, domain)
+        self.method = 'POST'
+        self.body=body
 
 
 def get_pool():
@@ -314,7 +322,23 @@ class RedisQueueTest(TestCase):
         self.assertTrue('https://www.knuthellan.com/' in urls)
         self.assertEqual(0, subject.count())
 
-
+    def test_scheduling_past_1part_post(self):
+        subject = self.setup_subject(1)
+        data={'id':'xxx',
+              'name':'yyy'}
+        batch = [
+            ("1", 1, PostRequest("1", int(time()) - 10, 'https://www.knuthellan.com/', body=data, domain='knuthellan.com'), True),
+            ("2", 0.1, PostRequest("2", int(time()) - 10, 'https://www.khellan.com/', body=data,  domain='khellan.com'), True),
+            ("3", 0.5, PostRequest("3", int(time()) - 10, 'https://www.hellan.me/', body=data, domain='hellan.me'), True),
+        ]
+        subject.schedule(batch)
+        self.assertEqual(3, subject.count())
+        requests = subject.get_next_requests(5, 0, min_hosts=1, min_requests=1, max_requests_per_host=5)
+        self.assertEqual(3, len(requests))
+        for request in requests:
+            self.assertTrue(request.method == b'POST')
+            self.assertTrue(request.body == data)
+        self.assertEqual(0, subject.count())
 
 class RedisStateTest(TestCase):
     def test_update_cache(self):

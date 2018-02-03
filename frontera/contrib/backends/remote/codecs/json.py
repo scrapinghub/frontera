@@ -60,7 +60,8 @@ def _prepare_request_message(request):
             'method': request.method,
             'headers': request.headers,
             'cookies': request.cookies,
-            'meta': request.meta}
+            'meta': request.meta,
+            'body':request.body}
 
 
 def _prepare_links_message(links):
@@ -71,7 +72,11 @@ def _prepare_response_message(response, send_body):
     return {'url': response.url,
             'status_code': response.status_code,
             'meta': response.meta,
-            'body': b64encode(response.body) if send_body else None}
+            'response_headers':response.headers,
+            'body': b64encode(response.body) if send_body else None,
+            'request_method':response.request.method,
+            'request_headers':response.request.headers,
+            'request_cookies':response.request.cookies}
 
 
 class CrawlFrontierJSONEncoder(json.JSONEncoder):
@@ -159,9 +164,13 @@ class Decoder(json.JSONDecoder, BaseDecoder):
     def _response_from_object(self, obj):
         url = obj['url']
         request = self._request_model(url=url,
-                                      meta=obj['meta'])
+                                      meta=obj['meta'],
+                                      method=obj['request_method'],
+                                      headers=obj['request_headers'],
+                                      cookies=obj['request_cookies'])
         return self._response_model(url=url,
                                     status_code=obj['status_code'],
+                                    headers=obj['response_headers'],
                                     body=b64decode(obj['body']) if obj['body'] is not None else None,
                                     request=request)
 
@@ -170,7 +179,8 @@ class Decoder(json.JSONDecoder, BaseDecoder):
                                    method=obj['method'],
                                    headers=obj['headers'],
                                    cookies=obj['cookies'],
-                                   meta=obj['meta'])
+                                   meta=obj['meta'],
+                                   body=obj['body'])
 
     def decode(self, message):
         message = _convert_from_saved_type(super(Decoder, self).decode(message))
@@ -202,8 +212,4 @@ class Decoder(json.JSONDecoder, BaseDecoder):
 
     def decode_request(self, message):
         obj = _convert_from_saved_type(super(Decoder, self).decode(message))
-        return self._request_model(url=obj['url'],
-                                   method=obj['method'],
-                                   headers=obj['headers'],
-                                   cookies=obj['cookies'],
-                                   meta=obj['meta'])
+        return self._request_from_object(obj)

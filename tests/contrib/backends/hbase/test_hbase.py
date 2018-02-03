@@ -17,7 +17,10 @@ from w3lib.util import to_native_str
 from tests import mock
 import pytest
 
-r1 = Request('https://www.example.com', meta={b'fingerprint': b'10',
+data = {'id': 'xxx',
+        'name': 'yyy'}
+
+r1 = Request('https://www.example.com', method='post', body=data, meta={b'fingerprint': b'10',
              b'domain': {b'name': b'www.example.com', b'fingerprint': b'81'}})
 r2 = Request('http://example.com/some/page/', meta={b'fingerprint': b'11',
              b'domain': {b'name': b'example.com', b'fingerprint': b'82'}})
@@ -58,6 +61,16 @@ class TestHBaseBackend(object):
                    max_requests_per_host=10)]) == set([r3.url])
         assert set([r.url for r in queue.get_next_requests(10, 1, min_requests=3, min_hosts=1,
                    max_requests_per_host=10)]) == set([r1.url, r2.url])
+
+
+    def test_queue_with_post_request(self):
+        connection = Connection(host='hbase-docker', port=9090)
+        queue = HBaseQueue(connection, 1, b'queue', drop=True, use_snappy=False)
+        batch = [('10', 0.5, r1, True)]
+        queue.schedule(batch)
+        requests=queue.get_next_requests(10, 0, min_requests=3, min_hosts=1,max_requests_per_host=10)
+        self.assertEqual(b'POST', requests[0].method)
+        self.assertEqual(data, requests[0].body)
 
     @pytest.mark.xfail
     def test_queue_with_delay(self):

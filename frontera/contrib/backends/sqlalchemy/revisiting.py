@@ -67,7 +67,7 @@ class RevisitingQueue(BaseQueue):
                     limit(max_n_requests):
                 method = 'GET' if not item.method else item.method
                 results.append(Request(item.url, method=method, meta=item.meta, headers=item.headers,
-                                       cookies=item.cookies))
+                                       cookies=item.cookies, body=item.body))
                 self.session.delete(item)
             self.session.commit()
         except Exception as exc:
@@ -92,7 +92,7 @@ class RevisitingQueue(BaseQueue):
                 q = self.queue_model(fingerprint=fprint, score=score, url=request.url, meta=request.meta,
                                      headers=request.headers, cookies=request.cookies, method=request.method,
                                      partition_id=partition_id, host_crc32=host_crc32, created_at=time()*1E+6,
-                                     crawl_at=schedule_at)
+                                     crawl_at=schedule_at, body=request.body)
                 to_save.append(q)
                 request.meta[b'state'] = States.QUEUED
         self.session.bulk_save_objects(to_save)

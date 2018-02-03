@@ -95,6 +95,7 @@ class Metadata(BaseMetadata):
             db_page.headers = obj.headers
             db_page.method = to_native_str(obj.method)
             db_page.cookies = obj.cookies
+            db_page.body=obj.body
         elif isinstance(obj, Response):
             db_page.headers = obj.request.headers
             db_page.method = to_native_str(obj.request.method)
@@ -177,7 +178,7 @@ class Queue(BaseQueue):
             for item in self._order_by(self.session.query(self.queue_model).filter_by(partition_id=partition_id)).\
                     limit(max_n_requests):
                 method = item.method or b'GET'
-                r = Request(item.url, method=method, meta=item.meta, headers=item.headers, cookies=item.cookies)
+                r = Request(item.url, method=method, meta=item.meta, headers=item.headers, cookies=item.cookies, body=item.body)
                 r.meta[b'fingerprint'] = to_bytes(item.fingerprint)
                 r.meta[b'score'] = item.score
                 results.append(r)
@@ -203,7 +204,7 @@ class Queue(BaseQueue):
                     host_crc32 = get_crc32(hostname)
                 q = self.queue_model(fingerprint=to_native_str(fprint), score=score, url=request.url, meta=request.meta,
                                      headers=request.headers, cookies=request.cookies, method=to_native_str(request.method),
-                                     partition_id=partition_id, host_crc32=host_crc32, created_at=time()*1E+6)
+                                     partition_id=partition_id, host_crc32=host_crc32, created_at=time()*1E+6, body=request.body)
                 to_save.append(q)
                 request.meta[b'state'] = States.QUEUED
         self.session.bulk_save_objects(to_save)
