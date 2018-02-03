@@ -36,7 +36,7 @@ def _prepare_request_message(request):
 
 
 def _prepare_response_message(response, send_body):
-    return [response.url, response.status_code, response.meta, response.body if send_body else None
+    return [response.url, response.status_code, response.meta, response.headers, response.body if send_body else None
                         , response.request.method, response.request.headers, response.request.cookies]
 
 class Encoder(BaseEncoder):
@@ -82,9 +82,9 @@ class Decoder(BaseDecoder):
                                     headers=obj[3],
                                     request=self._request_model(url=url,
                                                                 meta=obj[2],
-                                                                method=obj[4],
-                                                                headers=obj[5],
-                                                                cookies=obj[6]))
+                                                                method=obj[5],
+                                                                headers=obj[6],
+                                                                cookies=obj[7]))
 
     def _request_from_object(self, obj):
         return self._request_model(url=to_native_str(obj[0]),
