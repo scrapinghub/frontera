@@ -40,8 +40,7 @@ class BatchGenerator(DBWorkerThreadComponent):
         # domain statistics logging
         self.domain_stats = dict([(partition_id, defaultdict(int)) for partition_id in self.partitions])
         self.domain_stats_interval = settings.get('DOMAIN_STATS_LOG_INTERVAL')
-        self.rotate_time = time()
-
+        self.rotate_time = time() + self.domain_stats_interval
 
     def get_ready_partitions(self):
         pending_partitions = self.spider_feed.available_partitions()
@@ -114,7 +113,7 @@ class BatchGenerator(DBWorkerThreadComponent):
 
     def rotate_and_log_domain_stats(self):
         self.logger.debug("Domain statistics of requests pushed to spider feed")
-        for partition_id, host_stats in self.domain_stats:
+        for partition_id, host_stats in sorted(self.domain_stats.items(), key=lambda x: x[1]):
             self.logger.debug("PID %d =================================================================", partition_id)
             for hostname, count in host_stats.items():
                 self.logger.debug("%s\t%d", hostname, count)
