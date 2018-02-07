@@ -2,9 +2,9 @@
 from __future__ import absolute_import
 
 import threading
-from time import asctime
-
-from six.moves import map
+from time import asctime, time
+from collections import defaultdict
+from logging import DEBUG
 
 from frontera.exceptions import NotConfigured
 from frontera.utils.url import parse_domain_from_url_fast
@@ -37,6 +37,12 @@ class BatchGenerator(DBWorkerThreadComponent):
         # create an event to disable/enable batches generation via RPC
         self.disabled_event = threading.Event()
 
+        # domain statistics logging
+        self.domain_stats = dict([(partition_id, defaultdict(int)) for partition_id in self.partitions])
+        self.domain_stats_interval = settings.get('DOMAIN_STATS_LOG_INTERVAL')
+        self.rotate_time = time()
+
+
     def get_ready_partitions(self):
         pending_partitions = self.spider_feed.available_partitions()
         if not self.partitions:
@@ -46,6 +52,9 @@ class BatchGenerator(DBWorkerThreadComponent):
     def run(self):
         if self.disabled_event.is_set():
             return True
+        if self.logger.isEnabledFor(DEBUG) and time() > self.rotate_time:
+            self.rotate_and_log_domain_stats()
+
         partitions = self.get_ready_partitions()
         if not partitions:
             return True
@@ -75,11 +84,14 @@ class BatchGenerator(DBWorkerThreadComponent):
                 continue
             try:
                 self.spider_feed_producer.send(self.get_key_function(request), eo)
-            except Exception as exc:
-                self.logger.error("Sending message error, %s, fingerprint: %s, url: %s" %
-                                  (exc, self.get_fingerprint(request), request.url))
+            except Exception:
+                self.logger.exception("Sending message error fingerprint: %s, url: %s" %
+                                  (self.get_fingerprint(request), request.url))
             finally:
                 count += 1
+                hostname = self.get_hostname(request)
+                if self.logger.isEnabledFor(DEBUG):
+                    self.domain_stats[partition_id][hostname] += 1
         self.update_stats(increments={'pushed_since_start': count})
         return count
 
@@ -99,6 +111,17 @@ class BatchGenerator(DBWorkerThreadComponent):
 
     def close(self):
         self.spider_feed_producer.close()
+
+    def rotate_and_log_domain_stats(self):
+        self.logger.debug("Domain statistics of requests pushed to spider feed")
+        for partition_id, host_stats in self.domain_stats:
+            self.logger.debug("PID %d =================================================================", partition_id)
+            for hostname, count in host_stats.items():
+                self.logger.debug("%s\t%d", hostname, count)
+
+            self.domain_stats[partition_id] = defaultdict(int)
+        self.rotate_time = time() + self.domain_stats_interval
+
 
     # --------------------------- Auxiliary tools --------------------------------
 

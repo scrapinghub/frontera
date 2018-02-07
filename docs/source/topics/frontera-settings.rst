@@ -173,6 +173,17 @@ Delay between calls to backend for new batches in Scrapy scheduler, when queue s
 without hitting backend on every request. Increase it if calls to your backend is taking too long, and decrease
 if you need a fast spider bootstrap from seeds.
 
+
+.. setting:: DOMAIN_STATS_LOG_INTERVAL
+
+DOMAIN_STATS_LOG_INTERVAL
+-------------------------
+
+Default: ``300``
+
+Time interval in seconds to rotate the domain statistics in :term:`db worker` batch generator. Enabled only when
+logging set to DEBUG.
+
 .. setting:: KAFKA_GET_TIMEOUT
 
 KAFKA_GET_TIMEOUT

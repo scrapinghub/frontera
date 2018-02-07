@@ -10,6 +10,7 @@ BC_MAX_REQUESTS_PER_HOST = 128
 CANONICAL_SOLVER = 'frontera.contrib.canonicalsolvers.Basic'
 DELAY_ON_EMPTY = 5.0
 DOMAIN_FINGERPRINT_FUNCTION = 'frontera.utils.fingerprint.sha1'
+DOMAIN_STATS_LOG_INTERVAL = 300
 
 HBASE_THRIFT_HOST = 'localhost'
 HBASE_THRIFT_PORT = 9090
