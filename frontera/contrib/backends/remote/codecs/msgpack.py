@@ -2,38 +2,15 @@
 """ A MsgPack codec for Frontera. Implemented using native msgpack-python library.
 """
 from __future__ import absolute_import
-import logging
-from msgpack import packb, unpackb
 
 from frontera.core.codec import BaseDecoder, BaseEncoder
-import six
+from frontera.utils.msgpack import restruct_for_pack
+from msgpack import packb, unpackb
 from w3lib.util import to_native_str
 
 
-logger = logging.getLogger(__name__)
-
-
-def _serialize(obj):
-    """Recursively walk object's hierarchy."""
-    if isinstance(obj, (bool, six.integer_types, float, six.binary_type, six.text_type)) or obj is None:
-        return obj
-    elif isinstance(obj, dict):
-        obj = obj.copy()
-        for key in obj:
-            obj[key] = _serialize(obj[key])
-        return obj
-    elif isinstance(obj, list):
-        return [_serialize(item) for item in obj]
-    elif isinstance(obj, tuple):
-        return tuple(_serialize([item for item in obj]))
-    elif hasattr(obj, '__dict__'):
-        return _serialize(obj.__dict__)
-    else:
-        logger.warning('unable to serialize object: {}'.format(obj))
-        return None
-
 def _prepare_request_message(request):
-    return [request.url, request.method, request.headers, request.cookies, _serialize(request.meta)]
+    return [request.url, request.method, request.headers, request.cookies, restruct_for_pack(request.meta)]
 
 
 def _prepare_response_message(response, send_body):
@@ -115,7 +92,9 @@ class Decoder(BaseDecoder):
             return ('offset', int(obj[1]), int(obj[2]))
         if obj[0] == b'st':
             return ('stats', obj[1])
-        raise TypeError('Unknown message type')
+        return TypeError('Unknown message type')
 
     def decode_request(self, buffer):
-        return self._request_from_object(unpackb(buffer, encoding='utf-8'))
+        return self._request_from_object(unpackb(buffer))
+
+
