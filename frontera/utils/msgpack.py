@@ -12,7 +12,7 @@ def restruct_for_pack(obj):
         for key in obj:
             obj[key] = restruct_for_pack(obj[key])
         return obj
-    elif isinstance(obj, list):
+    elif isinstance(obj, list) or isinstance(obj, set):
         return [restruct_for_pack(item) for item in obj]
     elif isinstance(obj, tuple):
         return tuple(restruct_for_pack([item for item in obj]))
