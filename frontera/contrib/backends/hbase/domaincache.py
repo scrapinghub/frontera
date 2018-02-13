@@ -61,6 +61,24 @@ class LRUCache(Cache):
 
 
 class DomainCache(LRUCache):
+    """
+    This is an implementation of Domain metadata cache backed by HBase table. It's main purpose is to store the domain
+    metadata in Python-friendly structures while providing fast and reliable access.
+    The container has these features:
+        * LRU logic,
+        * two generations, second generation is used for evicted items when HBase batch isn't full,
+        * batched HBase writes,
+        * Python 3 and PyPy ready.
+
+    This container has these limitations:
+        1. value is always of dict type
+        2. data in value cannot be bigger than MAX_VALUE_SIZE (which is usually ~2Mb), Otherwise fields will be dropped
+        with error message
+        3. 255 > len(key) > 0
+        4. key and keys within value dict are always of native string type
+        5. all keys are utf-8 strings.
+        6. iterator of this container iterates only on first generation content.
+    """
 
     MAX_VALUE_SIZE = int(DEFAULT_HBASE_THRIFT_FRAME_SIZE * 0.95)
     LOG_INTERVAL = 60.0
@@ -158,8 +176,6 @@ class DomainCache(LRUCache):
 
     __len__ = None
 
-    __iter__ = None
-
     clear = None
 
     maxsize = None
@@ -206,7 +222,7 @@ class DomainCache(LRUCache):
         return value
 
     def flush(self):
-        for k, v in super(DomainCache, self).__iter__():
+        for k, v in six.iteritems(self):
             try:
                 self._store_item_batch(k, v)
             except Exception:
@@ -248,7 +264,7 @@ class DomainCache(LRUCache):
             raise KeyError
         value = {}
         for k, v in six.iteritems(row):
-            cf, _, col = k.partition(':')
+            cf, _, col = k.partition(b':')
             col = to_native_str(col)
             value[col] = unpackb(v, encoding='utf-8')
             # XXX extract some fields as a set for faster in-checks
