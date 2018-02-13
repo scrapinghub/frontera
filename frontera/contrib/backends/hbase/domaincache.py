@@ -9,7 +9,7 @@ from frontera.contrib.backends.hbase.utils import HardenedBatch
 from frontera.utils.msgpack import restruct_for_pack
 from happybase.batch import DEFAULT_HBASE_THRIFT_FRAME_SIZE
 from msgpack import packb, unpackb
-from w3lib.util import to_bytes
+from w3lib.util import to_bytes, to_native_str
 
 DOMAIN_CACHE_BATCH_SIZE = 100
 
@@ -249,6 +249,7 @@ class DomainCache(LRUCache):
         value = {}
         for k, v in six.iteritems(row):
             cf, _, col = k.partition(':')
+            col = to_native_str(col)
             value[col] = unpackb(v, encoding='utf-8')
             # XXX extract some fields as a set for faster in-checks
             if col in self._set_fields:
