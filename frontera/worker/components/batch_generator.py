@@ -113,7 +113,7 @@ class BatchGenerator(DBWorkerThreadComponent):
 
     def rotate_and_log_domain_stats(self):
         self.logger.debug("Domain statistics of requests pushed to spider feed")
-        for partition_id, host_stats in sorted(self.domain_stats.items(), key=lambda x: x[1]):
+        for partition_id, host_stats in sorted(self.domain_stats.items(), key=lambda x: x[0]):
             self.logger.debug("PID %d =================================================================", partition_id)
             for hostname, count in host_stats.items():
                 self.logger.debug("%s\t%d", hostname, count)
