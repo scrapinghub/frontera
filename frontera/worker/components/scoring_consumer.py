@@ -32,7 +32,7 @@ class ScoringConsumer(DBWorkerPeriodicComponent):
             try:
                 msg = self.worker._decoder.decode(m)
             except (KeyError, TypeError) as e:
-                self.logger.error("Decoding error: %s", e)
+                self.logger.exception("Decoding error")
                 continue
             else:
                 if msg[0] == 'update_score':

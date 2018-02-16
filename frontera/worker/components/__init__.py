@@ -51,7 +51,7 @@ class DBWorkerPeriodicComponent(DBWorkerBaseComponent):
             self.periodic_task.schedule()
 
     def run_errback(self, failure):
-        self.logger.exception(failure.value)
+        self.logger.error(failure.getTraceback())
         if not self.stopped:
             self.periodic_task.schedule()
 
