@@ -23,6 +23,8 @@ from frontera.settings import Settings
 from collections import Iterable
 from binascii import hexlify
 import six
+from six.moves.urllib.parse import urlparse
+from six.moves.urllib.request import urlopen
 
 
 logger = logging.getLogger("strategy-worker")
@@ -82,16 +84,19 @@ class StatesContext(object):
 class BaseStrategyWorker(object):
     """Base strategy worker class."""
 
-    def __init__(self, settings, strategy_class):
+    def __init__(self, settings, strategy_class, strategy_args, is_add_seeds_mode):
         partition_id = settings.get('SCORING_PARTITION_ID')
         if partition_id is None or type(partition_id) != int:
             raise AttributeError("Scoring worker partition id isn't set.")
 
         messagebus = load_object(settings.get('MESSAGE_BUS'))
         mb = messagebus(settings)
-        spider_log = mb.spider_log()
         scoring_log = mb.scoring_log()
-        self.consumer = spider_log.consumer(partition_id=partition_id, type=b'sw')
+        self.add_seeds_mode = is_add_seeds_mode
+        if not self.add_seeds_mode:
+            spider_log = mb.spider_log()
+            self.consumer = spider_log.consumer(partition_id=partition_id, type=b'sw')
+            self.consumer_batch_size = settings.get('SPIDER_LOG_CONSUMER_BATCH_SIZE')
         self.scoring_log_producer = scoring_log.producer()
 
         self._manager = FrontierManager.from_settings(settings, strategy_worker=True)
@@ -103,7 +108,6 @@ class BaseStrategyWorker(object):
 
         self.update_score = UpdateScoreStream(self.scoring_log_producer, self._encoder)
         self.states_context = StatesContext(self._manager.backend.states)
-
         self.consumer_batch_size = settings.get('SPIDER_LOG_CONSUMER_BATCH_SIZE')
         self.strategy = strategy_class.from_worker(self._manager, self.update_score, self.states_context)
         self.states = self._manager.backend.states
@@ -233,7 +237,28 @@ class BaseStrategyWorker(object):
         self.stats['last_consumption_run'] = asctime()
         self.stats['consumed_since_start'] += consumed
 
-    def run(self):
+    def add_seeds(self, seeds_url):
+        logger.info("Seeds addition started from url %s", seeds_url)
+        if not seeds_url:
+            self.strategy.add_seeds(None)
+        else:
+            parsed = urlparse(seeds_url)
+            if parsed.scheme == "s3":
+                import boto3
+                s3 = boto3.resource("s3")
+                obj = s3.Object(parsed.hostname, parsed.path)
+                response = obj.get()
+                fh = response['Body']
+            else:
+                fh = urlopen(seeds_url)
+            from io import BufferedReader
+            buffered_stream = BufferedReader(fh)
+            self.strategy.add_seeds(buffered_stream)
+            buffered_stream.close()
+        self.update_score.flush()
+        self.states_context.release()
+
+    def run(self, seeds_url):
         def log_failure(failure):
             logger.exception(failure.value)
             if failure.frames:
@@ -256,12 +281,16 @@ class BaseStrategyWorker(object):
             logger.critical(str("").join(format_stack(frame)))
 
         install_shutdown_handlers(self._handle_shutdown)
-        self.task.start(interval=0).addErrback(errback_main)
-        self._logging_task.start(interval=30)
-        # run flushing states LoopingCall with random delay
-        flush_states_task_delay = randint(0, self._flush_interval)
-        logger.info("Starting flush-states task in %d seconds", flush_states_task_delay)
-        task.deferLater(reactor, flush_states_task_delay, run_flush_states_task)
+        if self.add_seeds_mode:
+            self.add_seeds(seeds_url)
+        else:
+            self.task.start(interval=0).addErrback(errback_main)
+            self._logging_task.start(interval=30)
+            # run flushing states LoopingCall with random delay
+            flush_states_task_delay = randint(0, self._flush_interval)
+            logger.info("Starting flush-states task in %d seconds", flush_states_task_delay)
+            task.deferLater(reactor, flush_states_task_delay, run_flush_states_task)
+
         signal(SIGUSR1, debug)
         reactor.run(installSignalHandlers=False)
 
@@ -363,6 +392,13 @@ def setup_environment():
                         help='Crawling strategy class path')
     parser.add_argument('--partition-id', type=int,
                         help="Instance partition id.")
+    parser.add_argument('--port', type=int, help="Json Rpc service port to listen.")
+    parser.add_argument('--args', '-a', nargs='*', type=str, help="Optional arguments for crawling strategy, "
+                                                                  "in a form of key=value separated with space")
+    parser.add_argument('--add-seeds', action='store_true', help="Run in add seeds mode. Worker finishes after running "
+                                                                 "of strategy add_seeds method")
+    parser.add_argument('--seeds-url', type=str, help="Seeds url. S3 and native urlopen schemas are currently "
+                                                      "supported, implies add seeds run mode")
     args = parser.parse_args()
     settings = Settings(module=args.config)
     strategy_classpath = args.strategy if args.strategy else settings.get('CRAWLING_STRATEGY')
@@ -377,6 +413,12 @@ def setup_environment():
                          partition_id)
     settings.set('SCORING_PARTITION_ID', partition_id)
 
+    strategy_args = {}
+    if args.args:
+        for arg in args.args:
+            key, _, value = arg.partition("=")
+            strategy_args[key] = value if value else None
+
     logging_config_path = settings.get("LOGGING_CONFIG")
     if logging_config_path and exists(logging_config_path):
         fileConfig(logging_config_path, disable_existing_loggers=False)
@@ -384,10 +426,13 @@ def setup_environment():
         logging.basicConfig(level=args.log_level)
         logger.setLevel(args.log_level)
         logger.addHandler(CONSOLE)
-    return settings, strategy_class
+
+    return settings, strategy_class, args.add_seeds, strategy_args, args.seeds_url
 
 
 if __name__ == '__main__':
-    settings, strategy_class = setup_environment()
-    worker = StrategyWorker(settings, strategy_class)
-    worker.run()
+    settings, strategy_class, is_add_seeds_mode, strategy_args, seeds_url = setup_environment()
+    worker = StrategyWorker(settings, strategy_class, strategy_args, is_add_seeds_mode)
+    server = WorkerJsonRpcService(worker, settings)
+    server.start_listening()
+    worker.run(seeds_url)

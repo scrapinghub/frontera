@@ -19,21 +19,22 @@ class BaseCrawlingStrategy(object):
     After exiting from all of these methods states from meta field are passed back and stored in the backend.
     """
 
-    def __init__(self, manager, mb_stream, states_context):
+    def __init__(self, manager, args, mb_stream, states_context):
         self._mb_stream = mb_stream
         self._states_context = states_context
         self._manager = manager
 
     @classmethod
-    def from_worker(cls, manager, mb_stream, states_context):
+    def from_worker(cls, manager, args, mb_stream, states_context):
         """
         Called on instantiation in strategy worker.
 
         :param manager: :class: `Backend <frontera.core.manager.FrontierManager>` instance
+        :param args: dict with command line arguments from :term:`strategy worker`
         :param mb_stream: :class: `UpdateScoreStream <frontera.worker.strategy.UpdateScoreStream>` instance
         :return: new instance
         """
-        return cls(manager, mb_stream, states_context)
+        return cls(manager, args, mb_stream, states_context)
 
     @abstractmethod
     def add_seeds(self, seeds):
