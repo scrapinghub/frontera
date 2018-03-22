@@ -30,18 +30,17 @@ class OverusedBuffer(object):
     A buffering object for implementing the buffer of Frontera requests for overused domains/ips. It can be used
     when customizing backend to address efficient downloader pool usage.
     """
-    def __init__(self, _get_func, max_per_key, max_keys):
+    def __init__(self, _get_func, max_per_key, keep_per_key, max_keys, keep_keys):
         """
         :param _get_func: reference to get_next_requests() method of binded class
-        :param log_func: optional logging function, for logging of internal state
         """
         self._pending = defaultdict(deque)
         self._get = _get_func
         self._log = getLogger("overusedbuffer")
         self._max_per_key = max_per_key
-        self._keep_per_key = int(max_per_key * 0.1) if max_per_key else None
+        self._keep_per_key = keep_per_key
         self._max_keys = max_keys
-        self._keep_keys = int(max_keys * 0.1) if max_keys else None
+        self._keep_keys = keep_keys
 
     def _get_key(self, request, type):
         return get_slot_key(request, type)

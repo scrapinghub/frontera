@@ -306,6 +306,43 @@ Default: ``5.0``
 (in progress + queued requests in that slot) / max allowed concurrent downloads per slot before slot is considered
 overused. This affects only Scrapy scheduler."
 
+
+.. setting:: OVERUSED_MAX_PER_KEY
+
+OVERUSED_MAX_PER_KEY
+--------------------
+
+Default: ``1200``
+
+Purging will start When reaching this number of request per key.
+
+.. setting:: OVERUSED_KEEP_PER_KEY
+
+OVERUSED_KEEP_PER_KEY
+---------------------
+
+Default: ``1000``
+
+After the purging this number of request will be left in the queue.
+
+.. setting:: OVERUSED_MAX_KEYS
+
+OVERUSED_MAX_KEYS
+-----------------
+
+Default: ``1000``
+
+Purging of keys will start when count of keys will reach this limit.
+
+.. setting:: OVERUSED_KEEP_KEYS
+
+OVERUSED_KEEP_KEYS
+------------------
+
+Default: ``100``
+
+The number of keys for purging to leave.
+
 .. setting:: REQUEST_MODEL
 
 REQUEST_MODEL
