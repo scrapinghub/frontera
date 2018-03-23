@@ -232,21 +232,27 @@ class BaseStrategyWorker(object):
     def add_seeds(self, seeds_url):
         logger.info("Seeds addition started from url %s", seeds_url)
         if not seeds_url:
-            self.strategy.add_seeds(None)
+            self.strategy.read_seeds(None)
         else:
             parsed = urlparse(seeds_url)
             if parsed.scheme == "s3":
                 import boto3
+                from frontera.utils.s3 import StreamingBodyIOBase
                 s3 = boto3.resource("s3")
-                obj = s3.Object(parsed.hostname, parsed.path)
+                path = parsed.path.lstrip("/")
+                obj = s3.Object(parsed.hostname, path)
                 response = obj.get()
-                fh = response['Body']
+                fh = StreamingBodyIOBase(response['Body'])
+            elif parsed.scheme == "file":
+                fh = open(parsed.path, "rb")
             else:
-                fh = urlopen(seeds_url)
-            from io import BufferedReader
-            buffered_stream = BufferedReader(fh)
-            self.strategy.read_seeds(buffered_stream)
-            buffered_stream.close()
+                raise TypeError("Unsupported URL scheme")
+            self.strategy.read_seeds(fh)
+            try:
+                fh.close()
+            except:
+                logger.exception("Error during closing of seeds stream")
+                pass
         self.update_score.flush()
         self.states_context.release()
 
@@ -273,8 +279,11 @@ class BaseStrategyWorker(object):
             logger.critical(str("").join(format_stack(frame)))
 
         install_shutdown_handlers(self._handle_shutdown)
+        signal(SIGUSR1, debug)
         if self.add_seeds_mode:
             self.add_seeds(seeds_url)
+            d = self.stop_tasks()
+            reactor.callLater(0, d.callback, None)
         else:
             self.task.start(interval=0).addErrback(errback_main)
             self._logging_task.start(interval=30)
@@ -283,7 +292,6 @@ class BaseStrategyWorker(object):
             logger.info("Starting flush-states task in %d seconds", flush_states_task_delay)
             task.deferLater(reactor, flush_states_task_delay, run_flush_states_task)
 
-        signal(SIGUSR1, debug)
         reactor.run(installSignalHandlers=False)
 
     def log_status(self):
@@ -331,7 +339,8 @@ class BaseStrategyWorker(object):
             self._manager.stop()
             logger.info("Closing message bus.")
             self.scoring_log_producer.close()
-            self.consumer.close()
+            if not self.add_seeds_mode:
+                self.consumer.close()
         except:
             logger.exception('Error on shutdown')
 
