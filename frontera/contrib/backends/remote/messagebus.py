@@ -44,10 +44,7 @@ class MessageBusBackend(Backend):
         self.spider_log_producer.flush()
 
     def add_seeds(self, seeds):
-        per_host = aggregate_per_host(seeds)
-        for host_fprint, host_links in six.iteritems(per_host):
-            self.spider_log_producer.send(host_fprint,
-                                          self._encoder.encode_add_seeds(host_links))
+        raise NotImplemented("The seeds addition using spider log isn't allowed")
 
     def page_crawled(self, response):
         host_fprint = get_host_fprint(response)

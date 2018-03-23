@@ -32,16 +32,6 @@ class BaseDecoder(object):
 class BaseEncoder(object):
 
     @abstractmethod
-    def encode_add_seeds(self, seeds):
-        """
-        Encodes add_seeds message
-
-        :param list seeds: A list of frontier Request objects
-        :return: bytes encoded message
-        """
-        pass
-
-    @abstractmethod
     def encode_page_crawled(self, response):
         """
         Encodes a page_crawled message

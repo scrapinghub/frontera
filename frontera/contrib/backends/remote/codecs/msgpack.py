@@ -21,9 +21,6 @@ class Encoder(BaseEncoder):
     def __init__(self, request_model, *a, **kw):
         self.send_body = True if 'send_body' in kw and kw['send_body'] else False
 
-    def encode_add_seeds(self, seeds):
-        return packb([b'as', [_prepare_request_message(seed) for seed in seeds]], use_bin_type=True)
-
     def encode_page_crawled(self, response):
         return packb([b'pc', _prepare_response_message(response, self.send_body)], use_bin_type=True)
 
@@ -84,8 +81,6 @@ class Decoder(BaseDecoder):
             return ('update_score', self._request_from_object(obj[1]), obj[2], obj[3])
         if obj[0] == b're':
             return ('request_error', self._request_from_object(obj[1]), to_native_str(obj[2]))
-        if obj[0] == b'as':
-            return ('add_seeds', [self._request_from_object(x) for x in obj[1]])
         if obj[0] == b'njid':
             return ('new_job_id', int(obj[1]))
         if obj[0] == b'of':

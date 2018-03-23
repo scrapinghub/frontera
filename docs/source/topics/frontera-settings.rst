@@ -273,17 +273,24 @@ Default: ``30.0``
 Used in DB worker, and it's a time interval between production of new batches for all partitions. If partition is busy,
 it will be skipped.
 
+.. setting:: OVERUSED_KEEP_PER_KEY
 
-.. setting:: OVERUSED_MAX_PER_KEY
+OVERUSED_KEEP_PER_KEY
+---------------------
 
-OVERUSED_MAX_PER_KEY
---------------------
+Default: ``1000``
 
-Default: ``None``
+After the purging this number of requests will be left in the queue.
 
-The maximum number of keys to store per OverusedBuffer slot. When the specified amount is reached the purging is
-performed leaving 0.1 * specified value requests.
 
+.. setting:: OVERUSED_KEEP_KEYS
+
+OVERUSED_KEEP_KEYS
+------------------
+
+Default: ``100``
+
+The number of keys for purging to leave.
 
 .. setting:: OVERUSED_MAX_KEYS
 
@@ -292,9 +299,16 @@ OVERUSED_MAX_KEYS
 
 Default: ``None``
 
-The maximum number of slots in OverusedBuffer. When this limit is reached the purging is performed
-leaving 0.1 * specified value keys.
+A threshold triggering the keys purging in OverusedBuffer. The purging will end up leaving :ref:`OVERUSED_KEEP_KEYS`
 
+.. setting:: OVERUSED_MAX_PER_KEY
+
+OVERUSED_MAX_PER_KEY
+--------------------
+
+Default: ``1200``
+
+Purging will start when reaching this number of requests per key and leave :ref:`OVERUSED_KEEP_PER_KEY` requests.
 
 .. setting:: OVERUSED_SLOT_FACTOR
 
@@ -305,43 +319,6 @@ Default: ``5.0``
 
 (in progress + queued requests in that slot) / max allowed concurrent downloads per slot before slot is considered
 overused. This affects only Scrapy scheduler."
-
-
-.. setting:: OVERUSED_MAX_PER_KEY
-
-OVERUSED_MAX_PER_KEY
---------------------
-
-Default: ``1200``
-
-Purging will start When reaching this number of request per key.
-
-.. setting:: OVERUSED_KEEP_PER_KEY
-
-OVERUSED_KEEP_PER_KEY
----------------------
-
-Default: ``1000``
-
-After the purging this number of request will be left in the queue.
-
-.. setting:: OVERUSED_MAX_KEYS
-
-OVERUSED_MAX_KEYS
------------------
-
-Default: ``1000``
-
-Purging of keys will start when count of keys will reach this limit.
-
-.. setting:: OVERUSED_KEEP_KEYS
-
-OVERUSED_KEEP_KEYS
-------------------
-
-Default: ``100``
-
-The number of keys for purging to leave.
 
 .. setting:: REQUEST_MODEL
 

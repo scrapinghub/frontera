@@ -14,6 +14,7 @@ from frontera.utils.ossignal import install_shutdown_handlers
 from frontera.core.manager import FrontierManager
 from frontera.logger.handlers import CONSOLE
 from frontera.worker.stats import StatsExportMixin
+from frontera.worker.server import WorkerJsonRpcService
 
 from twisted.internet.task import LoopingCall
 from twisted.internet import reactor, task
@@ -50,19 +51,21 @@ class UpdateScoreStream(object):
 
 class StatesContext(object):
 
-    def __init__(self, states):
+    def __init__(self, states, debug_mode=False, debug_stream=False):
         self._requests = []
         self._states = states
-        self._fingerprints = set()
+        self._fingerprints = dict()
+        self._debug_stream = debug_stream
+        self.debug_mode = debug_mode
 
     def to_fetch(self, requests):
-        if isinstance(requests, Iterable):
-            self._fingerprints.update([x.meta[b'fingerprint'] for x in requests])
-            return
-        self._fingerprints.add(requests.meta[b'fingerprint'])
+        requests = requests if isinstance(requests, Iterable) else [requests]
+        for request in requests:
+            fingerprint = request.meta[b'fingerprint']
+            self._fingerprints[fingerprint] = request if self.debug_mode else None
 
     def fetch(self):
-        self._states.fetch(self._fingerprints)
+        self._states.fetch(self._fingerprints, debug_stream=self._debug_stream)
         self._fingerprints.clear()
 
     def refresh_and_keep(self, requests):
@@ -147,10 +150,6 @@ class BaseStrategyWorker(object):
                 type = msg[0]
                 batch.append(msg)
                 try:
-                    if type == 'add_seeds':
-                        _, seeds = msg
-                        self.states_context.to_fetch(seeds)
-                        continue
                     if type == 'page_crawled':
                         _, response = msg
                         self.states_context.to_fetch(response)
@@ -186,13 +185,6 @@ class BaseStrategyWorker(object):
         for msg in batch:
             type = msg[0]
             try:
-                if type == 'add_seeds':
-                    _, seeds = msg
-                    for seed in seeds:
-                        seed.meta[b'jid'] = self.job_id
-                    self.on_add_seeds(seeds)
-                    self.stats['consumed_add_seeds'] += 1
-                    continue
                 if type == 'page_crawled':
                     _, response = msg
                     if b'jid' not in response.meta or response.meta[b'jid'] != self.job_id:
@@ -343,14 +335,6 @@ class BaseStrategyWorker(object):
         except:
             logger.exception('Error on shutdown')
 
-    def on_add_seeds(self, seeds):
-        logger.debug('Adding %i seeds', len(seeds))
-        for seed in seeds:
-            logger.debug("URL: %s", seed.url)
-        self.states.set_states(seeds)
-        self.strategy.add_seeds(seeds)
-        self.states.update_cache(seeds)
-
     def on_page_crawled(self, response):
         logger.debug("Page crawled %s", response.url)
         self.states.set_states([response])
@@ -370,6 +354,9 @@ class BaseStrategyWorker(object):
         self.states.set_states(request)
         self.strategy.page_error(request, error)
         self.states.update_cache(request)
+
+    def set_process_info(self, process_info):
+        self.process_info = process_info
 
 
 class StrategyWorker(StatsExportMixin, BaseStrategyWorker):

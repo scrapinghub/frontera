@@ -91,16 +91,6 @@ class Encoder(BaseEncoder, CrawlFrontierJSONEncoder):
         self.send_body = kw.pop('send_body', False)
         super(Encoder, self).__init__(request_model, *a, **kw)
 
-    def encode(self, obj):
-        encoded = _convert_and_save_type(obj)
-        return super(Encoder, self).encode(encoded)
-
-    def encode_add_seeds(self, seeds):
-        return self.encode({
-            'type': 'add_seeds',
-            'seeds': [_prepare_request_message(seed) for seed in seeds]
-        })
-
     def encode_page_crawled(self, response):
         return self.encode({
             'type': 'page_crawled',
@@ -186,12 +176,6 @@ class Decoder(json.JSONDecoder, BaseDecoder):
             return ('request_error', request, message['error'])
         if message['type'] == 'update_score':
             return ('update_score', self._request_from_object(message['r']), message['score'], message['schedule'])
-        if message['type'] == 'add_seeds':
-            seeds = []
-            for seed in message['seeds']:
-                request = self._request_from_object(seed)
-                seeds.append(request)
-            return ('add_seeds', seeds)
         if message['type'] == 'new_job_id':
             return ('new_job_id', int(message['job_id']))
         if message['type'] == 'offset':

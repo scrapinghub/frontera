@@ -59,9 +59,7 @@ class OverusedBuffer(object):
             for key in keys.copy():
                 try:
                     yield pending[key].popleft()
-                    # contacts-crawler strategy related hack
-                    if self._max_per_key:
-                        self._check_and_purge(key)
+                    self._check_and_purge(key)
                     i += 1
                 except IndexError:
                     keys.discard(key)
@@ -69,7 +67,7 @@ class OverusedBuffer(object):
 
     def _check_and_purge(self, key):
         pending = self._pending[key]
-        if len(pending) > self._max_per_key:
+        if self._max_per_key is not None and len(pending) > self._max_per_key:
             self._log.warning("Purging of key %s, of size %d has started", key,
                               len(pending))
             purged = 0
@@ -79,7 +77,7 @@ class OverusedBuffer(object):
             self._log.warning("%d requests purged", purged)
 
     def _check_and_purge_keys(self):
-        if len(self._pending) > self._max_keys:
+        if self._max_keys is not None and len(self._pending) > self._max_keys:
             self._log.warning("Purging the keys")
             new_keys = set(sample(self._pending.keys(), self._keep_keys))
             keys = set(self._pending.keys())
@@ -93,8 +91,7 @@ class OverusedBuffer(object):
         if self._log.isEnabledFor(DEBUG):
             self._log.debug("Overused keys: %s", str(kwargs['overused_keys']))
             self._log.debug("Pending: %i", self._get_pending_count())
-        if self._max_keys:
-            self._check_and_purge_keys()
+        self._check_and_purge_keys()
         overused_set = set(kwargs['overused_keys'])
         requests = list(self._get_pending(max_n_requests, overused_set))
 

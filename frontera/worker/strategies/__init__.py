@@ -37,11 +37,11 @@ class BaseCrawlingStrategy(object):
         return cls(manager, args, mb_stream, states_context)
 
     @abstractmethod
-    def add_seeds(self, seeds):
+    def add_seeds(self, stream):
         """
         Called when add_seeds event is received from spider log.
 
-        :param list seeds: A list of :class:`Request <frontera.core.models.Request>` objects.
+        :param file stream: A file-like object containing seed content
         """
 
     @abstractmethod
