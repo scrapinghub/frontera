@@ -245,7 +245,7 @@ class BaseStrategyWorker(object):
                 fh = urlopen(seeds_url)
             from io import BufferedReader
             buffered_stream = BufferedReader(fh)
-            self.strategy.add_seeds(buffered_stream)
+            self.strategy.read_seeds(buffered_stream)
             buffered_stream.close()
         self.update_score.flush()
         self.states_context.release()

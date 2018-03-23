@@ -37,9 +37,9 @@ class BaseCrawlingStrategy(object):
         return cls(manager, args, mb_stream, states_context)
 
     @abstractmethod
-    def add_seeds(self, stream):
+    def read_seeds(self, stream):
         """
-        Called when add_seeds event is received from spider log.
+        Called when :term:`strategy worker` is run using add-seeds mode.
 
         :param file stream: A file-like object containing seed content
         """
