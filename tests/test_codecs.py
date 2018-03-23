@@ -59,7 +59,6 @@ def test_codec(encoder, decoder, send_body, invalid_value):
     stats = {'_timestamp': 1499241748, 'tags': {'source': 'spider', 'partition_id': 0},
              'crawled_pages_count': 2, 'links_extracted_count': 3}
     msgs = [
-        enc.encode_add_seeds([req]),
         enc.encode_page_crawled(Response(url="http://www.yandex.ru", body=b'SOME CONTENT', headers={b'hdr': b'value'},
                                          request=req)),
         enc.encode_links_extracted(req, [req2]),
@@ -73,13 +72,6 @@ def test_codec(encoder, decoder, send_body, invalid_value):
     ]
 
     it = iter(msgs)
-
-    o = dec.decode(next(it))
-    assert o[0] == 'add_seeds'
-    assert type(o[1]) == list
-    req_d = o[1][0]
-    check_request(req_d, req)
-    assert type(req_d) == Request
 
     o = dec.decode(next(it))
     assert o[0] == 'page_crawled'
