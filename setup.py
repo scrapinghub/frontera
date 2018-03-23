@@ -73,6 +73,9 @@ setup(
         'distributed': [
             'Twisted'
         ],
+        's3': [
+            'boto3'
+        ],
         'redis': [
             'redis>=2.10.5',
             'hiredis>=0.2'
