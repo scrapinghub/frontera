@@ -30,7 +30,7 @@ class StatsExportMixin(object):
         self._stats_interval = settings.get('STATS_LOG_INTERVAL', 60)
         self._export_stats_task = LoopingCall(self.export_stats)
 
-    def run(self):
+    def run(self, *args, **kwargs):
 
         def errback_export_stats(failure):
             logger.exception(failure.value)
@@ -42,7 +42,7 @@ class StatsExportMixin(object):
         if self.stats_producer:
             self._export_stats_task.start(interval=self._stats_interval)\
                                    .addErrback(errback_export_stats)
-        super(StatsExportMixin, self).run()
+        super(StatsExportMixin, self).run(*args, **kwargs)
 
     def get_stats_tags(self, *args, **kwargs):
         """Get a tags dictionary for the metrics.
