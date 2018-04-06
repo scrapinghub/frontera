@@ -202,7 +202,7 @@ class HBaseQueue(Queue):
         tries = 0
         count = 0
         prefix = to_bytes('%d_' % partition_id)
-        # now_ts = int(time())
+        now_ts = int(time())
         # TODO: figure out how to use filter here, Thrift filter above causes full scan
         # filter = "PrefixFilter ('%s') AND SingleColumnValueFilter ('f', 't', <=, 'binary:%d')" % (prefix, now_ts)
         while tries < self.GET_RETRIES:
@@ -213,7 +213,7 @@ class HBaseQueue(Queue):
             meta_map.clear()
             queue.clear()
             count = 0
-            for rk, data in table.scan(limit=int(limit), batch_size=256, row_prefix=prefix):  # filter=filter
+            for rk, data in table.scan(limit=int(limit), batch_size=256, row_prefix=prefix, sorted_columns=True): # filter=filter
                 for cq, buf in six.iteritems(data):
                     if cq == b'f:t':
                         continue

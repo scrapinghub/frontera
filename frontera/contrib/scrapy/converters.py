@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 from scrapy.http.request import Request as ScrapyRequest
 from scrapy.http.response import Response as ScrapyResponse
+from scrapy.http.response.html import TextResponse
 
 from frontera.core.models import Request as FrontierRequest
 from frontera.core.models import Response as FrontierResponse
@@ -83,6 +84,8 @@ class ResponseConverter(BaseResponseConverter):
         frontier_request.meta[b'scrapy_meta'] = scrapy_response.meta
         if 'redirect_urls' in scrapy_response.meta:
             frontier_request.meta[b'redirect_urls'] = scrapy_response.meta['redirect_urls']
+        if isinstance(scrapy_response, TextResponse):
+            frontier_request.meta[b'encoding'] = scrapy_response.encoding
         del scrapy_response.meta[b'frontier_request']
         return FrontierResponse(url=scrapy_response.url,
                                 status_code=scrapy_response.status,
@@ -92,11 +95,19 @@ class ResponseConverter(BaseResponseConverter):
 
     def from_frontier(self, response):
         """response: Frontier > Scrapy"""
-        return ScrapyResponse(url=response.url,
-                              status=response.status_code,
-                              headers=response.headers,
-                              body=response.body,
-                              request=self._request_converter.from_frontier(response.request))
+        if b'encoding' in response.meta:
+            return TextResponse(url=response.url,
+                                status=response.status_code,
+                                headers=response.headers,
+                                body=response.body,
+                                request=self._request_converter.from_frontier(response.request),
+                                encoding=response.meta[b'encoding'])
+        else:
+            return ScrapyResponse(url=response.url,
+                                  status=response.status_code,
+                                  headers=response.headers,
+                                  body=response.body,
+                                  request=self._request_converter.from_frontier(response.request))
 
 
 def _find_method(obj, func):

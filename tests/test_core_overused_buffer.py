@@ -3,16 +3,16 @@ from frontera.core import OverusedBuffer
 from frontera.core.models import Request
 from six.moves import range
 from itertools import cycle
-from random import choice, sample
+from random import choice
 from string import ascii_lowercase
 
 
-r1 = Request('http://www.example.com')
-r2 = Request('http://www.example.com/some/')
-r3 = Request('htttp://www.example.com/some/page/')
-r4 = Request('http://example.com')
-r5 = Request('http://example.com/some/page')
-r6 = Request('http://example1.com')
+r1 = Request('http://www.example.com', meta={b'fingerprint': b'8ece61d2d42e578e86d9f95ad063cf36eb8e774d'})
+r2 = Request('http://www.example.com/some/', meta={b'fingerprint': b'9773afd9cb0f4ec3fd09d6d1fe2c742abf0621ec'})
+r3 = Request('htttp://www.example.com/some/page/', meta={b'fingerprint': b'7278fb7612670523a7e3e37d7c38871c73bcb0ea'})
+r4 = Request('http://example.com', meta={b'fingerprint': b'89dce6a446a69d6b9bdc01ac75251e4c322bcdff'})
+r5 = Request('http://example.com/some/page', meta={b'fingerprint':b'9dbd730bdce21e322a12c757753f26bbc95c3779'})
+r6 = Request('http://example1.com', meta={b'fingerprint': b'0ac55362d7391707e121dace4d203a0dc4393afc'})
 
 
 class TestOverusedBuffer(object):
