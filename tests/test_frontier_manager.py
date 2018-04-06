@@ -5,9 +5,9 @@ from frontera.core.models import Request, Response
 from six.moves import range
 
 
-r1 = Request('http://www.example.com')
-r2 = Request('https://www.example.com/some/page')
-r3 = Request('http://example1.com')
+r1 = Request('http://www.example.com', meta={b'fingerprint': b'8ece61d2d42e578e86d9f95ad063cf36eb8e774d'})
+r2 = Request('https://www.example.com/some/page', meta={b'fingerprint': b'61aec35fac3a032b3be3a5d07eb9e0024bd89de1'})
+r3 = Request('http://example1.com', meta={b'fingerprint': b'0ac55362d7391707e121dace4d203a0dc4393afc'})
 
 
 class TestFrontierManager(object):

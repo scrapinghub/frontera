@@ -6,9 +6,9 @@ from frontera.settings import Settings
 from frontera.core.models import Request, Response
 
 
-r1 = Request('http://www.example.com/', meta={b'domain': {b'fingerprint': b'1'}})
-r2 = Request('http://www.scrapy.org/', meta={b'domain': {b'fingerprint': b'2'}})
-r3 = Request('http://www.test.com/some/page', meta={b'domain': {b'fingerprint': b'3'}})
+r1 = Request('http://www.example.com/', meta={b'domain': {b'fingerprint': b'1'}, b'fingerprint': b'abc'})
+r2 = Request('http://www.scrapy.org/', meta={b'domain': {b'fingerprint': b'2'}, b'fingerprint': b'012'})
+r3 = Request('http://www.test.com/some/page', meta={b'domain': {b'fingerprint': b'3'}, b'fingerprint': b'345'})
 
 
 class TestMessageBusBackend(unittest.TestCase):
