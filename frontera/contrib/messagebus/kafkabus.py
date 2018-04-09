@@ -54,30 +54,11 @@ class Consumer(BaseStreamConsumer):
         )
 
         if partition_id is not None:
-            self._partition_ids = [TopicPartition(self._topic, partition_id)]
-            self._consumer.assign(self._partition_ids)
+            self._partitions = [TopicPartition(self._topic, partition_id)]
+            self._consumer.assign(self._partitions)
         else:
-            self._partition_ids = [TopicPartition(self._topic, pid) for pid in self._consumer.partitions_for_topic(self._topic)]
+            self._partitions = [TopicPartition(self._topic, pid) for pid in self._consumer.partitions_for_topic(self._topic)]
             self._consumer.subscribe(topics=[self._topic])
-            if self._consumer._use_consumer_group():
-                self._consumer._coordinator.ensure_coordinator_known()
-                self._consumer._coordinator.ensure_active_group()
-
-        self._consumer._update_fetch_positions(self._partition_ids)
-        self._start_looping_call()
-
-    def _start_looping_call(self, interval=10):
-        def errback(failure):
-            logger.exception(failure.value)
-            if failure.frames:
-                logger.critical(str("").join(format_tb(failure.getTracebackObject())))
-            self._poll_task.start(interval).addErrback(errback)
-
-        self._poll_task = LoopingCall(self._poll_client)
-        self._poll_task.start(interval).addErrback(errback)
-
-    def _poll_client(self):
-        self._consumer._client.poll()
 
     def get_messages(self, timeout=0.1, count=1):
         result = []
@@ -91,20 +72,13 @@ class Consumer(BaseStreamConsumer):
         return result
 
     def get_offset(self, partition_id):
-        for tp in self._partition_ids:
+        for tp in self._partitions:
             if tp.partition == partition_id:
                 return self._consumer.position(tp)
         raise KeyError("Can't find partition %d", partition_id)
 
     def close(self):
-        self._poll_task.stop()
         self._consumer.commit()
-        # getting kafka client event loop running some more and execute commit
-        tries = 3
-        while tries:
-            self.get_messages()
-            sleep(2.0)
-            tries -= 1
         self._consumer.close()
 
 
