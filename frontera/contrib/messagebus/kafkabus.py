@@ -16,6 +16,10 @@ from traceback import format_tb
 from os.path import join as os_path_join
 
 
+DEFAULT_BATCH_SIZE = 1024 * 1024
+DEFAULT_BUFFER_MEMORY = 130 * 1024 * 1024
+DEFAULT_MAX_REQUEST_SIZE = 4 * 1024 * 1024
+
 logger = getLogger("messagebus.kafka")
 
 
@@ -50,30 +54,11 @@ class Consumer(BaseStreamConsumer):
         )
 
         if partition_id is not None:
-            self._partition_ids = [TopicPartition(self._topic, partition_id)]
-            self._consumer.assign(self._partition_ids)
+            self._partitions = [TopicPartition(self._topic, partition_id)]
+            self._consumer.assign(self._partitions)
         else:
-            self._partition_ids = [TopicPartition(self._topic, pid) for pid in self._consumer.partitions_for_topic(self._topic)]
+            self._partitions = [TopicPartition(self._topic, pid) for pid in self._consumer.partitions_for_topic(self._topic)]
             self._consumer.subscribe(topics=[self._topic])
-            if self._consumer._use_consumer_group():
-                self._consumer._coordinator.ensure_coordinator_known()
-                self._consumer._coordinator.ensure_active_group()
-
-        self._consumer._update_fetch_positions(self._partition_ids)
-        self._start_looping_call()
-
-    def _start_looping_call(self, interval=10):
-        def errback(failure):
-            logger.exception(failure.value)
-            if failure.frames:
-                logger.critical(str("").join(format_tb(failure.getTracebackObject())))
-            self._poll_task.start(interval).addErrback(errback)
-
-        self._poll_task = LoopingCall(self._poll_client)
-        self._poll_task.start(interval).addErrback(errback)
-
-    def _poll_client(self):
-        self._consumer._client.poll()
 
     def get_messages(self, timeout=0.1, count=1):
         result = []
@@ -87,35 +72,30 @@ class Consumer(BaseStreamConsumer):
         return result
 
     def get_offset(self, partition_id):
-        for tp in self._partition_ids:
+        for tp in self._partitions:
             if tp.partition == partition_id:
                 return self._consumer.position(tp)
         raise KeyError("Can't find partition %d", partition_id)
 
     def close(self):
-        self._poll_task.stop()
         self._consumer.commit()
-        # getting kafka client event loop running some more and execute commit
-        tries = 3
-        while tries:
-            self.get_messages()
-            sleep(2.0)
-            tries -= 1
         self._consumer.close()
 
 
 class SimpleProducer(BaseStreamProducer):
-    def __init__(self, location, enable_ssl, cert_path, topic, compression):
+    def __init__(self, location, enable_ssl, cert_path, topic, compression, **kwargs):
         self._location = location
         self._topic = topic
         self._compression = compression
-        self._create(enable_ssl, cert_path)
+        self._create(enable_ssl, cert_path, **kwargs)
 
-    def _create(self, enable_ssl, cert_path):
-        kwargs = _prepare_kafka_ssl_kwargs(cert_path) if enable_ssl else {}
+    def _create(self, enable_ssl, cert_path, **kwargs):
+        max_request_size = kwargs.pop('max_request_size', DEFAULT_MAX_REQUEST_SIZE)
+        kwargs.update(_prepare_kafka_ssl_kwargs(cert_path) if enable_ssl else {})
         self._producer = KafkaProducer(bootstrap_servers=self._location,
                                        retries=5,
                                        compression_type=self._compression,
+                                       max_request_size=max_request_size,
                                        **kwargs)
 
     def send(self, key, *messages):
@@ -130,16 +110,18 @@ class SimpleProducer(BaseStreamProducer):
 
 
 class KeyedProducer(BaseStreamProducer):
-    def __init__(self, location, enable_ssl, cert_path, topic_done, partitioner, compression):
+    def __init__(self, location, enable_ssl, cert_path, topic_done, partitioner, compression, **kwargs):
         self._location = location
         self._topic_done = topic_done
         self._partitioner = partitioner
         self._compression = compression
-        kwargs = _prepare_kafka_ssl_kwargs(cert_path) if enable_ssl else {}
+        max_request_size = kwargs.pop('max_request_size', DEFAULT_MAX_REQUEST_SIZE)
+        kwargs.update(_prepare_kafka_ssl_kwargs(cert_path) if enable_ssl else {})
         self._producer = KafkaProducer(bootstrap_servers=self._location,
                                        partitioner=partitioner,
                                        retries=5,
                                        compression_type=self._compression,
+                                       max_request_size=max_request_size,
                                        **kwargs)
 
     def send(self, key, *messages):
@@ -166,7 +148,9 @@ class SpiderLogStream(BaseSpiderLogStream):
 
     def producer(self):
         return KeyedProducer(self._location, self._enable_ssl, self._cert_path, self._topic,
-                             FingerprintPartitioner(self._partitions), self._codec)
+                             FingerprintPartitioner(self._partitions), self._codec,
+                             batch_size=DEFAULT_BATCH_SIZE,
+                             buffer_memory=DEFAULT_BUFFER_MEMORY)
 
     def consumer(self, partition_id, type):
         """
@@ -217,7 +201,9 @@ class SpiderFeedStream(BaseSpiderFeedStream):
     def producer(self):
         partitioner = Crc32NamePartitioner(self._partitions) if self._hostname_partitioning \
             else FingerprintPartitioner(self._partitions)
-        return KeyedProducer(self._location, self._enable_ssl, self._cert_path, self._topic, partitioner, self._codec)
+        return KeyedProducer(self._location, self._enable_ssl, self._cert_path, self._topic, partitioner, self._codec,
+                             batch_size=DEFAULT_BATCH_SIZE,
+                             buffer_memory=DEFAULT_BUFFER_MEMORY)
 
 
 class ScoringLogStream(BaseScoringLogStream):
@@ -233,7 +219,9 @@ class ScoringLogStream(BaseScoringLogStream):
         return Consumer(self._location, self._enable_ssl, self._cert_path, self._topic, self._group, partition_id=None)
 
     def producer(self):
-        return SimpleProducer(self._location, self._enable_ssl, self._cert_path, self._topic, self._codec)
+        return SimpleProducer(self._location, self._enable_ssl, self._cert_path, self._topic, self._codec,
+                              batch_size=DEFAULT_BATCH_SIZE,
+                              buffer_memory=DEFAULT_BUFFER_MEMORY)
 
 
 class StatsLogStream(BaseStatsLogStream, ScoringLogStream):

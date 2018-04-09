@@ -68,7 +68,7 @@ setup(
             'msgpack-python>=0.4'
         ],
         'kafka': [
-            'kafka-python>=1.0.0'
+            'kafka-python>=1.4.0'
         ],
         'distributed': [
             'Twisted'

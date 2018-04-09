@@ -2,7 +2,7 @@
 from __future__ import absolute_import
 from frontera.settings import Settings
 from frontera.contrib.messagebus.zeromq import MessageBus as ZeroMQMessageBus
-from frontera.contrib.messagebus.kafkabus import MessageBus as KafkaMessageBus, Consumer as KafkaConsumer
+from frontera.contrib.messagebus.kafkabus import MessageBus as KafkaMessageBus
 from frontera.utils.fingerprint import sha1
 from kafka import KafkaClient
 from random import randint
@@ -124,6 +124,8 @@ class KafkaMessageBusTest(unittest.TestCase):
         logger.setLevel(logging.INFO)
         logger.addHandler(handler)
 
+        self.logger = logging.getLogger("tester")
+        self.logger.debug("setup started")
         kafka_location = "127.0.0.1:9092"
         client = KafkaClient(kafka_location)
         client.ensure_topic_exists("frontier-todo")
@@ -155,8 +157,11 @@ class KafkaMessageBusTest(unittest.TestCase):
         # spider
         self.sp_sl_p = spiderlog.producer()
         self.sp_sf_c = KafkaConsumerPolling(spider_feed.consumer(partition_id=0))
+        self.logger.debug("init is done")
+
 
     def tearDown(self):
+        self.logger.debug("teardown")
         self.sw_us_p.close()
         self.db_sf_p.close()
         self.sp_sl_p.close()
@@ -167,12 +172,14 @@ class KafkaMessageBusTest(unittest.TestCase):
         self.sp_sf_c.close()
 
     def spider_log_activity(self, messages):
+        self.logger.debug("spider log activity entered")
         for i in range(0, messages):
             if i % 2 == 0:
                 self.sp_sl_p.send(sha1(str(randint(1, 1000))), b'http://helloworld.com/way/to/the/sun/' + b'0')
             else:
                 self.sp_sl_p.send(sha1(str(randint(1, 1000))), b'http://way.to.the.sun' + b'0')
         self.sp_sl_p.flush()
+        self.logger.debug("spider log activity finished")
 
     def spider_feed_activity(self):
         sf_c = 0

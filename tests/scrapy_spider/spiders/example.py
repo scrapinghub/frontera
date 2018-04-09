@@ -5,7 +5,7 @@ from scrapy.spiders import CrawlSpider, Rule
 
 class MySpider(CrawlSpider):
     name = 'example'
-    start_urls = ['http://www.dmoz.org']
+    start_urls = ['https://en.wikipedia.org/wiki/Main_Page']
     callback_calls = 0
 
     rules = [Rule(LinkExtractor(),
