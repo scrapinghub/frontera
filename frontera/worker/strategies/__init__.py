@@ -20,6 +20,15 @@ class BaseCrawlingStrategy(object):
     """
 
     def __init__(self, manager, args, mb_stream, states_context):
+        """
+        Constructor of the crawling strategy.
+
+        Args:
+            manager: is an instance of :class: `Backend <frontera.core.manager.FrontierManager>` instance
+            args: is a dict with command line arguments from :term:`strategy worker`
+            mb_stream: is a helper class for sending scheduled requests
+            states_context: a helper to operate with states for requests created in crawling strategy class
+        """
         self._mb_stream = mb_stream
         self._states_context = states_context
         self._manager = manager
@@ -29,9 +38,7 @@ class BaseCrawlingStrategy(object):
         """
         Called on instantiation in strategy worker.
 
-        :param manager: :class: `Backend <frontera.core.manager.FrontierManager>` instance
-        :param args: dict with command line arguments from :term:`strategy worker`
-        :param mb_stream: :class: `UpdateScoreStream <frontera.worker.strategy.UpdateScoreStream>` instance
+        see params for constructor
         :return: new instance
         """
         return cls(manager, args, mb_stream, states_context)
@@ -59,6 +66,12 @@ class BaseCrawlingStrategy(object):
         to links_extracted handler and is aiming to filter unused links and return only those where states
         information is needed.
 
+        The motivation for having the filtration separated before the actual handler is to save on HBase state
+        retrieval. Every non-cached link is requested from HBase and it may slow down the cluster significantly
+        on discovery-intensive crawls. Please make sure you use this class to filter out all the links you're not
+        going ot use in :method:`links_extracted <frontera.worker.strategies.BaseCrawlingStrategy.links_extracted>
+        handler.
+
         :param object request: The :class:`Request <frontera.core.models.Request>` object for the crawled page.
         :param list links: A list of :class:`Request <frontera.core.models.Request>` objects generated from \
         the links extracted for the crawled page.
@@ -70,7 +83,7 @@ class BaseCrawlingStrategy(object):
     def links_extracted(self, request, links):
         """
         Called every time document was successfully crawled, and receiving links_extracted event from spider log,
-        after the links states are fetched from backend. Should be used to schedule links according to some rules.
+        after the link states are fetched from backend. Should be used to schedule links according to some rules.
 
         :param object request: The :class:`Request <frontera.core.models.Request>` object for the crawled page.
         :param list links: A list of :class:`Request <frontera.core.models.Request>` objects generated from \
@@ -114,9 +127,8 @@ class BaseCrawlingStrategy(object):
 
     def create_request(self, url, method=b'GET', headers=None, cookies=None, meta=None, body=b''):
         """
-        Creates request with specified fields, with state fetched from backend. This method only creates request, but
-        isn't getting it's state from storage. Use self.refresh_states on a batch of requests to get their states
-        from storage.
+        Creates request with specified fields. This method only creates request, but isn't getting it's state
+        from storage. Use self.refresh_states on a batch of requests to get their states from storage.
 
         :param url: str
         :param method: str
