@@ -148,7 +148,7 @@ class JsonRpcService(server.Site):
     def start_listening(self):
         self.port = listen_tcp(self.portrange, self.host, self)
         h = self.port.getHost()
-        logger.info('Web service listening on %(host)s:%(port)d'.format(host=h.host, port=h.port))
+        logger.info('Web service listening on {host}:{port}'.format(host=h.host, port=h.port))
 
     def stop_listening(self):
         self.port.stopListening()
