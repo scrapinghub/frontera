@@ -159,15 +159,19 @@ class HBaseQueue(Queue):
         for request, score in batch:
             domain = request.meta[b'domain']
             fingerprint = request.meta[b'fingerprint']
-            if type(domain) == dict:
+            slot = request.meta.get(b'slot')
+            if slot is not None:
+                partition_id = self.partitioner.partition(slot, self.partitions)
+                key_crc32 = get_crc32(slot)
+            elif type(domain) == dict:
                 partition_id = self.partitioner.partition(domain[b'name'], self.partitions)
-                host_crc32 = get_crc32(domain[b'name'])
+                key_crc32 = get_crc32(domain[b'name'])
             elif type(domain) == int:
                 partition_id = self.partitioner.partition_by_hash(domain, self.partitions)
-                host_crc32 = domain
+                key_crc32 = domain
             else:
-                raise TypeError("domain of unknown type.")
-            item = (unhexlify(fingerprint), host_crc32, self.encoder.encode_request(request), score)
+                raise TypeError("partitioning key and info isn't provided")
+            item = (unhexlify(fingerprint), key_crc32, self.encoder.encode_request(request), score)
             score = 1 - score  # because of lexicographical sort in HBase
             rk = "%d_%s_%d" % (partition_id, "%0.2f_%0.2f" % get_interval(score, 0.01), random_str)
             data.setdefault(rk, []).append((score, item))
@@ -237,12 +241,12 @@ class HBaseQueue(Queue):
                         stream = BytesIO(buf)
                         unpacker = Unpacker(stream)
                         for item in unpacker:
-                            fprint, host_crc32, _, _ = item
-                            if host_crc32 not in queue:
-                                queue[host_crc32] = []
-                            if max_requests_per_host is not None and len(queue[host_crc32]) > max_requests_per_host:
+                            fprint, key_crc32, _, _ = item
+                            if key_crc32 not in queue:
+                                queue[key_crc32] = []
+                            if max_requests_per_host is not None and len(queue[key_crc32]) > max_requests_per_host:
                                 continue
-                            queue[host_crc32].append(fprint)
+                            queue[key_crc32].append(fprint)
                             count += 1
 
                             if fprint not in meta_map:
