@@ -97,4 +97,8 @@ class DBWorkerThreadComponent(DBWorkerBaseComponent):
 
     def update_stats(self, **kwargs):
         """Helper to update worker stats."""
-        threads.blockingCallFromThread(reactor, self.worker.update_stats, **kwargs)
+        if reactor.running:
+            threads.blockingCallFromThread(reactor, self.worker.update_stats, **kwargs)
+        else:
+            # for testing purposes
+            self.worker.update_stats(**kwargs)
