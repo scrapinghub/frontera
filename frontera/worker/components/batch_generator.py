@@ -106,7 +106,7 @@ class BatchGenerator(DBWorkerThreadComponent):
         if hostname:
             hostname = hostname.lower()
             second_level = suffix_list.get_public_suffix(hostname)
-            if second_level in self.domains_blacklist:
+            if second_level in self.domains_blacklist or hostname in self.domains_blacklist:
                 self.logger.debug("Dropping black-listed URL %s", request.url)
                 return True
         return False
