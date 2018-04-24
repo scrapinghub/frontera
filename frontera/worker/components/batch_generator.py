@@ -6,6 +6,8 @@ from time import asctime, time
 from collections import defaultdict
 from logging import DEBUG
 
+from bigbot_common.fingerprint import suffix_list
+
 from frontera.exceptions import NotConfigured
 from frontera.utils.url import parse_domain_from_url_fast
 from . import DBWorkerThreadComponent
@@ -103,8 +105,9 @@ class BatchGenerator(DBWorkerThreadComponent):
             _, hostname, _, _, _, _ = parse_domain_from_url_fast(request.url)
         if hostname:
             hostname = hostname.lower()
-            if hostname in self.domains_blacklist:
-                self.logger.debug("Dropping black-listed hostname, URL %s", request.url)
+            second_level = suffix_list.get_public_suffix(hostname)
+            if second_level in self.domains_blacklist:
+                self.logger.debug("Dropping black-listed URL %s", request.url)
                 return True
         return False
 
