@@ -72,7 +72,7 @@ class StatesContext(object):
         self.to_fetch(requests)
         self.fetch()
         self._states.set_states(requests)
-        self._requests.extend(requests)
+        self._requests.extend(requests if isinstance(requests, Iterable) else [requests])
 
     def release(self):
         self._states.update_cache(self._requests)
