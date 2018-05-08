@@ -226,26 +226,33 @@ class HBaseQueue(Queue):
             meta_map.clear()
             queue.clear()
             count = 0
-            for rk, data in table.scan(limit=int(limit), batch_size=256, row_prefix=prefix, sorted_columns=True): # filter=filter
-                for cq, buf in six.iteritems(data):
-                    if cq == b'f:t':
-                        continue
-                    stream = BytesIO(buf)
-                    unpacker = Unpacker(stream)
-                    for item in unpacker:
-                        fprint, host_crc32, _, _ = item
-                        if host_crc32 not in queue:
-                            queue[host_crc32] = []
-                        if max_requests_per_host is not None and len(queue[host_crc32]) > max_requests_per_host:
+            # XXX pypy hot-fix: non-exhausted generator must be closed manually
+            # otherwise "finally" piece in table.scan() method won't be executed
+            # immediately to properly close scanner (http://pypy.org/compat.html)
+            scan_gen = table.scan(limit=int(limit), batch_size=256, row_prefix=prefix, sorted_columns=True)
+            try:
+                for rk, data in scan_gen:
+                    for cq, buf in six.iteritems(data):
+                        if cq == b'f:t':
                             continue
-                        queue[host_crc32].append(fprint)
-                        count += 1
+                        stream = BytesIO(buf)
+                        unpacker = Unpacker(stream)
+                        for item in unpacker:
+                            fprint, host_crc32, _, _ = item
+                            if host_crc32 not in queue:
+                                queue[host_crc32] = []
+                            if max_requests_per_host is not None and len(queue[host_crc32]) > max_requests_per_host:
+                                continue
+                            queue[host_crc32].append(fprint)
+                            count += 1
 
-                        if fprint not in meta_map:
-                            meta_map[fprint] = []
-                        meta_map[fprint].append((rk, item))
-                if count > max_n_requests:
-                    break
+                            if fprint not in meta_map:
+                                meta_map[fprint] = []
+                            meta_map[fprint].append((rk, item))
+                    if count > max_n_requests:
+                        break
+            finally:
+                scan_gen.close()
 
             if min_hosts is not None and len(queue.keys()) < min_hosts:
                 continue
