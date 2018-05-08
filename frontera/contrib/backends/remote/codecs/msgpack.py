@@ -13,26 +13,27 @@ from w3lib.util import to_native_str
 logger = logging.getLogger(__name__)
 
 
+def _serialize(obj):
+    """Recursively walk object's hierarchy."""
+    if isinstance(obj, (bool, six.integer_types, float, six.binary_type, six.text_type)) or obj is None:
+        return obj
+    elif isinstance(obj, dict):
+        obj = obj.copy()
+        for key in obj:
+            obj[key] = _serialize(obj[key])
+        return obj
+    elif isinstance(obj, list):
+        return [_serialize(item) for item in obj]
+    elif isinstance(obj, tuple):
+        return tuple(_serialize([item for item in obj]))
+    elif hasattr(obj, '__dict__'):
+        return _serialize(obj.__dict__)
+    else:
+        logger.warning('unable to serialize object: {}'.format(obj))
+        return None
+
 def _prepare_request_message(request):
-    def serialize(obj):
-        """Recursively walk object's hierarchy."""
-        if isinstance(obj, (bool, six.integer_types, float, six.binary_type, six.text_type)) or obj is None:
-            return obj
-        elif isinstance(obj, dict):
-            obj = obj.copy()
-            for key in obj:
-                obj[key] = serialize(obj[key])
-            return obj
-        elif isinstance(obj, list):
-            return [serialize(item) for item in obj]
-        elif isinstance(obj, tuple):
-            return tuple(serialize([item for item in obj]))
-        elif hasattr(obj, '__dict__'):
-            return serialize(obj.__dict__)
-        else:
-            logger.warning('unable to serialize object: {}'.format(obj))
-            return None
-    return [request.url, request.method, request.headers, request.cookies, serialize(request.meta)]
+    return [request.url, request.method, request.headers, request.cookies, _serialize(request.meta)]
 
 
 def _prepare_response_message(response, send_body):
