@@ -11,6 +11,11 @@ r3 = Request('https://www.dmoz.org', meta={b'fingerprint': b'3', b'jid': 0})
 r4 = Request('http://www.test.com/some/page', meta={b'fingerprint': b'4', b'jid': 0})
 
 
+class FilteredLinksCrawlingStrategy(CrawlingStrategy):
+    def filter_extracted_links(self, request, links):
+        return []
+
+
 class TestStrategyWorker(object):
 
     def sw_setup(self):
@@ -19,6 +24,13 @@ class TestStrategyWorker(object):
         settings.MESSAGE_BUS = 'tests.mocks.message_bus.FakeMessageBus'
         settings.SPIDER_LOG_CONSUMER_BATCH_SIZE = 100
         return StrategyWorker(settings, CrawlingStrategy)
+
+    def sw_setup_filtered_links(self):
+        settings = Settings()
+        settings.BACKEND = 'frontera.contrib.backends.sqlalchemy.Distributed'
+        settings.MESSAGE_BUS = 'tests.mocks.message_bus.FakeMessageBus'
+        settings.SPIDER_LOG_CONSUMER_BATCH_SIZE = 100
+        return StrategyWorker(settings, FilteredLinksCrawlingStrategy)
 
     def test_add_seeds(self):
         sw = self.sw_setup()
@@ -62,6 +74,17 @@ class TestStrategyWorker(object):
         r4.meta[b'state'] = States.QUEUED
         assert set(sw.scoring_log_producer.messages) == \
             set(sw._encoder.encode_update_score(r, sw.strategy.get_score(r.url), True) for r in [r3, r4])
+
+    def test_filter_links_extracted(self):
+        sw = self.sw_setup_filtered_links()
+        sw.job_id = 0
+        r1.meta[b'jid'] = 0
+        msg = sw._encoder.encode_links_extracted(r1, [r3, r4])
+        sw.consumer.put_messages([msg])
+        sw.work()
+        r3.meta[b'state'] = States.QUEUED
+        r4.meta[b'state'] = States.QUEUED
+        assert set(sw.scoring_log_producer.messages) == set()
 
     def test_request_error(self):
         sw = self.sw_setup()
