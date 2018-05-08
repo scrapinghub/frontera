@@ -29,21 +29,18 @@ logger = logging.getLogger("strategy-worker")
 
 
 class UpdateScoreStream(object):
-    def __init__(self, encoder, scoring_log_producer, size):
+
+    def __init__(self, producer, encoder):
+        self._producer = producer
         self._encoder = encoder
-        self._buffer = []
-        self._producer = scoring_log_producer
-        self._size = size
 
     def send(self, request, score=1.0, dont_queue=False):
         encoded = self._encoder.encode_update_score(
-            request,
-            score,
-            not dont_queue
+            request=request,
+            score=score,
+            schedule=not dont_queue
         )
-        self._buffer.append(encoded)
-        if len(self._buffer) > self._size:
-            self.flush()
+        self._producer.send(None, encoded)
 
     def flush(self):
         pass
@@ -104,7 +101,7 @@ class BaseStrategyWorker(object):
         self._decoder = decoder_cls(self._manager.request_model, self._manager.response_model)
         self._encoder = encoder_cls(self._manager.request_model)
 
-        self.update_score = UpdateScoreStream(self._encoder, self.scoring_log_producer, 1024)
+        self.update_score = UpdateScoreStream(self.scoring_log_producer, self._encoder)
         self.states_context = StatesContext(self._manager.backend.states)
 
         self.consumer_batch_size = settings.get('SPIDER_LOG_CONSUMER_BATCH_SIZE')
