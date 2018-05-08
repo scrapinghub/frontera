@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 from scrapy.linkextractors import LinkExtractor
 from scrapy.spiders import CrawlSpider, Rule
-
+from scrapy.http import Request
 
 class MySpider(CrawlSpider):
     name = 'example'
@@ -17,5 +17,8 @@ class MySpider(CrawlSpider):
 
     def parse_nothing(self, response):
         pass
+
+    def make_requests_from_url(self, url):
+        return Request(url, dont_filter=True, meta={'seed':True})
 
     parse_start_url = parse_nothing

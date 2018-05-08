@@ -11,15 +11,15 @@ from six.moves import range
 
 
 # test requests
-r1 = Request('http://www.example.com')
-r2 = Request('https://www.example.com/some/page')
-r3 = Request('http://example1.com')
+r1 = Request('http://www.example.com', meta={'seed': True})
+r2 = Request('https://www.example.com/some/page', meta={'seed': True})
+r3 = Request('http://example1.com', meta={'seed': True})
 
 
 # test requests with redirects
-rr1 = Request('http://www.example.com', meta={b'redirect_times': 1})
-rr2 = Request('https://www.example.com/some/page', meta={b'redirect_times': 4})
-rr3 = Request('http://example1.com', meta={b'redirect_times': 0})
+rr1 = Request('http://www.example.com', meta={'redirect_times': 1})
+rr2 = Request('https://www.example.com/some/page', meta={'redirect_times': 4})
+rr3 = Request('http://example1.com', meta={'redirect_times': 0})
 
 
 # test frontier requests
@@ -49,11 +49,10 @@ class TestFronteraScheduler(object):
         fs.open(Spider)
         assert fs.enqueue_request(rr1) is False
         assert fs.enqueue_request(rr2) is False
-        assert fs.enqueue_request(rr3) is True
-        assert isinstance(fs.frontier.manager.seeds[0], FRequest)
-        assert len(fs.frontier.manager.seeds) == 1
-        assert fs.frontier.manager.seeds[0].url == rr3.url
-        assert fs.stats_manager.stats.get_value('frontera/seeds_count') == 1
+        assert fs.enqueue_request(rr3) is False
+        assert len(fs.frontier.manager.seeds) == 0
+        assert fs.stats_manager.stats.get_value('frontera/seeds_count') == None
+
 
     def test_redirect_enabled_enqueue_requests(self):
         settings = Settings()
@@ -63,13 +62,10 @@ class TestFronteraScheduler(object):
         fs.open(Spider)
         assert fs.enqueue_request(rr1) is True
         assert fs.enqueue_request(rr2) is True
-        assert fs.enqueue_request(rr3) is True
-        assert len(fs.frontier.manager.seeds) == 1
-        assert isinstance(fs.frontier.manager.seeds[0], FRequest)
-        assert fs.frontier.manager.seeds[0].url == rr3.url
+        assert fs.enqueue_request(rr3) is False
         assert set([request.url for request in fs._pending_requests]) == set([rr1.url, rr2.url])
         assert all([isinstance(request, Request) for request in fs._pending_requests])
-        assert fs.stats_manager.stats.get_value('frontera/seeds_count') == 1
+        assert fs.stats_manager.stats.get_value('frontera/seeds_count') == None
         assert fs.stats_manager.stats.get_value('frontera/redirected_requests_count') == 2
 
     def test_next_request(self):

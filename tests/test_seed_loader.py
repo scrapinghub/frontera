@@ -49,7 +49,7 @@ https://www.scrapy.org
 
     def test_process_start_requests(self):
         seed_loader = self.seed_loader_setup()
-        requests = seed_loader.process_start_requests(None, Spider(name='spider'))
+        requests = seed_loader.process_start_requests((), Spider(name='spider'))
         self.assertEqual([r.url for r in requests], ['https://www.example.com', 'https://www.scrapy.org'])
 
     def test_process_start_requests_ignore_comments(self):
@@ -60,7 +60,7 @@ https://www.scrapy.org
 # https://www.test.com
 """
         seed_loader = self.seed_loader_setup(seeds_content)
-        requests = seed_loader.process_start_requests(None, Spider(name='spider'))
+        requests = seed_loader.process_start_requests((), Spider(name='spider'))
         self.assertEqual([r.url for r in requests], ['https://www.example.com', 'https://www.scrapy.org'])
 
 
@@ -123,5 +123,5 @@ https://www.test.com
 
                 with mock.patch('frontera.contrib.scrapy.middlewares.seeds.s3.connect_s3',
                                 side_effect=mocked_connect_s3):
-                    requests = self.seed_loader.process_start_requests(None, Spider(name='spider'))
+                    requests = self.seed_loader.process_start_requests((), Spider(name='spider'))
                     self.assertEqual(set([r.url for r in requests]), set(urls))
