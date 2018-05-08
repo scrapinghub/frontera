@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 from frontera.utils.url import parse_domain_from_url_fast
 from frontera import DistributedBackend
 from frontera.core.components import Metadata, Queue, States
@@ -22,7 +22,7 @@ from time import time
 from binascii import hexlify, unhexlify
 from io import BytesIO
 from random import choice
-from collections import Iterable
+from collections import defaultdict, Iterable
 import logging
 
 
@@ -65,6 +65,24 @@ def utcnow_timestamp():
     return timegm(d.timetuple())
 
 
+class LRUCacheWithStats(LRUCache):
+    """Extended version of standard LRUCache with counting stats."""
+
+    EVICTED_STATNAME = 'states.cache.evicted'
+
+    def __init__(self, stats=None, *args, **kwargs):
+        super(LRUCacheWithStats, self).__init__(*args, **kwargs)
+        self._stats = stats
+        if self._stats is not None:
+            self._stats.setdefault(self.EVICTED_STATNAME, 0)
+
+    def popitem(self):
+        key, val = super(LRUCacheWithStats, self).popitem()
+        if self._stats:
+            self._stats[self.EVICTED_STATNAME] += 1
+        return key, val
+
+
 class HBaseQueue(Queue):
 
     GET_RETRIES = 3
@@ -81,10 +99,10 @@ class HBaseQueue(Queue):
             self.connection.delete_table(self.table_name, disable=True)
             tables.remove(self.table_name)
 
-        schema = {'f': {'max_versions': 1}}
-        if use_snappy:
-            schema['f']['compression'] = 'SNAPPY'
         if self.table_name not in tables:
+            schema = {'f': {'max_versions': 1}}
+            if use_snappy:
+                schema['f']['compression'] = 'SNAPPY'
             self.connection.create_table(self.table_name, schema)
 
         class DumbResponse:
@@ -277,9 +295,12 @@ class HBaseState(States):
         self.connection = connection
         self._table_name = to_bytes(table_name)
         self.logger = logging.getLogger("hbase.states")
-        self._state_cache = LRUCache(maxsize=cache_size_limit)
         self._state_batch = self.connection.table(
             self._table_name).batch(batch_size=write_log_size)
+        self._state_stats = defaultdict(int)
+        self._state_cache = LRUCacheWithStats(maxsize=cache_size_limit,
+                                              stats=self._state_stats)
+        self._state_last_updates = 0
 
         tables = set(connection.tables())
         if drop_all_tables and self._table_name in tables:
@@ -300,6 +321,8 @@ class HBaseState(States):
             self._state_batch.put(unhexlify(fingerprint), prepare_hbase_object(state=state))
             # update LRU cache with the state update
             self._state_cache[fingerprint] = state
+            self._state_last_updates += 1
+        self._update_batch_stats()
 
     def set_states(self, objs):
         objs = objs if isinstance(objs, Iterable) else [objs]
@@ -311,6 +334,8 @@ class HBaseState(States):
 
     def fetch(self, fingerprints):
         to_fetch = [f for f in fingerprints if f not in self._state_cache]
+        self._update_cache_stats(hits=len(fingerprints)-len(to_fetch),
+                                 misses=len(to_fetch))
         if not to_fetch:
             return
         self.logger.debug('Fetching %d/%d elements from HBase (cache size %d)',
@@ -323,6 +348,24 @@ class HBaseState(States):
                 if b's:state' in cells:
                     state = unpack('>B', cells[b's:state'])[0]
                     self._state_cache[hexlify(key)] = state
+
+    def _update_batch_stats(self):
+        new_batches_count, self._state_last_updates = divmod(
+            self._state_last_updates, self._state_batch._batch_size)
+        self._state_stats['states.batches.sent'] += new_batches_count
+
+    def _update_cache_stats(self, hits, misses):
+        total_hits = self._state_stats['states.cache.hits'] + hits
+        total_misses = self._state_stats['states.cache.misses'] + misses
+        total = total_hits + total_misses
+        self._state_stats['states.cache.hits'] = total_hits
+        self._state_stats['states.cache.misses'] = total_misses
+        self._state_stats['states.cache.ratio'] = total_hits / total if total else 0
+
+    def get_stats(self):
+        stats = self._state_stats.copy()
+        self._state_stats.clear()
+        return stats
 
 
 class HBaseMetadata(Metadata):
@@ -525,5 +568,9 @@ class HBaseBackend(DistributedBackend):
 
         For now it provides only HBase client stats.
         """
+        stats = {}
         with time_elapsed('Call HBase backend get_stats()'):
-            return self.connection.client.get_stats()
+            stats.update(self.connection.client.get_stats())
+        if self._states:
+            stats.update(self._states.get_stats())
+        return stats
