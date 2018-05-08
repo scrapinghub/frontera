@@ -299,16 +299,18 @@ OVERUSED_MAX_KEYS
 
 Default: ``None``
 
-A threshold triggering the keys purging in OverusedBuffer. The purging will end up leaving :ref:`OVERUSED_KEEP_KEYS`
+A threshold triggering the keys purging in OverusedBuffer. The purging will end up leaving :ref:`OVERUSED_KEEP_KEYS`.
+``None`` disables purging.
 
 .. setting:: OVERUSED_MAX_PER_KEY
 
 OVERUSED_MAX_PER_KEY
 --------------------
 
-Default: ``1200``
+Default: ``None``
 
 Purging will start when reaching this number of requests per key and leave :ref:`OVERUSED_KEEP_PER_KEY` requests.
+``None`` disables purging.
 
 .. setting:: OVERUSED_SLOT_FACTOR
 
