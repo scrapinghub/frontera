@@ -95,7 +95,7 @@ class Slot(object):
 class BaseDBWorker(object):
     """Base database worker class."""
 
-    def __init__(self, settings, no_batches, no_incoming, no_scoring):
+    def __init__(self, settings, no_batches, no_incoming, no_scoring, **kwargs):
 
         messagebus = load_object(settings.get('MESSAGE_BUS'))
         self.message_bus = messagebus(settings)
@@ -112,6 +112,7 @@ class BaseDBWorker(object):
         slot_kwargs = {'no_batches': no_batches,
                        'no_incoming': no_incoming,
                        'no_scoring': no_scoring}
+        slot_kwargs.update(**kwargs)
         self.slot = Slot(self, settings, **slot_kwargs)
 
         self.stats = defaultdict(int)
@@ -193,7 +194,7 @@ class DBWorker(StatsExportMixin, BaseDBWorker):
     The additional features are provided by using mixin classes:
      - sending crawl stats to message bus
      """
-    def get_stats_tags(self, settings, no_batches, no_incoming, no_scoring):
+    def get_stats_tags(self, settings, no_batches, no_incoming, no_scoring, **kwargs):
         if no_batches and no_scoring:
             db_worker_type = 'linksdb'
         elif no_batches and no_incoming:
@@ -221,6 +222,8 @@ if __name__ == '__main__':
                         help='Disables spider log processing.')
     parser.add_argument('--no-scoring', action='store_true',
                         help='Disables scoring log processing.')
+    parser.add_argument('--partitions', type=int, nargs='*',
+                        help='Optional partitions range for batch generator')
     parser.add_argument('--config', type=str, required=True,
                         help='Settings module name, should be accessible by import.')
     parser.add_argument('--log-level', '-L', type=str, default='INFO',
@@ -240,7 +243,8 @@ if __name__ == '__main__':
         logger.setLevel(args.log_level)
         logger.addHandler(CONSOLE)
 
-    worker = DBWorker(settings, args.no_batches, args.no_incoming, args.no_scoring)
+    worker = DBWorker(settings, args.no_batches, args.no_incoming,
+                      args.no_scoring, partitions=args.partitions)
     server = WorkerJsonRpcService(worker, settings)
     server.start_listening()
     worker.run()

@@ -16,7 +16,8 @@ class BatchGenerator(DBWorkerThreadComponent):
 
     NAME = 'batchgen'
 
-    def __init__(self, worker, settings, stop_event, no_batches=False, **kwargs):
+    def __init__(self, worker, settings, stop_event,
+                 no_batches=False, partitions=None, **kwargs):
         super(BatchGenerator, self).__init__(worker, settings, stop_event, **kwargs)
         if no_batches:
             raise NotConfigured('BatchGenerator is disabled with --no-batches')
@@ -32,22 +33,36 @@ class BatchGenerator(DBWorkerThreadComponent):
 
         self.domains_blacklist = settings.get('DOMAINS_BLACKLIST')
         self.max_next_requests = settings.MAX_NEXT_REQUESTS
+        self.partitions = partitions
         # create an event to disable/enable batches generation via RPC
         self.disabled_event = threading.Event()
+
+    def get_ready_partitions(self):
+        pending_partitions = self.spider_feed.available_partitions()
+        if not self.partitions:
+            return pending_partitions
+        return list(set(pending_partitions) & set(self.partitions))
 
     def run(self):
         if self.disabled_event.is_set():
             return True
-
-        partitions = self.spider_feed.available_partitions()
+        partitions = self.get_ready_partitions()
         if not partitions:
             return True
-        self.logger.info("Getting new batches for partitions %s",
-                         str(",").join(map(str, partitions)))
+        batch_count = sum(self._handle_partition(partition_id)
+                          for partition_id in partitions)
+        if not batch_count:
+            return True
+        # let's count full batches in the same way as before
+        self.update_stats(increments={'batches_after_start': 1},
+                          replacements={'last_batch_size': batch_count,
+                                        'last_batch_generated': asctime()})
 
+    def _handle_partition(self, partition_id):
+        self.logger.info("Getting new batches for partition %d", partition_id)
         count = 0
         for request in self.backend.get_next_requests(self.max_next_requests,
-                                                      partitions=partitions):
+                                                      partitions=[partition_id]):
             if self._is_domain_blacklisted(request):
                 continue
             try:
@@ -65,11 +80,8 @@ class BatchGenerator(DBWorkerThreadComponent):
                                   (exc, self.get_fingerprint(request), request.url))
             finally:
                 count += 1
-        if not count:
-            return True
-        self.update_stats(increments={'pushed_since_start': count, 'batches_after_start': 1},
-                          replacements={'last_batch_size': count,
-                                        'last_batch_generated': asctime()})
+        self.update_stats(increments={'pushed_since_start': count})
+        return count
 
     def _is_domain_blacklisted(self, request):
         if not self.domains_blacklist:
