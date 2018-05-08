@@ -3,7 +3,7 @@ from frontera.worker.strategies.bfs import CrawlingStrategy
 from frontera.settings import Settings
 from frontera.core.models import Request, Response
 from frontera.core.components import States
-
+from unittest import TestCase
 
 r1 = Request('http://www.example.com/', meta={b'fingerprint': b'1', b'jid': 0})
 r2 = Request('http://www.scrapy.org/', meta={b'fingerprint': b'2', b'jid': 0})
@@ -16,14 +16,13 @@ class FilteredLinksCrawlingStrategy(CrawlingStrategy):
         return []
 
 
-class TestStrategyWorker(object):
-
-    def sw_setup(self):
+class TestStrategyWorker(TestCase):
+    def setUp(self):
         settings = Settings()
         settings.BACKEND = 'frontera.contrib.backends.sqlalchemy.Distributed'
         settings.MESSAGE_BUS = 'tests.mocks.message_bus.FakeMessageBus'
         settings.SPIDER_LOG_CONSUMER_BATCH_SIZE = 100
-        return StrategyWorker(settings, CrawlingStrategy)
+        self.sw = StrategyWorker(settings, CrawlingStrategy)
 
     def sw_setup_filtered_links(self):
         settings = Settings()
@@ -33,7 +32,7 @@ class TestStrategyWorker(object):
         return StrategyWorker(settings, FilteredLinksCrawlingStrategy)
 
     def test_add_seeds(self):
-        sw = self.sw_setup()
+        sw = self.sw
         msg = sw._encoder.encode_add_seeds([r1, r2, r3, r4])
         sw.consumer.put_messages([msg])
         r2.meta[b'state'] = States.CRAWLED
@@ -48,7 +47,7 @@ class TestStrategyWorker(object):
                 for r in [r1, r3, r4]])
 
     def test_page_crawled(self):
-        sw = self.sw_setup()
+        sw = self.sw
         r1.meta[b'jid'] = 1
         resp = Response(r1.url, request=r1)
         msg = sw._encoder.encode_page_crawled(resp)
@@ -64,7 +63,7 @@ class TestStrategyWorker(object):
         assert r1c.meta[b'state'] == States.CRAWLED
 
     def test_links_extracted(self):
-        sw = self.sw_setup()
+        sw = self.sw
         sw.job_id = 0
         r1.meta[b'jid'] = 0
         msg = sw._encoder.encode_links_extracted(r1, [r3, r4])
@@ -87,7 +86,7 @@ class TestStrategyWorker(object):
         assert set(sw.scoring_log_producer.messages) == set()
 
     def test_request_error(self):
-        sw = self.sw_setup()
+        sw = self.sw
         msg = sw._encoder.encode_request_error(r4, 'error')
         sw.consumer.put_messages([msg])
         sw.work()

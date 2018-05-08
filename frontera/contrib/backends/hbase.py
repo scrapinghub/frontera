@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 from frontera.utils.url import parse_domain_from_url_fast
 from frontera import DistributedBackend
 from frontera.core.components import Metadata, Queue, States
@@ -22,7 +22,7 @@ from time import time
 from binascii import hexlify, unhexlify
 from io import BytesIO
 from random import choice
-from collections import Iterable
+from collections import defaultdict, Iterable
 import logging
 
 
@@ -65,6 +65,24 @@ def utcnow_timestamp():
     return timegm(d.timetuple())
 
 
+class LRUCacheWithStats(LRUCache):
+    """Extended version of standard LRUCache with counting stats."""
+
+    EVICTED_STATNAME = 'states.cache.evicted'
+
+    def __init__(self, stats=None, *args, **kwargs):
+        super(LRUCacheWithStats, self).__init__(*args, **kwargs)
+        self._stats = stats
+        if self._stats is not None:
+            self._stats.setdefault(self.EVICTED_STATNAME, 0)
+
+    def popitem(self):
+        key, val = super(LRUCacheWithStats, self).popitem()
+        if self._stats:
+            self._stats[self.EVICTED_STATNAME] += 1
+        return key, val
+
+
 class HBaseQueue(Queue):
 
     GET_RETRIES = 3
@@ -81,10 +99,10 @@ class HBaseQueue(Queue):
             self.connection.delete_table(self.table_name, disable=True)
             tables.remove(self.table_name)
 
-        schema = {'f': {'max_versions': 1}}
-        if use_snappy:
-            schema['f']['compression'] = 'SNAPPY'
         if self.table_name not in tables:
+            schema = {'f': {'max_versions': 1}}
+            if use_snappy:
+                schema['f']['compression'] = 'SNAPPY'
             self.connection.create_table(self.table_name, schema)
 
         class DumbResponse:
@@ -103,12 +121,7 @@ class HBaseQueue(Queue):
         now = int(time())
         for fprint, score, request, schedule in batch:
             if schedule:
-                if b'domain' not in request.meta:    # TODO: this have to be done always by DomainMiddleware,
-                    # so I propose to require DomainMiddleware by HBaseBackend and remove that code
-                    _, hostname, _, _, _, _ = parse_domain_from_url_fast(request.url)
-                    if not hostname:
-                        self.logger.error("Can't get hostname for URL %s, fingerprint %s", request.url, fprint)
-                    request.meta[b'domain'] = {'name': hostname}
+                assert b'domain' in request.meta
                 timestamp = request.meta[b'crawl_at'] if b'crawl_at' in request.meta else now
                 to_schedule.setdefault(timestamp, []).append((request, score))
         for timestamp, batch in six.iteritems(to_schedule):
@@ -213,26 +226,33 @@ class HBaseQueue(Queue):
             meta_map.clear()
             queue.clear()
             count = 0
-            for rk, data in table.scan(limit=int(limit), batch_size=256, row_prefix=prefix, sorted_columns=True): # filter=filter
-                for cq, buf in six.iteritems(data):
-                    if cq == b'f:t':
-                        continue
-                    stream = BytesIO(buf)
-                    unpacker = Unpacker(stream)
-                    for item in unpacker:
-                        fprint, host_crc32, _, _ = item
-                        if host_crc32 not in queue:
-                            queue[host_crc32] = []
-                        if max_requests_per_host is not None and len(queue[host_crc32]) > max_requests_per_host:
+            # XXX pypy hot-fix: non-exhausted generator must be closed manually
+            # otherwise "finally" piece in table.scan() method won't be executed
+            # immediately to properly close scanner (http://pypy.org/compat.html)
+            scan_gen = table.scan(limit=int(limit), batch_size=256, row_prefix=prefix, sorted_columns=True)
+            try:
+                for rk, data in scan_gen:
+                    for cq, buf in six.iteritems(data):
+                        if cq == b'f:t':
                             continue
-                        queue[host_crc32].append(fprint)
-                        count += 1
+                        stream = BytesIO(buf)
+                        unpacker = Unpacker(stream)
+                        for item in unpacker:
+                            fprint, host_crc32, _, _ = item
+                            if host_crc32 not in queue:
+                                queue[host_crc32] = []
+                            if max_requests_per_host is not None and len(queue[host_crc32]) > max_requests_per_host:
+                                continue
+                            queue[host_crc32].append(fprint)
+                            count += 1
 
-                        if fprint not in meta_map:
-                            meta_map[fprint] = []
-                        meta_map[fprint].append((rk, item))
-                if count > max_n_requests:
-                    break
+                            if fprint not in meta_map:
+                                meta_map[fprint] = []
+                            meta_map[fprint].append((rk, item))
+                    if count > max_n_requests:
+                        break
+            finally:
+                scan_gen.close()
 
             if min_hosts is not None and len(queue.keys()) < min_hosts:
                 continue
@@ -282,9 +302,12 @@ class HBaseState(States):
         self.connection = connection
         self._table_name = to_bytes(table_name)
         self.logger = logging.getLogger("hbase.states")
-        self._state_cache = LRUCache(maxsize=cache_size_limit)
         self._state_batch = self.connection.table(
             self._table_name).batch(batch_size=write_log_size)
+        self._state_stats = defaultdict(int)
+        self._state_cache = LRUCacheWithStats(maxsize=cache_size_limit,
+                                              stats=self._state_stats)
+        self._state_last_updates = 0
 
         tables = set(connection.tables())
         if drop_all_tables and self._table_name in tables:
@@ -305,6 +328,8 @@ class HBaseState(States):
             self._state_batch.put(unhexlify(fingerprint), prepare_hbase_object(state=state))
             # update LRU cache with the state update
             self._state_cache[fingerprint] = state
+            self._state_last_updates += 1
+        self._update_batch_stats()
 
     def set_states(self, objs):
         objs = objs if isinstance(objs, Iterable) else [objs]
@@ -316,6 +341,8 @@ class HBaseState(States):
 
     def fetch(self, fingerprints):
         to_fetch = [f for f in fingerprints if f not in self._state_cache]
+        self._update_cache_stats(hits=len(fingerprints)-len(to_fetch),
+                                 misses=len(to_fetch))
         if not to_fetch:
             return
         self.logger.debug('Fetching %d/%d elements from HBase (cache size %d)',
@@ -328,6 +355,24 @@ class HBaseState(States):
                 if b's:state' in cells:
                     state = unpack('>B', cells[b's:state'])[0]
                     self._state_cache[hexlify(key)] = state
+
+    def _update_batch_stats(self):
+        new_batches_count, self._state_last_updates = divmod(
+            self._state_last_updates, self._state_batch._batch_size)
+        self._state_stats['states.batches.sent'] += new_batches_count
+
+    def _update_cache_stats(self, hits, misses):
+        total_hits = self._state_stats['states.cache.hits'] + hits
+        total_misses = self._state_stats['states.cache.misses'] + misses
+        total = total_hits + total_misses
+        self._state_stats['states.cache.hits'] = total_hits
+        self._state_stats['states.cache.misses'] = total_misses
+        self._state_stats['states.cache.ratio'] = total_hits / total if total else 0
+
+    def get_stats(self):
+        stats = self._state_stats.copy()
+        self._state_stats.clear()
+        return stats
 
 
 class HBaseMetadata(Metadata):
@@ -511,24 +556,26 @@ class HBaseBackend(DistributedBackend):
         raise NotImplementedError
 
     def get_next_requests(self, max_next_requests, **kwargs):
-        next_pages = []
         self.logger.debug("Querying queue table.")
-        partitions = set(kwargs.pop('partitions', []))
-        for partition_id in range(0, self.queue_partitions):
-            if partition_id not in partitions:
-                continue
-            results = self.queue.get_next_requests(max_next_requests, partition_id,
-                                                   min_requests=self._min_requests,
-                                                   min_hosts=self._min_hosts,
-                                                   max_requests_per_host=self._max_requests_per_host)
-            next_pages.extend(results)
-            self.logger.debug("Got %d requests for partition id %d", len(results), partition_id)
-        return next_pages
+        for partition_id in set(kwargs.pop('partitions', [])):
+            count = 0
+            for request in self.queue.get_next_requests(
+                    max_next_requests, partition_id,
+                    min_requests=self._min_requests,
+                    min_hosts=self._min_hosts,
+                    max_requests_per_host=self._max_requests_per_host):
+                count += 1
+                yield request
+            self.logger.debug("Got %d requests for partition id %d", count, partition_id)
 
     def get_stats(self):
         """Helper to get stats dictionary for the backend.
 
         For now it provides only HBase client stats.
         """
+        stats = {}
         with time_elapsed('Call HBase backend get_stats()'):
-            return self.connection.client.get_stats()
+            stats.update(self.connection.client.get_stats())
+        if self._states:
+            stats.update(self._states.get_stats())
+        return stats

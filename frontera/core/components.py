@@ -187,6 +187,15 @@ class Middleware(Component):
     """Interface definition for a Frontier Middlewares"""
     component_name = 'Base Middleware'
 
+    def create_request(self, request):
+        """
+        Applying middleware logic on newly created request.
+
+        :param reqeust: :class:`Request <frontera.core.models.Request>` object
+        :return: an instance of :class:`Request <frontera.core.models.Request>` object.
+        """
+        pass
+
 
 @six.add_metaclass(ABCMeta)
 class CanonicalSolver(Middleware):

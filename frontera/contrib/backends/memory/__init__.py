@@ -4,7 +4,7 @@ import random
 from collections import deque, Iterable
 
 from frontera.contrib.backends import CommonBackend
-from frontera.core.components import Metadata, Queue, States
+from frontera.core.components import Metadata, Queue, States, DistributedBackend
 from frontera.core import OverusedBuffer
 from frontera.utils.heap import Heap
 from frontera.contrib.backends.partitioners import Crc32NamePartitioner
@@ -253,6 +253,61 @@ class MemoryDFSOverusedBackend(MemoryDFSBackend):
 
     def get_next_requests(self, max_next_requests, **kwargs):
         return self.overused_buffer.get_next_requests(max_next_requests, **kwargs)
+
+
+class MemoryDistributedBackend(DistributedBackend):
+    def __init__(self, manager):
+        settings = manager.settings
+        self._states = MemoryStates(1000)
+        self._queue = MemoryQueue(settings.get('SPIDER_FEED_PARTITIONS'))
+        self.queue_partitions = settings.get('SPIDER_FEED_PARTITIONS')
+
+    def add_seeds(self, seeds):
+        pass
+
+    def page_crawled(self, response):
+        pass
+
+    def request_error(self, page, error):
+        pass
+
+    def finished(self):
+        pass
+
+    def links_extracted(self, request, links):
+        pass
+
+    @property
+    def metadata(self):
+        return self._metadata
+
+    @property
+    def queue(self):
+        return self._queue
+
+    @property
+    def states(self):
+        return self._states
+
+    def get_next_requests(self, max_n_requests, **kwargs):
+        next_pages = []
+        partitions = set(kwargs.pop('partitions', []))
+        for partition_id in range(0, self.queue_partitions):
+            if partition_id not in partitions:
+                continue
+            results = self.queue.get_next_requests(max_n_requests, partition_id)
+            next_pages.extend(results)
+            self.logger.debug("Got %d requests for partition id %d", len(results), partition_id)
+        return next_pages
+
+    @classmethod
+    def strategy_worker(cls, manager):
+        return cls(manager)
+
+    @classmethod
+    def db_worker(cls, manager):
+        return cls(manager)
+
 
 
 BASE = MemoryBaseBackend
