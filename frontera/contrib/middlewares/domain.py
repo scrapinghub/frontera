@@ -90,14 +90,17 @@ class DomainMiddleware(Middleware):
     def request_error(self, request, error):
         return self._add_domain(request)
 
+    def create_request(self, request):
+        return self._add_domain(request)
+
     def _add_domain(self, obj):
-        obj.meta[b'domain'] = self.parse_domain_info(obj.url, self.manager.test_mode)
+        obj.meta[b'domain'] = self._parse_domain_info(obj.url, self.manager.test_mode)
         if b'redirect_urls' in obj.meta:
-            obj.meta[b'redirect_domains'] = [self.parse_domain_info(url, self.manager.test_mode)
+            obj.meta[b'redirect_domains'] = [self._parse_domain_info(url, self.manager.test_mode)
                                              for url in obj.meta[b'redirect_urls']]
         return obj
 
-    def parse_domain_info(self, url, test_mode=False):
+    def _parse_domain_info(self, url, test_mode=False):
         if test_mode:
             match = re.match('([A-Z])\w+', url)
             netloc = name = to_bytes(match.groups()[0]) if match else b'?'

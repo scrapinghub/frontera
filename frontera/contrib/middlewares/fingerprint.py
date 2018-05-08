@@ -41,6 +41,9 @@ class BaseFingerprintMiddleware(Middleware):
     def request_error(self, request, error):
         return self._add_fingerprint(request)
 
+    def create_request(self, request):
+        return self._add_fingerprint(request)
+
     def _add_fingerprint(self, obj):
         raise NotImplementedError
 
