@@ -16,6 +16,9 @@ class CrawlingStrategy(BaseCrawlingStrategy):
     def page_crawled(self, response):
         response.meta[b'state'] = States.CRAWLED
 
+    def filter_extracted_links(self, request, links):
+        return links
+
     def links_extracted(self, request, links):
         for link in links:
             if link.meta[b'state'] is States.NOT_CRAWLED:

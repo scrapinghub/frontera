@@ -112,7 +112,8 @@ class BaseStrategyWorker(object):
             'consumed_add_seeds': 0,
             'consumed_page_crawled': 0,
             'consumed_links_extracted': 0,
-            'consumed_request_error': 0
+            'consumed_request_error': 0,
+            'dropped_links_extracted': 0,
         }
         self.job_id = 0
         self.task = LoopingCall(self.work)
@@ -153,7 +154,15 @@ class BaseStrategyWorker(object):
                     if type == 'links_extracted':
                         _, request, links = msg
                         self.states_context.to_fetch(request)
-                        self.states_context.to_fetch(links)
+                        filtered_links = self.strategy.filter_extracted_links(request, links)
+                        if filtered_links:
+                            # modify last message with a new links list
+                            batch[-1] = (type, request, filtered_links)
+                            self.states_context.to_fetch(filtered_links)
+                        else:
+                            # drop last message if nothing to process
+                            batch.pop()
+                            self.stats['dropped_links_extracted'] += 1
                         continue
                     if type == 'request_error':
                         _, request, error = msg
