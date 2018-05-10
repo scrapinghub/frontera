@@ -30,7 +30,7 @@ class TestOverusedBuffer(object):
 
     def test_base(self):
         self.req_it = iter(self.requests)
-        ob = OverusedBuffer(self.get_once, 100, 10000)
+        ob = OverusedBuffer(self.get_once, None, 100, None, 100)
 
         assert ob._get_pending_count() == 0
         assert set(ob.get_next_requests(10, overused_keys=['www.example.com', 'example1.com'],
@@ -54,7 +54,7 @@ class TestOverusedBuffer(object):
 
     def test_purging_keys(self):
         self.req_it = cycle(self.requests)
-        ob = OverusedBuffer(self.get_once, 10, 100)
+        ob = OverusedBuffer(self.get_once, 10, 1, 100, 10)
         ob.get_next_requests(10, overused_keys=["example.com", "www.example.com"],
                              key_type="domain")
         assert ob._get_pending_count() == 9
@@ -77,7 +77,7 @@ class TestOverusedBuffer(object):
     def test_purging_keys_set(self):
         self.generate_requests()
         self.req_it = cycle(self.requests)
-        ob = OverusedBuffer(self.get_once, 1000, 10)
+        ob = OverusedBuffer(self.get_once, 1000, 100,  10, 1)
 
         ob.get_next_requests(10, overused_keys=self.hosts, key_type="domain")
         assert (ob._get_key_count()) == 10
