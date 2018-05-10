@@ -7,11 +7,11 @@ from time import time
 import six
 from frontera.contrib.backends.hbase.utils import HardenedBatch
 from frontera.utils.msgpack import restruct_for_pack
-from happybase.batch import DEFAULT_HBASE_THRIFT_FRAME_SIZE
 from msgpack import packb, unpackb
 from w3lib.util import to_bytes, to_native_str
 
 DOMAIN_CACHE_BATCH_SIZE = 100
+DEFAULT_HBASE_THRIFT_FRAME_SIZE = 2097152
 
 import collections
 from cachetools import Cache
