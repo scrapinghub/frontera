@@ -91,6 +91,10 @@ class Encoder(BaseEncoder, CrawlFrontierJSONEncoder):
         self.send_body = kw.pop('send_body', False)
         super(Encoder, self).__init__(request_model, *a, **kw)
 
+    def encode(self, obj):
+        encoded = _convert_and_save_type(obj)
+        return super(Encoder, self).encode(encoded)
+
     def encode_page_crawled(self, response):
         return self.encode({
             'type': 'page_crawled',
