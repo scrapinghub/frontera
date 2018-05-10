@@ -121,7 +121,8 @@ class DomainCache(LRUCache):
                     self.__setitem__(key, value)
             else:
                 self.__setitem__(key, value)
-                del self._second_gen[key]
+                if key in self._second_gen:   # the second gen clean up could be triggered during set in first gen
+                    del self._second_gen[key]
         else:
             self._update_order(key)
         return value
