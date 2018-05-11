@@ -38,12 +38,6 @@ class TestMessageBusBackend(unittest.TestCase):
         settings.SPIDER_PARTITION_ID = -1
         self.assertRaises(ValueError, self.mbb_setup, settings)
 
-    def test_add_seeds(self):
-        mbb = self.mbb_setup()
-        mbb.add_seeds([r1, r2, r3])
-        seeds = [mbb._decoder.decode(m)[1][0] for m in mbb.spider_log_producer.messages]
-        self.assertEqual(set([seed.url for seed in seeds]), set([r1.url, r2.url, r3.url]))
-
     def test_page_crawled(self):
         mbb = self.mbb_setup()
         resp = Response(r1.url, body='body', request=r1)
