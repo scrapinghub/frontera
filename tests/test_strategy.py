@@ -41,7 +41,7 @@ class TestCrawlingStrategy(object):
         stream = MessageBusStream()
         states = MemoryStates(10)
         states_ctx = StatesContext(states)
-        return TestingCrawlingStrategy.from_worker(manager, stream, states_ctx)
+        return TestingCrawlingStrategy.from_worker(manager, None, stream, states_ctx)
 
     def test_create_request(self):
         s = self.strategy()
