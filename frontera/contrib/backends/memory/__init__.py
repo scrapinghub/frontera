@@ -10,7 +10,6 @@ from frontera.utils.heap import Heap
 from frontera.contrib.backends.partitioners import Crc32NamePartitioner
 from frontera.utils.url import parse_domain_from_url_fast
 import six
-from six.moves import map
 from six.moves import range
 
 
@@ -248,8 +247,10 @@ class MemoryDFSOverusedBackend(MemoryDFSBackend):
         super(MemoryDFSOverusedBackend, self).__init__(manager)
         settings = manager.settings
         self.overused_buffer = OverusedBuffer(super(MemoryDFSOverusedBackend, self).get_next_requests,
-                                              settings.get("OVERUSED_MAX_QUEUE_SIZE"),
-                                              settings.get("OVERUSED_MAX_KEYS"))
+                                              settings.get("OVERUSED_MAX_PER_KEY"),
+                                              settings.get("OVERUSED_KEEP_PER_KEY"),
+                                              settings.get("OVERUSED_MAX_KEYS"),
+                                              settings.get("OVERUSED_KEEP_KEYS"))
 
     def get_next_requests(self, max_next_requests, **kwargs):
         return self.overused_buffer.get_next_requests(max_next_requests, **kwargs)
