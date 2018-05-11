@@ -51,6 +51,18 @@ class TestDomainCache(unittest.TestCase):
         dc.flush()
         assert dc.setdefault('d3', {}) == {'domain': [3, 2, 1]}
 
+    def test_domain_cache_setdefault_with_second_gen_flush(self):
+        dc = DomainCache(2, self.conn, 'domain_metadata', batch_size=3)
+        dc['d1'] = {'domain': 1}
+        dc['d2'] = {'domain': 2}
+
+        dc['d3'] = {'domain': [3, 2, 1]}
+        dc['d4'] = {'domain': 4}
+
+        dc.setdefault('d1', {})['domain'] += 1
+
+        assert dc.setdefault('d1', {}) == {'domain': 2}
+
     def test_empty_key(self):
         dc = DomainCache(2, self.conn, 'domain_metadata')
         with self.assertRaises(KeyError):
