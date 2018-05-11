@@ -9,7 +9,7 @@ class TestDomainCache(unittest.TestCase):
     def setUp(self):
         logging.basicConfig(level=logging.DEBUG)
         self.conn = Connection(host="hbase-docker", table_prefix="contacts", table_prefix_separator=":")
-        if 'domain_metadata' not in self.conn.tables():
+        if b'domain_metadata' not in self.conn.tables():
             self.conn.create_table('domain_metadata', {
                 'm': {'max_versions': 1, 'block_cache_enabled': 1,}
             })
