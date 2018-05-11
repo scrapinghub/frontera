@@ -51,21 +51,19 @@ class UpdateScoreStream(object):
 
 class StatesContext(object):
 
-    def __init__(self, states, debug_mode=False, debug_stream=False):
+    def __init__(self, states):
         self._requests = []
         self._states = states
         self._fingerprints = dict()
-        self._debug_stream = debug_stream
-        self.debug_mode = debug_mode
 
     def to_fetch(self, requests):
         requests = requests if isinstance(requests, Iterable) else [requests]
         for request in requests:
             fingerprint = request.meta[b'fingerprint']
-            self._fingerprints[fingerprint] = request if self.debug_mode else None
+            self._fingerprints[fingerprint] = request
 
     def fetch(self):
-        self._states.fetch(self._fingerprints, debug_stream=self._debug_stream)
+        self._states.fetch(self._fingerprints)
         self._fingerprints.clear()
 
     def refresh_and_keep(self, requests):
@@ -112,7 +110,7 @@ class BaseStrategyWorker(object):
         self.update_score = UpdateScoreStream(self.scoring_log_producer, self._encoder)
         self.states_context = StatesContext(self._manager.backend.states)
         self.consumer_batch_size = settings.get('SPIDER_LOG_CONSUMER_BATCH_SIZE')
-        self.strategy = strategy_class.from_worker(self._manager, self.update_score, self.states_context)
+        self.strategy = strategy_class.from_worker(self._manager, strategy_args, self.update_score, self.states_context)
         self.states = self._manager.backend.states
         self.stats = {
             'consumed_since_start': 0,

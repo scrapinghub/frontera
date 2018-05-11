@@ -42,6 +42,9 @@ class Producer(object):
     def get_offset(self, partition_id):
         return self.offset
 
+    def close(self):
+        pass
+
 
 class ScoringLogStream(BaseScoringLogStream):
 
