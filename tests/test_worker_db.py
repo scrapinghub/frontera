@@ -73,7 +73,7 @@ class TestDBWorker(unittest.TestCase):
 
     def test_offset(self):
         dbw = self.dbw_setup(True)
-        incoming_worker = dbw.slot.components[IncomingConsumer
+        incoming_worker = dbw.slot.components[IncomingConsumer]
         batch_gen = dbw.slot.components[BatchGenerator]
         batch_gen.spider_feed = incoming_worker.spider_feed
         batch_gen.spider_feed_producer = incoming_worker.spider_feed_producer
