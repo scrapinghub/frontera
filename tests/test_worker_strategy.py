@@ -4,6 +4,8 @@ from frontera.settings import Settings
 from frontera.core.models import Request, Response
 from frontera.core.components import States
 from unittest import TestCase
+from os import remove
+from os.path import exists
 
 r1 = Request('http://www.example.com/', meta={b'fingerprint': b'1', b'jid': 0})
 r2 = Request('http://www.scrapy.org/', meta={b'fingerprint': b'2', b'jid': 0})
@@ -22,29 +24,42 @@ class TestStrategyWorker(TestCase):
         settings.BACKEND = 'frontera.contrib.backends.sqlalchemy.Distributed'
         settings.MESSAGE_BUS = 'tests.mocks.message_bus.FakeMessageBus'
         settings.SPIDER_LOG_CONSUMER_BATCH_SIZE = 100
-        self.sw = StrategyWorker(settings, CrawlingStrategy)
+        self.sw = StrategyWorker(settings, CrawlingStrategy, None, None)
+
+    def tearDown(self):
+        if exists("/tmp/test_urls.txt"):
+            remove("/tmp/test_urls.txt")
+        pass
 
     def sw_setup_filtered_links(self):
         settings = Settings()
         settings.BACKEND = 'frontera.contrib.backends.sqlalchemy.Distributed'
         settings.MESSAGE_BUS = 'tests.mocks.message_bus.FakeMessageBus'
         settings.SPIDER_LOG_CONSUMER_BATCH_SIZE = 100
-        return StrategyWorker(settings, FilteredLinksCrawlingStrategy)
+        return StrategyWorker(settings, FilteredLinksCrawlingStrategy, None, None)
+
+    def sw_setup_add_seeds(self):
+        settings = Settings()
+        settings.BACKEND = 'frontera.contrib.backends.sqlalchemy.Distributed'
+        settings.MESSAGE_BUS = 'tests.mocks.message_bus.FakeMessageBus'
+        settings.SPIDER_LOG_CONSUMER_BATCH_SIZE = 100
+        return StrategyWorker(settings, CrawlingStrategy, None, True)
 
     def test_add_seeds(self):
-        sw = self.sw
-        msg = sw._encoder.encode_add_seeds([r1, r2, r3, r4])
-        sw.consumer.put_messages([msg])
-        r2.meta[b'state'] = States.CRAWLED
-        sw.states.update_cache([r2])
-        sw.work()
+        sw = self.sw_setup_add_seeds()
+        fh = open("/tmp/test_urls.txt", "wb")
+        fh.write(b"http://example1.com/\n")
+        fh.write(b"http://www.scrapy.org/\n")
+        fh.close()
 
-        r1.meta[b'state'] = States.QUEUED
-        r3.meta[b'state'] = States.QUEUED
-        r4.meta[b'state'] = States.QUEUED
-        assert set(sw.scoring_log_producer.messages) == \
-            set([sw._encoder.encode_update_score(r, 1.0, True)
-                for r in [r1, r3, r4]])
+        sw.run("file:///tmp/test_urls.txt")
+
+        assert sw.add_seeds_mode == True
+        produced = [sw._decoder.decode(msg) for msg in sw.update_score._producer.messages]
+        assert len(produced) == 2
+        assert all(msg[0] == 'update_score' for msg in produced)
+        assert produced[0][1].url == "http://example1.com/"
+        assert produced[1][1].url == "http://www.scrapy.org/"
 
     def test_page_crawled(self):
         sw = self.sw

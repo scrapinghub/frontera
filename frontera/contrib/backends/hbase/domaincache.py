@@ -10,7 +10,6 @@ from frontera.utils.msgpack import restruct_for_pack
 from msgpack import packb, unpackb
 from w3lib.util import to_bytes, to_native_str
 
-DOMAIN_CACHE_BATCH_SIZE = 100
 DEFAULT_HBASE_THRIFT_FRAME_SIZE = 2097152
 
 import collections
@@ -83,20 +82,21 @@ class DomainCache(LRUCache):
     MAX_VALUE_SIZE = int(DEFAULT_HBASE_THRIFT_FRAME_SIZE * 0.95)
     LOG_INTERVAL = 60.0
 
-    def __init__(self, maxsize, connection, table_name, set_fields=None, on_get_func=None):
+    def __init__(self, maxsize, connection, table_name, set_fields=None, on_get_func=None, batch_size=100):
         super(DomainCache, self).__init__(maxsize)
 
         self._second_gen = dict()
 
         table_name = to_bytes(table_name)
         self._table = self._get_domain_table(connection, table_name)
-        self._batch = HardenedBatch(self._table, batch_size=DOMAIN_CACHE_BATCH_SIZE)
+        self._batch = HardenedBatch(self._table, batch_size=batch_size)
         self._set_fields = set(set_fields) if set_fields else set()
         self._on_get_func = on_get_func
 
         self.logger = logging.getLogger("domain-cache")
         self.stats = defaultdict(int)
         self.next_log = time() + self.LOG_INTERVAL
+        self.batch_size = batch_size
 
     # Primary methods
 
@@ -165,7 +165,7 @@ class DomainCache(LRUCache):
         key, value = super(DomainCache, self).popitem()
         self._second_gen[key] = value
         self.stats["pops"] += 1
-        if len(self._second_gen) >= DOMAIN_CACHE_BATCH_SIZE:
+        if len(self._second_gen) >= self.batch_size:
             self._flush_second_gen()
             self._second_gen.clear()
             self.stats["flushes"]+=1

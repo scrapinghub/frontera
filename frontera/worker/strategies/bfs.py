@@ -6,12 +6,14 @@ from frontera.worker.strategies import BaseCrawlingStrategy
 
 
 class CrawlingStrategy(BaseCrawlingStrategy):
-
-    def add_seeds(self, seeds):
-        for seed in seeds:
-            if seed.meta[b'state'] is States.NOT_CRAWLED:
-                seed.meta[b'state'] = States.QUEUED
-                self.schedule(seed)
+    def read_seeds(self, fh):
+        for url in fh:
+            url = url.strip()
+            req = self.create_request(url)
+            self.refresh_states(req)
+            if req.meta[b'state'] is States.NOT_CRAWLED:
+                req.meta[b'state'] = States.QUEUED
+                self.schedule(req)
 
     def page_crawled(self, response):
         response.meta[b'state'] = States.CRAWLED

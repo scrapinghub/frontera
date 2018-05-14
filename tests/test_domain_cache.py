@@ -8,7 +8,11 @@ import unittest
 class TestDomainCache(unittest.TestCase):
     def setUp(self):
         logging.basicConfig(level=logging.DEBUG)
-        self.conn = Connection(host="hbase-docker", table_prefix="contacts", table_prefix_separator=":")
+        self.conn = Connection(host="hbase-docker")
+        if b'domain_metadata' not in self.conn.tables():
+            self.conn.create_table('domain_metadata', {
+                'm': {'max_versions': 1, 'block_cache_enabled': 1,}
+            })
         t = self.conn.table('domain_metadata')
         t.delete('d1')
         t.delete('d2')
@@ -50,6 +54,18 @@ class TestDomainCache(unittest.TestCase):
         assert dc.setdefault('d5', {'domain': 6}) == {'domain': 6}
         dc.flush()
         assert dc.setdefault('d3', {}) == {'domain': [3, 2, 1]}
+
+    def test_domain_cache_setdefault_with_second_gen_flush(self):
+        dc = DomainCache(2, self.conn, 'domain_metadata', batch_size=3)
+        dc['d1'] = {'domain': 1}
+        dc['d2'] = {'domain': 2}
+
+        dc['d3'] = {'domain': [3, 2, 1]}
+        dc['d4'] = {'domain': 4}
+
+        dc.setdefault('d1', {})['domain'] += 1
+
+        assert dc.setdefault('d1', {}) == {'domain': 2}
 
     def test_empty_key(self):
         dc = DomainCache(2, self.conn, 'domain_metadata')

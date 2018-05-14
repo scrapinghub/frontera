@@ -2,6 +2,7 @@ from frontera.core.models import Request, Response
 from frontera.worker.db import DBWorker, ScoringConsumer, IncomingConsumer, BatchGenerator
 from frontera.settings import Settings
 from frontera.core.components import States
+import unittest
 
 
 r1 = Request('http://www.example.com/', meta={b'fingerprint': b'1', b'state': States.DEFAULT, b'jid': 0})
@@ -9,7 +10,7 @@ r2 = Request('http://www.scrapy.org/', meta={b'fingerprint': b'2', b'state': Sta
 r3 = Request('https://www.dmoz.org', meta={b'fingerprint': b'3', b'state': States.DEFAULT, b'jid': 0})
 
 
-class TestDBWorker(object):
+class TestDBWorker(unittest.TestCase):
 
     def dbw_setup(self, distributed=False):
         settings = Settings()
@@ -19,15 +20,7 @@ class TestDBWorker(object):
             settings.BACKEND = 'tests.mocks.components.FakeDistributedBackend'
         else:
             settings.BACKEND = 'tests.mocks.components.FakeBackend'
-        return DBWorker(settings, False, False, False)
-
-    def test_add_seeds(self):
-        dbw = self.dbw_setup()
-        msg = dbw._encoder.encode_add_seeds([r1, r2, r3])
-        incoming_consumer = dbw.slot.components[IncomingConsumer]
-        incoming_consumer.spider_log_consumer.put_messages([msg])
-        incoming_consumer.run()
-        assert set([r.url for r in incoming_consumer.backend.seeds]) == set([r.url for r in [r1, r2, r3]])
+        return DBWorker(settings, False, False, False, partitions="0")
 
     def test_page_crawled(self):
         dbw = self.dbw_setup()

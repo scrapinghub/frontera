@@ -83,7 +83,6 @@ def test_codec(encoder, decoder, send_body, invalid_value):
         o[1].body is None
 
     o = dec.decode(next(it))
-    print(o)
     assert o[0] == 'links_extracted'
     assert type(o[1]) == Request
     assert o[1].url == req.url and o[1].meta == req.meta
@@ -121,6 +120,7 @@ def test_codec(encoder, decoder, send_body, invalid_value):
 
     with pytest.raises(TypeError):
         dec.decode(next(it))
+
 
 class TestEncodeDecodeJson(unittest.TestCase):
     """

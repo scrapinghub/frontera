@@ -87,9 +87,9 @@ class Decoder(BaseDecoder):
             return ('offset', int(obj[1]), int(obj[2]))
         if obj[0] == b'st':
             return ('stats', obj[1])
-        return TypeError('Unknown message type')
+        raise TypeError('Unknown message type')
 
     def decode_request(self, buffer):
-        return self._request_from_object(unpackb(buffer))
+        return self._request_from_object(unpackb(buffer, encoding='utf-8'))
 
 
