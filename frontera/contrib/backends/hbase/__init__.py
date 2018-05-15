@@ -496,28 +496,43 @@ class HBaseBackend(DistributedBackend):
         self._queue = None
         self._states = None
 
-    @classmethod
-    def strategy_worker(cls, manager):
-        o = cls(manager)
-        settings = manager.settings
-        o._states = HBaseState(connection=o.connection,
+    def _init_states(self, settings):
+        self._states = HBaseState(connection=self.connection,
                                table_name=settings.get('HBASE_STATES_TABLE'),
                                cache_size_limit=settings.get('HBASE_STATE_CACHE_SIZE_LIMIT'),
                                write_log_size=settings.get('HBASE_STATE_WRITE_LOG_SIZE'),
                                drop_all_tables=settings.get('HBASE_DROP_ALL_TABLES'))
+
+    def _init_queue(self, settings):
+        self._queue = HBaseQueue(self.connection, self.queue_partitions,
+                                settings.get('HBASE_QUEUE_TABLE'), drop=settings.get('HBASE_DROP_ALL_TABLES'),
+                                use_snappy=settings.get('HBASE_USE_SNAPPY'))
+
+    def _init_metadata(self, settings):
+        self._metadata = HBaseMetadata(self.connection, settings.get('HBASE_METADATA_TABLE'),
+                                       settings.get('HBASE_DROP_ALL_TABLES'),
+                                       settings.get('HBASE_USE_SNAPPY'),
+                                       settings.get('HBASE_BATCH_SIZE'),
+                                       settings.get('STORE_CONTENT'))
+
+    @classmethod
+    def strategy_worker(cls, manager):
+        o = cls(manager)
+        o._init_states(manager.settings)
         return o
 
     @classmethod
     def db_worker(cls, manager):
         o = cls(manager)
-        settings = manager.settings
-        drop_all_tables = settings.get('HBASE_DROP_ALL_TABLES')
-        o._queue = HBaseQueue(o.connection, o.queue_partitions,
-                              settings.get('HBASE_QUEUE_TABLE'), drop=drop_all_tables,
-                              use_snappy=settings.get('HBASE_USE_SNAPPY'))
-        o._metadata = HBaseMetadata(o.connection, settings.get('HBASE_METADATA_TABLE'), drop_all_tables,
-                                    settings.get('HBASE_USE_SNAPPY'), settings.get('HBASE_BATCH_SIZE'),
-                                    settings.get('STORE_CONTENT'))
+        o._init_queue(manager.settings)
+        o._init_metadata(manager.settings)
+        return o
+
+    @classmethod
+    def local(cls, manager):
+        o = cls(manager)
+        o._init_queue(manager.settings)
+        o._init_states(manager.settings)
         return o
 
     @property
@@ -560,16 +575,16 @@ class HBaseBackend(DistributedBackend):
 
     def get_next_requests(self, max_next_requests, **kwargs):
         self.logger.debug("Querying queue table.")
-        for partition_id in set(kwargs.pop('partitions', [])):
-            count = 0
-            for request in self.queue.get_next_requests(
+        results = []
+        for partition_id in set(kwargs.pop('partitions', [i for i in range(self.queue_partitions)])):
+            requests = self.queue.get_next_requests(
                     max_next_requests, partition_id,
                     min_requests=self._min_requests,
                     min_hosts=self._min_hosts,
-                    max_requests_per_host=self._max_requests_per_host):
-                count += 1
-                yield request
-            self.logger.debug("Got %d requests for partition id %d", count, partition_id)
+                    max_requests_per_host=self._max_requests_per_host)
+            results.extend(requests)
+            self.logger.debug("Got %d requests for partition id %d", len(requests), partition_id)
+        return results
 
     def get_stats(self):
         """Helper to get stats dictionary for the backend.

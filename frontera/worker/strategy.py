@@ -1,85 +1,31 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-from time import asctime
+
 import logging
-from traceback import format_stack, format_tb
-from signal import signal, SIGUSR1
-from logging.config import fileConfig
 from argparse import ArgumentParser
+from binascii import hexlify
+from logging.config import fileConfig
 from os.path import exists
 from random import randint
-from frontera.utils.misc import load_object
-from frontera.utils.ossignal import install_shutdown_handlers
+from signal import signal, SIGUSR1
+from time import asctime
+from traceback import format_stack, format_tb
 
-from frontera.core.manager import FrontierManager
-from frontera.logger.handlers import CONSOLE
-from frontera.worker.stats import StatsExportMixin
-from frontera.worker.server import WorkerJsonRpcService
-
-from twisted.internet.task import LoopingCall
-from twisted.internet import reactor, task
-from twisted.internet.defer import Deferred
-
-from frontera.settings import Settings
-from collections import Iterable
-from binascii import hexlify
 import six
 from six.moves.urllib.parse import urlparse
-from six.moves.urllib.request import urlopen
+from twisted.internet import reactor, task
+from twisted.internet.defer import Deferred
+from twisted.internet.task import LoopingCall
 
+from frontera.core.manager import FrontierManager, MessageBusUpdateScoreStream, StatesContext
+from frontera.logger.handlers import CONSOLE
+from frontera.settings import Settings
+from frontera.utils.misc import load_object
+from frontera.utils.ossignal import install_shutdown_handlers
+from frontera.worker.server import WorkerJsonRpcService
+from frontera.worker.stats import StatsExportMixin
 
 logger = logging.getLogger("strategy-worker")
-
-
-class UpdateScoreStream(object):
-
-    def __init__(self, producer, encoder):
-        self._producer = producer
-        self._encoder = encoder
-
-    def send(self, request, score=1.0, dont_queue=False):
-        encoded = self._encoder.encode_update_score(
-            request=request,
-            score=score,
-            schedule=not dont_queue
-        )
-        self._producer.send(None, encoded)
-
-    def flush(self):
-        pass
-
-
-class StatesContext(object):
-
-    def __init__(self, states):
-        self._requests = []
-        self._states = states
-        self._fingerprints = dict()
-
-    def to_fetch(self, requests):
-        requests = requests if isinstance(requests, Iterable) else [requests]
-        for request in requests:
-            fingerprint = request.meta[b'fingerprint']
-            self._fingerprints[fingerprint] = request
-
-    def fetch(self):
-        self._states.fetch(self._fingerprints)
-        self._fingerprints.clear()
-
-    def refresh_and_keep(self, requests):
-        self.to_fetch(requests)
-        self.fetch()
-        self._states.set_states(requests)
-        self._requests.extend(requests if isinstance(requests, Iterable) else [requests])
-
-    def release(self):
-        self._states.update_cache(self._requests)
-        self._requests = []
-
-    def flush(self):
-        logger.info("Flushing states")
-        self._states.flush()
-        logger.info("Flushing of states finished")
 
 
 class BaseStrategyWorker(object):
@@ -107,7 +53,7 @@ class BaseStrategyWorker(object):
         self._decoder = decoder_cls(self._manager.request_model, self._manager.response_model)
         self._encoder = encoder_cls(self._manager.request_model)
 
-        self.update_score = UpdateScoreStream(self.scoring_log_producer, self._encoder)
+        self.update_score = MessageBusUpdateScoreStream(self.scoring_log_producer, self._encoder)
         self.states_context = StatesContext(self._manager.backend.states)
         self.consumer_batch_size = settings.get('SPIDER_LOG_CONSUMER_BATCH_SIZE')
         self.strategy = strategy_class.from_worker(self._manager, strategy_args, self.update_score, self.states_context)

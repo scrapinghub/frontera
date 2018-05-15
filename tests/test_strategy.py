@@ -2,7 +2,7 @@
 from frontera.worker.strategies import BaseCrawlingStrategy
 from frontera.worker.strategy import StatesContext
 from frontera.settings import Settings
-from frontera.core.manager import FrontierManager
+from frontera.core.manager import FrontierManager, StatesContext
 
 from frontera.contrib.backends.memory import MemoryStates
 from frontera.core.components import States

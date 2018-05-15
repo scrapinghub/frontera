@@ -19,29 +19,29 @@ class BaseCrawlingStrategy(object):
     After exiting from all of these methods states from meta field are passed back and stored in the backend.
     """
 
-    def __init__(self, manager, args, mb_stream, states_context):
+    def __init__(self, manager, args, scheduled_stream, states_context):
         """
         Constructor of the crawling strategy.
 
         Args:
             manager: is an instance of :class: `Backend <frontera.core.manager.FrontierManager>` instance
             args: is a dict with command line arguments from :term:`strategy worker`
-            mb_stream: is a helper class for sending scheduled requests
+            scheduled_stream: is a helper class for sending scheduled requests
             states_context: a helper to operate with states for requests created in crawling strategy class
         """
-        self._mb_stream = mb_stream
+        self._scheduled_stream = scheduled_stream
         self._states_context = states_context
         self._manager = manager
 
     @classmethod
-    def from_worker(cls, manager, args, mb_stream, states_context):
+    def from_worker(cls, manager, args, scheduled_stream, states_context):
         """
         Called on instantiation in strategy worker.
 
         see params for constructor
         :return: new instance
         """
-        return cls(manager, args, mb_stream, states_context)
+        return cls(manager, args, scheduled_stream, states_context)
 
     @abstractmethod
     def read_seeds(self, stream):
@@ -112,7 +112,7 @@ class BaseCrawlingStrategy(object):
         """
         Called when strategy worker is about to close crawling strategy.
         """
-        self._mb_stream.flush()
+        self._scheduled_stream.flush()
         self._states_context.release()
 
     def schedule(self, request, score=1.0, dont_queue=False):
@@ -123,7 +123,7 @@ class BaseCrawlingStrategy(object):
         :param score: float from 0.0 to 1.0
         :param dont_queue: bool, True - if no need to schedule, only update the score
         """
-        self._mb_stream.send(request, score, dont_queue)
+        self._scheduled_stream.send(request, score, dont_queue)
 
     def create_request(self, url, method=b'GET', headers=None, cookies=None, meta=None, body=b''):
         """
@@ -147,3 +147,20 @@ class BaseCrawlingStrategy(object):
         :param requests: list(:class:`Request <frontera.core.models.Request>`)
         """
         self._states_context.refresh_and_keep(requests)
+
+    def request_error(self, request, error):
+        """
+        DEPRECATED.
+
+        Convenience method, called by FronteraManager, please use page_error() instead.
+
+        :param request: :class:`Request <frontera.core.models.Request>`
+        :param error: str with error description
+        """
+        self.page_error(request, error)
+
+    def frontier_start(self):
+        pass
+
+    def frontier_stop(self):
+        pass
