@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.engine.reflection import Inspector
 
 from frontera.core.components import DistributedBackend
 from frontera.contrib.backends import CommonBackend
@@ -128,12 +127,10 @@ class Distributed(DistributedBackend):
         drop_all_tables = settings.get('SQLALCHEMYBACKEND_DROP_ALL_TABLES')
         clear_content = settings.get('SQLALCHEMYBACKEND_CLEAR_CONTENT')
         model = b.models['StateModel']
-        inspector = Inspector.from_engine(b.engine)
 
         if drop_all_tables:
-            if model.__table__.name in inspector.get_table_names():
-                model.__table__.drop(bind=b.engine)
-        model.__table__.create(bind=b.engine)
+            model.__table__.drop(bind=b.engine, checkfirst=True)
+        model.__table__.create(bind=b.engine, checkfirst=True)
 
         if clear_content:
             session = b.session_cls()
@@ -149,18 +146,14 @@ class Distributed(DistributedBackend):
         settings = manager.settings
         drop = settings.get('SQLALCHEMYBACKEND_DROP_ALL_TABLES')
         clear_content = settings.get('SQLALCHEMYBACKEND_CLEAR_CONTENT')
-        inspector = Inspector.from_engine(b.engine)
 
         metadata_m = b.models['MetadataModel']
         queue_m = b.models['QueueModel']
         if drop:
-            existing = inspector.get_table_names()
-            if metadata_m.__table__.name in existing:
-                metadata_m.__table__.drop(bind=b.engine)
-            if queue_m.__table__.name in existing:
-                queue_m.__table__.drop(bind=b.engine)
-        metadata_m.__table__.create(bind=b.engine)
-        queue_m.__table__.create(bind=b.engine)
+            metadata_m.__table__.drop(bind=b.engine, checkfirst=True)
+            queue_m.__table__.drop(bind=b.engine, checkfirst=True)
+        metadata_m.__table__.create(bind=b.engine, checkfirst=True)
+        queue_m.__table__.create(bind=b.engine, checkfirst=True)
 
         if clear_content:
             session = b.session_cls()
