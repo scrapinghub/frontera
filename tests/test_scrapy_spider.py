@@ -7,7 +7,7 @@ from scrapy.settings import Settings
 from tests.scrapy_spider.spiders.example import MySpider
 import pytest
 
-@pytest.mark.skip(reason="no way of currently testing this")
+@pytest.mark.skip(reason="seeds cannot be added from Scrapy spider now, pls redesign this test case")
 def test_scrapy_spider():
     settings = Settings()
     settings.setmodule("tests.scrapy_spider.settings")
