@@ -6,10 +6,11 @@ from frontera.core.manager import FrontierManager
 
 from frontera.contrib.backends.memory import MemoryStates
 from frontera.core.components import States
+from unittest import TestCase
 
 
 class TestingCrawlingStrategy(BaseCrawlingStrategy):
-    def add_seeds(self, seeds):
+    def read_seeds(self, stream):
         pass
 
     def page_crawled(self, response):
@@ -33,7 +34,7 @@ class MessageBusStream(object):
         pass
 
 
-class TestCrawlingStrategy(object):
+class TestCrawlingStrategy(TestCase):
     def strategy(self):
         settings = Settings()
         settings.BACKEND = 'frontera.contrib.backends.sqlalchemy.Distributed'
