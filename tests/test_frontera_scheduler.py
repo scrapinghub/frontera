@@ -8,6 +8,7 @@ from scrapy.http import Request, Response
 from scrapy.spiders import Spider
 from scrapy.settings import Settings
 from six.moves import range
+from unittest import TestCase
 
 
 # test requests
@@ -28,7 +29,7 @@ fr2 = Request('https://www.example.com/some/page')
 fr3 = Request('http://example1.com')
 
 
-class TestFronteraScheduler(object):
+class TestFronteraScheduler(TestCase):
 
     def test_enqueue_requests(self):
         crawler = FakeCrawler()
@@ -37,9 +38,8 @@ class TestFronteraScheduler(object):
         assert fs.enqueue_request(r1) is True
         assert fs.enqueue_request(r2) is True
         assert fs.enqueue_request(r3) is True
-        assert set(seed.url for seed in fs.frontier.manager.seeds) == set([r1.url, r2.url, r3.url])
-        assert all([isinstance(seed, FRequest) for seed in fs.frontier.manager.seeds])
-        assert fs.stats_manager.stats.get_value('frontera/seeds_count') == 3
+        assert set(seed.url for seed in fs._pending_requests) == set([r1.url, r2.url, r3.url])
+        assert all([isinstance(seed, Request) for seed in fs._pending_requests])
 
     def test_redirect_disabled_enqueue_requests(self):
         settings = Settings()
@@ -49,28 +49,8 @@ class TestFronteraScheduler(object):
         fs.open(Spider)
         assert fs.enqueue_request(rr1) is False
         assert fs.enqueue_request(rr2) is False
-        assert fs.enqueue_request(rr3) is True
-        assert isinstance(fs.frontier.manager.seeds[0], FRequest)
-        assert len(fs.frontier.manager.seeds) == 1
-        assert fs.frontier.manager.seeds[0].url == rr3.url
-        assert fs.stats_manager.stats.get_value('frontera/seeds_count') == 1
-
-    def test_redirect_enabled_enqueue_requests(self):
-        settings = Settings()
-        settings['REDIRECT_ENABLED'] = True
-        crawler = FakeCrawler(settings)
-        fs = FronteraScheduler(crawler, manager=FakeFrontierManager)
-        fs.open(Spider)
-        assert fs.enqueue_request(rr1) is True
-        assert fs.enqueue_request(rr2) is True
-        assert fs.enqueue_request(rr3) is True
-        assert len(fs.frontier.manager.seeds) == 1
-        assert isinstance(fs.frontier.manager.seeds[0], FRequest)
-        assert fs.frontier.manager.seeds[0].url == rr3.url
-        assert set([request.url for request in fs._pending_requests]) == set([rr1.url, rr2.url])
-        assert all([isinstance(request, Request) for request in fs._pending_requests])
-        assert fs.stats_manager.stats.get_value('frontera/seeds_count') == 1
-        assert fs.stats_manager.stats.get_value('frontera/redirected_requests_count') == 2
+        assert fs.enqueue_request(rr3) is False
+        assert fs.next_request() is None
 
     def test_next_request(self):
         crawler = FakeCrawler()
