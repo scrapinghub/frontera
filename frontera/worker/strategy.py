@@ -10,6 +10,7 @@ from random import randint
 from signal import signal, SIGUSR1
 from time import asctime
 from traceback import format_stack, format_tb
+from collections import defaultdict
 
 import six
 from six.moves.urllib.parse import urlparse
@@ -26,6 +27,111 @@ from frontera.worker.server import WorkerJsonRpcService
 from frontera.worker.stats import StatsExportMixin
 
 logger = logging.getLogger("strategy-worker")
+
+
+class BatchedWorkflow(object):
+    def __init__(self, strategy, states_context, scoring_stream, stats, job_id):
+        self.strategy = strategy
+        self.states_context = states_context
+        self.scoring_stream = scoring_stream
+        self.stats = stats
+        self.job_id = job_id
+
+        self._batch = []
+
+    def collection_start(self):
+        self._batch = []
+
+    def process(self):
+        self.states_context.fetch()
+        for event in self._batch:
+            typ = event[0]
+            try:
+                if typ == 'page_crawled':
+                    _, response = event
+                    if b'jid' not in response.meta or response.meta[b'jid'] != self.job_id:
+                        continue
+                    self._on_page_crawled(response)
+                    self.stats['consumed_page_crawled'] += 1
+                    continue
+                if typ == 'links_extracted':
+                    _, request, links = event
+                    if b'jid' not in request.meta or request.meta[b'jid'] != self.job_id:
+                        continue
+                    self._on_links_extracted(request, links)
+                    self.stats['consumed_links_extracted'] += 1
+                    continue
+                if typ == 'request_error':
+                    _, request, error = event
+                    if b'jid' not in request.meta or request.meta[b'jid'] != self.job_id:
+                        continue
+                    self._on_request_error(request, error)
+                    self.stats['consumed_request_error'] += 1
+                    continue
+                self._on_unknown_message(event)
+            except Exception as exc:
+                logger.exception(exc)
+                pass
+        self.scoring_stream.flush()
+        self.states_context.release()
+
+    def collect(self, event):
+        typ = event[0]
+        self._batch.append(event)
+        try:
+            if typ == 'page_crawled':
+                _, response = event
+                self.states_context.to_fetch(response)
+                return
+            if typ == 'links_extracted':
+                _, request, links = event
+                self.states_context.to_fetch(request)
+                filtered_links = self.strategy.filter_extracted_links(request, links)
+                if filtered_links:
+                    # modify last message with a new links list
+                    self._batch[-1] = (typ, request, filtered_links)
+                    self.states_context.to_fetch(filtered_links)
+                else:
+                    # drop last message if nothing to process
+                    self._batch.pop()
+                    self.stats['dropped_links_extracted'] += 1
+                return
+            if typ == 'request_error':
+                _, request, error = event
+                self.states_context.to_fetch(request)
+                return
+            if typ == 'offset':
+                return
+            self._collect_unknown_event(event)
+        except:
+            logger.exception("Error during event collection")
+            pass
+
+    def _collect_unknown_event(self, msg):
+        logger.debug('Unknown message %s', msg)
+
+    def _on_unknown_message(self, msg):
+        pass
+
+    def _on_page_crawled(self, response):
+        logger.debug("Page crawled %s", response.url)
+        self.states_context.states.set_states([response])
+        self.strategy.page_crawled(response)
+        self.states_context.states.update_cache(response)
+
+    def _on_links_extracted(self, request, links):
+        logger.debug("Links extracted %s (%d)", request.url, len(links))
+        for link in links:
+            logger.debug("URL: %s", link.url)
+        self.states_context.states.set_states(links)
+        self.strategy.links_extracted(request, links)
+        self.states_context.states.update_cache(links)
+
+    def _on_request_error(self, request, error):
+        logger.debug("Page error %s (%s)", request.url, error)
+        self.states_context.states.set_states(request)
+        self.strategy.page_error(request, error)
+        self.states_context.states.update_cache(request)
 
 
 class BaseStrategyWorker(object):
@@ -58,109 +164,29 @@ class BaseStrategyWorker(object):
         self.consumer_batch_size = settings.get('SPIDER_LOG_CONSUMER_BATCH_SIZE')
         self.strategy = strategy_class.from_worker(self._manager, strategy_args, self.update_score, self.states_context)
         self.states = self._manager.backend.states
-        self.stats = {
-            'consumed_since_start': 0,
-            'consumed_add_seeds': 0,
-            'consumed_page_crawled': 0,
-            'consumed_links_extracted': 0,
-            'consumed_request_error': 0,
-            'dropped_links_extracted': 0,
-        }
-        self.job_id = 0
+        self.stats = defaultdict(int)
+        self.workflow = BatchedWorkflow(self.strategy, self.states_context, self.update_score, self.stats, 0)
         self.task = LoopingCall(self.work)
         self._logging_task = LoopingCall(self.log_status)
         self._flush_states_task = LoopingCall(self.flush_states)
         self._flush_interval = settings.get("SW_FLUSH_INTERVAL")
         logger.info("Strategy worker is initialized and consuming partition %d", partition_id)
 
-    def collect_unknown_message(self, msg):
-        logger.debug('Unknown message %s', msg)
-
-    def on_unknown_message(self, msg):
-        pass
-
-    def collect_batch(self):
+    def work(self):
         consumed = 0
-        batch = []
+        self.workflow.collection_start()
         for m in self.consumer.get_messages(count=self.consumer_batch_size, timeout=1.0):
             try:
-                msg = self._decoder.decode(m)
+                event = self._decoder.decode(m)
             except (KeyError, TypeError) as e:
-                logger.error("Decoding error:")
-                logger.exception(e)
+                logger.exception("Decoding error")
                 logger.debug("Message %s", hexlify(m))
                 continue
             else:
-                type = msg[0]
-                batch.append(msg)
-                try:
-                    if type == 'page_crawled':
-                        _, response = msg
-                        self.states_context.to_fetch(response)
-                        continue
-                    if type == 'links_extracted':
-                        _, request, links = msg
-                        self.states_context.to_fetch(request)
-                        filtered_links = self.strategy.filter_extracted_links(request, links)
-                        if filtered_links:
-                            # modify last message with a new links list
-                            batch[-1] = (type, request, filtered_links)
-                            self.states_context.to_fetch(filtered_links)
-                        else:
-                            # drop last message if nothing to process
-                            batch.pop()
-                            self.stats['dropped_links_extracted'] += 1
-                        continue
-                    if type == 'request_error':
-                        _, request, error = msg
-                        self.states_context.to_fetch(request)
-                        continue
-                    if type == 'offset':
-                        continue
-                    self.collect_unknown_message(msg)
-                except Exception as exc:
-                    logger.exception(exc)
-                    pass
+                self.workflow.collect(event)
             finally:
                 consumed += 1
-        return (batch, consumed)
-
-    def process_batch(self, batch):
-        for msg in batch:
-            type = msg[0]
-            try:
-                if type == 'page_crawled':
-                    _, response = msg
-                    if b'jid' not in response.meta or response.meta[b'jid'] != self.job_id:
-                        continue
-                    self.on_page_crawled(response)
-                    self.stats['consumed_page_crawled'] += 1
-                    continue
-                if type == 'links_extracted':
-                    _, request, links = msg
-                    if b'jid' not in request.meta or request.meta[b'jid'] != self.job_id:
-                        continue
-                    self.on_links_extracted(request, links)
-                    self.stats['consumed_links_extracted'] += 1
-                    continue
-                if type == 'request_error':
-                    _, request, error = msg
-                    if b'jid' not in request.meta or request.meta[b'jid'] != self.job_id:
-                        continue
-                    self.on_request_error(request, error)
-                    self.stats['consumed_request_error'] += 1
-                    continue
-                self.on_unknown_message(msg)
-            except Exception as exc:
-                logger.exception(exc)
-                pass
-
-    def work(self):
-        batch, consumed = self.collect_batch()
-        self.states_context.fetch()
-        self.process_batch(batch)
-        self.update_score.flush()
-        self.states_context.release()
+        self.workflow.process()
 
         # Exiting, if crawl is finished
         if self.strategy.finished():
@@ -287,26 +313,6 @@ class BaseStrategyWorker(object):
                 self.consumer.close()
         except:
             logger.exception('Error on shutdown')
-
-    def on_page_crawled(self, response):
-        logger.debug("Page crawled %s", response.url)
-        self.states.set_states([response])
-        self.strategy.page_crawled(response)
-        self.states.update_cache(response)
-
-    def on_links_extracted(self, request, links):
-        logger.debug("Links extracted %s (%d)", request.url, len(links))
-        for link in links:
-            logger.debug("URL: %s", link.url)
-        self.states.set_states(links)
-        self.strategy.links_extracted(request, links)
-        self.states.update_cache(links)
-
-    def on_request_error(self, request, error):
-        logger.debug("Page error %s (%s)", request.url, error)
-        self.states.set_states(request)
-        self.strategy.page_error(request, error)
-        self.states.update_cache(request)
 
     def set_process_info(self, process_info):
         self.process_info = process_info
