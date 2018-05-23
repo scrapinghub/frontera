@@ -68,9 +68,9 @@ class BatchedWorkflow(object):
                     self._on_request_error(request, error)
                     self.stats['consumed_request_error'] += 1
                     continue
-                self._on_unknown_message(event)
-            except Exception as exc:
-                logger.exception(exc)
+                self.on_unknown_event(event)
+            except:
+                logger.exception("Exception during processing")
                 pass
         self.scoring_stream.flush()
         self.states_context.release()
@@ -102,15 +102,15 @@ class BatchedWorkflow(object):
                 return
             if typ == 'offset':
                 return
-            self._collect_unknown_event(event)
+            self.collect_unknown_event(event)
         except:
             logger.exception("Error during event collection")
             pass
 
-    def _collect_unknown_event(self, msg):
-        logger.debug('Unknown message %s', msg)
+    def collect_unknown_event(self, event):
+        logger.debug('Unknown message %s', event)
 
-    def _on_unknown_message(self, msg):
+    def on_unknown_event(self, event):
         pass
 
     def _on_page_crawled(self, response):
