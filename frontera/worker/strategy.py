@@ -18,7 +18,7 @@ from twisted.internet import reactor, task
 from twisted.internet.defer import Deferred
 from twisted.internet.task import LoopingCall
 
-from frontera.core.manager import FrontierManager, MessageBusUpdateScoreStream, StatesContext
+from frontera.core.manager import WorkerFrontierManager, MessageBusUpdateScoreStream, StatesContext
 from frontera.logger.handlers import CONSOLE
 from frontera.settings import Settings
 from frontera.utils.misc import load_object
@@ -30,9 +30,9 @@ logger = logging.getLogger("strategy-worker")
 
 
 class BatchedWorkflow(object):
-    def __init__(self, strategy, states_context, scoring_stream, stats, job_id):
-        self.strategy = strategy
-        self.states_context = states_context
+    def __init__(self, manager, scoring_stream, stats, job_id):
+        self.strategy = manager.strategy
+        self.states_context = manager.states_context
         self.scoring_stream = scoring_stream
         self.stats = stats
         self.job_id = job_id
@@ -137,7 +137,7 @@ class BatchedWorkflow(object):
 class BaseStrategyWorker(object):
     """Base strategy worker class."""
 
-    def __init__(self, settings, strategy_class, strategy_args, is_add_seeds_mode):
+    def __init__(self, settings, is_add_seeds_mode):
         partition_id = settings.get('SCORING_PARTITION_ID')
         if partition_id is None or type(partition_id) != int:
             raise AttributeError("Scoring worker partition id isn't set.")
@@ -152,20 +152,17 @@ class BaseStrategyWorker(object):
             self.consumer_batch_size = settings.get('SPIDER_LOG_CONSUMER_BATCH_SIZE')
         self.scoring_log_producer = scoring_log.producer()
 
-        self._manager = FrontierManager.from_settings(settings, strategy_worker=True)
+        manager = WorkerFrontierManager.from_settings(settings, strategy_worker=True)
         codec_path = settings.get('MESSAGE_BUS_CODEC')
         encoder_cls = load_object(codec_path+".Encoder")
         decoder_cls = load_object(codec_path+".Decoder")
-        self._decoder = decoder_cls(self._manager.request_model, self._manager.response_model)
-        self._encoder = encoder_cls(self._manager.request_model)
+        self._decoder = decoder_cls(manager.request_model, manager.response_model)
+        self._encoder = encoder_cls(manager.request_model)
 
         self.update_score = MessageBusUpdateScoreStream(self.scoring_log_producer, self._encoder)
-        self.states_context = StatesContext(self._manager.backend.states)
         self.consumer_batch_size = settings.get('SPIDER_LOG_CONSUMER_BATCH_SIZE')
-        self.strategy = strategy_class.from_worker(self._manager, strategy_args, self.update_score, self.states_context)
-        self.states = self._manager.backend.states
         self.stats = defaultdict(int)
-        self.workflow = BatchedWorkflow(self.strategy, self.states_context, self.update_score, self.stats, 0)
+        self.workflow = BatchedWorkflow(manager, self.update_score, self.stats, 0)
         self.task = LoopingCall(self.work)
         self._logging_task = LoopingCall(self.log_status)
         self._flush_states_task = LoopingCall(self.flush_states)
@@ -347,11 +344,11 @@ def setup_environment():
                                                       "supported, implies add seeds run mode")
     args = parser.parse_args()
     settings = Settings(module=args.config)
-    strategy_classpath = args.strategy if args.strategy else settings.get('CRAWLING_STRATEGY')
+    strategy_classpath = args.strategy if args.strategy else settings.get('STRATEGY')
     if not strategy_classpath:
         raise ValueError("Couldn't locate strategy class path. Please supply it either using command line option or "
                          "settings file.")
-    strategy_class = load_object(strategy_classpath)
+    settings.set('STRATEGY', strategy_classpath)
 
     partition_id = args.partition_id if args.partition_id is not None else settings.get('SCORING_PARTITION_ID')
     if partition_id >= settings.get('SPIDER_LOG_PARTITIONS') or partition_id < 0:
@@ -364,6 +361,7 @@ def setup_environment():
         for arg in args.args:
             key, _, value = arg.partition("=")
             strategy_args[key] = value if value else None
+    settings.set("STRATEGY_ARGS", strategy_args)
 
     logging_config_path = settings.get("LOGGING_CONFIG")
     if logging_config_path and exists(logging_config_path):
@@ -373,12 +371,12 @@ def setup_environment():
         logger.setLevel(args.log_level)
         logger.addHandler(CONSOLE)
 
-    return settings, strategy_class, args.add_seeds, strategy_args, args.seeds_url
+    return settings, args.add_seeds, args.seeds_url
 
 
 if __name__ == '__main__':
-    settings, strategy_class, is_add_seeds_mode, strategy_args, seeds_url = setup_environment()
-    worker = StrategyWorker(settings, strategy_class, strategy_args, is_add_seeds_mode)
+    settings, is_add_seeds_mode, seeds_url = setup_environment()
+    worker = StrategyWorker(settings, is_add_seeds_mode)
     server = WorkerJsonRpcService(worker, settings)
     server.start_listening()
     worker.run(seeds_url)

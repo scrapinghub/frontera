@@ -13,58 +13,12 @@ from frontera.settings import Settings
 from frontera.utils.misc import load_object
 
 
-class ComponentsPipelineMixin(object):
-    def __init__(self, backend, strategy_class, strategy_args, middlewares=None, canonicalsolver=None, db_worker=False,
-                 strategy_worker=False):
-        self._logger_components = logging.getLogger("manager.components")
-
-        # Load middlewares
-        self._middlewares = self._load_middlewares(middlewares)
-
-        # Load canonical solver
-        self._logger_components.debug("Loading canonical url solver '%s'", canonicalsolver)
-        self._canonicalsolver = self._load_object(canonicalsolver)
-        assert isinstance(self.canonicalsolver, CanonicalSolver), \
-            "canonical solver '%s' must subclass CanonicalSolver" % self.canonicalsolver.__class__.__name__
-
+class BackendMixin(object):
+    def __init__(self, backend, db_worker=False, strategy_worker=False):
         # Load backend
         self._logger_components.debug("Loading backend '%s'", backend)
         self._backend = self._load_backend(backend, db_worker, strategy_worker)
         self._backend.frontier_start()
-
-        # Instantiate strategy
-        self._scoring_stream = LocalUpdateScoreStream(self.backend.queue)
-        self._states_context = StatesContext(self.backend.states)
-        if isinstance(strategy_class, str):
-            strategy_class = load_object(strategy_class)
-        self._strategy = strategy_class.from_worker(self, strategy_args, self._scoring_stream, self._states_context)
-
-    @property
-    def canonicalsolver(self):
-        """
-        Instance of CanonicalSolver used for getting canonical urls in frontier components.
-        """
-        return self._canonicalsolver
-
-    @property
-    def middlewares(self):
-        """
-        A list of :class:`Middleware <frontera.core.components.Middleware>` objects to be used by the frontier. \
-        Can be defined with :setting:`MIDDLEWARES` setting.
-        """
-        return self._middlewares
-
-    @property
-    def backend(self):
-        """
-        The :class:`Backend <frontera.core.components.Backend>` object to be used by the frontier. \
-        Can be defined with :setting:`BACKEND` setting.
-        """
-        return self._backend
-    
-    @property
-    def strategy(self):
-        return self._strategy
 
     def _load_backend(self, backend, db_worker, strategy_worker):
         # FIXME remove obsolete
@@ -83,6 +37,72 @@ class ComponentsPipelineMixin(object):
             return cls.from_manager(self)
         else:
             return cls()
+
+    @property
+    def backend(self):
+        """
+        The :class:`Backend <frontera.core.components.Backend>` object to be used by the frontier. \
+        Can be defined with :setting:`BACKEND` setting.
+        """
+        return self._backend
+
+    def close(self):
+        self.backend.frontier_stop()
+
+
+class StrategyMixin(object):
+    def __init__(self, strategy_class, strategy_args, scoring_stream):
+        self._scoring_stream = scoring_stream if scoring_stream else LocalUpdateScoreStream(self.backend.queue)
+        self._states_context = StatesContext(self.backend.states)
+        if isinstance(strategy_class, str):
+            strategy_class = load_object(strategy_class)
+        self._strategy = strategy_class.from_worker(self, strategy_args, self._scoring_stream, self._states_context)
+
+    @property
+    def strategy(self):
+        return self._strategy
+
+    @property
+    def states_context(self):
+        return self._states_context
+
+    def close(self):
+        self.strategy.close()
+        self.states_context.flush()
+
+
+class ComponentsPipelineMixin(BackendMixin, StrategyMixin):
+    def __init__(self, backend, strategy_class, strategy_args, scoring_stream, middlewares=None, canonicalsolver=None,
+                 db_worker=False, strategy_worker=False):
+        self._logger_components = logging.getLogger("manager.components")
+
+        # Load middlewares
+        self._middlewares = self._load_middlewares(middlewares)
+
+        # Load canonical solver
+        self._logger_components.debug("Loading canonical url solver '%s'", canonicalsolver)
+        self._canonicalsolver = self._load_object(canonicalsolver)
+        assert isinstance(self.canonicalsolver, CanonicalSolver), \
+            "canonical solver '%s' must subclass CanonicalSolver" % self.canonicalsolver.__class__.__name__
+        BackendMixin.__init__(self, backend, db_worker, strategy_worker)
+        if not db_worker:
+            # TODO Distributed Scrapy case
+            StrategyMixin.__init__(self, strategy_class, strategy_args, scoring_stream)
+
+    @property
+    def canonicalsolver(self):
+        """
+        Instance of CanonicalSolver used for getting canonical urls in frontier components.
+        """
+        return self._canonicalsolver
+
+    @property
+    def middlewares(self):
+        """
+        A list of :class:`Middleware <frontera.core.components.Middleware>` objects to be used by the frontier. \
+        Can be defined with :setting:`MIDDLEWARES` setting.
+        """
+        return self._middlewares
 
     def _load_middlewares(self, middleware_names):
         # TO-DO: Use dict for middleware ordering
@@ -131,9 +151,8 @@ class ComponentsPipelineMixin(object):
         return return_obj
 
     def close(self):
-        self.strategy.close()
-        self._states_context.flush()
-        self.backend.frontier_stop()
+        StrategyMixin.close(self)
+        BackendMixin.close(self)
 
 
 class BaseManager(object):
@@ -204,7 +223,7 @@ class BaseManager(object):
         return self._settings
 
 
-class FrontierManager(BaseManager, ComponentsPipelineMixin):
+class LocalFrontierManager(BaseManager, ComponentsPipelineMixin):
     """
     The :class:`FrontierManager <frontera.core.manager.FrontierManager>` object encapsulates the whole frontier,
     providing an API to interact with. It's also responsible of loading and communicating all different frontier
@@ -297,7 +316,7 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
         :ref:`frontier default settings <frontier-default-settings>` are used.
         """
         manager_settings = Settings.object_from(settings)
-        return FrontierManager(request_model=manager_settings.REQUEST_MODEL,
+        return LocalFrontierManager(request_model=manager_settings.REQUEST_MODEL,
                                response_model=manager_settings.RESPONSE_MODEL,
                                backend=manager_settings.BACKEND,
                                strategy_class=manager_settings.STRATEGY,
@@ -473,11 +492,11 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
                                                           (self.response_model.__name__, type(response).__name__)
         self._states_context.to_fetch(response)
         self._states_context.fetch()
-        self._states_context._states.set_states(response)
+        self._states_context.states.set_states(response)
         self._process_components(method_name='page_crawled',
                                  obj=response,
                                  return_classes=self.response_model)
-        self._states_context._states.update_cache(response)
+        self._states_context.states.update_cache(response)
 
     def links_extracted(self, request, links):
         """
@@ -507,13 +526,13 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
             self._states_context.to_fetch(request)
             self._states_context.to_fetch(filtered)
             self._states_context.fetch()
-            self._states_context._states.set_states(filtered)
+            self._states_context.states.set_states(filtered)
             self._process_components(method_name='links_extracted',
                                      obj=request,
                                      return_classes=self.request_model,
                                      components=(2,),
                                      links=filtered)
-            self._states_context._states.update_cache(filtered)
+            self._states_context.states.update_cache(filtered)
 
     def request_error(self, request, error):
         """
@@ -528,12 +547,12 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
         self._logger.debug('PAGE_REQUEST_ERROR url=%s error=%s', request.url, error)
         self._states_context.to_fetch(request)
         self._states_context.fetch()
-        self._states_context._states.set_states(request)
+        self._states_context.states.set_states(request)
         processed_page = self._process_components(method_name='request_error',
                                                   obj=request,
                                                   return_classes=self.request_model,
                                                   error=error)
-        self._states_context._states.update_cache(request)
+        self._states_context.states.update_cache(request)
         return processed_page
 
     def create_request(self, url, method=b'GET', headers=None, cookies=None, meta=None, body=b''):
@@ -554,11 +573,122 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
                                           return_classes=self.request_model,
                                           components=(0,1))
 
-
-
     def _check_startstop(self):
         assert self._started, "Frontier not started!"
         assert not self._stopped, "Call to stopped frontier!"
+
+
+class WorkerFrontierManager(BaseManager, ComponentsPipelineMixin):
+    """
+    The :class:`WorkerFrontierManager <frontera.core.manager.WorkerFrontierManager>` class role is to
+    instantiate the core components and is used mainly by workers.
+    """
+    def __init__(self, settings, request_model, response_model, backend, strategy_class, strategy_args,
+                 max_next_requests, scoring_stream, middlewares=None, canonicalsolver=None, db_worker=False,
+                 strategy_worker=False):
+        """
+        :param object/string request_model: The :class:`Request <frontera.core.models.Request>` object to be \
+            used by the frontier.
+
+        :param object/string response_model: The :class:`Response <frontera.core.models.Response>` object to be \
+            used by the frontier.
+
+        :param object/string backend: The :class:`Backend <frontera.core.components.Backend>` object to be \
+            used by the frontier.
+
+        :param list middlewares: A list of :class:`Middleware <frontera.core.components.Middleware>` \
+            objects to be used by the frontier.
+
+        :param int max_next_requests: Maximum number of requests returned by \
+            :attr:`get_next_requests <frontera.core.manager.FrontierManager.get_next_requests>` method.
+
+        :param object/string settings: The :class:`Settings <frontera.settings.Settings>` object used by \
+            the frontier.
+
+        :param object/string canonicalsolver: The :class:`CanonicalSolver <frontera.core.components.CanonicalSolver>`
+            object to be used by frontier.
+        :param object scoring_stream: Instance of :class:`UpdateScoreStream <frontera.core.manager.UpdateScoreStream>`
+            for crawling strategy to send scheduled requests to.
+
+        :param bool db_worker: True if class is instantiated in DB worker environment
+
+        :param bool strategy_worker: True if class is instantiated in strategy worker environment
+        """
+
+        BaseManager.__init__(self, request_model, response_model, settings=settings)
+
+        self._max_next_requests = max_next_requests
+
+        ComponentsPipelineMixin.__init__(self, backend=backend, strategy_class=strategy_class,
+                                         strategy_args=strategy_args, scoring_stream=scoring_stream,
+                                         middlewares=middlewares, canonicalsolver=canonicalsolver,
+                                         db_worker=db_worker,strategy_worker=strategy_worker)
+
+        # Init frontier components pipeline
+        # Some code relies on the order, modify carefully
+        self._components_pipeline = [
+            ('Middleware', self.middlewares, True),
+            ('CanonicalSolver', self.canonicalsolver, False),
+        ]
+
+        # Log frontier manager start
+        self._logger.info('Frontier Manager Started!')
+        self._logger.info('-'*80)
+
+    @classmethod
+    def from_settings(cls, settings=None, db_worker=False, strategy_worker=False, scoring_stream=None):
+        manager_settings = Settings.object_from(settings)
+        return WorkerFrontierManager(request_model=manager_settings.REQUEST_MODEL,
+                                          response_model=manager_settings.RESPONSE_MODEL,
+                                          backend=manager_settings.BACKEND,
+                                          strategy_class=manager_settings.STRATEGY,
+                                          strategy_args=manager_settings.STRATEGY_ARGS,
+                                          middlewares=manager_settings.MIDDLEWARES,
+                                          max_next_requests=manager_settings.MAX_NEXT_REQUESTS,
+                                          settings=manager_settings,
+                                          canonicalsolver=manager_settings.CANONICAL_SOLVER,
+                                          db_worker=db_worker,
+                                          strategy_worker=strategy_worker,
+                                          scoring_stream=scoring_stream)
+
+    def create_request(self, url, method=b'GET', headers=None, cookies=None, meta=None, body=b''):
+        """
+        Creates request and applies middleware and canonical solver pipelines.
+
+        :param url: str
+        :param method: bytes
+        :param headers: dict
+        :param cookies: dict
+        :param meta: dict
+        :param body: bytes
+        :return: :class:`Request <frontera.core.models.Request>` object
+        """
+        r = self.request_model(url, method=method, headers=headers, cookies=cookies, meta=meta, body=body)
+        return self._process_components('create_request',
+                                        obj=r,
+                                        return_classes=self.request_model,
+                                        components=(0, 1))
+
+
+class SpiderFrontierManager(LocalFrontierManager):
+    def __init__(self, *args, **kwargs):
+        super(SpiderFrontierManager, self).__init__(*args, **kwargs)
+
+    @classmethod
+    def from_settings(cls, settings=None, db_worker=False, strategy_worker=False, scoring_stream=None):
+        manager_settings = Settings.object_from(settings)
+        return SpiderFrontierManager(request_model=manager_settings.REQUEST_MODEL,
+                                          response_model=manager_settings.RESPONSE_MODEL,
+                                          backend=manager_settings.BACKEND,
+                                          strategy_class=manager_settings.STRATEGY,
+                                          strategy_args=manager_settings.STRATEGY_ARGS,
+                                          middlewares=manager_settings.MIDDLEWARES,
+                                          max_next_requests=manager_settings.MAX_NEXT_REQUESTS,
+                                          settings=manager_settings,
+                                          canonicalsolver=manager_settings.CANONICAL_SOLVER,
+                                          db_worker=db_worker,
+                                          strategy_worker=strategy_worker,
+                                          scoring_stream=scoring_stream)
 
 
 @six.add_metaclass(ABCMeta)
@@ -598,7 +728,7 @@ class StatesContext(object):
 
     def __init__(self, states):
         self._requests = []
-        self._states = states
+        self.states = states
         self._fingerprints = dict()
         self.logger = logging.getLogger("states-context")
 
@@ -609,20 +739,20 @@ class StatesContext(object):
             self._fingerprints[fingerprint] = request
 
     def fetch(self):
-        self._states.fetch(self._fingerprints)
+        self.states.fetch(self._fingerprints)
         self._fingerprints.clear()
 
     def refresh_and_keep(self, requests):
         self.to_fetch(requests)
         self.fetch()
-        self._states.set_states(requests)
+        self.states.set_states(requests)
         self._requests.extend(requests if isinstance(requests, Iterable) else [requests])
 
     def release(self):
-        self._states.update_cache(self._requests)
+        self.states.update_cache(self._requests)
         self._requests = []
 
     def flush(self):
         self.logger.info("Flushing states")
-        self._states.flush()
+        self.states.flush()
         self.logger.info("Flushing of states finished")

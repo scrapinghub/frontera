@@ -1,11 +1,11 @@
 from __future__ import absolute_import
-from frontera.core.manager import FrontierManager
+from frontera.core.manager import LocalFrontierManager
 from .converters import BaseRequestConverter, BaseResponseConverter
 
 
 class FrontierManagerWrapper(object):
     def __init__(self, settings, manager=None):
-        manager = manager or FrontierManager
+        manager = manager or LocalFrontierManager
         self.manager = manager.from_settings(settings)
         self.request_converter = None
         self.response_converter = None
