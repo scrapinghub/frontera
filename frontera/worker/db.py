@@ -2,7 +2,6 @@
 from __future__ import absolute_import
 
 import os
-import time
 import logging
 import threading
 from traceback import format_stack
@@ -19,7 +18,7 @@ from frontera.settings import Settings
 from frontera.utils.misc import load_object
 from frontera.logger.handlers import CONSOLE
 from frontera.exceptions import NotConfigured
-from frontera.core.manager import FrontierManager
+from frontera.core.manager import WorkerFrontierManager
 from frontera.worker.server import WorkerJsonRpcService
 from frontera.utils.ossignal import install_shutdown_handlers
 from frontera.worker.stats import StatsExportMixin
@@ -100,7 +99,7 @@ class BaseDBWorker(object):
         messagebus = load_object(settings.get('MESSAGE_BUS'))
         self.message_bus = messagebus(settings)
 
-        self._manager = FrontierManager.from_settings(settings, db_worker=True)
+        self._manager = WorkerFrontierManager.from_settings(settings, db_worker=True)
         self.backend = self._manager.backend
 
         codec_path = settings.get('MESSAGE_BUS_CODEC')

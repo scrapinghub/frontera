@@ -71,9 +71,8 @@ class StrategyMixin(object):
         self.states_context.flush()
 
 
-class ComponentsPipelineMixin(BackendMixin, StrategyMixin):
-    def __init__(self, backend, strategy_class, strategy_args, scoring_stream, middlewares=None, canonicalsolver=None,
-                 db_worker=False, strategy_worker=False):
+class ComponentsPipelineMixin(BackendMixin):
+    def __init__(self, backend, middlewares=None, canonicalsolver=None, db_worker=False, strategy_worker=False):
         self._logger_components = logging.getLogger("manager.components")
 
         # Load middlewares
@@ -85,9 +84,6 @@ class ComponentsPipelineMixin(BackendMixin, StrategyMixin):
         assert isinstance(self.canonicalsolver, CanonicalSolver), \
             "canonical solver '%s' must subclass CanonicalSolver" % self.canonicalsolver.__class__.__name__
         BackendMixin.__init__(self, backend, db_worker, strategy_worker)
-        if not db_worker:
-            # TODO Distributed Scrapy case
-            StrategyMixin.__init__(self, strategy_class, strategy_args, scoring_stream)
 
     @property
     def canonicalsolver(self):
@@ -151,11 +147,21 @@ class ComponentsPipelineMixin(BackendMixin, StrategyMixin):
         return return_obj
 
     def close(self):
-        StrategyMixin.close(self)
         BackendMixin.close(self)
+        super(ComponentsPipelineMixin, self).close()
 
 
-class BaseManager(object):
+class StrategyComponentsPipelineMixin(ComponentsPipelineMixin, StrategyMixin):
+    def __init__(self, backend, strategy_class, strategy_args, scoring_stream, **kwargs):
+        super(StrategyComponentsPipelineMixin, self).__init__(backend, **kwargs)
+        StrategyMixin.__init__(self, strategy_class, strategy_args, scoring_stream)
+
+    def close(self):
+        StrategyMixin.close(self)
+        super(StrategyComponentsPipelineMixin, self).close()
+
+
+class BaseContext(object):
     def __init__(self, request_model, response_model, settings=None):
 
         # Settings
@@ -181,7 +187,7 @@ class BaseManager(object):
     @classmethod
     def from_settings(cls, settings=None):
         manager_settings = Settings(settings)
-        return BaseManager(request_model=manager_settings.REQUEST_MODEL,
+        return BaseContext(request_model=manager_settings.REQUEST_MODEL,
                            response_model=manager_settings.RESPONSE_MODEL,
                            settings=manager_settings)
 
@@ -223,7 +229,76 @@ class BaseManager(object):
         return self._settings
 
 
-class LocalFrontierManager(BaseManager, ComponentsPipelineMixin):
+class BaseManager(object):
+    def get_next_requests(self, max_next_requests=0, **kwargs):
+        """
+        Returns a list of next requests to be crawled. Optionally a maximum number of pages can be passed. If no
+        value is passed, \
+        :attr:`FrontierManager.max_next_requests <frontera.core.manager.FrontierManager.max_next_requests>`
+        will be used instead. (:setting:`MAX_NEXT_REQUESTS` setting).
+
+        :param int max_next_requests: Maximum number of requests to be returned by this method.
+        :param dict kwargs: Arbitrary arguments that will be passed to backend.
+
+        :return: list of :class:`Request <frontera.core.models.Request>` objects.
+        """
+
+        # log (in)
+        self._logger.debug('GET_NEXT_REQUESTS(in) max_next_requests=%s', max_next_requests)
+
+        # get next requests
+        next_requests = self.backend.get_next_requests(max_next_requests, **kwargs)
+
+        # log (out)
+        self._logger.debug('GET_NEXT_REQUESTS(out) returned_requests=%s', len(next_requests))
+        return next_requests
+
+    def page_crawled(self, response):
+        """
+        Informs the frontier about the crawl result.
+
+        :param object response: The :class:`Response <frontera.core.models.Response>` object for the crawled page.
+
+        :return: None.
+        """
+        self._logger.debug('PAGE_CRAWLED url=%s status=%s', response.url, response.status_code)
+        self._process_components(method_name='page_crawled',
+                                 obj=response,
+                                 return_classes=self.response_model)
+
+    def links_extracted(self, request, links):
+        """
+        Informs the frontier about extracted links for the request.
+
+        :param object request: The :class:`Request <frontera.core.models.Request>` object from which the links where crawled.
+        :param list links: A list of :class:`Request <frontera.core.models.Request>` objects generated from the links \
+        extracted for the request.
+
+        :return: None.
+        """
+        self._logger.debug('LINKS_EXTRACTED url=%s links=%d', request.url, len(links))
+        self._process_components(method_name='links_extracted',
+                                 obj=request,
+                                 return_classes=self.request_model,
+                                 components=(0, 1),
+                                 links=links)
+
+    def links_extracted_after(self, request, filtered):
+        self._process_components(method_name='links_extracted',
+                                 obj=request,
+                                 return_classes=self.request_model,
+                                 components=(2,),
+                                 links=filtered)
+
+    def request_error(self, request, error):
+        self._logger.debug('PAGE_REQUEST_ERROR url=%s error=%s', request.url, error)
+        return self._process_components(method_name='request_error',
+                                                  obj=request,
+                                                  return_classes=self.request_model,
+                                                  error=error)
+
+
+class LocalFrontierManager(BaseContext, StrategyComponentsPipelineMixin, BaseManager):
     """
     The :class:`FrontierManager <frontera.core.manager.FrontierManager>` object encapsulates the whole frontier,
     providing an API to interact with. It's also responsible of loading and communicating all different frontier
@@ -231,7 +306,7 @@ class LocalFrontierManager(BaseManager, ComponentsPipelineMixin):
     """
     def __init__(self, request_model, response_model, backend, strategy_class, strategy_args, middlewares=None,
                  test_mode=False, max_requests=0, max_next_requests=0, auto_start=True, settings=None,
-                 canonicalsolver=None, db_worker=False, strategy_worker=False):
+                 canonicalsolver=None):
         """
         :param object/string request_model: The :class:`Request <frontera.core.models.Request>` object to be \
             used by the frontier.
@@ -261,13 +336,9 @@ class LocalFrontierManager(BaseManager, ComponentsPipelineMixin):
 
         :param object/string canonicalsolver: The :class:`CanonicalSolver <frontera.core.components.CanonicalSolver>`
             object to be used by frontier.
-
-        :param bool db_worker: True if class is instantiated in DB worker environment
-
-        :param bool strategy_worker: True if class is instantiated in strategy worker environment
         """
 
-        BaseManager.__init__(self, request_model, response_model, settings=settings)
+        BaseContext.__init__(self, request_model, response_model, settings=settings)
 
         # Test mode
         self._test_mode = test_mode
@@ -284,10 +355,9 @@ class LocalFrontierManager(BaseManager, ComponentsPipelineMixin):
         # Manager finished flag
         self._finished = False
 
-        ComponentsPipelineMixin.__init__(self, backend=backend, strategy_class=strategy_class,
-                                         strategy_args=strategy_args, middlewares=middlewares,
-                                         canonicalsolver=canonicalsolver, db_worker=db_worker,
-                                         strategy_worker=strategy_worker)
+        StrategyComponentsPipelineMixin.__init__(self, backend, strategy_class, strategy_args, None,
+                                                 middlewares=middlewares, canonicalsolver=canonicalsolver,
+                                                 db_worker=False, strategy_worker=False)
 
         # Init frontier components pipeline
         # Some code relies on the order, modify carefully
@@ -317,19 +387,17 @@ class LocalFrontierManager(BaseManager, ComponentsPipelineMixin):
         """
         manager_settings = Settings.object_from(settings)
         return LocalFrontierManager(request_model=manager_settings.REQUEST_MODEL,
-                               response_model=manager_settings.RESPONSE_MODEL,
-                               backend=manager_settings.BACKEND,
-                               strategy_class=manager_settings.STRATEGY,
-                               strategy_args=manager_settings.STRATEGY_ARGS,
-                               middlewares=manager_settings.MIDDLEWARES,
-                               test_mode=manager_settings.TEST_MODE,
-                               max_requests=manager_settings.MAX_REQUESTS,
-                               max_next_requests=manager_settings.MAX_NEXT_REQUESTS,
-                               auto_start=manager_settings.AUTO_START,
-                               settings=manager_settings,
-                               canonicalsolver=manager_settings.CANONICAL_SOLVER,
-                               db_worker=db_worker,
-                               strategy_worker=strategy_worker)
+                                    response_model=manager_settings.RESPONSE_MODEL,
+                                    backend=manager_settings.BACKEND,
+                                    strategy_class=manager_settings.STRATEGY,
+                                    strategy_args=manager_settings.STRATEGY_ARGS,
+                                    middlewares=manager_settings.MIDDLEWARES,
+                                    test_mode=manager_settings.TEST_MODE,
+                                    max_requests=manager_settings.MAX_REQUESTS,
+                                    max_next_requests=manager_settings.MAX_NEXT_REQUESTS,
+                                    auto_start=manager_settings.AUTO_START,
+                                    settings=manager_settings,
+                                    canonicalsolver=manager_settings.CANONICAL_SOLVER)
 
     @property
     def test_mode(self):
@@ -452,12 +520,8 @@ class LocalFrontierManager(BaseManager, ComponentsPipelineMixin):
                 if self.n_requests+max_next_requests > self.max_requests:
                     max_next_requests = self.max_requests - self.n_requests
 
-        # log (in)
-        self._logger.debug('GET_NEXT_REQUESTS(in) max_next_requests=%s n_requests=%s/%s',
-                           max_next_requests, self.n_requests, self.max_requests or '-')
-
         # get next requests
-        next_requests = self.backend.get_next_requests(max_next_requests, **kwargs)
+        next_requests = super(LocalFrontierManager, self).get_next_requests(max_next_requests, **kwargs)
 
         # Increment requests counter
         self._n_requests += len(next_requests)
@@ -466,21 +530,10 @@ class LocalFrontierManager(BaseManager, ComponentsPipelineMixin):
         if next_requests:
             self._iteration += 1
 
-        # log (out)
-        self._logger.debug('GET_NEXT_REQUESTS(out) returned_requests=%s n_requests=%s/%s',
-                           len(next_requests), self.n_requests, self.max_requests or '-')
         return next_requests
 
     def page_crawled(self, response):
-        """
-        Informs the frontier about the crawl result.
-
-        :param object response: The :class:`Response <frontera.core.models.Response>` object for the crawled page.
-
-        :return: None.
-        """
         self._check_startstop()
-        self._logger.debug('PAGE_CRAWLED url=%s status=%s', response.url, response.status_code)
         assert isinstance(response, self.response_model), "Response object must subclass '%s', '%s' found" % \
                                                           (self.response_model.__name__, type(response).__name__)
         assert hasattr(response, 'request') and response.request, "Empty response request"
@@ -490,49 +543,28 @@ class LocalFrontierManager(BaseManager, ComponentsPipelineMixin):
                                                                   type(response.request).__name__)
         assert isinstance(response, self.response_model), "Response object must subclass '%s', '%s' found" % \
                                                           (self.response_model.__name__, type(response).__name__)
-        self._states_context.to_fetch(response)
-        self._states_context.fetch()
-        self._states_context.states.set_states(response)
-        self._process_components(method_name='page_crawled',
-                                 obj=response,
-                                 return_classes=self.response_model)
-        self._states_context.states.update_cache(response)
+        self.states_context.to_fetch(response)
+        self.states_context.fetch()
+        self.states_context.states.set_states(response)
+        super(LocalFrontierManager, self).page_crawled(response)
+        self.states_context.states.update_cache(response)
 
     def links_extracted(self, request, links):
-        """
-        Informs the frontier about extracted links for the request.
-
-        :param object request: The :class:`Request <frontera.core.models.Request>` object from which the links where crawled.
-        :param list links: A list of :class:`Request <frontera.core.models.Request>` objects generated from the links \
-        extracted for the request.
-
-        :return: None.
-        """
         self._check_startstop()
-        self._logger.debug('LINKS_EXTRACTED url=%s links=%d', request.url, len(links))
         assert isinstance(request, self.request_model), "Request object must subclass '%s', '%s' found" % \
                                                         (self.request_model.__name__, type(request).__name__)
         for link in links:
             assert isinstance(link, self._request_model), "Link objects must subclass '%s', '%s' found" % \
                                                           (self._request_model.__name__, type(link).__name__)
-        self._process_components(method_name='links_extracted',
-                                 obj=request,
-                                 return_classes=self.request_model,
-                                 components=(0, 1),
-                                 links=links)
-
+        super(LocalFrontierManager, self).links_extracted(request, links)
         filtered = self.strategy.filter_extracted_links(request, links)
         if filtered:
-            self._states_context.to_fetch(request)
-            self._states_context.to_fetch(filtered)
-            self._states_context.fetch()
-            self._states_context.states.set_states(filtered)
-            self._process_components(method_name='links_extracted',
-                                     obj=request,
-                                     return_classes=self.request_model,
-                                     components=(2,),
-                                     links=filtered)
-            self._states_context.states.update_cache(filtered)
+            self.states_context.to_fetch(request)
+            self.states_context.to_fetch(filtered)
+            self.states_context.fetch()
+            self.states_context.states.set_states(filtered)
+            super(LocalFrontierManager, self).links_extracted_after(request, filtered)
+            self.states_context.states.update_cache(filtered)
 
     def request_error(self, request, error):
         """
@@ -544,15 +576,11 @@ class LocalFrontierManager(BaseManager, ComponentsPipelineMixin):
         :return: None.
         """
         self._check_startstop()
-        self._logger.debug('PAGE_REQUEST_ERROR url=%s error=%s', request.url, error)
-        self._states_context.to_fetch(request)
-        self._states_context.fetch()
-        self._states_context.states.set_states(request)
-        processed_page = self._process_components(method_name='request_error',
-                                                  obj=request,
-                                                  return_classes=self.request_model,
-                                                  error=error)
-        self._states_context.states.update_cache(request)
+        self.states_context.to_fetch(request)
+        self.states_context.fetch()
+        self.states_context.states.set_states(request)
+        processed_page = super(LocalFrontierManager, self).request_error(request, error)
+        self.states_context.states.update_cache(request)
         return processed_page
 
     def create_request(self, url, method=b'GET', headers=None, cookies=None, meta=None, body=b''):
@@ -569,16 +597,16 @@ class LocalFrontierManager(BaseManager, ComponentsPipelineMixin):
         """
         r = self.request_model(url, method=method, headers=headers, cookies=cookies, meta=meta, body=body)
         return self._process_components('create_request',
-                                          obj=r,
-                                          return_classes=self.request_model,
-                                          components=(0,1))
+                                        obj=r,
+                                        return_classes=self.request_model,
+                                        components=(0,1))
 
     def _check_startstop(self):
         assert self._started, "Frontier not started!"
         assert not self._stopped, "Call to stopped frontier!"
 
 
-class WorkerFrontierManager(BaseManager, ComponentsPipelineMixin):
+class WorkerFrontierManager(BaseContext, StrategyComponentsPipelineMixin):
     """
     The :class:`WorkerFrontierManager <frontera.core.manager.WorkerFrontierManager>` class role is to
     instantiate the core components and is used mainly by workers.
@@ -615,14 +643,13 @@ class WorkerFrontierManager(BaseManager, ComponentsPipelineMixin):
         :param bool strategy_worker: True if class is instantiated in strategy worker environment
         """
 
-        BaseManager.__init__(self, request_model, response_model, settings=settings)
+        BaseContext.__init__(self, request_model, response_model, settings=settings)
 
         self._max_next_requests = max_next_requests
 
-        ComponentsPipelineMixin.__init__(self, backend=backend, strategy_class=strategy_class,
-                                         strategy_args=strategy_args, scoring_stream=scoring_stream,
-                                         middlewares=middlewares, canonicalsolver=canonicalsolver,
-                                         db_worker=db_worker,strategy_worker=strategy_worker)
+        StrategyComponentsPipelineMixin.__init__(self, backend, strategy_class, strategy_args, scoring_stream,
+                                                 middlewares=middlewares, canonicalsolver=canonicalsolver,
+                                                 db_worker=db_worker,strategy_worker=strategy_worker)
 
         # Init frontier components pipeline
         # Some code relies on the order, modify carefully
@@ -639,17 +666,17 @@ class WorkerFrontierManager(BaseManager, ComponentsPipelineMixin):
     def from_settings(cls, settings=None, db_worker=False, strategy_worker=False, scoring_stream=None):
         manager_settings = Settings.object_from(settings)
         return WorkerFrontierManager(request_model=manager_settings.REQUEST_MODEL,
-                                          response_model=manager_settings.RESPONSE_MODEL,
-                                          backend=manager_settings.BACKEND,
-                                          strategy_class=manager_settings.STRATEGY,
-                                          strategy_args=manager_settings.STRATEGY_ARGS,
-                                          middlewares=manager_settings.MIDDLEWARES,
-                                          max_next_requests=manager_settings.MAX_NEXT_REQUESTS,
-                                          settings=manager_settings,
-                                          canonicalsolver=manager_settings.CANONICAL_SOLVER,
-                                          db_worker=db_worker,
-                                          strategy_worker=strategy_worker,
-                                          scoring_stream=scoring_stream)
+                                     response_model=manager_settings.RESPONSE_MODEL,
+                                     backend=manager_settings.BACKEND,
+                                     strategy_class=manager_settings.STRATEGY,
+                                     strategy_args=manager_settings.STRATEGY_ARGS,
+                                     middlewares=manager_settings.MIDDLEWARES,
+                                     max_next_requests=manager_settings.MAX_NEXT_REQUESTS,
+                                     settings=manager_settings,
+                                     canonicalsolver=manager_settings.CANONICAL_SOLVER,
+                                     db_worker=db_worker,
+                                     strategy_worker=strategy_worker,
+                                     scoring_stream=scoring_stream)
 
     def create_request(self, url, method=b'GET', headers=None, cookies=None, meta=None, body=b''):
         """
@@ -670,25 +697,33 @@ class WorkerFrontierManager(BaseManager, ComponentsPipelineMixin):
                                         components=(0, 1))
 
 
-class SpiderFrontierManager(LocalFrontierManager):
-    def __init__(self, *args, **kwargs):
-        super(SpiderFrontierManager, self).__init__(*args, **kwargs)
+class SpiderFrontierManager(BaseContext, ComponentsPipelineMixin, BaseManager):
+    def __init__(self, request_model, response_model, backend, middlewares, max_next_requests, settings,
+                 canonicalsolver):
+        BaseContext.__init__(self, request_model, response_model, settings=settings)
+        ComponentsPipelineMixin.__init__(self, backend, middlewares=middlewares, canonicalsolver=canonicalsolver,
+                                         db_worker=False, strategy_worker=False)
+
+        self._components_pipeline = [
+            ('Middleware', self.middlewares, True),
+            ('CanonicalSolver', self.canonicalsolver, False),
+            ('Backend', self.backend, False)
+        ]
 
     @classmethod
-    def from_settings(cls, settings=None, db_worker=False, strategy_worker=False, scoring_stream=None):
+    def from_settings(cls, settings=None):
         manager_settings = Settings.object_from(settings)
         return SpiderFrontierManager(request_model=manager_settings.REQUEST_MODEL,
-                                          response_model=manager_settings.RESPONSE_MODEL,
-                                          backend=manager_settings.BACKEND,
-                                          strategy_class=manager_settings.STRATEGY,
-                                          strategy_args=manager_settings.STRATEGY_ARGS,
-                                          middlewares=manager_settings.MIDDLEWARES,
-                                          max_next_requests=manager_settings.MAX_NEXT_REQUESTS,
-                                          settings=manager_settings,
-                                          canonicalsolver=manager_settings.CANONICAL_SOLVER,
-                                          db_worker=db_worker,
-                                          strategy_worker=strategy_worker,
-                                          scoring_stream=scoring_stream)
+                                     response_model=manager_settings.RESPONSE_MODEL,
+                                     backend=manager_settings.BACKEND,
+                                     middlewares=manager_settings.MIDDLEWARES,
+                                     max_next_requests=manager_settings.MAX_NEXT_REQUESTS,
+                                     settings=manager_settings,
+                                     canonicalsolver=manager_settings.CANONICAL_SOLVER)
+
+    def links_extracted(self, request, links):
+        super(SpiderFrontierManager, self).links_extracted(request, links)
+        super(SpiderFrontierManager, self).links_extracted_after(request, links)
 
 
 @six.add_metaclass(ABCMeta)

@@ -18,7 +18,7 @@ from twisted.internet import reactor, task
 from twisted.internet.defer import Deferred
 from twisted.internet.task import LoopingCall
 
-from frontera.core.manager import WorkerFrontierManager, MessageBusUpdateScoreStream, StatesContext
+from frontera.core.manager import WorkerFrontierManager, MessageBusUpdateScoreStream
 from frontera.logger.handlers import CONSOLE
 from frontera.settings import Settings
 from frontera.utils.misc import load_object
