@@ -36,6 +36,7 @@ class BatchedWorkflow(object):
         self.scoring_stream = scoring_stream
         self.stats = stats
         self.job_id = job_id
+        self.manager = manager
 
         self._batch = []
 
@@ -152,16 +153,21 @@ class BaseStrategyWorker(object):
             self.consumer_batch_size = settings.get('SPIDER_LOG_CONSUMER_BATCH_SIZE')
         self.scoring_log_producer = scoring_log.producer()
 
-        manager = WorkerFrontierManager.from_settings(settings, strategy_worker=True)
         codec_path = settings.get('MESSAGE_BUS_CODEC')
-        encoder_cls = load_object(codec_path+".Encoder")
-        decoder_cls = load_object(codec_path+".Decoder")
-        self._decoder = decoder_cls(manager.request_model, manager.response_model)
-        self._encoder = encoder_cls(manager.request_model)
+        encoder_cls = load_object(codec_path + ".Encoder")
+        decoder_cls = load_object(codec_path + ".Decoder")
+
+        request_model = load_object(settings.get('REQUEST_MODEL'))
+        response_model = load_object(settings.get('RESPONSE_MODEL'))
+        self._decoder = decoder_cls(request_model, response_model)
+        self._encoder = encoder_cls(request_model)
 
         self.update_score = MessageBusUpdateScoreStream(self.scoring_log_producer, self._encoder)
+        manager = WorkerFrontierManager.from_settings(settings, strategy_worker=True, scoring_stream=self.update_score)
+
         self.consumer_batch_size = settings.get('SPIDER_LOG_CONSUMER_BATCH_SIZE')
         self.stats = defaultdict(int)
+        self.backend = manager.backend
         self.workflow = BatchedWorkflow(manager, self.update_score, self.stats, 0)
         self.task = LoopingCall(self.work)
         self._logging_task = LoopingCall(self.log_status)
@@ -186,7 +192,7 @@ class BaseStrategyWorker(object):
         self.workflow.process()
 
         # Exiting, if crawl is finished
-        if self.strategy.finished():
+        if self.workflow.strategy.finished():
             logger.info("Successfully reached the crawling goal.")
             logger.info("Finishing.")
             d = self.stop_tasks()
@@ -198,8 +204,9 @@ class BaseStrategyWorker(object):
 
     def add_seeds(self, seeds_url):
         logger.info("Seeds addition started from url %s", seeds_url)
+        strategy = self.workflow.strategy
         if not seeds_url:
-            self.strategy.read_seeds(None)
+            strategy.read_seeds(None)
         else:
             parsed = urlparse(seeds_url)
             if parsed.scheme == "s3":
@@ -214,14 +221,14 @@ class BaseStrategyWorker(object):
                 fh = open(parsed.path, "rb")
             else:
                 raise TypeError("Unsupported URL scheme")
-            self.strategy.read_seeds(fh)
+            strategy.read_seeds(fh)
             try:
                 fh.close()
             except:
                 logger.exception("Error during closing of seeds stream")
                 pass
         self.update_score.flush()
-        self.states_context.release()
+        self.workflow.states_context.release()
 
     def run(self, seeds_url):
         def log_failure(failure):
@@ -266,7 +273,7 @@ class BaseStrategyWorker(object):
             logger.info("%s=%s", k, v)
 
     def flush_states(self):
-        self.states_context.flush()
+        self.workflow.states_context.flush()
 
     def _handle_shutdown(self, signum, _):
         def call_shutdown():
@@ -300,10 +307,8 @@ class BaseStrategyWorker(object):
     def _perform_shutdown(self, _=None):
         try:
             self.flush_states()
-            logger.info("Closing crawling strategy.")
-            self.strategy.close()
             logger.info("Stopping frontier manager.")
-            self._manager.stop()
+            self.workflow.manager.close()
             logger.info("Closing message bus.")
             self.scoring_log_producer.close()
             if not self.add_seeds_mode:
