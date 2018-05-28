@@ -1,7 +1,9 @@
 from __future__ import absolute_import
 import pytest
 
-from frontera import FrontierManager, Settings, FrontierTester
+from frontera.core.manager import LocalFrontierManager
+from frontera.worker.strategies.bfs import CrawlingStrategy
+from frontera import Settings, FrontierTester
 from frontera.utils import graphs
 from frontera.utils.tester import BaseDownloaderSimulator
 
@@ -38,14 +40,15 @@ class BackendTest(object):
         """
         Returns frontierManager object
         """
-        return FrontierManager.from_settings(self.get_settings())
+        return LocalFrontierManager.from_settings(self.get_settings())
 
     def get_settings(self):
         """
         Returns backend settings
         """
         return Settings(attributes={
-            'BACKEND': self.backend_class
+            'BACKEND': self.backend_class,
+            'STRATEGY': 'frontera.worker.strategies.bfs.CrawlingStrategy'
         })
 
 

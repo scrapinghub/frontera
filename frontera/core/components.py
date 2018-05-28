@@ -23,15 +23,6 @@ class Metadata(StartStopMixin):
     including content and optimized for write-only data flow."""
 
     @abstractmethod
-    def add_seeds(self, seeds):
-        """
-        This method is called when new seeds are added to the frontier.
-
-        :param list seeds: A list of :class:`Request <frontera.core.models.Request>` objects.
-        """
-        pass
-
-    @abstractmethod
     def page_crawled(self, response):
         """
         This method is called every time a page has been crawled.

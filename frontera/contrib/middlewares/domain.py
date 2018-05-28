@@ -94,9 +94,9 @@ class DomainMiddleware(Middleware):
         return self._add_domain(request)
 
     def _add_domain(self, obj):
-        obj.meta[b'domain'] = self._parse_domain_info(obj.url, self.manager.test_mode)
+        obj.meta[b'domain'] = self._parse_domain_info(obj.url)
         if b'redirect_urls' in obj.meta:
-            obj.meta[b'redirect_domains'] = [self._parse_domain_info(url, self.manager.test_mode)
+            obj.meta[b'redirect_domains'] = [self._parse_domain_info(url)
                                              for url in obj.meta[b'redirect_urls']]
         return obj
 

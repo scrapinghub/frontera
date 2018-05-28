@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from frontera.contrib.backends.redis_backend import FIELD_DOMAIN_FINGERPRINT, FIELD_ERROR, FIELD_STATE
 from frontera.contrib.backends.redis_backend import FIELD_STATUS_CODE, FIELD_URL
 from frontera.contrib.backends.redis_backend import RedisBackend, RedisMetadata, RedisQueue, RedisState
-from frontera.core.manager import FrontierManager
+from frontera.core.manager import BaseContext
 from frontera.settings import Settings
 from redis import ConnectionPool, StrictRedis
 from time import time
@@ -39,7 +39,7 @@ class RedisQueueTest(TestCase):
     @staticmethod
     def setup_subject(partitions):
         settings = Settings(module='frontera.settings.default_settings')
-        return RedisQueue(FrontierManager.from_settings(settings), get_pool(), partitions, True)
+        return RedisQueue(BaseContext.from_settings(settings), get_pool(), partitions, True)
 
     def test_scheduling_past_1part_5(self):
         subject = self.setup_subject(1)
@@ -283,7 +283,7 @@ class RedisQueueTest(TestCase):
         self.assertTrue('https://www.khellan.com/' in urls)
         self.assertEqual(1, subject.count())
 
-    def test_get_next_requests_max_requests(self):
+    def test_get_next_requests_max_requests_2(self):
         subject = self.setup_subject(2)
         batch = [
             ("1", 1, Request("1", int(time()) - 10, 'https://www.knuthellan.com/', domain='knuthellan.com'), True),

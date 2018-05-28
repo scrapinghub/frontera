@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 from frontera.worker.strategies import BaseCrawlingStrategy
-from frontera.worker.strategy import StatesContext
 from frontera.settings import Settings
-from frontera.core.manager import FrontierManager, StatesContext
+from frontera.core.manager import WorkerFrontierManager, StatesContext
 
 from frontera.contrib.backends.memory import MemoryStates
 from frontera.core.components import States
 
 
 class TestingCrawlingStrategy(BaseCrawlingStrategy):
-    def add_seeds(self, seeds):
+    def read_seeds(self, seeds_file):
         pass
 
     def page_crawled(self, response):
@@ -37,11 +36,12 @@ class TestCrawlingStrategy(object):
     def strategy(self):
         settings = Settings()
         settings.BACKEND = 'frontera.contrib.backends.sqlalchemy.Distributed'
-        manager = FrontierManager.from_settings(settings, db_worker=False, strategy_worker=True)
+        settings.STRATEGY = 'tests.test_strategy.TestingCrawlingStrategy'
+        manager = WorkerFrontierManager.from_settings(settings, db_worker=False, strategy_worker=True)
         stream = MessageBusStream()
         states = MemoryStates(10)
         states_ctx = StatesContext(states)
-        return TestingCrawlingStrategy.from_worker(manager, None, stream, states_ctx)
+        return manager.strategy
 
     def test_create_request(self):
         s = self.strategy()
@@ -50,7 +50,7 @@ class TestCrawlingStrategy(object):
 
     def test_states_refresh(self):
         s = self.strategy()
-        states = s._states_context._states
+        states = s._states_context.states
         url = "http://test.com/someurl"
         req1 = s.create_request(url)
         req1.meta[b'state'] = States.CRAWLED

@@ -478,6 +478,7 @@ class LocalFrontierManager(BaseContext, StrategyComponentsPipelineMixin, BaseMan
         self._check_startstop()
         self._logger.debug('STOP')
         self._process_components(method_name='frontier_stop')
+        StrategyComponentsPipelineMixin.close(self)
         self._stopped = True
 
     def add_seeds(self, seeds_file):
@@ -596,10 +597,11 @@ class LocalFrontierManager(BaseContext, StrategyComponentsPipelineMixin, BaseMan
         :return: :class:`Request <frontera.core.models.Request>` object
         """
         r = self.request_model(url, method=method, headers=headers, cookies=cookies, meta=meta, body=body)
-        return self._process_components('create_request',
-                                        obj=r,
-                                        return_classes=self.request_model,
-                                        components=(0,1))
+        self._process_components('create_request',
+                                 obj=r,
+                                 return_classes=self.request_model,
+                                 components=(0,1))
+        return r
 
     def _check_startstop(self):
         assert self._started, "Frontier not started!"
