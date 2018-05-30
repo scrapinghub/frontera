@@ -1,11 +1,69 @@
 from __future__ import absolute_import
 import pytest
 
+from frontera.core.components import States
 from frontera.core.manager import LocalFrontierManager
-from frontera.worker.strategies.bfs import CrawlingStrategy
+from frontera.worker.strategies import BaseCrawlingStrategy
 from frontera import Settings, FrontierTester
 from frontera.utils import graphs
 from frontera.utils.tester import BaseDownloaderSimulator
+
+
+class BasicCrawlingStrategy(BaseCrawlingStrategy):
+    def read_seeds(self, stream):
+        for url in stream:
+            url = url.strip()
+            r = self._create_request(url)
+            self.schedule(r, 1.0)
+
+    def _create_request(self, url):
+        return self.create_request(url=url,
+                                headers={
+                                    b'X-Important-Header': b'Frontera'
+                                },
+                                method=b'POST',
+                                cookies={b'currency': b'USD'},
+                                meta={b'this_param': b'should be passed over'})
+
+    def filter_extracted_links(self, request, links):
+        return links
+
+    def links_extracted(self, request, links):
+        for link in links:
+            if link.meta[b'state'] == States.NOT_CRAWLED:
+                self.schedule(self._create_request(link.url))
+                link.meta[b'state'] = States.QUEUED
+
+    def page_crawled(self, response):
+        response.meta[b'state'] = States.CRAWLED
+
+    def page_error(self, request, error):
+        request.meta[b'state'] = States.ERROR
+
+
+class DFSCrawlingStrategy(BasicCrawlingStrategy):
+    def read_seeds(self, stream):
+        for url in stream:
+            url = url.strip()
+            r = self._create_request(url)
+            r.meta[b'depth'] = 0
+            self.schedule(r, self._get_score(r.meta[b'depth']))
+
+    def links_extracted(self, request, links):
+        for link in links:
+            if link.meta[b'state'] == States.NOT_CRAWLED:
+                r = self._create_request(link.url)
+                r.meta[b'depth'] = request.meta[b'depth'] + 1
+                self.schedule(r, self._get_score(r.meta[b'depth']))
+                link.meta[b'state'] = States.QUEUED
+
+    def _get_score(self, depth):
+        return 1.0 / (depth + 1.0)
+
+
+class BFSCrawlingStrategy(DFSCrawlingStrategy):
+    def _get_score(self, depth):
+        return float(depth) / 10.0
 
 
 class BackendTest(object):
@@ -48,7 +106,7 @@ class BackendTest(object):
         """
         return Settings(attributes={
             'BACKEND': self.backend_class,
-            'STRATEGY': 'frontera.worker.strategies.bfs.CrawlingStrategy'
+            'STRATEGY': 'tests.backends.BasicCrawlingStrategy'
         })
 
 
@@ -118,7 +176,7 @@ class BackendSequenceTest(BackendTest):
 
         # Get sequence
         sequence = self.get_url_sequence(site_list, max_next_requests)
-        #print [str(n) for n in sequence]
+        #print ([str(n) for n in sequence])
 
         # Assert sequence equals expected
         assert len(sequence) == len(expected_sequence)
@@ -126,30 +184,29 @@ class BackendSequenceTest(BackendTest):
 
 
 class FIFOBackendTest(BackendSequenceTest):
-
     EXPECTED_SEQUENCES = {
         "SEQUENCE_01_A": [
-            'A1',
-            'A11', 'A12',
-            'A111', 'A112', 'A121', 'A122',
-            'A1111', 'A1112', 'A1121', 'A1122', 'A1211', 'A1212', 'A1221', 'A1222'
+             'http://aaa.com/1',
+             'http://aaa.com/11', 'http://aaa.com/12',
+             'http://aaa.com/111', 'http://aaa.com/112', 'http://aaa.com/121', 'http://aaa.com/122',
+             'http://aaa.com/1111', 'http://aaa.com/1112', 'http://aaa.com/1121', 'http://aaa.com/1122', 'http://aaa.com/1211', 'http://aaa.com/1212', 'http://aaa.com/1221', 'http://aaa.com/1222'
         ],
         "SEQUENCE_02_A": [
-            'A1', 'B1',
-            'A11', 'A12', 'B11', 'B12',
-            'A111', 'A112', 'A121', 'A122', 'B111', 'B112', 'B121', 'B122',
-            'A1111', 'A1112', 'A1121', 'A1122', 'A1211', 'A1212', 'A1221', 'A1222',
-            'B1111', 'B1112', 'B1121', 'B1122', 'B1211', 'B1212', 'B1221', 'B1222'
-        ],
+            'http://aaa.com/1', 'http://bbb.com/1',
+            'http://aaa.com/11', 'http://aaa.com/12', 'http://bbb.com/11', 'http://bbb.com/12',
+            'http://aaa.com/111', 'http://aaa.com/112', 'http://aaa.com/121', 'http://aaa.com/122', 'http://bbb.com/111', 'http://bbb.com/112', 'http://bbb.com/121', 'http://bbb.com/122',
+            'http://aaa.com/1111', 'http://aaa.com/1112', 'http://aaa.com/1121', 'http://aaa.com/1122', 'http://aaa.com/1211', 'http://aaa.com/1212', 'http://aaa.com/1221', 'http://aaa.com/1222', 'http://bbb.com/1111', 'http://bbb.com/1112', 'http://bbb.com/1121', 'http://bbb.com/1122', 'http://bbb.com/1211', 'http://bbb.com/1212', 'http://bbb.com/1221', 'http://bbb.com/1222'
+        ]
+        ,
         "SEQUENCE_03_A": [
-            'C1',
-            'C11', 'C12',
-            'C111', 'C112', 'C121', 'C122',
-            'C1111', 'C1112', 'C1121', 'C1122', 'C1211', 'C1212', 'C1221', 'C1222',
-            'C11111', 'C11112', 'C11121', 'C11122', 'C11211', 'C11212', 'C11221', 'C11222',
-            'C12111', 'C12112', 'C12121', 'C12122', 'C12211', 'C12212', 'C12221', 'C12222'
+            'http://ccc.com/1',
+            'http://ccc.com/11', 'http://ccc.com/12',
+            'http://ccc.com/111', 'http://ccc.com/112', 'http://ccc.com/121', 'http://ccc.com/122',
+            'http://ccc.com/1111', 'http://ccc.com/1112', 'http://ccc.com/1121', 'http://ccc.com/1122', 'http://ccc.com/1211', 'http://ccc.com/1212', 'http://ccc.com/1221', 'http://ccc.com/1222',
+            'http://ccc.com/11111', 'http://ccc.com/11112', 'http://ccc.com/11121', 'http://ccc.com/11122', 'http://ccc.com/11211', 'http://ccc.com/11212', 'http://ccc.com/11221', 'http://ccc.com/11222', 'http://ccc.com/12111', 'http://ccc.com/12112', 'http://ccc.com/12121', 'http://ccc.com/12122', 'http://ccc.com/12211', 'http://ccc.com/12212', 'http://ccc.com/12221', 'http://ccc.com/12222'
         ],
     }
+
 
     @pytest.mark.parametrize(
         ('site_list', 'max_next_requests', 'expected_sequence'), [
@@ -185,97 +242,97 @@ class LIFOBackendTest(BackendSequenceTest):
 
     EXPECTED_SEQUENCES = {
         "SEQUENCE_01_A": [
-            'A1',
-            'A12',
-            'A122', 'A1222', 'A1221',
-            'A121', 'A1212', 'A1211',
-            'A11',
-            'A112', 'A1122', 'A1121',
-            'A111', 'A1112', 'A1111'
+            'http://aaa.com/1',
+            'http://aaa.com/12',
+            'http://aaa.com/122', 'http://aaa.com/1222', 'http://aaa.com/1221',
+            'http://aaa.com/121', 'http://aaa.com/1212', 'http://aaa.com/1211',
+            'http://aaa.com/11',
+            'http://aaa.com/112', 'http://aaa.com/1122', 'http://aaa.com/1121',
+            'http://aaa.com/111', 'http://aaa.com/1112', 'http://aaa.com/1111'
         ],
         "SEQUENCE_01_B": [
-            'A1',
-            'A12', 'A11',
-            'A112', 'A111',
-            'A1112', 'A1111', 'A1122', 'A1121',
-            'A122', 'A121',
-            'A1212', 'A1211', 'A1222', 'A1221'],
+            'http://aaa.com/1',
+            'http://aaa.com/12', 'http://aaa.com/11',
+            'http://aaa.com/112', 'http://aaa.com/111',
+            'http://aaa.com/1112', 'http://aaa.com/1111', 'http://aaa.com/1122', 'http://aaa.com/1121',
+            'http://aaa.com/122', 'http://aaa.com/121',
+            'http://aaa.com/1212', 'http://aaa.com/1211', 'http://aaa.com/1222', 'http://aaa.com/1221'],
         "SEQUENCE_01_C": [
-            'A1',
-            'A12', 'A11',
-            'A112', 'A111', 'A122', 'A121',
-            'A1212', 'A1211', 'A1222', 'A1221', 'A1112', 'A1111', 'A1122', 'A1121'
+            'http://aaa.com/1',
+            'http://aaa.com/12', 'http://aaa.com/11',
+            'http://aaa.com/112', 'http://aaa.com/111', 'http://aaa.com/122', 'http://aaa.com/121',
+            'http://aaa.com/1212', 'http://aaa.com/1211', 'http://aaa.com/1222', 'http://aaa.com/1221', 'http://aaa.com/1112', 'http://aaa.com/1111', 'http://aaa.com/1122', 'http://aaa.com/1121'
         ],
         "SEQUENCE_02_A": [
-            'B1',
-            'B12', 'B122', 'B1222', 'B1221', 'B121', 'B1212', 'B1211',
-            'B11', 'B112', 'B1122', 'B1121', 'B111', 'B1112', 'B1111',
-            'A1',
-            'A12', 'A122', 'A1222', 'A1221', 'A121', 'A1212', 'A1211',
-            'A11', 'A112', 'A1122', 'A1121', 'A111', 'A1112', 'A1111'
+            'http://bbb.com/1',
+            'http://bbb.com/12', 'http://bbb.com/122', 'http://bbb.com/1222', 'http://bbb.com/1221', 'http://bbb.com/121', 'http://bbb.com/1212', 'http://bbb.com/1211',
+            'http://bbb.com/11', 'http://bbb.com/112', 'http://bbb.com/1122', 'http://bbb.com/1121', 'http://bbb.com/111', 'http://bbb.com/1112', 'http://bbb.com/1111',
+            'http://aaa.com/1',
+            'http://aaa.com/12', 'http://aaa.com/122', 'http://aaa.com/1222', 'http://aaa.com/1221', 'http://aaa.com/121', 'http://aaa.com/1212', 'http://aaa.com/1211',
+            'http://aaa.com/11', 'http://aaa.com/112', 'http://aaa.com/1122', 'http://aaa.com/1121', 'http://aaa.com/111', 'http://aaa.com/1112', 'http://aaa.com/1111'
         ],
         "SEQUENCE_02_B": [
-            'B1', 'A1',
-            'A12', 'A11',
-            'A112', 'A111',
-            'A1112', 'A1111', 'A1122', 'A1121',
-            'A122', 'A121',
-            'A1212', 'A1211', 'A1222', 'A1221',
-            'B12', 'B11',
-            'B112', 'B111',
-            'B1112', 'B1111', 'B1122', 'B1121',
-            'B122', 'B121',
-            'B1212', 'B1211', 'B1222', 'B1221'
+            'http://bbb.com/1', 'http://aaa.com/1',
+            'http://aaa.com/12', 'http://aaa.com/11',
+            'http://aaa.com/112', 'http://aaa.com/111',
+            'http://aaa.com/1112', 'http://aaa.com/1111', 'http://aaa.com/1122', 'http://aaa.com/1121',
+            'http://aaa.com/122', 'http://aaa.com/121',
+            'http://aaa.com/1212', 'http://aaa.com/1211', 'http://aaa.com/1222', 'http://aaa.com/1221',
+            'http://bbb.com/12', 'http://bbb.com/11',
+            'http://bbb.com/112', 'http://bbb.com/111',
+            'http://bbb.com/1112', 'http://bbb.com/1111', 'http://bbb.com/1122', 'http://bbb.com/1121',
+            'http://bbb.com/122', 'http://bbb.com/121',
+            'http://bbb.com/1212', 'http://bbb.com/1211', 'http://bbb.com/1222', 'http://bbb.com/1221'
         ],
         "SEQUENCE_02_C": [
-            'B1', 'A1',
-            'A12', 'A11', 'B12', 'B11', 'B112', 'B111', 'B122', 'B121', 'A112',
-            'A1122', 'A1121', 'B1212', 'B1211', 'B1222', 'B1221', 'B1112', 'B1111', 'B1122', 'B1121',
-            'A111', 'A122', 'A121',
-            'A1212', 'A1211', 'A1222', 'A1221', 'A1112', 'A1111'
+            'http://bbb.com/1', 'http://aaa.com/1',
+            'http://aaa.com/12', 'http://aaa.com/11', 'http://bbb.com/12', 'http://bbb.com/11', 'http://bbb.com/112', 'http://bbb.com/111', 'http://bbb.com/122', 'http://bbb.com/121', 'http://aaa.com/112',
+            'http://aaa.com/1122', 'http://aaa.com/1121', 'http://bbb.com/1212', 'http://bbb.com/1211', 'http://bbb.com/1222', 'http://bbb.com/1221', 'http://bbb.com/1112', 'http://bbb.com/1111', 'http://bbb.com/1122', 'http://bbb.com/1121',
+            'http://aaa.com/111', 'http://aaa.com/122', 'http://aaa.com/121',
+            'http://aaa.com/1212', 'http://aaa.com/1211', 'http://aaa.com/1222', 'http://aaa.com/1221', 'http://aaa.com/1112', 'http://aaa.com/1111'
         ],
         "SEQUENCE_02_D": [
-            'B1', 'A1',
-            'A12', 'A11', 'B12', 'B11', 'B112', 'B111', 'B122', 'B121', 'A112', 'A111', 'A122', 'A121',
-            'A1212', 'A1211', 'A1222', 'A1221', 'A1112', 'A1111', 'A1122', 'A1121',
-            'B1212', 'B1211', 'B1222', 'B1221', 'B1112', 'B1111', 'B1122', 'B1121'
+            'http://bbb.com/1', 'http://aaa.com/1',
+            'http://aaa.com/12', 'http://aaa.com/11', 'http://bbb.com/12', 'http://bbb.com/11', 'http://bbb.com/112', 'http://bbb.com/111', 'http://bbb.com/122', 'http://bbb.com/121', 'http://aaa.com/112', 'http://aaa.com/111', 'http://aaa.com/122', 'http://aaa.com/121',
+            'http://aaa.com/1212', 'http://aaa.com/1211', 'http://aaa.com/1222', 'http://aaa.com/1221', 'http://aaa.com/1112', 'http://aaa.com/1111', 'http://aaa.com/1122', 'http://aaa.com/1121',
+            'http://bbb.com/1212', 'http://bbb.com/1211', 'http://bbb.com/1222', 'http://bbb.com/1221', 'http://bbb.com/1112', 'http://bbb.com/1111', 'http://bbb.com/1122', 'http://bbb.com/1121'
         ],
 
         "SEQUENCE_03_A": [
-            'C1', 'C12', 'C122', 'C1222', 'C12222', 'C12221', 'C1221', 'C12212', 'C12211',
-            'C121', 'C1212', 'C12122', 'C12121', 'C1211', 'C12112', 'C12111',
-            'C11', 'C112', 'C1122', 'C11222', 'C11221', 'C1121', 'C11212', 'C11211',
-            'C111', 'C1112', 'C11122', 'C11121', 'C1111', 'C11112', 'C11111'
+            'http://ccc.com/1', 'http://ccc.com/12', 'http://ccc.com/122', 'http://ccc.com/1222', 'http://ccc.com/12222', 'http://ccc.com/12221', 'http://ccc.com/1221', 'http://ccc.com/12212', 'http://ccc.com/12211',
+            'http://ccc.com/121', 'http://ccc.com/1212', 'http://ccc.com/12122', 'http://ccc.com/12121', 'http://ccc.com/1211', 'http://ccc.com/12112', 'http://ccc.com/12111',
+            'http://ccc.com/11', 'http://ccc.com/112', 'http://ccc.com/1122', 'http://ccc.com/11222', 'http://ccc.com/11221', 'http://ccc.com/1121', 'http://ccc.com/11212', 'http://ccc.com/11211',
+            'http://ccc.com/111', 'http://ccc.com/1112', 'http://ccc.com/11122', 'http://ccc.com/11121', 'http://ccc.com/1111', 'http://ccc.com/11112', 'http://ccc.com/11111'
         ],
         "SEQUENCE_03_B": [
-            'C1',
-            'C12', 'C11',
-            'C112', 'C111',
-            'C1112', 'C1111', 'C11112', 'C11111', 'C11122', 'C11121',
-            'C1122', 'C1121', 'C11212', 'C11211', 'C11222', 'C11221',
-            'C122', 'C121',
-            'C1212', 'C1211', 'C12112', 'C12111', 'C12122', 'C12121',
-            'C1222', 'C1221', 'C12212', 'C12211', 'C12222', 'C12221'
+            'http://ccc.com/1',
+            'http://ccc.com/12', 'http://ccc.com/11',
+            'http://ccc.com/112', 'http://ccc.com/111',
+            'http://ccc.com/1112', 'http://ccc.com/1111', 'http://ccc.com/11112', 'http://ccc.com/11111', 'http://ccc.com/11122', 'http://ccc.com/11121',
+            'http://ccc.com/1122', 'http://ccc.com/1121', 'http://ccc.com/11212', 'http://ccc.com/11211', 'http://ccc.com/11222', 'http://ccc.com/11221',
+            'http://ccc.com/122', 'http://ccc.com/121',
+            'http://ccc.com/1212', 'http://ccc.com/1211', 'http://ccc.com/12112', 'http://ccc.com/12111', 'http://ccc.com/12122', 'http://ccc.com/12121',
+            'http://ccc.com/1222', 'http://ccc.com/1221', 'http://ccc.com/12212', 'http://ccc.com/12211', 'http://ccc.com/12222', 'http://ccc.com/12221'
         ],
         "SEQUENCE_03_C": [
-            'C1',
-            'C12', 'C11',
-            'C112', 'C111', 'C122', 'C121',
-            'C1212', 'C1211', 'C1222', 'C1221', 'C1112',
-            'C11122', 'C11121', 'C12212', 'C12211',
-            'C12222', 'C12221', 'C12112', 'C12111',
-            'C12122', 'C12121',
-            'C1111', 'C1122', 'C1121', 'C11212',
-            'C11211', 'C11222', 'C11221', 'C11112', 'C11111'
+            'http://ccc.com/1',
+            'http://ccc.com/12', 'http://ccc.com/11',
+            'http://ccc.com/112', 'http://ccc.com/111', 'http://ccc.com/122', 'http://ccc.com/121',
+            'http://ccc.com/1212', 'http://ccc.com/1211', 'http://ccc.com/1222', 'http://ccc.com/1221', 'http://ccc.com/1112',
+            'http://ccc.com/11122', 'http://ccc.com/11121', 'http://ccc.com/12212', 'http://ccc.com/12211',
+            'http://ccc.com/12222', 'http://ccc.com/12221', 'http://ccc.com/12112', 'http://ccc.com/12111',
+            'http://ccc.com/12122', 'http://ccc.com/12121',
+            'http://ccc.com/1111', 'http://ccc.com/1122', 'http://ccc.com/1121', 'http://ccc.com/11212',
+            'http://ccc.com/11211', 'http://ccc.com/11222', 'http://ccc.com/11221', 'http://ccc.com/11112', 'http://ccc.com/11111'
         ],
         "SEQUENCE_03_D": [
-            'C1',
-            'C12', 'C11',
-            'C112', 'C111', 'C122', 'C121',
-            'C1212', 'C1211', 'C1222', 'C1221',
-            'C1112', 'C1111', 'C1122', 'C1121',
-            'C11212', 'C11211', 'C11222', 'C11221', 'C11112', 'C11111', 'C11122', 'C11121',
-            'C12212', 'C12211', 'C12222', 'C12221', 'C12112', 'C12111', 'C12122', 'C12121'
+            'http://ccc.com/1',
+            'http://ccc.com/12', 'http://ccc.com/11',
+            'http://ccc.com/112', 'http://ccc.com/111', 'http://ccc.com/122', 'http://ccc.com/121',
+            'http://ccc.com/1212', 'http://ccc.com/1211', 'http://ccc.com/1222', 'http://ccc.com/1221',
+            'http://ccc.com/1112', 'http://ccc.com/1111', 'http://ccc.com/1122', 'http://ccc.com/1121',
+            'http://ccc.com/11212', 'http://ccc.com/11211', 'http://ccc.com/11222', 'http://ccc.com/11221', 'http://ccc.com/11112', 'http://ccc.com/11111', 'http://ccc.com/11122', 'http://ccc.com/11121',
+            'http://ccc.com/12212', 'http://ccc.com/12211', 'http://ccc.com/12222', 'http://ccc.com/12221', 'http://ccc.com/12112', 'http://ccc.com/12111', 'http://ccc.com/12122', 'http://ccc.com/12121'
         ],
     }
 
@@ -313,108 +370,108 @@ class DFSBackendTest(BackendSequenceTest):
 
     EXPECTED_SEQUENCES = {
         "SEQUENCE_01_A": [
-            'A1',
-            'A11', 'A111', 'A1111', 'A1112', 'A112', 'A1121', 'A1122',
-            'A12', 'A121', 'A1211', 'A1212', 'A122', 'A1221', 'A1222'
+            'http://aaa.com/1',
+            'http://aaa.com/11', 'http://aaa.com/111', 'http://aaa.com/1111', 'http://aaa.com/1112', 'http://aaa.com/112', 'http://aaa.com/1121', 'http://aaa.com/1122',
+            'http://aaa.com/12', 'http://aaa.com/121', 'http://aaa.com/1211', 'http://aaa.com/1212', 'http://aaa.com/122', 'http://aaa.com/1221', 'http://aaa.com/1222'
         ],
         "SEQUENCE_01_B": [
-            'A1',
-            'A11', 'A12',
-            'A111', 'A112',
-            'A1111', 'A1112', 'A1121', 'A1122',
-            'A121', 'A122',
-            'A1211', 'A1212', 'A1221', 'A1222'
+            'http://aaa.com/1',
+            'http://aaa.com/11', 'http://aaa.com/12',
+            'http://aaa.com/111', 'http://aaa.com/112',
+            'http://aaa.com/1111', 'http://aaa.com/1112', 'http://aaa.com/1121', 'http://aaa.com/1122',
+            'http://aaa.com/121', 'http://aaa.com/122',
+            'http://aaa.com/1211', 'http://aaa.com/1212', 'http://aaa.com/1221', 'http://aaa.com/1222'
         ],
         "SEQUENCE_01_C": [
-            'A1',
-            'A11', 'A12',
-            'A111', 'A112', 'A121', 'A122',
-            'A1111', 'A1112', 'A1121', 'A1122', 'A1211', 'A1212', 'A1221', 'A1222'
+            'http://aaa.com/1',
+            'http://aaa.com/11', 'http://aaa.com/12',
+            'http://aaa.com/111', 'http://aaa.com/112', 'http://aaa.com/121', 'http://aaa.com/122',
+            'http://aaa.com/1111', 'http://aaa.com/1112', 'http://aaa.com/1121', 'http://aaa.com/1122', 'http://aaa.com/1211', 'http://aaa.com/1212', 'http://aaa.com/1221', 'http://aaa.com/1222'
         ],
         "SEQUENCE_02_A": [
-            'A1',
-            'A11',
-            'A111', 'A1111', 'A1112',
-            'A112', 'A1121', 'A1122',
-            'A12',
-            'A121', 'A1211', 'A1212',
-            'A122', 'A1221', 'A1222',
-            'B1',
-            'B11',
-            'B111', 'B1111', 'B1112',
-            'B112', 'B1121', 'B1122',
-            'B12',
-            'B121', 'B1211', 'B1212',
-            'B122', 'B1221', 'B1222'
+            'http://aaa.com/1',
+            'http://aaa.com/11',
+            'http://aaa.com/111', 'http://aaa.com/1111', 'http://aaa.com/1112',
+            'http://aaa.com/112', 'http://aaa.com/1121', 'http://aaa.com/1122',
+            'http://aaa.com/12',
+            'http://aaa.com/121', 'http://aaa.com/1211', 'http://aaa.com/1212',
+            'http://aaa.com/122', 'http://aaa.com/1221', 'http://aaa.com/1222',
+            'http://bbb.com/1',
+            'http://bbb.com/11',
+            'http://bbb.com/111', 'http://bbb.com/1111', 'http://bbb.com/1112',
+            'http://bbb.com/112', 'http://bbb.com/1121', 'http://bbb.com/1122',
+            'http://bbb.com/12',
+            'http://bbb.com/121', 'http://bbb.com/1211', 'http://bbb.com/1212',
+            'http://bbb.com/122', 'http://bbb.com/1221', 'http://bbb.com/1222'
         ],
         "SEQUENCE_02_B": [
-            'A1', 'B1',
-            'A11', 'A12',
-            'A111', 'A112',
-            'A1111', 'A1112', 'A1121', 'A1122',
-            'A121', 'A122',
-            'A1211', 'A1212', 'A1221', 'A1222',
-            'B11', 'B12',
-            'B111', 'B112',
-            'B1111', 'B1112', 'B1121', 'B1122',
-            'B121', 'B122',
-            'B1211', 'B1212', 'B1221', 'B1222'
+            'http://aaa.com/1', 'http://bbb.com/1',
+            'http://aaa.com/11', 'http://aaa.com/12',
+            'http://aaa.com/111', 'http://aaa.com/112',
+            'http://aaa.com/1111', 'http://aaa.com/1112', 'http://aaa.com/1121', 'http://aaa.com/1122',
+            'http://aaa.com/121', 'http://aaa.com/122',
+            'http://aaa.com/1211', 'http://aaa.com/1212', 'http://aaa.com/1221', 'http://aaa.com/1222',
+            'http://bbb.com/11', 'http://bbb.com/12',
+            'http://bbb.com/111', 'http://bbb.com/112',
+            'http://bbb.com/1111', 'http://bbb.com/1112', 'http://bbb.com/1121', 'http://bbb.com/1122',
+            'http://bbb.com/121', 'http://bbb.com/122',
+            'http://bbb.com/1211', 'http://bbb.com/1212', 'http://bbb.com/1221', 'http://bbb.com/1222'
         ],
         "SEQUENCE_02_C": [
-            'A1', 'B1',
-            'A11', 'A12', 'B11', 'B12',
-            'A111', 'A112', 'A121', 'A122', 'B111',
-            'A1111', 'A1112', 'A1121', 'A1122', 'A1211', 'A1212', 'A1221', 'A1222', 'B1111', 'B1112',
-            'B112', 'B121', 'B122',
-            'B1121', 'B1122', 'B1211', 'B1212', 'B1221', 'B1222'
+            'http://aaa.com/1', 'http://bbb.com/1',
+            'http://aaa.com/11', 'http://aaa.com/12', 'http://bbb.com/11', 'http://bbb.com/12',
+            'http://aaa.com/111', 'http://aaa.com/112', 'http://aaa.com/121', 'http://aaa.com/122', 'http://bbb.com/111',
+            'http://aaa.com/1111', 'http://aaa.com/1112', 'http://aaa.com/1121', 'http://aaa.com/1122', 'http://aaa.com/1211', 'http://aaa.com/1212', 'http://aaa.com/1221', 'http://aaa.com/1222', 'http://bbb.com/1111', 'http://bbb.com/1112',
+            'http://bbb.com/112', 'http://bbb.com/121', 'http://bbb.com/122',
+            'http://bbb.com/1121', 'http://bbb.com/1122', 'http://bbb.com/1211', 'http://bbb.com/1212', 'http://bbb.com/1221', 'http://bbb.com/1222'
         ],
         "SEQUENCE_02_D": [
-            'A1', 'B1',
-            'A11', 'A12', 'B11', 'B12',
-            'A111', 'A112', 'A121', 'A122',
-            'B111', 'B112', 'B121', 'B122',
-            'A1111', 'A1112', 'A1121', 'A1122', 'A1211', 'A1212', 'A1221', 'A1222',
-            'B1111', 'B1112', 'B1121', 'B1122', 'B1211', 'B1212', 'B1221', 'B1222'
+            'http://aaa.com/1', 'http://bbb.com/1',
+            'http://aaa.com/11', 'http://aaa.com/12', 'http://bbb.com/11', 'http://bbb.com/12',
+            'http://aaa.com/111', 'http://aaa.com/112', 'http://aaa.com/121', 'http://aaa.com/122',
+            'http://bbb.com/111', 'http://bbb.com/112', 'http://bbb.com/121', 'http://bbb.com/122',
+            'http://aaa.com/1111', 'http://aaa.com/1112', 'http://aaa.com/1121', 'http://aaa.com/1122', 'http://aaa.com/1211', 'http://aaa.com/1212', 'http://aaa.com/1221', 'http://aaa.com/1222',
+            'http://bbb.com/1111', 'http://bbb.com/1112', 'http://bbb.com/1121', 'http://bbb.com/1122', 'http://bbb.com/1211', 'http://bbb.com/1212', 'http://bbb.com/1221', 'http://bbb.com/1222'
         ],
         "SEQUENCE_03_A": [
-            'C1',
-            'C11',
-            'C111', 'C1111', 'C11111', 'C11112', 'C1112', 'C11121', 'C11122',
-            'C112', 'C1121', 'C11211', 'C11212', 'C1122', 'C11221', 'C11222',
-            'C12',
-            'C121', 'C1211', 'C12111', 'C12112', 'C1212', 'C12121', 'C12122',
-            'C122', 'C1221', 'C12211', 'C12212', 'C1222', 'C12221', 'C12222'
+            'http://ccc.com/1',
+            'http://ccc.com/11',
+            'http://ccc.com/111', 'http://ccc.com/1111', 'http://ccc.com/11111', 'http://ccc.com/11112', 'http://ccc.com/1112', 'http://ccc.com/11121', 'http://ccc.com/11122',
+            'http://ccc.com/112', 'http://ccc.com/1121', 'http://ccc.com/11211', 'http://ccc.com/11212', 'http://ccc.com/1122', 'http://ccc.com/11221', 'http://ccc.com/11222',
+            'http://ccc.com/12',
+            'http://ccc.com/121', 'http://ccc.com/1211', 'http://ccc.com/12111', 'http://ccc.com/12112', 'http://ccc.com/1212', 'http://ccc.com/12121', 'http://ccc.com/12122',
+            'http://ccc.com/122', 'http://ccc.com/1221', 'http://ccc.com/12211', 'http://ccc.com/12212', 'http://ccc.com/1222', 'http://ccc.com/12221', 'http://ccc.com/12222'
         ],
         "SEQUENCE_03_B": [
-            'C1',
-            'C11', 'C12',
-            'C111', 'C112',
-            'C1111', 'C1112',
-            'C11111', 'C11112', 'C11121', 'C11122',
-            'C1121', 'C1122',
-            'C11211', 'C11212', 'C11221', 'C11222',
-            'C121', 'C122',
-            'C1211', 'C1212',
-            'C12111', 'C12112', 'C12121', 'C12122',
-            'C1221', 'C1222',
-            'C12211', 'C12212', 'C12221', 'C12222'
+            'http://ccc.com/1',
+            'http://ccc.com/11', 'http://ccc.com/12',
+            'http://ccc.com/111', 'http://ccc.com/112',
+            'http://ccc.com/1111', 'http://ccc.com/1112',
+            'http://ccc.com/11111', 'http://ccc.com/11112', 'http://ccc.com/11121', 'http://ccc.com/11122',
+            'http://ccc.com/1121', 'http://ccc.com/1122',
+            'http://ccc.com/11211', 'http://ccc.com/11212', 'http://ccc.com/11221', 'http://ccc.com/11222',
+            'http://ccc.com/121', 'http://ccc.com/122',
+            'http://ccc.com/1211', 'http://ccc.com/1212',
+            'http://ccc.com/12111', 'http://ccc.com/12112', 'http://ccc.com/12121', 'http://ccc.com/12122',
+            'http://ccc.com/1221', 'http://ccc.com/1222',
+            'http://ccc.com/12211', 'http://ccc.com/12212', 'http://ccc.com/12221', 'http://ccc.com/12222'
         ],
         "SEQUENCE_03_C": [
-            'C1',
-            'C11', 'C12',
-            'C111', 'C112', 'C121', 'C122',
-            'C1111', 'C1112', 'C1121', 'C1122', 'C1211',
-            'C11111', 'C11112', 'C11121', 'C11122', 'C11211', 'C11212', 'C11221', 'C11222', 'C12111', 'C12112',
-            'C1212', 'C1221', 'C1222',
-            'C12121', 'C12122', 'C12211', 'C12212', 'C12221', 'C12222'
+            'http://ccc.com/1',
+            'http://ccc.com/11', 'http://ccc.com/12',
+            'http://ccc.com/111', 'http://ccc.com/112', 'http://ccc.com/121', 'http://ccc.com/122',
+            'http://ccc.com/1111', 'http://ccc.com/1112', 'http://ccc.com/1121', 'http://ccc.com/1122', 'http://ccc.com/1211',
+            'http://ccc.com/11111', 'http://ccc.com/11112', 'http://ccc.com/11121', 'http://ccc.com/11122', 'http://ccc.com/11211', 'http://ccc.com/11212', 'http://ccc.com/11221', 'http://ccc.com/11222', 'http://ccc.com/12111', 'http://ccc.com/12112',
+            'http://ccc.com/1212', 'http://ccc.com/1221', 'http://ccc.com/1222',
+            'http://ccc.com/12121', 'http://ccc.com/12122', 'http://ccc.com/12211', 'http://ccc.com/12212', 'http://ccc.com/12221', 'http://ccc.com/12222'
         ],
         "SEQUENCE_03_D": [
-            'C1',
-            'C11', 'C12',
-            'C111', 'C112', 'C121', 'C122',
-            'C1111', 'C1112', 'C1121', 'C1122', 'C1211', 'C1212', 'C1221', 'C1222',
-            'C11111', 'C11112', 'C11121', 'C11122', 'C11211', 'C11212', 'C11221', 'C11222',
-            'C12111', 'C12112', 'C12121', 'C12122', 'C12211', 'C12212', 'C12221', 'C12222'
+            'http://ccc.com/1',
+            'http://ccc.com/11', 'http://ccc.com/12',
+            'http://ccc.com/111', 'http://ccc.com/112', 'http://ccc.com/121', 'http://ccc.com/122',
+            'http://ccc.com/1111', 'http://ccc.com/1112', 'http://ccc.com/1121', 'http://ccc.com/1122', 'http://ccc.com/1211', 'http://ccc.com/1212', 'http://ccc.com/1221', 'http://ccc.com/1222',
+            'http://ccc.com/11111', 'http://ccc.com/11112', 'http://ccc.com/11121', 'http://ccc.com/11122', 'http://ccc.com/11211', 'http://ccc.com/11212', 'http://ccc.com/11221', 'http://ccc.com/11222',
+            'http://ccc.com/12111', 'http://ccc.com/12112', 'http://ccc.com/12121', 'http://ccc.com/12122', 'http://ccc.com/12211', 'http://ccc.com/12212', 'http://ccc.com/12221', 'http://ccc.com/12222'
         ],
     }
 
@@ -447,31 +504,40 @@ class DFSBackendTest(BackendSequenceTest):
             max_next_requests=max_next_requests,
         )
 
+    def get_settings(self):
+        settings = super(BackendSequenceTest, self).get_settings()
+        settings.TEST_MODE = True
+        settings.LOGGING_MANAGER_ENABLED = False
+        settings.LOGGING_BACKEND_ENABLED = False
+        settings.LOGGING_DEBUGGING_ENABLED = False
+        settings.STRATEGY = 'tests.backends.DFSCrawlingStrategy'
+        return settings
+
 
 class BFSBackendTest(BackendSequenceTest):
 
     EXPECTED_SEQUENCES = {
         "SEQUENCE_01_A": [
-            'A1',
-            'A11', 'A12',
-            'A111', 'A112', 'A121', 'A122',
-            'A1111', 'A1112', 'A1121', 'A1122',
-            'A1211', 'A1212', 'A1221', 'A1222'
+            'http://aaa.com/1',
+            'http://aaa.com/11', 'http://aaa.com/12',
+            'http://aaa.com/111', 'http://aaa.com/112', 'http://aaa.com/121', 'http://aaa.com/122',
+            'http://aaa.com/1111', 'http://aaa.com/1112', 'http://aaa.com/1121', 'http://aaa.com/1122',
+            'http://aaa.com/1211', 'http://aaa.com/1212', 'http://aaa.com/1221', 'http://aaa.com/1222'
         ],
         "SEQUENCE_02_A": [
-            'A1', 'B1',
-            'A11', 'A12', 'B11', 'B12',
-            'A111', 'A112', 'A121', 'A122', 'B111', 'B112', 'B121', 'B122',
-            'A1111', 'A1112', 'A1121', 'A1122', 'A1211', 'A1212', 'A1221', 'A1222',
-            'B1111', 'B1112', 'B1121', 'B1122', 'B1211', 'B1212', 'B1221', 'B1222'
+            'http://aaa.com/1', 'http://bbb.com/1',
+            'http://aaa.com/11', 'http://aaa.com/12', 'http://bbb.com/11', 'http://bbb.com/12',
+            'http://aaa.com/111', 'http://aaa.com/112', 'http://aaa.com/121', 'http://aaa.com/122', 'http://bbb.com/111', 'http://bbb.com/112', 'http://bbb.com/121', 'http://bbb.com/122',
+            'http://aaa.com/1111', 'http://aaa.com/1112', 'http://aaa.com/1121', 'http://aaa.com/1122', 'http://aaa.com/1211', 'http://aaa.com/1212', 'http://aaa.com/1221', 'http://aaa.com/1222',
+            'http://bbb.com/1111', 'http://bbb.com/1112', 'http://bbb.com/1121', 'http://bbb.com/1122', 'http://bbb.com/1211', 'http://bbb.com/1212', 'http://bbb.com/1221', 'http://bbb.com/1222'
         ],
         "SEQUENCE_03_A": [
-            'C1',
-            'C11', 'C12',
-            'C111', 'C112', 'C121', 'C122',
-            'C1111', 'C1112', 'C1121', 'C1122', 'C1211', 'C1212', 'C1221', 'C1222',
-            'C11111', 'C11112', 'C11121', 'C11122', 'C11211', 'C11212', 'C11221', 'C11222',
-            'C12111', 'C12112', 'C12121', 'C12122', 'C12211', 'C12212', 'C12221', 'C12222'
+            'http://ccc.com/1',
+            'http://ccc.com/11', 'http://ccc.com/12',
+            'http://ccc.com/111', 'http://ccc.com/112', 'http://ccc.com/121', 'http://ccc.com/122',
+            'http://ccc.com/1111', 'http://ccc.com/1112', 'http://ccc.com/1121', 'http://ccc.com/1122', 'http://ccc.com/1211', 'http://ccc.com/1212', 'http://ccc.com/1221', 'http://ccc.com/1222',
+            'http://ccc.com/11111', 'http://ccc.com/11112', 'http://ccc.com/11121', 'http://ccc.com/11122', 'http://ccc.com/11211', 'http://ccc.com/11212', 'http://ccc.com/11221', 'http://ccc.com/11222',
+            'http://ccc.com/12111', 'http://ccc.com/12112', 'http://ccc.com/12121', 'http://ccc.com/12122', 'http://ccc.com/12211', 'http://ccc.com/12212', 'http://ccc.com/12221', 'http://ccc.com/12222'
         ],
     }
 

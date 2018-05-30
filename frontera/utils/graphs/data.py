@@ -65,17 +65,17 @@ class CrawlSiteListData(object):
 SITE_A = CrawlSiteData(
     name='A',
     description='',
-    pages=create_test_site('A', 4, 2))
+    pages=create_test_site('http://aaa.com/', 4, 2))
 
 SITE_B = CrawlSiteData(
     name='B',
     description='',
-    pages=create_test_site('B', 4, 2))
+    pages=create_test_site('http://bbb.com/', 4, 2))
 
 SITE_C = CrawlSiteData(
     name='C',
     description='',
-    pages=create_test_site('C', 5, 2, self_link=True))
+    pages=create_test_site('http://ccc.com/', 5, 2, self_link=True))
 
 
 #-----------------------------------------------------

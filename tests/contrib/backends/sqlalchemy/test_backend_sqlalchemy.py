@@ -28,9 +28,6 @@ class SQLAlchemyBFS(backends.BFSBackendTest):
     backend_class = 'frontera.contrib.backends.sqlalchemy.BFS'
 
 
-class SQLAlchemyRevisiting(RevisitingBackendTest):
-    backend_class = 'frontera.contrib.backends.sqlalchemy.revisiting.Backend'
-
 
 #----------------------------------------------------
 # SQLite Memory
@@ -56,10 +53,6 @@ class TestSQLiteMemoryDFS(SQLAlchemyDFS, SQLiteMemory):
 
 
 class TestSQLiteMemoryBFS(SQLAlchemyBFS, SQLiteMemory):
-    pass
-
-
-class TestSQLiteMemoryRevisiting(SQLAlchemyRevisiting):
     pass
 
 
@@ -102,6 +95,7 @@ class TestSQLiteFileDFS(SQLAlchemyDFS, SQLiteFile):
 
 class TestSQLiteFileBFS(SQLAlchemyBFS, SQLiteFile):
     pass
+
 
 
 #----------------------------------------------------
@@ -173,6 +167,7 @@ class TestMysqlBFS(Mysql, SQLAlchemyBFS):
     pass
 
 
+
 #----------------------------------------------------
 # Postgres
 #----------------------------------------------------
@@ -208,3 +203,4 @@ class TestPostgresDFS(Postgres, SQLAlchemyDFS):
 
 class TestPostgresBFS(Postgres, SQLAlchemyBFS):
     pass
+

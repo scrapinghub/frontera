@@ -1,9 +1,11 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 from collections import OrderedDict, deque
 from six.moves.urllib.parse import urlparse
 import six
 from six.moves import range
+from io import BytesIO
+from os import linesep
 
 
 class FrontierTester(object):
@@ -31,15 +33,24 @@ class FrontierTester(object):
         self.frontier.stop()
 
     def _add_seeds(self):
-        self.frontier.add_seeds([self._make_request(seed.url) for seed in self.graph_manager.seeds])
+        stream = BytesIO()
+        for seed in self.graph_manager.seeds:
+            stream.write(seed.url.encode('utf8'))
+            stream.write(linesep.encode('utf8'))
+        stream.seek(0)
+        self.frontier.add_seeds(stream)
 
     def _add_all(self):
+        stream = BytesIO()
         for page in self.graph_manager.pages:
-            if page.is_seed:
-                self.frontier.add_seeds([self._make_request(page.url)])
+            stream.write(page.url.encode('utf8'))
             if not page.has_errors:
                 for link in page.links:
-                    self.frontier.add_seeds([self._make_request(link.url)])
+                    stream.write(link.url.encode('utf8'))
+                    stream.write(linesep.encode('utf8'))
+        stream.seek(0)
+
+        self.frontier.add_seeds(stream)
 
     def _make_request(self, url):
         r = self.frontier.request_model(url=url,

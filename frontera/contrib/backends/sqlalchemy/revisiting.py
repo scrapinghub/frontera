@@ -104,6 +104,10 @@ class RevisitingQueue(BaseQueue):
 
 
 class Backend(SQLAlchemyBackend):
+    """
+    DEPRECATED, and will be removed in the next versions. Revisiting is meant to be implemented as part of
+    crawling strategy.
+    """
 
     def _create_queue(self, settings):
         self.interval = settings.get("SQLALCHEMYBACKEND_REVISIT_INTERVAL")
