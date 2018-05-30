@@ -80,9 +80,10 @@ class ComponentsPipelineMixin(BackendMixin):
 
         # Load canonical solver
         self._logger_components.debug("Loading canonical url solver '%s'", canonicalsolver)
-        self._canonicalsolver = self._load_object(canonicalsolver)
-        assert isinstance(self.canonicalsolver, CanonicalSolver), \
-            "canonical solver '%s' must subclass CanonicalSolver" % self.canonicalsolver.__class__.__name__
+        if canonicalsolver:
+            self._canonicalsolver = self._load_object(canonicalsolver)
+            assert isinstance(self.canonicalsolver, CanonicalSolver), \
+                "canonical solver '%s' must subclass CanonicalSolver" % self.canonicalsolver.__class__.__name__
         BackendMixin.__init__(self, backend, db_worker, strategy_worker)
 
     @property
@@ -613,8 +614,8 @@ class WorkerFrontierManager(BaseContext, StrategyComponentsPipelineMixin):
     The :class:`WorkerFrontierManager <frontera.core.manager.WorkerFrontierManager>` class role is to
     instantiate the core components and is used mainly by workers.
     """
-    def __init__(self, settings, request_model, response_model, backend, strategy_class, strategy_args,
-                 max_next_requests, scoring_stream, middlewares=None, canonicalsolver=None, db_worker=False,
+    def __init__(self, settings, request_model, response_model, backend, max_next_requests, strategy_class=None,
+                 strategy_args=None, scoring_stream=None, middlewares=None, canonicalsolver=None, db_worker=False,
                  strategy_worker=False):
         """
         :param object/string request_model: The :class:`Request <frontera.core.models.Request>` object to be \
@@ -648,17 +649,18 @@ class WorkerFrontierManager(BaseContext, StrategyComponentsPipelineMixin):
         BaseContext.__init__(self, request_model, response_model, settings=settings)
 
         self._max_next_requests = max_next_requests
-
-        StrategyComponentsPipelineMixin.__init__(self, backend, strategy_class, strategy_args, scoring_stream,
-                                                 middlewares=middlewares, canonicalsolver=canonicalsolver,
-                                                 db_worker=db_worker,strategy_worker=strategy_worker)
-
-        # Init frontier components pipeline
-        # Some code relies on the order, modify carefully
-        self._components_pipeline = [
-            ('Middleware', self.middlewares, True),
-            ('CanonicalSolver', self.canonicalsolver, False),
-        ]
+        if strategy_worker:
+            StrategyComponentsPipelineMixin.__init__(self, backend, strategy_class, strategy_args, scoring_stream,
+                                                     middlewares=middlewares, canonicalsolver=canonicalsolver,
+                                                     db_worker=db_worker,strategy_worker=strategy_worker)
+            # Init frontier components pipeline
+            # Some code relies on the order, modify carefully
+            self._components_pipeline = [
+                ('Middleware', self.middlewares, True),
+                ('CanonicalSolver', self.canonicalsolver, False),
+            ]
+        if db_worker:
+            ComponentsPipelineMixin.__init__(self, backend, db_worker=db_worker,strategy_worker=strategy_worker)
 
         # Log frontier manager start
         self._logger.info('Frontier Manager Started!')
@@ -667,18 +669,24 @@ class WorkerFrontierManager(BaseContext, StrategyComponentsPipelineMixin):
     @classmethod
     def from_settings(cls, settings=None, db_worker=False, strategy_worker=False, scoring_stream=None):
         manager_settings = Settings.object_from(settings)
-        return WorkerFrontierManager(request_model=manager_settings.REQUEST_MODEL,
-                                     response_model=manager_settings.RESPONSE_MODEL,
-                                     backend=manager_settings.BACKEND,
-                                     strategy_class=manager_settings.STRATEGY,
-                                     strategy_args=manager_settings.STRATEGY_ARGS,
-                                     middlewares=manager_settings.MIDDLEWARES,
-                                     max_next_requests=manager_settings.MAX_NEXT_REQUESTS,
-                                     settings=manager_settings,
-                                     canonicalsolver=manager_settings.CANONICAL_SOLVER,
-                                     db_worker=db_worker,
-                                     strategy_worker=strategy_worker,
-                                     scoring_stream=scoring_stream)
+        kwargs = {
+            'request_model': manager_settings.REQUEST_MODEL,
+            'response_model': manager_settings.RESPONSE_MODEL,
+            'backend' : manager_settings.BACKEND,
+            'max_next_requests': manager_settings.MAX_NEXT_REQUESTS,
+            'settings': manager_settings,
+            'db_worker': db_worker,
+            'strategy_worker': strategy_worker
+        }
+        if strategy_worker:
+            kwargs.update({
+                'strategy_class': manager_settings.STRATEGY,
+                'strategy_args': manager_settings.STRATEGY_ARGS,
+                'middlewares': manager_settings.MIDDLEWARES,
+                'canonicalsolver': manager_settings.CANONICAL_SOLVER,
+                'scoring_stream': scoring_stream
+            })
+        return WorkerFrontierManager(**kwargs)
 
     def create_request(self, url, method=b'GET', headers=None, cookies=None, meta=None, body=b''):
         """
