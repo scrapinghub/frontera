@@ -10,6 +10,10 @@ from frontera.utils.tester import BaseDownloaderSimulator
 
 
 class BasicCrawlingStrategy(BaseCrawlingStrategy):
+    def __init__(self, manager, args, scheduled_stream, states_context):
+        super(BasicCrawlingStrategy, self).__init__(manager, args, scheduled_stream, states_context)
+        self._id = 0
+
     def read_seeds(self, stream):
         for url in stream:
             url = url.strip()
@@ -17,13 +21,16 @@ class BasicCrawlingStrategy(BaseCrawlingStrategy):
             self.schedule(r)
 
     def _create_request(self, url):
-        return self.create_request(url=url,
+        r = self.create_request(url=url,
                                 headers={
                                     b'X-Important-Header': b'Frontera'
                                 },
                                 method=b'POST',
                                 cookies={b'currency': b'USD'},
-                                meta={b'this_param': b'should be passed over'})
+                                meta={b'this_param': b'should be passed over',
+                                      b'id': self._id})
+        self._id += 1
+        return r
 
     def filter_extracted_links(self, request, links):
         return links
@@ -505,7 +512,7 @@ class DFSBackendTest(BackendSequenceTest):
         )
 
     def get_settings(self):
-        settings = super(BackendSequenceTest, self).get_settings()
+        settings = super(DFSBackendTest, self).get_settings()
         settings.TEST_MODE = True
         settings.LOGGING_MANAGER_ENABLED = False
         settings.LOGGING_BACKEND_ENABLED = False
@@ -569,6 +576,14 @@ class BFSBackendTest(BackendSequenceTest):
             expected_sequence=self.EXPECTED_SEQUENCES[expected_sequence],
             max_next_requests=max_next_requests,
         )
+    def get_settings(self):
+        settings = super(BFSBackendTest, self).get_settings()
+        settings.TEST_MODE = True
+        settings.LOGGING_MANAGER_ENABLED = False
+        settings.LOGGING_BACKEND_ENABLED = False
+        settings.LOGGING_DEBUGGING_ENABLED = False
+        settings.STRATEGY = 'tests.backends.BFSCrawlingStrategy'
+        return settings
 
 
 class RANDOMBackendTest(BackendSequenceTest):

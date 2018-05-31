@@ -22,6 +22,15 @@ class DFSOverusedBackendTest(BackendSequenceTest):
         ]
     }
 
+    def get_settings(self):
+        settings = super(DFSOverusedBackendTest, self).get_settings()
+        settings.TEST_MODE = True
+        settings.LOGGING_MANAGER_ENABLED = False
+        settings.LOGGING_BACKEND_ENABLED = False
+        settings.LOGGING_DEBUGGING_ENABLED = False
+        settings.STRATEGY = 'tests.backends.DFSCrawlingStrategy'
+        return settings
+
     def test_sequence1(self):
         sequence = self.get_sequence(TEST_SITES['SITE_09'], max_next_requests=5,
                                      downloader_simulator=DownloaderSimulator(rate=1))
