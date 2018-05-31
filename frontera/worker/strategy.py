@@ -70,7 +70,7 @@ class BatchedWorkflow(object):
                     self.stats['consumed_request_error'] += 1
                     continue
                 self.on_unknown_event(event)
-            except:
+            except Exception:
                 logger.exception("Exception during processing")
                 pass
         self.scoring_stream.flush()
@@ -104,7 +104,7 @@ class BatchedWorkflow(object):
             if typ == 'offset':
                 return
             self.collect_unknown_event(event)
-        except:
+        except Exception:
             logger.exception("Error during event collection")
             pass
 
@@ -224,7 +224,7 @@ class BaseStrategyWorker(object):
             strategy.read_seeds(fh)
             try:
                 fh.close()
-            except:
+            except Exception:
                 logger.exception("Error during closing of seeds stream")
                 pass
         self.update_score.flush()
@@ -313,7 +313,7 @@ class BaseStrategyWorker(object):
             self.scoring_log_producer.close()
             if not self.add_seeds_mode:
                 self.consumer.close()
-        except:
+        except Exception:
             logger.exception('Error on shutdown')
 
     def set_process_info(self, process_info):
