@@ -16,6 +16,7 @@ class Request(FrontierObject):
     :class:`Response <frontera.core.models.Response>` object when crawled.
 
     """
+
     def __init__(self, url, method=b'GET', headers=None, cookies=None, meta=None, body=''):
         """
         :param string url: URL to send.
@@ -85,7 +86,6 @@ class Request(FrontierObject):
 
     def __hash__(self):
         return hash(self.meta[b'fingerprint'])
-
 
     __repr__ = __str__
 

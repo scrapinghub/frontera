@@ -310,7 +310,6 @@ class MemoryDistributedBackend(DistributedBackend):
         return cls(manager)
 
 
-
 BASE = MemoryBaseBackend
 FIFO = MemoryFIFOBackend
 LIFO = MemoryLIFOBackend

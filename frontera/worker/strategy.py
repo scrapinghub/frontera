@@ -181,7 +181,7 @@ class BaseStrategyWorker(object):
         for m in self.consumer.get_messages(count=self.consumer_batch_size, timeout=1.0):
             try:
                 event = self._decoder.decode(m)
-            except (KeyError, TypeError) as e:
+            except (KeyError, TypeError):
                 logger.exception("Decoding error")
                 logger.debug("Message %s", hexlify(m))
                 continue
@@ -242,7 +242,7 @@ class BaseStrategyWorker(object):
 
         def run_flush_states_task():
             (self._flush_states_task.start(interval=self._flush_interval)
-                                    .addErrback(errback_flush_states))
+             .addErrback(errback_flush_states))
 
         def errback_flush_states(failure):
             log_failure(failure)
@@ -326,6 +326,7 @@ class StrategyWorker(StatsExportMixin, BaseStrategyWorker):
     The additional features are provided by using mixin classes:
      - sending crawl stats to message bus
      """
+
     def get_stats_tags(self, settings, *args, **kwargs):
         return {'source': 'sw', 'partition_id': settings.get('SCORING_PARTITION_ID')}
 

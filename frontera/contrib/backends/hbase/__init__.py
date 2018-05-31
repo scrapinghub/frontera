@@ -24,7 +24,6 @@ from random import choice
 from collections import defaultdict, Iterable
 import logging
 
-
 _pack_functions = {
     'url': to_bytes,
     'depth': lambda x: pack('>I', 0),
@@ -83,7 +82,6 @@ class LRUCacheWithStats(LRUCache):
 
 
 class HBaseQueue(Queue):
-
     GET_RETRIES = 3
 
     def __init__(self, connection, partitions, table_name, drop=False, use_snappy=False):
@@ -106,6 +104,7 @@ class HBaseQueue(Queue):
 
         class DumbResponse:
             pass
+
         self.decoder = Decoder(Request, DumbResponse)
         self.encoder = Encoder(Request)
 
@@ -145,6 +144,7 @@ class HBaseQueue(Queue):
         :param batch: iterable of Request objects
         :return:
         """
+
         def get_interval(score, resolution):
             if score < 0.0 or score > 1.0:
                 raise OverflowError
@@ -209,7 +209,7 @@ class HBaseQueue(Queue):
         min_requests = kwargs.pop('min_requests')
         min_hosts = kwargs.pop('min_hosts', None)
         max_requests_per_host = kwargs.pop('max_requests_per_host', None)
-        assert(max_n_requests > min_requests)
+        assert (max_n_requests > min_requests)
         table = self.connection.table(self.table_name)
 
         meta_map = {}
@@ -218,7 +218,7 @@ class HBaseQueue(Queue):
         tries = 0
         count = 0
         prefix = to_bytes('%d_' % partition_id)
-        now_ts = int(time())
+        # now_ts = int(time())
         # TODO: figure out how to use filter here, Thrift filter above causes full scan
         # filter = "PrefixFilter ('%s') AND SingleColumnValueFilter ('f', 't', <=, 'binary:%d')" % (prefix, now_ts)
         while tries < self.GET_RETRIES:
@@ -299,7 +299,6 @@ class HBaseQueue(Queue):
 
 
 class HBaseState(States):
-
     def __init__(self, connection, table_name, cache_size_limit,
                  write_log_size, drop_all_tables):
         self.connection = connection
@@ -344,7 +343,7 @@ class HBaseState(States):
 
     def fetch(self, fingerprints):
         to_fetch = [f for f in fingerprints if f not in self._state_cache]
-        self._update_cache_stats(hits=len(fingerprints)-len(to_fetch),
+        self._update_cache_stats(hits=len(fingerprints) - len(to_fetch),
                                  misses=len(to_fetch))
         if not to_fetch:
             return
@@ -425,7 +424,8 @@ class HBaseMetadata(Metadata):
                                            created_at=utcnow_timestamp(),
                                            dest_fprint=redirect_fprints[-1])
                 self.batch.put(fprint, obj)
-        obj = prepare_hbase_object(status_code=response.status_code, headers=headers, content=response.body) if self.store_content else \
+        obj = prepare_hbase_object(status_code=response.status_code, headers=headers,
+                                   content=response.body) if self.store_content else \
             prepare_hbase_object(status_code=response.status_code, headers=headers)
         self.batch.put(unhexlify(response.meta[b'fingerprint']), obj)
 
@@ -498,15 +498,15 @@ class HBaseBackend(DistributedBackend):
 
     def _init_states(self, settings):
         self._states = HBaseState(connection=self.connection,
-                               table_name=settings.get('HBASE_STATES_TABLE'),
-                               cache_size_limit=settings.get('HBASE_STATE_CACHE_SIZE_LIMIT'),
-                               write_log_size=settings.get('HBASE_STATE_WRITE_LOG_SIZE'),
-                               drop_all_tables=settings.get('HBASE_DROP_ALL_TABLES'))
+                                  table_name=settings.get('HBASE_STATES_TABLE'),
+                                  cache_size_limit=settings.get('HBASE_STATE_CACHE_SIZE_LIMIT'),
+                                  write_log_size=settings.get('HBASE_STATE_WRITE_LOG_SIZE'),
+                                  drop_all_tables=settings.get('HBASE_DROP_ALL_TABLES'))
 
     def _init_queue(self, settings):
         self._queue = HBaseQueue(self.connection, self.queue_partitions,
-                                settings.get('HBASE_QUEUE_TABLE'), drop=settings.get('HBASE_DROP_ALL_TABLES'),
-                                use_snappy=settings.get('HBASE_USE_SNAPPY'))
+                                 settings.get('HBASE_QUEUE_TABLE'), drop=settings.get('HBASE_DROP_ALL_TABLES'),
+                                 use_snappy=settings.get('HBASE_USE_SNAPPY'))
 
     def _init_metadata(self, settings):
         self._metadata = HBaseMetadata(self.connection, settings.get('HBASE_METADATA_TABLE'),
@@ -578,10 +578,10 @@ class HBaseBackend(DistributedBackend):
         results = []
         for partition_id in set(kwargs.pop('partitions', [i for i in range(self.queue_partitions)])):
             requests = self.queue.get_next_requests(
-                    max_next_requests, partition_id,
-                    min_requests=self._min_requests,
-                    min_hosts=self._min_hosts,
-                    max_requests_per_host=self._max_requests_per_host)
+                max_next_requests, partition_id,
+                min_requests=self._min_requests,
+                min_hosts=self._min_hosts,
+                max_requests_per_host=self._max_requests_per_host)
             results.extend(requests)
             self.logger.debug("Got %d requests for partition id %d", len(requests), partition_id)
         return results

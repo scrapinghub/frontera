@@ -172,7 +172,7 @@ class BaseContext(object):
         self._logger = logging.getLogger("manager")
 
         # Log frontier manager starting
-        self._logger.info('-'*80)
+        self._logger.info('-' * 80)
         self._logger.info('Starting Frontier Manager...')
 
         # Load request model
@@ -294,9 +294,9 @@ class BaseManager(object):
     def request_error(self, request, error):
         self._logger.debug('PAGE_REQUEST_ERROR url=%s error=%s', request.url, error)
         return self._process_components(method_name='request_error',
-                                                  obj=request,
-                                                  return_classes=self.request_model,
-                                                  error=error)
+                                        obj=request,
+                                        return_classes=self.request_model,
+                                        error=error)
 
 
 class LocalFrontierManager(BaseContext, StrategyComponentsPipelineMixin, BaseManager):
@@ -305,6 +305,7 @@ class LocalFrontierManager(BaseContext, StrategyComponentsPipelineMixin, BaseMan
     providing an API to interact with. It's also responsible of loading and communicating all different frontier
     components.
     """
+
     def __init__(self, request_model, response_model, backend, strategy_class, strategy_args, middlewares=None,
                  test_mode=False, max_requests=0, max_next_requests=0, auto_start=True, settings=None,
                  canonicalsolver=None):
@@ -370,7 +371,7 @@ class LocalFrontierManager(BaseContext, StrategyComponentsPipelineMixin, BaseMan
 
         # Log frontier manager start
         self._logger.info('Frontier Manager Started!')
-        self._logger.info('-'*80)
+        self._logger.info('-' * 80)
 
         # start/stop
         self._started = False
@@ -519,7 +520,7 @@ class LocalFrontierManager(BaseContext, StrategyComponentsPipelineMixin, BaseMan
             if not max_next_requests:
                 max_next_requests = self.max_requests - self.n_requests
             else:
-                if self.n_requests+max_next_requests > self.max_requests:
+                if self.n_requests + max_next_requests > self.max_requests:
                     max_next_requests = self.max_requests - self.n_requests
 
         # get next requests
@@ -601,7 +602,7 @@ class LocalFrontierManager(BaseContext, StrategyComponentsPipelineMixin, BaseMan
         self._process_components('create_request',
                                  obj=r,
                                  return_classes=self.request_model,
-                                 components=(0,1))
+                                 components=(0, 1))
         return r
 
     def _check_startstop(self):
@@ -614,6 +615,7 @@ class WorkerFrontierManager(BaseContext, StrategyComponentsPipelineMixin):
     The :class:`WorkerFrontierManager <frontera.core.manager.WorkerFrontierManager>` class role is to
     instantiate the core components and is used mainly by workers.
     """
+
     def __init__(self, settings, request_model, response_model, backend, max_next_requests, strategy_class=None,
                  strategy_args=None, scoring_stream=None, middlewares=None, canonicalsolver=None, db_worker=False,
                  strategy_worker=False):
@@ -652,7 +654,7 @@ class WorkerFrontierManager(BaseContext, StrategyComponentsPipelineMixin):
         if strategy_worker:
             StrategyComponentsPipelineMixin.__init__(self, backend, strategy_class, strategy_args, scoring_stream,
                                                      middlewares=middlewares, canonicalsolver=canonicalsolver,
-                                                     db_worker=db_worker,strategy_worker=strategy_worker)
+                                                     db_worker=db_worker, strategy_worker=strategy_worker)
             # Init frontier components pipeline
             # Some code relies on the order, modify carefully
             self._components_pipeline = [
@@ -660,11 +662,11 @@ class WorkerFrontierManager(BaseContext, StrategyComponentsPipelineMixin):
                 ('CanonicalSolver', self.canonicalsolver, False),
             ]
         if db_worker:
-            ComponentsPipelineMixin.__init__(self, backend, db_worker=db_worker,strategy_worker=strategy_worker)
+            ComponentsPipelineMixin.__init__(self, backend, db_worker=db_worker, strategy_worker=strategy_worker)
 
         # Log frontier manager start
         self._logger.info('Frontier Manager Started!')
-        self._logger.info('-'*80)
+        self._logger.info('-' * 80)
 
     @classmethod
     def from_settings(cls, settings=None, db_worker=False, strategy_worker=False, scoring_stream=None):
@@ -672,7 +674,7 @@ class WorkerFrontierManager(BaseContext, StrategyComponentsPipelineMixin):
         kwargs = {
             'request_model': manager_settings.REQUEST_MODEL,
             'response_model': manager_settings.RESPONSE_MODEL,
-            'backend' : manager_settings.BACKEND,
+            'backend': manager_settings.BACKEND,
             'max_next_requests': manager_settings.MAX_NEXT_REQUESTS,
             'settings': manager_settings,
             'db_worker': db_worker,
@@ -738,7 +740,6 @@ class SpiderFrontierManager(BaseContext, ComponentsPipelineMixin, BaseManager):
 
 @six.add_metaclass(ABCMeta)
 class UpdateScoreStream(object):
-
     @abstractmethod
     def send(self, request, score=1.0, dont_queue=False):
         pass
@@ -770,7 +771,6 @@ class LocalUpdateScoreStream(UpdateScoreStream):
 
 
 class StatesContext(object):
-
     def __init__(self, states):
         self._requests = []
         self.states = states

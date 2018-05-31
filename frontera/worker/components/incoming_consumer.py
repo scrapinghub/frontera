@@ -59,7 +59,7 @@ class IncomingConsumer(DBWorkerPeriodicComponent):
         """Base logic to safely handle a message."""
         try:
             self._handle_message_by_type(msg[0], msg, stats)
-        except Exception as exc:
+        except Exception:
             self.logger.exception("Error while handling a message")
             self.logger.debug("Message caused the error %s", str(msg))
 

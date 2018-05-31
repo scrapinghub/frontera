@@ -85,7 +85,7 @@ class BatchGenerator(DBWorkerThreadComponent):
                 self.spider_feed_producer.send(self.get_key_function(request), eo)
             except Exception:
                 self.logger.exception("Sending message error fingerprint: %s, url: %s" %
-                                  (self.get_fingerprint(request), request.url))
+                                      (self.get_fingerprint(request), request.url))
             finally:
                 count += 1
                 hostname = self.get_hostname(request)
@@ -120,7 +120,6 @@ class BatchGenerator(DBWorkerThreadComponent):
 
             self.domain_stats[partition_id] = defaultdict(int)
         self.rotate_time = time() + self.domain_stats_interval
-
 
     # --------------------------- Auxiliary tools --------------------------------
 
