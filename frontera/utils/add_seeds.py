@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from frontera.core.manager import FrontierManager
+from frontera.core.manager import LocalFrontierManager
 from frontera.settings import Settings
 from frontera.logger.handlers import CONSOLE
 from argparse import ArgumentParser
@@ -30,7 +30,7 @@ fh = open(args.seeds_file, "rb")
 
 logger.info("Starting local seeds addition from file %s", args.seeds_file)
 
-manager = FrontierManager.from_settings(settings)
+manager = LocalFrontierManager.from_settings(settings)
 manager.add_seeds(fh)
 manager.stop()
 manager.close()
