@@ -68,9 +68,9 @@ class FakeQueue(Queue):
         return len(self.requests)
 
     def schedule(self, batch):
-        for obj in batch:
-            if obj[3]:
-                self.requests.append(Request(obj[2].url, meta={b'fingerprint': obj[0], b'score': obj[1]}))
+        for fingerprint, score, request, is_schedule in batch:
+            if is_schedule:
+                self.requests.append(request)
 
 
 class FakeBackend(FakeMiddleware, Backend):
