@@ -14,7 +14,7 @@ class BasicCrawlingStrategy(BaseCrawlingStrategy):
         for url in stream:
             url = url.strip()
             r = self._create_request(url)
-            self.schedule(r, 1.0)
+            self.schedule(r)
 
     def _create_request(self, url):
         return self.create_request(url=url,
