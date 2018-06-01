@@ -184,6 +184,7 @@ class BaseContext(object):
         self._response_model = load_object(response_model)
         assert issubclass(self._response_model, models.Response), "Response model '%s' must subclass 'Response'" % \
                                                                   self._response_model.__name__
+        self.test_mode = False
 
     @classmethod
     def from_settings(cls, settings=None):
@@ -710,12 +711,16 @@ class WorkerFrontierManager(BaseContext, StrategyComponentsPipelineMixin):
 
 
 class SpiderFrontierManager(BaseContext, ComponentsPipelineMixin, BaseManager):
+
+    auto_start = False
+
     def __init__(self, request_model, response_model, backend, middlewares, max_next_requests, settings,
                  canonicalsolver):
         BaseContext.__init__(self, request_model, response_model, settings=settings)
         ComponentsPipelineMixin.__init__(self, backend, middlewares=middlewares, canonicalsolver=canonicalsolver,
                                          db_worker=False, strategy_worker=False)
 
+        self.max_next_requests = max_next_requests
         self._components_pipeline = [
             ('Middleware', self.middlewares, True),
             ('CanonicalSolver', self.canonicalsolver, False),
@@ -733,9 +738,23 @@ class SpiderFrontierManager(BaseContext, ComponentsPipelineMixin, BaseManager):
                                      settings=manager_settings,
                                      canonicalsolver=manager_settings.CANONICAL_SOLVER)
 
+    def get_next_requests(self, max_next_requests=0, **kwargs):
+        return super(SpiderFrontierManager, self).get_next_requests(max_next_requests=max_next_requests or self.max_next_requests, **kwargs)
+
     def links_extracted(self, request, links):
         super(SpiderFrontierManager, self).links_extracted(request, links)
         super(SpiderFrontierManager, self).links_extracted_after(request, links)
+
+    @property
+    def finished(self):
+        return False
+
+    def start(self):
+        self._logger.debug('START')
+        self._process_components(method_name='frontier_start')
+
+    def stop(self):
+        super(SpiderFrontierManager, self).close()
 
 
 @six.add_metaclass(ABCMeta)

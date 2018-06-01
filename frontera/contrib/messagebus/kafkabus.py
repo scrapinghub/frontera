@@ -224,7 +224,7 @@ class ScoringLogStream(BaseScoringLogStream):
                               buffer_memory=DEFAULT_BUFFER_MEMORY)
 
 
-class StatsLogStream(BaseStatsLogStream, ScoringLogStream):
+class StatsLogStream(ScoringLogStream, BaseStatsLogStream):
     """Stats log stream implementation for Kafka message bus.
 
     The interface is the same as for scoring log stream, so it's better

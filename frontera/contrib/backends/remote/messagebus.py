@@ -42,6 +42,7 @@ class MessageBusBackend(Backend):
 
     def frontier_stop(self):
         self.spider_log_producer.flush()
+        self.consumer.close()
 
     def add_seeds(self, seeds):
         raise NotImplemented("The seeds addition using spider log isn't allowed")

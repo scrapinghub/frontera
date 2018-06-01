@@ -130,7 +130,7 @@ class FronteraScheduler(Scheduler):
     def close(self, reason):
         self.logger.info("Finishing frontier (%s)", reason)
         self.frontier.stop()
-        self.stats_manager.set_iterations(self.frontier.manager.iteration)
+        self.stats_manager.set_iterations(getattr(self.frontier.manager, 'iteration', 0))
         self.stats_manager.set_pending_requests(len(self))
 
     def __len__(self):

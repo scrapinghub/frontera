@@ -362,6 +362,9 @@ def setup_environment():
                          partition_id)
     settings.set('SCORING_PARTITION_ID', partition_id)
 
+    if args.port:
+        settings.set('JSONRPC_PORT', args.port)
+
     strategy_args = {}
     if args.args:
         for arg in args.args:

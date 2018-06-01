@@ -128,39 +128,6 @@ Default: ``frontera.contrib.canonicalsolvers.Basic``
 The :class:`CanonicalSolver <frontera.core.components.CanonicalSolver>` to be used by the frontier for resolving
 canonical URLs. For more info see :ref:`Canonical URL Solver <canonical-url-solver>`.
 
-.. setting:: SPIDER_LOG_CONSUMER_BATCH_SIZE
-
-SPIDER_LOG_CONSUMER_BATCH_SIZE
-------------------------------
-
-Default: ``512``
-
-This is a batch size used by strategy and db workers for consuming of spider log stream. Increasing it
-will cause worker to spend more time on every task, but processing more items per task, therefore leaving less time for
-other tasks during some fixed time interval. Reducing it will result to running several tasks within the same time
-interval, but with less overall efficiency. Use it when your consumers too slow, or too fast.
-
-.. setting:: SCORING_LOG_CONSUMER_BATCH_SIZE
-
-SCORING_LOG_CONSUMER_BATCH_SIZE
--------------------------------
-
-Default: ``512``
-
-This is a batch size used by db worker for consuming of scoring log stream. Use it when you need to adjust scoring log
-consumption speed.
-
-
-.. setting:: CRAWLING_STRATEGY
-
-CRAWLING_STRATEGY
------------------
-
-Default: ``None``
-
-The path to crawling strategy class, instantiated and used in :term:`strategy worker` to prioritize and stop crawling in
-distributed run mode.
-
 .. setting:: DELAY_ON_EMPTY
 
 DELAY_ON_EMPTY
@@ -193,6 +160,17 @@ Default: ``5.0``
 
 Time process should block until requested amount of data will be received from message bus. This is a general
 message bus setting with obsolete Kafka-related name.
+
+
+.. setting:: LOCAL_MODE
+
+LOCAL_MODE
+----------
+
+Default: ``True``
+
+Sets single process run mode. Crawling strategy together with backend are used from the same spider process.
+
 
 .. setting:: LOGGING_CONFIG
 
@@ -342,6 +320,29 @@ Default: ``'frontera.core.models.Response'``
 The :class:`Response <frontera.core.models.Response>` model to be used by the frontier.
 
 
+.. setting:: SPIDER_LOG_CONSUMER_BATCH_SIZE
+
+SPIDER_LOG_CONSUMER_BATCH_SIZE
+------------------------------
+
+Default: ``512``
+
+This is a batch size used by strategy and db workers for consuming of spider log stream. Increasing it
+will cause worker to spend more time on every task, but processing more items per task, therefore leaving less time for
+other tasks during some fixed time interval. Reducing it will result to running several tasks within the same time
+interval, but with less overall efficiency. Use it when your consumers too slow, or too fast.
+
+.. setting:: SCORING_LOG_CONSUMER_BATCH_SIZE
+
+SCORING_LOG_CONSUMER_BATCH_SIZE
+-------------------------------
+
+Default: ``512``
+
+This is a batch size used by db worker for consuming of scoring log stream. Use it when you need to adjust scoring log
+consumption speed.
+
+
 .. setting:: SCORING_PARTITION_ID
 
 SCORING_PARTITION_ID
@@ -399,6 +400,25 @@ STORE_CONTENT
 Default: ``False``
 
 Determines if content should be sent over the message bus and stored in the backend: a serious performance killer.
+
+.. setting:: STRATEGY
+
+STRATEGY
+--------
+
+Default: ``frontera.worker.strategies.basic.BasicCrawlingStrategy``
+
+The path to crawling strategy class.
+
+.. setting:: STRATEGY_ARGS
+
+STRATEGY_ARGS
+-------------
+
+Default: ``{}``
+
+Dict with default arguments for crawling strategy. Can be overridien with command line option in
+:term:`strategy worker`.
 
 .. setting:: SW_FLUSH_INTERVAL
 
