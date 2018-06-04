@@ -184,7 +184,6 @@ class BaseContext(object):
         self._response_model = load_object(response_model)
         assert issubclass(self._response_model, models.Response), "Response model '%s' must subclass 'Response'" % \
                                                                   self._response_model.__name__
-        self.test_mode = False
 
     @classmethod
     def from_settings(cls, settings=None):
@@ -691,6 +690,10 @@ class WorkerFrontierManager(BaseContext, StrategyComponentsPipelineMixin):
             })
         return WorkerFrontierManager(**kwargs)
 
+    @property
+    def test_mode(self):
+        return False
+
     def create_request(self, url, method=b'GET', headers=None, cookies=None, meta=None, body=b''):
         """
         Creates request and applies middleware and canonical solver pipelines.
@@ -711,8 +714,6 @@ class WorkerFrontierManager(BaseContext, StrategyComponentsPipelineMixin):
 
 
 class SpiderFrontierManager(BaseContext, ComponentsPipelineMixin, BaseManager):
-
-    auto_start = False
 
     def __init__(self, request_model, response_model, backend, middlewares, max_next_requests, settings,
                  canonicalsolver):
@@ -737,6 +738,14 @@ class SpiderFrontierManager(BaseContext, ComponentsPipelineMixin, BaseManager):
                                      max_next_requests=manager_settings.MAX_NEXT_REQUESTS,
                                      settings=manager_settings,
                                      canonicalsolver=manager_settings.CANONICAL_SOLVER)
+
+    @property
+    def test_mode(self):
+        return False
+
+    @property
+    def auto_start(self):
+        return True
 
     def get_next_requests(self, max_next_requests=0, **kwargs):
         return super(SpiderFrontierManager, self).get_next_requests(max_next_requests=max_next_requests or self.max_next_requests, **kwargs)
