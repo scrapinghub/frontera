@@ -55,7 +55,7 @@ Using Frontera
    topics/frontier-canonicalsolvers
    topics/frontier-backends
    topics/message_bus
-   topics/own_crawling_strategy
+   topics/custom_crawling_strategy
    topics/scrapy-integration
    topics/frontera-settings
 
@@ -77,8 +77,8 @@ Using Frontera
 :doc:`topics/message_bus`
     Built-in message bus reference.
 
-:doc:`topics/own_crawling_strategy`
-    Implementing own crawling strategy for distributed backend.
+:doc:`topics/custom_crawling_strategy`
+    Implementing your own crawling strategy.
 
 :doc:`topics/scrapy-integration`
     Learn how to use Frontera with Scrapy.

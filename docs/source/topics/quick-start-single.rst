@@ -6,7 +6,6 @@ The idea is that you develop and debug crawling strategy in single process mode 
 deploying crawling strategy for crawling in production at scale. Single process is also good as a first step to get
 something running quickly.
 
-
 1. Create your Scrapy spider
 ============================
 
@@ -46,39 +45,45 @@ See :doc:`installation`.
 
 This article about :doc:`integration with Scrapy <scrapy-integration>` explains this step in detail.
 
-
-4. Choose your backend
-======================
-
-Configure frontier settings to use a built-in backend like in-memory BFS::
-
-    BACKEND = 'frontera.contrib.backends.memory.BFS'
-
-
-5. Choose the crawling strategy
-===============================
+4. Choose your crawling strategy
+================================
 
 Here are the options you would need to redefine when running in single process mode the crawler configured for
-distributed mode:
+distributed mode::
 
-# all your distributed options, probably imported from other modules
+    # these two parameters are pointing Frontera that it will run locally
 
-SPIDER_FEED_PARTITIONS = 1
-SPIDER_LOG_PARTITIONS = 1
+    SPIDER_FEED_PARTITIONS = 1
+    SPIDER_LOG_PARTITIONS = 1
 
-STRATEGY = "workers.strategy.Contacts"
-
-This config will be used by Scrapy, instead of distributed crawler config.
+    STRATEGY = "frontera.strategy.basic.BasicCrawlingStrategy"
 
 
-5. Run the spider
+5. Choose your backend
+======================
+
+Configure frontier settings to use a built-in backend like::
+
+    BACKEND = 'frontera.contrib.backends.sqlalchemy.Distributed'
+
+
+6. Inject the seed URLs
+=======================
+
+This step is required only if your crawling strategy requires seeds injection from external source.::
+
+    $ python -m frontera.worker.utils.add_seeds --config [your_frontera_config] --seeds-file [path to your seeds file]
+
+After script is finished succesfully your seeds should be stored in backend's queue and scheduled for crawling.
+
+7. Run the spider
 =================
 
 Run your Scrapy spider as usual from the command line::
 
     scrapy crawl myspider
 
-And that's it! You got your spider running integrated with Frontera.
+And that's it! You got your crawler running integrated with Frontera.
 
 What else?
 ==========
