@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from frontera.core.components import States
-from frontera.worker.strategies import BaseCrawlingStrategy
+from frontera.strategy import BaseCrawlingStrategy
 from frontera.contrib.backends.hbase import HBaseBackend
 from cachetools import LRUCache
 from msgpack import packb, unpackb

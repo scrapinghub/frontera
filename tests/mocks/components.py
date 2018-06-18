@@ -4,7 +4,7 @@ from frontera.core.components import Backend, Middleware, CanonicalSolver, \
 from frontera.contrib.backends.memory import MemoryStates
 from six.moves import range
 from frontera.core.models import Request
-from frontera.worker.strategies import BaseCrawlingStrategy
+from frontera.strategy import BaseCrawlingStrategy
 from frontera.core.components import States
 
 

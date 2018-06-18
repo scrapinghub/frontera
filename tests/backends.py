@@ -3,7 +3,7 @@ import pytest
 
 from frontera.core.components import States
 from frontera.core.manager import LocalFrontierManager
-from frontera.worker.strategies import BaseCrawlingStrategy
+from frontera.strategy import BaseCrawlingStrategy
 from frontera import Settings, FrontierTester
 from frontera.utils import graphs
 from frontera.utils.tester import BaseDownloaderSimulator

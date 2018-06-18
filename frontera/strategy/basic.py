@@ -1,5 +1,5 @@
-from frontera.worker.strategies import BaseCrawlingStrategy
 from frontera.core.components import States
+from frontera.strategy import BaseCrawlingStrategy
 
 
 class BasicCrawlingStrategy(BaseCrawlingStrategy):

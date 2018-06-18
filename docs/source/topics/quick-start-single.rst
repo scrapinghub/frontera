@@ -2,8 +2,13 @@
 Quick start single process
 ==========================
 
-1. Create your spider
-=====================
+The idea is that you develop and debug crawling strategy in single process mode locally and use distributed one when
+deploying crawling strategy for crawling in production at scale. Single process is also good as a first step to get
+something running quickly.
+
+
+1. Create your Scrapy spider
+============================
 
 Create your Scrapy project as you usually do. Enter a directory where you’d like to store your code and then run::
 
@@ -49,6 +54,23 @@ Configure frontier settings to use a built-in backend like in-memory BFS::
 
     BACKEND = 'frontera.contrib.backends.memory.BFS'
 
+
+5. Choose the crawling strategy
+===============================
+
+Here are the options you would need to redefine when running in single process mode the crawler configured for
+distributed mode:
+
+# all your distributed options, probably imported from other modules
+
+SPIDER_FEED_PARTITIONS = 1
+SPIDER_LOG_PARTITIONS = 1
+
+STRATEGY = "workers.strategy.Contacts"
+
+This config will be used by Scrapy, instead of distributed crawler config.
+
+
 5. Run the spider
 =================
 
@@ -80,8 +102,4 @@ Frontera provides many powerful features for making frontier management easy and
 * :doc:`Record your Scrapy crawls <scrapy-recorder>` and use it later for frontier testing.
 
 * Logging facility that you can hook on to for catching errors and debug your frontiers.
-
-
-
-
 

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from frontera.worker.strategies import BaseCrawlingStrategy
+from frontera.strategy import BaseCrawlingStrategy
 from frontera.settings import Settings
 from frontera.core.manager import WorkerFrontierManager, StatesContext
 
