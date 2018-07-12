@@ -68,7 +68,7 @@ SQLALCHEMYBACKEND_REVISIT_INTERVAL = timedelta(days=1)
 STATE_CACHE_SIZE = 1000000
 STATE_CACHE_SIZE_LIMIT = 0
 STORE_CONTENT = False
-STRATEGY = 'frontera.worker.strategies.basic.BasicCrawlingStrategy'
+STRATEGY = 'frontera.strategy.basic.BasicCrawlingStrategy'
 STRATEGY_ARGS = {}
 SW_FLUSH_INTERVAL = 300
 TEST_MODE = False
