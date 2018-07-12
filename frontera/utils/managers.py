@@ -6,7 +6,7 @@ from .converters import BaseRequestConverter, BaseResponseConverter
 class FrontierManagerWrapper(object):
     def __init__(self, settings, manager=None):
         if manager is None:
-            manager = LocalFrontierManager if settings.get("LOCAL_MODE") == True else SpiderFrontierManager
+            manager = LocalFrontierManager if settings.get("LOCAL_MODE") is True else SpiderFrontierManager
         self.manager = manager.from_settings(settings)
         self.request_converter = None
         self.response_converter = None
