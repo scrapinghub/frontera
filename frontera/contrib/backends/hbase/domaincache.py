@@ -8,6 +8,7 @@ import six
 from msgpack import packb, unpackb
 from w3lib.util import to_bytes, to_native_str
 
+from frontera.core.components import DomainMetadata
 from frontera.contrib.backends.hbase.utils import HardenedBatch
 from frontera.utils.msgpack import restruct_for_pack
 
@@ -61,7 +62,7 @@ class LRUCache(Cache):
                 self.__order[key] = None
 
 
-class DomainCache(LRUCache):
+class DomainCache(LRUCache, DomainMetadata):
     """
     This is an implementation of Domain metadata cache backed by HBase table. It's main purpose is to store the domain
     metadata in Python-friendly structures while providing fast and reliable access.
