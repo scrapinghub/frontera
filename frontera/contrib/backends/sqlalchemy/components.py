@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-import logging
-from datetime import datetime
+
 from time import time, sleep
 
+import logging
+import six
 from cachetools import LRUCache
-from frontera.contrib.backends.partitioners import Crc32NamePartitioner
+from datetime import datetime
 from frontera.contrib.backends.memory import MemoryStates
-from frontera.contrib.backends.sqlalchemy.models import DeclarativeBase
-from frontera.core.components import Metadata as BaseMetadata, Queue as BaseQueue
+from frontera.contrib.backends.partitioners import Crc32NamePartitioner
+from frontera.contrib.backends.sqlalchemy.models import DeclarativeBase, DomainMetadataModel as DomainMetadataKV
+from frontera.core.components import Metadata as BaseMetadata, Queue as BaseQueue, DomainMetadata as BaseDomainMetadata
 from frontera.core.models import Request, Response
 from frontera.utils.misc import get_crc32, chunks
 from frontera.utils.url import parse_domain_from_url_fast
-import six
 from six.moves import range
 from w3lib.util import to_native_str, to_bytes
 
@@ -38,7 +39,7 @@ def retry_and_rollback(func):
 
 class Metadata(BaseMetadata):
     def __init__(self, session_cls, model_cls, cache_size):
-        self.session = session_cls(expire_on_commit=False)   # FIXME: Should be explicitly mentioned in docs
+        self.session = session_cls(expire_on_commit=False)
         self.model = model_cls
         self.table = DeclarativeBase.metadata.tables['metadata']
         self.cache = LRUCache(cache_size)
@@ -275,3 +276,39 @@ class BroadCrawlingQueue(Queue):
                 self.session.delete(item)
         self.session.commit()
         return results
+
+
+class DomainMetadata(BaseDomainMetadata):
+    def __init__(self, session_cls):
+        self.session = session_cls(expire_on_commit=False)
+        self.table = DeclarativeBase.metadata.tables['domain_metadata']
+        self.logger = logging.getLogger("sqlalchemy.domain_metadata")
+
+    def frontier_stop(self):
+        self.session.close()
+
+    @retry_and_rollback
+    def __setitem__(self, key, value):
+        pair = DomainMetadataKV(key=key, value=value)
+        self.session.merge(pair)
+        self.session.commit()
+
+    @retry_and_rollback
+    def __getitem__(self, key):
+        result = self.session.query(DomainMetadataKV).filter(DomainMetadataKV.key == key).first()
+        if result is None:
+            raise KeyError
+        return result.value
+
+    @retry_and_rollback
+    def __contains__(self, key):
+        result = self.session.query(DomainMetadataKV.key).filter(DomainMetadataKV.key == key).first()
+        if result is not None:
+            return True
+        return False
+
+    @retry_and_rollback
+    def __delitem__(self, key):
+        self.session.query(DomainMetadataKV).filter(DomainMetadataKV.key == key).delete(synchronize_session=False)
+        self.session.commit()
+

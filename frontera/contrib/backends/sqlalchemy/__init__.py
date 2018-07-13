@@ -6,7 +6,7 @@ from sqlalchemy.engine.reflection import Inspector
 
 from frontera.core.components import DistributedBackend
 from frontera.contrib.backends import CommonBackend
-from frontera.contrib.backends.sqlalchemy.components import Metadata, Queue, States
+from frontera.contrib.backends.sqlalchemy.components import Metadata, Queue, States, DomainMetadata
 from frontera.contrib.backends.sqlalchemy.models import DeclarativeBase
 from frontera.utils.misc import load_object
 
@@ -120,6 +120,7 @@ class Distributed(DistributedBackend):
         self._metadata = None
         self._queue = None
         self._states = None
+        self._domain_metadata = None
 
     @classmethod
     def strategy_worker(cls, manager):
@@ -141,6 +142,7 @@ class Distributed(DistributedBackend):
             session.close()
         b._states = States(b.session_cls, model,
                            settings.get('STATE_CACHE_SIZE_LIMIT'))
+        b._domain_metadata = DomainMetadata(b.session_cls)
         return b
 
     @classmethod
@@ -185,13 +187,17 @@ class Distributed(DistributedBackend):
     def states(self):
         return self._states
 
+    @property
+    def domain_metadata(self):
+        return self._domain_metadata
+
     def frontier_start(self):
-        for component in [self.metadata, self.queue, self.states]:
+        for component in [self.metadata, self.queue, self.states, self.domain_metadata]:
             if component:
                 component.frontier_start()
 
     def frontier_stop(self):
-        for component in [self.metadata, self.queue, self.states]:
+        for component in [self.metadata, self.queue, self.states, self.domain_metadata]:
             if component:
                 component.frontier_stop()
 
