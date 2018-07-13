@@ -1,6 +1,7 @@
 from __future__ import absolute_import
-from abc import ABCMeta, abstractmethod, abstractproperty
+
 import six
+from abc import ABCMeta, abstractmethod
 
 
 class StartStopMixin(object):
@@ -90,8 +91,8 @@ class Queue(StartStopMixin):
 
 @six.add_metaclass(ABCMeta)
 class States(StartStopMixin):
-    """Interface definition for a document states management class. This class is responsible for providing actual
-    documents state, and persist the state changes in batch-oriented manner."""
+    """Interface definition for a link states management class. This class is responsible for providing actual
+    link state, and persist the state changes in batch-oriented manner."""
 
     NOT_CRAWLED = 0
     QUEUED = 1
@@ -129,6 +130,53 @@ class States(StartStopMixin):
         Get states from the persistent storage to internal cache.
 
         :param fingerprints: list document fingerprints, which state to read
+        """
+        raise NotImplementedError
+
+
+@six.add_metaclass(ABCMeta)
+class DomainMetadata(StartStopMixin):
+    """
+    Interface definition for a domain metadata storage. It's main purpose is to store the per-domain metadata using
+    Python-friendly structures. Meant to be used by crawling strategy to store counters and flags in low level
+    facilities provided by Backend.
+    """
+
+    @abstractmethod
+    def __setitem__(self, key, value):
+        """
+        Puts key, value tuple in storage.
+
+        :param key: str
+        :param value: Any
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def __getitem__(self, key):
+        """
+        Retrieves the value associated with the storage. Raises KeyError if key is absent.
+
+        :param key: str
+        :return value: Any
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def __delitem__(self, key):
+        """
+        Removes the tuple associated with key from storage. Raises KeyError if key is absent.
+
+        :param key: str
+        """
+        raise NotImplementedError
+
+    def __contains__(self, key):
+        """
+        Checks if key is present in the storage.
+
+        :param key: str
+        :return: boolean
         """
         raise NotImplementedError
 
@@ -195,24 +243,35 @@ class CanonicalSolver(Middleware):
 
 
 class PropertiesMixin(object):
-    @abstractproperty
+    @property
+    @abstractmethod
     def queue(self):
         """
         :return: associated :class:`Queue <frontera.core.components.Queue>` object
         """
         raise NotImplementedError
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def metadata(self):
         """
         :return: associated :class:`Metadata <frontera.core.components.Metadata>` object
         """
         raise NotImplementedError
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def states(self):
         """
         :return: associated :class:`States <frontera.core.components.States>` object
+        """
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def domain_metadata(self):
+        """
+        :return: associated :class:`DomainMetadata <frontera.core.components.DomainMetadata>` object
         """
         raise NotImplementedError
 
