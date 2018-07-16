@@ -591,6 +591,37 @@ Default: ``False``
 
 Enables dropping and creation of new HBase tables on worker start.
 
+.. setting:: HBASE_DOMAIN_METADATA_TABLE
+
+HBASE_DOMAIN_METADATA_TABLE
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Default: ``domain_metadata``
+
+Name of the domain metadata table in HBase.
+
+
+.. setting:: HBASE_DOMAIN_METADATA_CACHE_SIZE
+
+HBASE_DOMAIN_METADATA_CACHE_SIZE
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Default: 1000
+
+The count of domain-value pairs cached in memory in :term:`strategy-worker`. Pairs are evicted from cache using LRU
+policy.
+
+
+.. setting:: HBASE_DOMAIN_METADATA_BATCH_SIZE
+
+HBASE_DOMAIN_METADATA_BATCH_SIZE
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Default: 100
+
+Maximum count of domain-value pairs kept in write buffer before actual write happens.
+
+
 .. setting:: HBASE_METADATA_TABLE
 
 HBASE_METADATA_TABLE

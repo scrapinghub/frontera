@@ -6,6 +6,7 @@ from frontera.core.models import Request
 from frontera.contrib.backends.partitioners import Crc32NamePartitioner
 from frontera.utils.misc import chunks, get_crc32, time_elapsed
 from frontera.contrib.backends.remote.codecs.msgpack import Decoder, Encoder
+from frontera.contrib.backends.hbase.domaincache import DomainCache
 
 from happybase import Connection
 from msgpack import Unpacker, Packer, packb
@@ -495,6 +496,7 @@ class HBaseBackend(DistributedBackend):
         self._metadata = None
         self._queue = None
         self._states = None
+        self._domain_metadata = None
 
     def _init_states(self, settings):
         self._states = HBaseState(connection=self.connection,
@@ -515,10 +517,16 @@ class HBaseBackend(DistributedBackend):
                                        settings.get('HBASE_BATCH_SIZE'),
                                        settings.get('STORE_CONTENT'))
 
+    def _init_domain_metadata(self, settings):
+        self._domain_metadata = DomainCache(settings.get('HBASE_DOMAIN_METADATA_CACHE_SIZE'), self.connection,
+                                            settings.get('HBASE_DOMAIN_METADATA_TABLE'),
+                                            batch_size=settings.get('HBASE_DOMAIN_METADATA_BATCH_SIZE'))
+
     @classmethod
     def strategy_worker(cls, manager):
         o = cls(manager)
         o._init_states(manager.settings)
+        o._init_domain_metadata(manager.settings)
         return o
 
     @classmethod
@@ -547,13 +555,17 @@ class HBaseBackend(DistributedBackend):
     def states(self):
         return self._states
 
+    @property
+    def domain_metadata(self):
+        return self._domain_metadata
+
     def frontier_start(self):
-        for component in [self.metadata, self.queue, self.states]:
+        for component in [self.metadata, self.queue, self.states, self.domain_metadata]:
             if component:
                 component.frontier_start()
 
     def frontier_stop(self):
-        for component in [self.metadata, self.queue, self.states]:
+        for component in [self.metadata, self.queue, self.states, self.domain_metadata]:
             if component:
                 component.frontier_stop()
         self.connection.close()
