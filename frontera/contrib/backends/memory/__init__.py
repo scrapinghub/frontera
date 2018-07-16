@@ -1,15 +1,13 @@
 from __future__ import absolute_import
-import logging
-import random
-from collections import deque, Iterable
 
-from frontera.contrib.backends import CommonBackend
-from frontera.core.components import Metadata, Queue, States, DistributedBackend
-from frontera.core import OverusedBuffer
-from frontera.utils.heap import Heap
-from frontera.contrib.backends.partitioners import Crc32NamePartitioner
-from frontera.utils.url import parse_domain_from_url_fast
+from collections import Iterable
+
+import logging
 import six
+from frontera.contrib.backends.partitioners import Crc32NamePartitioner
+from frontera.core.components import Metadata, Queue, States, DistributedBackend
+from frontera.utils.heap import Heap
+from frontera.utils.url import parse_domain_from_url_fast
 from six.moves import range
 
 
@@ -81,45 +79,6 @@ class MemoryQueue(Queue):
         return cmp(first.meta[b'_scr'], second.meta[b'_scr'])
 
 
-class MemoryDequeQueue(Queue):
-    def __init__(self, partitions, is_fifo=True):
-        """
-        Deque-based queue (see collections module). Efficient queue for LIFO and FIFO strategies.
-        :param partitions: int count of partitions
-        :param type: bool, True for FIFO, False for LIFO
-        """
-        self.partitions = [i for i in range(0, partitions)]
-        self.partitioner = Crc32NamePartitioner(self.partitions)
-        self.logger = logging.getLogger("memory.dequequeue")
-        self.queues = {}
-        self.is_fifo = is_fifo
-        for partition in self.partitions:
-            self.queues[partition] = deque()
-
-    def count(self):
-        return sum([len(h) for h in six.itervalues(self.queues)])
-
-    def get_next_requests(self, max_n_requests, partition_id, **kwargs):
-        batch = []
-        pop_op = self.queues[partition_id].popleft if self.is_fifo else self.queues[partition_id].pop
-        while max_n_requests > 0 and self.queues[partition_id]:
-            batch.append(pop_op())
-            max_n_requests -= 1
-        return batch
-
-    def schedule(self, batch):
-        for fprint, score, request, schedule in batch:
-            if schedule:
-                request.meta[b'_scr'] = score
-                _, hostname, _, _, _, _ = parse_domain_from_url_fast(request.url)
-                if not hostname:
-                    self.logger.error("Can't get hostname for URL %s, fingerprint %s", request.url, fprint)
-                    partition_id = self.partitions[0]
-                else:
-                    partition_id = self.partitioner.partition(hostname, self.partitions)
-                self.queues[partition_id].append(request)
-
-
 class MemoryStates(States):
 
     def __init__(self, cache_size_limit):
@@ -149,111 +108,6 @@ class MemoryStates(States):
         if len(self._cache) > self._cache_size_limit:
             self.logger.debug("Cache has %d items, clearing", len(self._cache))
             self._cache.clear()
-
-
-class MemoryBaseBackend(CommonBackend):
-    """
-    Base class for in-memory heapq Backend objects.
-    """
-    component_name = 'Memory Base Backend'
-
-    def __init__(self, manager):
-        self.manager = manager
-        settings = manager.settings
-        self._metadata = MemoryMetadata()
-        self._states = MemoryStates(settings.get("STATE_CACHE_SIZE"))
-        self._queue = self._create_queue(settings)
-        self._id = 0
-
-    @property
-    def metadata(self):
-        return self._metadata
-
-    @property
-    def states(self):
-        return self._states
-
-    @property
-    def queue(self):
-        return self._queue
-
-    @classmethod
-    def from_manager(cls, manager):
-        return cls(manager)
-
-    def _create_queue(self, settings):
-        return MemoryQueue(1)
-
-    def add_seeds(self, seeds):
-        for seed in seeds:
-            seed.meta[b'id'] = self._id
-            self._id += 1
-        super(MemoryBaseBackend, self).add_seeds(seeds)
-
-    def links_extracted(self, request, links):
-        for link in links:
-            link.meta[b'id'] = self._id
-            self._id += 1
-        super(MemoryBaseBackend, self).links_extracted(request, links)
-
-    def finished(self):
-        return self.queue.count() == 0
-
-
-class MemoryDFSQueue(MemoryQueue):
-    def _compare_pages(self, first, second):
-        return cmp((second.meta[b'depth'], first.meta[b'id']),
-                   (first.meta[b'depth'], second.meta[b'id']))
-
-
-class MemoryBFSQueue(MemoryQueue):
-    def _compare_pages(self, first, second):
-        return cmp((first.meta[b'depth'], first.meta[b'id']),
-                   (second.meta[b'depth'], second.meta[b'id']))
-
-
-class MemoryRandomQueue(MemoryQueue):
-    def _compare_pages(self, first, second):
-        return random.choice([-1, 0, 1])
-
-
-class MemoryFIFOBackend(MemoryBaseBackend):
-    def _create_queue(self, settings):
-        return MemoryDequeQueue(settings.get('SPIDER_FEED_PARTITIONS'))
-
-
-class MemoryLIFOBackend(MemoryBaseBackend):
-    def _create_queue(self, settings):
-        return MemoryDequeQueue(settings.get('SPIDER_FEED_PARTITIONS'), is_fifo=False)
-
-
-class MemoryDFSBackend(MemoryBaseBackend):
-    def _create_queue(self, settings):
-        return MemoryDFSQueue(settings.get('SPIDER_FEED_PARTITIONS'))
-
-
-class MemoryBFSBackend(MemoryBaseBackend):
-    def _create_queue(self, settings):
-        return MemoryBFSQueue(settings.get('SPIDER_FEED_PARTITIONS'))
-
-
-class MemoryRandomBackend(MemoryBaseBackend):
-    def _create_queue(self, settings):
-        return MemoryRandomQueue(settings.get('SPIDER_FEED_PARTITIONS'))
-
-
-class MemoryDFSOverusedBackend(MemoryDFSBackend):
-    def __init__(self, manager):
-        super(MemoryDFSOverusedBackend, self).__init__(manager)
-        settings = manager.settings
-        self.overused_buffer = OverusedBuffer(super(MemoryDFSOverusedBackend, self).get_next_requests,
-                                              settings.get("OVERUSED_MAX_PER_KEY"),
-                                              settings.get("OVERUSED_KEEP_PER_KEY"),
-                                              settings.get("OVERUSED_MAX_KEYS"),
-                                              settings.get("OVERUSED_KEEP_KEYS"))
-
-    def get_next_requests(self, max_next_requests, **kwargs):
-        return self.overused_buffer.get_next_requests(max_next_requests, **kwargs)
 
 
 class MemoryDistributedBackend(DistributedBackend):
@@ -309,10 +163,3 @@ class MemoryDistributedBackend(DistributedBackend):
     def db_worker(cls, manager):
         return cls(manager)
 
-
-BASE = MemoryBaseBackend
-FIFO = MemoryFIFOBackend
-LIFO = MemoryLIFOBackend
-DFS = MemoryDFSBackend
-BFS = MemoryBFSBackend
-RANDOM = MemoryRandomBackend
