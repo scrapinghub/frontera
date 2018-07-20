@@ -44,7 +44,7 @@ class Distributed(DistributedBackend):
         model = self.models['StateModel']
         self.check_and_create_tables(drop_all_tables, clear_content, (model,))
         self._states = States(self.session_cls, model,
-                           settings.get('STATE_CACHE_SIZE_LIMIT'))
+                              settings.get('STATE_CACHE_SIZE_LIMIT'))
         self._domain_metadata = DomainMetadata(self.session_cls)
 
     def _init_db_worker(self, manager):
@@ -55,7 +55,7 @@ class Distributed(DistributedBackend):
         queue_m = self.models['QueueModel']
         self.check_and_create_tables(drop, clear_content, (metadata_m, queue_m,))
         self._metadata = Metadata(self.session_cls, metadata_m,
-                               settings.get('SQLALCHEMYBACKEND_CACHE_SIZE'))
+                                  settings.get('SQLALCHEMYBACKEND_CACHE_SIZE'))
         self._queue = Queue(self.session_cls, queue_m, settings.get('SPIDER_FEED_PARTITIONS'))
 
     @classmethod
