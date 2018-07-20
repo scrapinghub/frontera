@@ -43,9 +43,9 @@ class Distributed(DistributedBackend):
         clear_content = settings.get('SQLALCHEMYBACKEND_CLEAR_CONTENT')
         model = self.models['StateModel']
         self.check_and_create_tables(drop_all_tables, clear_content, (model,))
-        self._states = States(b.session_cls, model,
+        self._states = States(self.session_cls, model,
                            settings.get('STATE_CACHE_SIZE_LIMIT'))
-        self._domain_metadata = DomainMetadata(b.session_cls)
+        self._domain_metadata = DomainMetadata(self.session_cls)
 
     def _init_db_worker(self, manager):
         settings = manager.settings
