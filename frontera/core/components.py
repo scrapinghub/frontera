@@ -314,6 +314,10 @@ class DistributedBackend(Backend):
     def db_worker(cls, manager):
         raise NotImplementedError
 
+    @classmethod
+    def local(cls, manager):
+        raise NotImplementedError
+
     def get_stats(self):
         """
         Returns a dictionary with distributed backend stats.

@@ -25,57 +25,56 @@ class Distributed(DistributedBackend):
         self._states = None
         self._domain_metadata = None
 
-    @classmethod
-    def strategy_worker(cls, manager):
-        b = cls(manager)
+    def check_and_create_tables(self, is_drop, is_clear, models):
+        inspector = Inspector.from_engine(self.engine)
+        for model in models:
+            if is_drop:
+                if model.__table__.name in inspector.get_table_names():
+                    model.__table__.drop(bind=self.engine)
+            model.__table__.create(bind=self.engine)
+            if is_clear:
+                session = self.session_cls()
+                session.execute(model.__table__.delete())
+                session.close()
+
+    def _init_strategy_worker(self, manager):
         settings = manager.settings
         drop_all_tables = settings.get('SQLALCHEMYBACKEND_DROP_ALL_TABLES')
         clear_content = settings.get('SQLALCHEMYBACKEND_CLEAR_CONTENT')
-        model = b.models['StateModel']
-        inspector = Inspector.from_engine(b.engine)
-
-        if drop_all_tables:
-            if model.__table__.name in inspector.get_table_names():
-                model.__table__.drop(bind=b.engine)
-        model.__table__.create(bind=b.engine)
-
-        if clear_content:
-            session = b.session_cls()
-            session.execute(model.__table__.delete())
-            session.close()
-        b._states = States(b.session_cls, model,
+        model = self.models['StateModel']
+        self.check_and_create_tables(drop_all_tables, clear_content, (model,))
+        self._states = States(b.session_cls, model,
                            settings.get('STATE_CACHE_SIZE_LIMIT'))
-        b._domain_metadata = DomainMetadata(b.session_cls)
+        self._domain_metadata = DomainMetadata(b.session_cls)
+
+    def _init_db_worker(self, manager):
+        settings = manager.settings
+        drop = settings.get('SQLALCHEMYBACKEND_DROP_ALL_TABLES')
+        clear_content = settings.get('SQLALCHEMYBACKEND_CLEAR_CONTENT')
+        metadata_m = self.models['MetadataModel']
+        queue_m = self.models['QueueModel']
+        self.check_and_create_tables(drop, clear_content, (metadata_m, queue_m,))
+        self._metadata = Metadata(self.session_cls, metadata_m,
+                               settings.get('SQLALCHEMYBACKEND_CACHE_SIZE'))
+        self._queue = Queue(self.session_cls, queue_m, settings.get('SPIDER_FEED_PARTITIONS'))
+
+    @classmethod
+    def strategy_worker(cls, manager):
+        b = cls(manager)
+        b._init_strategy_worker(manager)
         return b
 
     @classmethod
     def db_worker(cls, manager):
         b = cls(manager)
-        settings = manager.settings
-        drop = settings.get('SQLALCHEMYBACKEND_DROP_ALL_TABLES')
-        clear_content = settings.get('SQLALCHEMYBACKEND_CLEAR_CONTENT')
-        inspector = Inspector.from_engine(b.engine)
+        b._init_db_worker(manager)
+        return b
 
-        metadata_m = b.models['MetadataModel']
-        queue_m = b.models['QueueModel']
-        if drop:
-            existing = inspector.get_table_names()
-            if metadata_m.__table__.name in existing:
-                metadata_m.__table__.drop(bind=b.engine)
-            if queue_m.__table__.name in existing:
-                queue_m.__table__.drop(bind=b.engine)
-        metadata_m.__table__.create(bind=b.engine)
-        queue_m.__table__.create(bind=b.engine)
-
-        if clear_content:
-            session = b.session_cls()
-            session.execute(metadata_m.__table__.delete())
-            session.execute(queue_m.__table__.delete())
-            session.close()
-
-        b._metadata = Metadata(b.session_cls, metadata_m,
-                               settings.get('SQLALCHEMYBACKEND_CACHE_SIZE'))
-        b._queue = Queue(b.session_cls, queue_m, settings.get('SPIDER_FEED_PARTITIONS'))
+    @classmethod
+    def local(cls, manager):
+        b = cls(manager)
+        b._init_db_worker(manager)
+        b._init_strategy_worker(manager)
         return b
 
     @property

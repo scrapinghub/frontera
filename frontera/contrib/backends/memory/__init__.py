@@ -168,3 +168,7 @@ class MemoryDistributedBackend(DistributedBackend):
     def db_worker(cls, manager):
         return cls(manager)
 
+    @classmethod
+    def local(cls, manager):
+        return cls(manager)
+

@@ -378,21 +378,32 @@ class RedisBackend(DistributedBackend):
     @classmethod
     def strategy_worker(cls, manager):
         o = cls(manager)
-        settings = manager.settings
-        o._states = RedisState(o.pool, settings.get('REDIS_STATE_CACHE_SIZE_LIMIT'))
+        o._init(manager, "strategy_worker")
         return o
 
     @classmethod
     def db_worker(cls, manager):
         o = cls(manager)
-        settings = manager.settings
-        clear = settings.get('REDIS_DROP_ALL_TABLES')
-        o._queue = RedisQueue(manager, o.pool, o.queue_partitions, delete_all_keys=clear)
-        o._metadata = RedisMetadata(
-            o.pool,
-            clear
-        )
+        o._init(manager, "db_worker")
         return o
+
+    @classmethod
+    def local(cls, manager):
+        o = cls(manager)
+        o._init(manager)
+        return o
+
+    def _init(self, manager, typ="all"):
+        settings = manager.settings
+        if typ in ["strategy_worker", "all"]:
+            self._states = RedisState(self.pool, settings.get('REDIS_STATE_CACHE_SIZE_LIMIT'))
+        if typ in ["db_worker", "all"]:
+            clear = settings.get('REDIS_DROP_ALL_TABLES')
+            self._queue = RedisQueue(manager, self.pool, self.queue_partitions, delete_all_keys=clear)
+            self._metadata = RedisMetadata(
+                self.pool,
+                clear
+            )
 
     @property
     def metadata(self):
