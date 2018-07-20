@@ -16,8 +16,8 @@ Glossary
         A stream of messages from :term:`db worker` to spiders containing new batches of documents to crawl.
 
     strategy worker
-        Special type of worker, running the crawling strategy code: scoring the links, deciding if link needs to be
-        scheduled (consults :term:`state cache`) and when to stop crawling. That type of worker is sharded.
+        Special type of worker, running the :term:`crawling strategy` code: scoring the links, deciding if link needs
+        to be scheduled (consults :term:`state cache`) and when to stop crawling. That type of worker is sharded.
 
     db worker
         Is responsible for communicating with storage DB, and mainly saving metadata and content along with
@@ -34,3 +34,7 @@ Glossary
     spider
         A process retrieving and extracting content from the Web, using :term:`spider feed` as incoming queue and
         storing results to :term:`spider log`. In this documentation fetcher is used as synonym.
+
+    crawling strategy
+        A class containing crawling logic covering seeds addition, processing of downloaded content and scheduling of
+        new requests to crawl.

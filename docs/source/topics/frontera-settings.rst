@@ -551,7 +551,8 @@ Default::
         'QueueModel': 'frontera.contrib.backends.sqlalchemy.models.QueueModel'
     }
 
-This is mapping with SQLAlchemy models used by backends. It is mainly used for customization.
+This is mapping with SQLAlchemy models used by backends. It is mainly used for customization. This setting uses a
+dictionary where ``key`` represents the name of the model to define and ``value`` the model to use.
 
 
 Revisiting backend

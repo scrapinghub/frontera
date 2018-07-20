@@ -116,6 +116,7 @@ class MemoryDistributedBackend(DistributedBackend):
         self._states = MemoryStates(1000)
         self._queue = MemoryQueue(settings.get('SPIDER_FEED_PARTITIONS'))
         self.queue_partitions = settings.get('SPIDER_FEED_PARTITIONS')
+        self._domain_metadata = dict()
 
     def add_seeds(self, seeds):
         pass
@@ -143,6 +144,10 @@ class MemoryDistributedBackend(DistributedBackend):
     @property
     def states(self):
         return self._states
+
+    @property
+    def domain_metadata(self):
+        return self._domain_metadata
 
     def get_next_requests(self, max_n_requests, **kwargs):
         next_pages = []
