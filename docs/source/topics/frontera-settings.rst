@@ -609,7 +609,7 @@ HBASE_DOMAIN_METADATA_CACHE_SIZE
 
 Default: 1000
 
-The count of domain-value pairs cached in memory in :term:`strategy-worker`. Pairs are evicted from cache using LRU
+The count of domain-value pairs cached in memory in :term:`strategy worker`. Pairs are evicted from cache using LRU
 policy.
 
 
