@@ -1,6 +1,6 @@
-=================
-Crawling strategy
-=================
+================================
+Writing custom crawling strategy
+================================
 
 Crawling strategy is an essential part of Frontera-based crawler and it's guiding the crawler by instructing it which pages to crawl, when and with what priority.
 

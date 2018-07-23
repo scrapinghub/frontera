@@ -5,8 +5,9 @@ Frontera |version| documentation
 ================================
 
 `Frontera`_ is a web crawling tool box, allowing to build crawlers of any scale and purpose. It includes:
-* :ref:`crawl frontier <crawl-frontier>` framework managing *when* and *what* to crawl and checking for
-crawling goal* accomplishment,
+
+* :ref:`crawl frontier <crawl-frontier>` framework managing *when* and *what* to crawl and checking for crawling goal* accomplishment,
+
 * workers, Scrapy wrappers, and data bus components to scale and distribute the crawler.
 
 Frontera contain components to allow creation of fully-operational web crawler with `Scrapy`_. Even though it was
@@ -50,6 +51,7 @@ Using Frontera
    :hidden:
 
    topics/installation
+   topics/strategies
    topics/frontier-objects
    topics/frontier-middlewares
    topics/frontier-canonicalsolvers
@@ -62,6 +64,9 @@ Using Frontera
 :doc:`topics/installation`
     HOWTO and Dependencies options.
 
+:doc:`topics/strategies`
+    A list of built-in crawling strategies.
+
 :doc:`topics/frontier-objects`
     Understand the classes used to represent requests and responses.
 
@@ -72,7 +77,7 @@ Using Frontera
     Identify and make use of canonical url of document.
 
 :doc:`topics/frontier-backends`
-    Define your own crawling policy and custom storage.
+    Built-in backends, and tips on implementing your own.
 
 :doc:`topics/message_bus`
     Built-in message bus reference.
@@ -127,11 +132,8 @@ Developer documentation
    topics/tests
    topics/loggers
    topics/frontier-tester
-   topics/faq
    topics/contributing
    topics/glossary
-
-
 
 
 :doc:`topics/architecture`
@@ -155,12 +157,8 @@ Developer documentation
 :doc:`topics/frontier-tester`
     Test your frontier in an easy way.
 
-:doc:`topics/faq`
-    Frequently asked questions.
-
 :doc:`topics/contributing`
     HOWTO contribute.
-
 
 :doc:`topics/glossary`
     Glossary of terms.
