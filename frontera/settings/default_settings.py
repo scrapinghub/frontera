@@ -9,6 +9,7 @@ BC_MIN_HOSTS = 24
 BC_MAX_REQUESTS_PER_HOST = 128
 CANONICAL_SOLVER = 'frontera.contrib.canonicalsolvers.Basic'
 DELAY_ON_EMPTY = 5.0
+DISCOVERY_MAX_PAGES = 100
 DOMAIN_FINGERPRINT_FUNCTION = 'frontera.utils.fingerprint.sha1'
 DOMAIN_STATS_LOG_INTERVAL = 300
 
@@ -78,6 +79,7 @@ SW_FLUSH_INTERVAL = 300
 TEST_MODE = False
 TLDEXTRACT_DOMAIN_INFO = False
 URL_FINGERPRINT_FUNCTION = 'frontera.utils.fingerprint.sha1'
+USER_AGENT = 'FronteraDiscoveryBot'
 
 ZMQ_ADDRESS = '127.0.0.1'
 ZMQ_BASE_PORT = 5550

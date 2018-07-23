@@ -141,6 +141,16 @@ without hitting backend on every request. Increase it if calls to your backend i
 if you need a fast spider bootstrap from seeds.
 
 
+.. setting:: DISCOVERY_MAX_PAGES
+
+DISCOVERY_MAX_PAGES
+-------------------
+
+Default: ``100``
+
+The maximum number of pages to schedule by Discovery crawling strategy.
+
+
 .. setting:: DOMAIN_STATS_LOG_INTERVAL
 
 DOMAIN_STATS_LOG_INTERVAL
@@ -438,6 +448,15 @@ TEST_MODE
 Default: ``False``
 
 Whether to enable frontier test mode. See :ref:`Frontier test mode <frontier-test-mode>`
+
+.. setting:: USER_AGENT
+
+USER_AGENT
+----------
+
+Default: ``FronteraDiscoveryBot``
+
+User agent string in use by Discovery crawling strategy.
 
 
 

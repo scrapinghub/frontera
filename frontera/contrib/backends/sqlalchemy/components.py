@@ -24,6 +24,8 @@ def retry_and_rollback(func):
         while True:
             try:
                 return func(self, *args, **kwargs)
+            except KeyError as exc:
+                raise
             except Exception as exc:
                 self.logger.exception(exc)
                 self.session.rollback()

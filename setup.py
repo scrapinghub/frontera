@@ -79,6 +79,10 @@ setup(
         'redis': [
             'redis>=2.10.5',
             'hiredis>=0.2'
+        ],
+        'strategies': [
+            'beautifulsoup4',
+            'publicsuffix'
         ]
     },
     tests_require=[
