@@ -78,7 +78,7 @@ def consume_randomly(iterable):
 
 def is_valid_robotstxt(lines):
     for raw_line in lines:
-        line = raw_line.strip(u'\ufeff').lower() # '\xef\xbb\xbf' in case of bytes
+        line = raw_line.strip(u'\ufeff').lower()  # '\xef\xbb\xbf' in case of bytes
         if line and not line.startswith("#"):
             if line.startswith("user-agent:") or line.startswith("sitemap:"):
                 return True
@@ -135,7 +135,7 @@ class Discovery(BaseCrawlingStrategy):
 
         try:
             psl_file = codecs.open("public_suffix_list.dat", encoding='utf8')
-        except FileNotFoundError as fne:
+        except IOError:
             self.logger.exception("Please get the public suffix file from https://publicsuffix.org/")
             raise
         self._suffix_list = PublicSuffixList(psl_file)
@@ -173,12 +173,12 @@ class Discovery(BaseCrawlingStrategy):
                     processed += len(requests)
                     self.logger.info("Processed %d, scheduled %d urls.", processed, scheduled)
                     requests = []
-            except:
+            except Exception:
                 self.logger.exception("Error during seeds addition")
         if requests:
             try:
                 scheduled += self._schedule_batch(requests)
-            except:
+            except Exception:
                 self.logger.exception("Error during seeds addition")
             processed += len(requests)
         self.logger.info("Processed %d, and scheduled %d urls overall.", processed, scheduled)
@@ -293,7 +293,7 @@ class Discovery(BaseCrawlingStrategy):
         netloc = response.meta[b'netloc']
         domain.setdefault('queued_pages', 0)
         try:
-            body = response.body.decode('utf-8') # response.meta.get(b'encoding', 'utf-8')
+            body = response.body.decode('utf-8')  # TODO: use encoding from response.meta.get(b'encoding', 'utf-8')
         except UnicodeDecodeError:
             self.logger.warning("Error during robots.txt decoding at %s", response.url)
             update_domain_with_parser_data(domain, parser=None, url=response.url)
@@ -305,7 +305,7 @@ class Discovery(BaseCrawlingStrategy):
             if not is_valid_robotstxt(robots_lines):
                 raise SyntaxError("Robots.txt isn't valid")
             parser.parse(robots_lines)
-        except:
+        except Exception:
             self.logger.exception("Error during robots.txt parsing at %s", response.url)
             update_domain_with_parser_data(domain, parser=None, url=response.url)
             self._schedule_home_page(netloc, domain)
@@ -352,7 +352,7 @@ class Discovery(BaseCrawlingStrategy):
                         b'scrapy_meta': sitemap_scrapy_meta} if sub_sitemap else (
                             {b'home': True} if is_home_page_url(url) else {})
                 request = self.create_request(url, meta=meta, headers=DEFAULT_HEADERS)
-            except:
+            except Exception:
                 self.logger.exception("Error on url %s", url)
                 continue
             sitemaps.add(request) if sub_sitemap else requests.add(request)
