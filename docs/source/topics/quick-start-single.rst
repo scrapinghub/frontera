@@ -6,6 +6,8 @@ The idea is that you develop and debug crawling strategy in single process mode 
 deploying crawling strategy for crawling in production at scale. Single process is also good as a first step to get
 something running quickly.
 
+    Note, that this tutorial doesn't work for :class:`frontera.contrib.backends.memory.MemoryDistributedBackend`.
+
 1. Create your Scrapy spider
 ============================
 
@@ -72,7 +74,7 @@ Configure frontier settings to use a built-in backend like::
 
 This step is required only if your crawling strategy requires seeds injection from external source.::
 
-    $ python -m frontera.worker.utils.add_seeds --config [your_frontera_config] --seeds-file [path to your seeds file]
+    $ python -m frontera.utils.add_seeds --config [your_frontera_config] --seeds-file [path to your seeds file]
 
 After script is finished succesfully your seeds should be stored in backend's queue and scheduled for crawling.
 

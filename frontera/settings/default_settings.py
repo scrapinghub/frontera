@@ -58,14 +58,15 @@ SPIDER_LOG_PARTITIONS = 1
 SPIDER_FEED_PARTITIONS = 1
 SPIDER_PARTITION_ID = 0
 SQLALCHEMYBACKEND_CACHE_SIZE = 10000
-SQLALCHEMYBACKEND_CLEAR_CONTENT = True
-SQLALCHEMYBACKEND_DROP_ALL_TABLES = True
+SQLALCHEMYBACKEND_CLEAR_CONTENT = False
+SQLALCHEMYBACKEND_DROP_ALL_TABLES = False
 SQLALCHEMYBACKEND_ENGINE = 'sqlite:///:memory:'
 SQLALCHEMYBACKEND_ENGINE_ECHO = False
 SQLALCHEMYBACKEND_MODELS = {
     'MetadataModel': 'frontera.contrib.backends.sqlalchemy.models.MetadataModel',
     'StateModel': 'frontera.contrib.backends.sqlalchemy.models.StateModel',
-    'QueueModel': 'frontera.contrib.backends.sqlalchemy.models.QueueModel'
+    'QueueModel': 'frontera.contrib.backends.sqlalchemy.models.QueueModel',
+    'DomainMetadataModel': 'frontera.contrib.backends.sqlalchemy.models.DomainMetadataModel'
 }
 SQLALCHEMYBACKEND_REVISIT_INTERVAL = timedelta(days=1)
 STATE_CACHE_SIZE = 1000000

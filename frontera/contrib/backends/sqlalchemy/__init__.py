@@ -31,7 +31,8 @@ class Distributed(DistributedBackend):
             if is_drop:
                 if model.__table__.name in inspector.get_table_names():
                     model.__table__.drop(bind=self.engine)
-            model.__table__.create(bind=self.engine)
+            if model.__table__.name not in inspector.get_table_names():
+                model.__table__.create(bind=self.engine)
             if is_clear:
                 session = self.session_cls()
                 session.execute(model.__table__.delete())
@@ -41,9 +42,10 @@ class Distributed(DistributedBackend):
         settings = manager.settings
         drop_all_tables = settings.get('SQLALCHEMYBACKEND_DROP_ALL_TABLES')
         clear_content = settings.get('SQLALCHEMYBACKEND_CLEAR_CONTENT')
-        model = self.models['StateModel']
-        self.check_and_create_tables(drop_all_tables, clear_content, (model,))
-        self._states = States(self.session_cls, model,
+        model_states = self.models['StateModel']
+        model_dm = self.models['DomainMetadataModel']
+        self.check_and_create_tables(drop_all_tables, clear_content, (model_states, model_dm))
+        self._states = States(self.session_cls, model_states,
                               settings.get('STATE_CACHE_SIZE_LIMIT'))
         self._domain_metadata = DomainMetadata(self.session_cls)
 
@@ -53,7 +55,7 @@ class Distributed(DistributedBackend):
         clear_content = settings.get('SQLALCHEMYBACKEND_CLEAR_CONTENT')
         metadata_m = self.models['MetadataModel']
         queue_m = self.models['QueueModel']
-        self.check_and_create_tables(drop, clear_content, (metadata_m, queue_m,))
+        self.check_and_create_tables(drop, clear_content, (metadata_m, queue_m))
         self._metadata = Metadata(self.session_cls, metadata_m,
                                   settings.get('SQLALCHEMYBACKEND_CACHE_SIZE'))
         self._queue = Queue(self.session_cls, queue_m, settings.get('SPIDER_FEED_PARTITIONS'))
