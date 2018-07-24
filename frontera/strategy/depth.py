@@ -28,7 +28,7 @@ class BreadthFirstCrawlingStrategy(BaseCrawlingStrategy):
                 link.meta[b'state'] = States.QUEUED
                 self.schedule(link, self.get_score(link))
 
-    def page_error(self, request, error):
+    def request_error(self, request, error):
         request.meta[b'state'] = States.ERROR
         self.schedule(request, score=0.0, dont_queue=True)
 

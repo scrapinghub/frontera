@@ -21,5 +21,5 @@ class BasicCrawlingStrategy(BaseCrawlingStrategy):
     def page_crawled(self, response):
         response.meta[b'state'] = States.CRAWLED
 
-    def page_error(self, request, error):
+    def request_error(self, request, error):
         request.meta[b'state'] = States.ERROR

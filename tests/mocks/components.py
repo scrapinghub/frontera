@@ -219,5 +219,5 @@ class CrawlingStrategy(BaseCrawlingStrategy):
                 link.meta[b'state'] = States.QUEUED
                 self.schedule(link, 0.5)
 
-    def page_error(self, request, error):
+    def request_error(self, request, error):
         request.meta[b'state'] = States.ERROR

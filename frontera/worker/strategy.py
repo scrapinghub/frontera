@@ -131,7 +131,7 @@ class BatchedWorkflow(object):
     def _on_request_error(self, request, error):
         logger.debug("Page error %s (%s)", request.url, error)
         self.states_context.states.set_states(request)
-        self.strategy.page_error(request, error)
+        self.strategy.request_error(request, error)
         self.states_context.states.update_cache(request)
 
 

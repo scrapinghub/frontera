@@ -56,6 +56,15 @@ class BaseCrawlingStrategy(object):
         """
 
     @abstractmethod
+    def request_error(self, request, error):
+        """
+        Called every time there was error during page downloading.
+
+        :param object request: The fetched with error :class:`Request <frontera.core.models.Request>` object.
+        :param str error: A string identifier for the error.
+        """
+
+    @abstractmethod
     def filter_extracted_links(self, request, links):
         """
         Called every time on receiving links_extracted event by strategy worker. This call is preceding the call
@@ -84,15 +93,6 @@ class BaseCrawlingStrategy(object):
         :param object request: The :class:`Request <frontera.core.models.Request>` object for the crawled page.
         :param list links: A list of :class:`Request <frontera.core.models.Request>` objects generated from \
         the links extracted for the crawled page.
-        """
-
-    @abstractmethod
-    def page_error(self, request, error):
-        """
-        Called every time there was error during page downloading.
-
-        :param object request: The fetched with error :class:`Request <frontera.core.models.Request>` object.
-        :param str error: A string identifier for the error.
         """
 
     def finished(self):
@@ -143,17 +143,6 @@ class BaseCrawlingStrategy(object):
         :param requests: list(:class:`Request <frontera.core.models.Request>`)
         """
         self._states_context.refresh_and_keep(requests)
-
-    def request_error(self, request, error):
-        """
-        DEPRECATED.
-
-        Convenience method, called by FronteraManager, please use page_error() instead.
-
-        :param request: :class:`Request <frontera.core.models.Request>`
-        :param error: str with error description
-        """
-        self.page_error(request, error)
 
     def frontier_start(self):
         pass

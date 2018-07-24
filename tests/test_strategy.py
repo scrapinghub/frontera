@@ -14,7 +14,7 @@ class TestingCrawlingStrategy(BaseCrawlingStrategy):
     def page_crawled(self, response):
         pass
 
-    def page_error(self, request, error):
+    def request_error(self, request, error):
         pass
 
     def links_extracted(self, request, links):

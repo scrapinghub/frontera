@@ -265,7 +265,7 @@ class Discovery(BaseCrawlingStrategy):
             link.headers.update(DEFAULT_HEADERS)
         self._process_links(links, domain)
 
-    def page_error(self, request, error):
+    def request_error(self, request, error):
         request.meta[b'state'] = States.ERROR
         # if redirects, request.url always contains initial url
         self.logger.debug("PE %s error: %s (seed: %s)",
