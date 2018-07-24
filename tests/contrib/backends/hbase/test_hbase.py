@@ -8,10 +8,8 @@ import pytest
 from frontera.contrib.backends.hbase import HBaseState, HBaseMetadata, HBaseQueue
 from frontera.core.components import States
 from frontera.core.models import Request, Response
-from frontera.utils.tester import StatesTester
 from happybase import Connection
 from tests import mock
-from unittest import TestCase
 from w3lib.util import to_native_str
 
 r1 = Request('https://www.example.com', meta={b'fingerprint': b'10',
@@ -123,17 +121,4 @@ class TestHBaseBackend(object):
                        write_log_size=10, drop_all_tables=True)
         except AlreadyExists:
             assert False, "failed to drop hbase tables"
-
-
-class TestHBaseStates(StatesTester, TestCase):
-    @classmethod
-    def setUpClass(cls):
-        s = cls()
-        s.connection = Connection(host='hbase-docker', port=9090)
-        s.states = HBaseState(s.connection, b'states', cache_size_limit=300000,
-                              write_log_size=5000, drop_all_tables=True)
-        return s
-
-    def get_backend(self):
-        return self
 
