@@ -9,6 +9,7 @@ from w3lib.util import to_native_str
 from Hbase_thrift import AlreadyExists  # module loaded at runtime in happybase
 
 from frontera.contrib.backends.hbase import HBaseState, HBaseMetadata, HBaseQueue
+from tests.contrib.backends.test_backend import StatesTester
 from frontera.core.models import Request, Response
 from frontera.core.components import States
 from binascii import unhexlify
@@ -76,6 +77,7 @@ class TestHBaseBackend(object):
             assert set([r.url for r in queue.get_next_requests(10, 0, min_requests=3, min_hosts=1,
                        max_requests_per_host=10)]) == set([r5.url])
 
+    @pytest.mark.skip
     def test_state(self):
         connection = Connection(host='hbase-docker', port=9090)
         state = HBaseState(connection, b'states', cache_size_limit=300000,
@@ -125,3 +127,9 @@ class TestHBaseBackend(object):
                        write_log_size=10, drop_all_tables=True)
         except AlreadyExists:
             assert False, "failed to drop hbase tables"
+
+
+class TestHBaseStates(StatesTester):
+
+
+    def get_backend(self):
