@@ -155,8 +155,6 @@ class DownloaderSimulator(BaseDownloaderSimulator):
         return len(self.slots) == 0
 
 
-
-
 r1 = Request('https://www.example.com', meta={b'fingerprint': b'10',
              b'domain': {b'name': b'www.example.com', b'fingerprint': b'81'}})
 r2 = Request('http://example.com/some/page/', meta={b'fingerprint': b'11',
