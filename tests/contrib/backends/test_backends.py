@@ -30,6 +30,7 @@ def sqlalchemy_states():
     engine = create_engine('sqlite:///:memory:', echo=False)
     session_cls = sessionmaker()
     session_cls.configure(bind=engine)
+    StateModel.__table__.create(bind=engine)
     return SQLAlchemyStates(session_cls, StateModel, 100)
 
 
