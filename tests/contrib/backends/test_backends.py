@@ -29,7 +29,7 @@ def hbase_states():
 def sqlalchemy_states():
     engine = create_engine('sqlite:///:memory:', echo=False)
     session_cls = sessionmaker()
-    session_cls.configure(engine=engine)
+    session_cls.configure(bind=engine)
     return SQLAlchemyStates(session_cls, StateModel, 100)
 
 
