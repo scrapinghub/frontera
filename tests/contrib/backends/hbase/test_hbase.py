@@ -17,6 +17,7 @@ from time import time
 from w3lib.util import to_native_str
 from tests import mock
 import pytest
+from unittest import TestCase
 
 r1 = Request('https://www.example.com', meta={b'fingerprint': b'10',
              b'domain': {b'name': b'www.example.com', b'fingerprint': b'81'}})
@@ -129,7 +130,15 @@ class TestHBaseBackend(object):
             assert False, "failed to drop hbase tables"
 
 
-class TestHBaseStates(StatesTester):
-
+class TestHBaseStates(StatesTester, TestCase):
+    @classmethod
+    def setUpClass(cls):
+        s = cls()
+        s.connection = Connection(host='hbase-docker', port=9090)
+        s.states = HBaseState(s.connection, b'states', cache_size_limit=300000,
+                              write_log_size=5000, drop_all_tables=True)
+        return s
 
     def get_backend(self):
+        return self.states
+
