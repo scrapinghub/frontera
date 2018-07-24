@@ -487,7 +487,7 @@ class LocalFrontierManager(BaseContext, StrategyComponentsPipelineMixin, BaseMan
         """
         Performs seeds addition procedure. Using file-like object, calls read_seeds method of crawling strategy.
 
-        :param file seeds_file: A file-like object passed to read_seeds
+        :param file seeds_file: A file-like object opened in binary mode which will be passed to read_seeds
 
         :return: None.
         """
