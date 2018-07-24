@@ -55,7 +55,7 @@ It has to be inherited from BaseCrawlingStrategy and implement it's API.
 The class can be put in any module and passed to :term:`strategy worker` or local Scrapy process using command line
 option or :setting:`CRAWLING_STRATEGY` setting on startup.
 
-The strategy class can use it's own storage or any other kind of resources. All items from :term:`spider log` will be
+The strategy class can use its own storage or any other kind of resources. All items from :term:`spider log` will be
 passed through these methods. Scores returned doesn't have to be the same as in method arguments.
 Periodically ``finished()`` method is called to check if crawling goal is achieved.
 
@@ -90,7 +90,7 @@ Main
 
 This is the main cycle used when crawl is in progress. In a nutshell on every spider event the specific handler is
 called, depending on the type of event. When strategy worker is getting the SIGTERM signal it's trying to stop politely
- by calling close(). In it's normal state it listens for a spider log and executes the event handlers.
+ by calling close(). In its normal state it listens for a spider log and executes the event handlers.
 
 1. from_worker() → init()
 1. page_crawled(response) OR page_error(request, error) OR filter_extracted_links(request, links) and subsequent links_extracted(request, links)
@@ -107,19 +107,21 @@ often available from arguments of event handlers: _page_crawled_, _page_error_ a
 
     IMPORTANT NOTICE
 
-    The request created with create_request() is lack of state (meta[b'state']) set. To get the states strategy worker
-    needs to access the backend, and this is not happenning when you call create_request(). Instead it is expected you
-    will create a batch of requests and call refresh_states(iterable) on the whole batch of requests. After
-    refresh_states is done, you will have a states available for your newly created requests.
+    The request created with create_request() has no state (meta[b'state']) after creation. To get the states strategy
+    worker needs to access the backend, and this is not happenning when you call create_request(). Instead it is
+    expected you will create a batch of requests and call refresh_states(iterable) on the whole batch of requests.
+    After refresh_states is done, you will have a states available for your newly created requests.
 
-    The Request objects created by strategy worker for event handlers always have the states assigned.
+    The Request objects created by strategy worker for event handlers are always having the states assigned.
+
 
 State operations
 ^^^^^^^^^^^^^^^^
 
 Every link has a state. The purpose of this states is to allow the developer to persist the state of the link in the
 system (allow restart of SW components without data loss) and use it for decision making. The states are cached in
-strategy worker, flushed to backend and will be loaded when needed. States can have following values:
+strategy worker, flushed to backend and will be loaded when needed. States are defined in
+:class:`frontera.core.components.States` and can have following values:
 
 * NOT_CRAWLED,
 * QUEUED,
@@ -129,16 +131,8 @@ strategy worker, flushed to backend and will be loaded when needed. States can h
 NOT_CRAWLED is assigned when link is new, and wasn't seen previously, the rest of the state values must be assigned
 in the crawling strategy code.
 
-States allow to implement such logic as:
-
-* Basic visit once of every link found,
-* Revisiting by time condition, if state is coupled with a timestamp (requires minor modification of backend),
-* Re-visiting of errored links depending on the type of error (fatal errors are skipped, and recoverable are revisited).
-* Analysis of the states database to collect the state stats using Hadoop jobs.
-
-See also
-
-https://github.com/scrapinghub/frontera/blob/master/frontera/core/components.py#L105
+States allow to check that link was visited or discovered, and perform analysis of the states database to collect the
+state statistics using MapReduce style jobs.
 
 
 Components
@@ -146,15 +140,14 @@ Components
 
 There are certain building blocks and successful solutions exist for the common problems.
 
-DomainCache
------------
+DomainMetadata
+--------------
 
-It's often needed to persist per-host metadata in the permanent storage. To solve this there is a DomainCache available
-at class path frontera.contrib.backends.hbase.domaincache. It's has an interface of Python mapping types
-(https://docs.python.org/3/library/stdtypes.html?highlight=mapping#mapping-types-dict) and is backed by two generations
-of in-memory cache with LRU logic and persisted in HBase only (currently). It's expected that one will be using
-domain names as keys and dicts as values. It's convenient to store there per-domin statistics, ban states, the count
-of links found, etc.
+It's often needed to persist per-host metadata in the permanent storage. To solve this there is a
+:class:`frontera.core.components.DomainMetadata` instance in backend. It's has an interface of Python mapping types
+(https://docs.python.org/3/library/stdtypes.html?highlight=mapping#mapping-types-dict ). It's expected that one will
+be using domain names as keys and dicts as values. It's convenient to store there per-domin statistics, ban states,
+the count of links found, etc.
 
 
 PublicSuffix
