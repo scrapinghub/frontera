@@ -1,23 +1,18 @@
 from __future__ import absolute_import
 
-from time import sleep, time
-from binascii import unhexlify
-
-from msgpack import unpackb
-from happybase import Connection
-from w3lib.util import to_native_str
 from Hbase_thrift import AlreadyExists  # module loaded at runtime in happybase
-
-from frontera.contrib.backends.hbase import HBaseState, HBaseMetadata, HBaseQueue
-from tests.contrib.backends.test_backend import StatesTester
-from frontera.core.models import Request, Response
-from frontera.core.components import States
 from binascii import unhexlify
 from time import time
-from w3lib.util import to_native_str
-from tests import mock
+
 import pytest
+from frontera.contrib.backends.hbase import HBaseState, HBaseMetadata, HBaseQueue
+from frontera.core.components import States
+from frontera.core.models import Request, Response
+from frontera.utils.tester import StatesTester
+from happybase import Connection
+from tests import mock
 from unittest import TestCase
+from w3lib.util import to_native_str
 
 r1 = Request('https://www.example.com', meta={b'fingerprint': b'10',
              b'domain': {b'name': b'www.example.com', b'fingerprint': b'81'}})
