@@ -3,6 +3,10 @@ from frontera.core.components import States
 from frontera.core.models import Request
 from happybase import Connection
 from frontera.contrib.backends.hbase import HBaseState
+from frontera.contrib.backends.sqlalchemy import States as SQLAlchemyStates
+from frontera.contrib.backends.sqlalchemy.models import StateModel
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 
 r1 = Request('https://www.example.com', meta={b'fingerprint': b'10',
@@ -22,7 +26,14 @@ def hbase_states():
     return states
 
 
-@pytest.mark.parametrize("states", [hbase_states()])
+def sqlalchemy_states():
+    engine = create_engine('sqlite:///:memory:', echo=False)
+    session_cls = sessionmaker()
+    session_cls.configure(engine=engine)
+    return SQLAlchemyStates(session_cls, StateModel, 100)
+
+
+@pytest.mark.parametrize("states", [hbase_states(), sqlalchemy_states()])
 def test_states(states):
     states.set_states([r1, r2, r3])
     assert [r.meta[b'state'] for r in [r1, r2, r3]] == [States.NOT_CRAWLED]*3
