@@ -203,7 +203,7 @@ class CrawlingStrategy(BaseCrawlingStrategy):
             url = url.strip()
             req = self.create_request(url)
             self.refresh_states(req)
-            if req.meta[b'state'] is States.NOT_CRAWLED:
+            if req.meta[b'state'] == States.NOT_CRAWLED:
                 req.meta[b'state'] = States.QUEUED
                 self.schedule(req)
 
@@ -215,7 +215,7 @@ class CrawlingStrategy(BaseCrawlingStrategy):
 
     def links_extracted(self, request, links):
         for link in links:
-            if link.meta[b'state'] is States.NOT_CRAWLED:
+            if link.meta[b'state'] == States.NOT_CRAWLED:
                 link.meta[b'state'] = States.QUEUED
                 self.schedule(link, 0.5)
 
