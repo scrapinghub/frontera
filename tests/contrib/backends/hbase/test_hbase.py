@@ -140,5 +140,5 @@ class TestHBaseStates(StatesTester, TestCase):
         return s
 
     def get_backend(self):
-        return self.states
+        return self
 
