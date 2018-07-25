@@ -8,7 +8,7 @@ import six
 from kafka import KafkaConsumer, KafkaProducer, TopicPartition
 
 from frontera.contrib.backends.partitioners import FingerprintPartitioner, Crc32NamePartitioner
-from frontera.contrib.messagebus.kafka.async import OffsetsFetcherAsync
+from frontera.contrib.messagebus.kafka.offsets_fetcher import OffsetsFetcherAsync
 from frontera.core.messagebus import BaseMessageBus, BaseSpiderLogStream, BaseSpiderFeedStream, \
     BaseStreamConsumer, BaseScoringLogStream, BaseStreamProducer, BaseStatsLogStream
 from twisted.internet.task import LoopingCall
