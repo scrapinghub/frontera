@@ -2,13 +2,10 @@
 from __future__ import absolute_import
 
 import time
+
 import logging
-import threading
-
-from twisted.internet import reactor, task, threads
-
-from frontera.exceptions import NotConfigured
-from frontera.utils.async import CallLaterOnce
+from frontera.utils.twisted_helpers import CallLaterOnce
+from twisted.internet import reactor, threads
 
 
 class DBWorkerBaseComponent(object):
