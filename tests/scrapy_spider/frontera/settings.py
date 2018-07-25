@@ -1,7 +1,9 @@
 #--------------------------------------------------------
 # Frontier
 #--------------------------------------------------------
-BACKEND = 'frontera.contrib.backends.memory.FIFO'
+BACKEND = 'frontera.contrib.backends.sqlalchemy.Distributed'
+SQLALCHEMYBACKEND_ENGINE = 'sqlite:///test.db'
+
 MAX_REQUESTS = 5
 MAX_NEXT_REQUESTS = 1
 

@@ -11,6 +11,19 @@ from os.path import exists
 logger = logging.getLogger(__name__)
 
 
+def run_add_seeds(settings, seeds_file):
+    fh = open(seeds_file, "rb")
+
+    logger.info("Starting local seeds addition from file %s", seeds_file)
+
+    manager = LocalFrontierManager.from_settings(settings)
+    manager.add_seeds(fh)
+    manager.stop()
+    manager.close()
+
+    logger.info("Seeds addition finished")
+
+
 if __name__ == '__main__':
     parser = ArgumentParser(description="Frontera local add seeds utility")
     parser.add_argument('--config', type=str, required=True,
@@ -28,13 +41,4 @@ if __name__ == '__main__':
         logger.setLevel(args.log_level)
         logger.addHandler(CONSOLE)
 
-    fh = open(args.seeds_file, "rb")
-
-    logger.info("Starting local seeds addition from file %s", args.seeds_file)
-
-    manager = LocalFrontierManager.from_settings(settings)
-    manager.add_seeds(fh)
-    manager.stop()
-    manager.close()
-
-    logger.info("Seeds addition finished")
+    run_add_seeds(settings, args.seeds_file)
