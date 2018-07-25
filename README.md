@@ -15,6 +15,7 @@ the crawler to decide which pages to visit next, and capable of doing it in dist
 - Built-in SqlAlchemy, Redis and HBase backends.
 - Built-in Apache Kafka and ZeroMQ message buses.
 - Built-in crawling strategies: breadth-first, depth-first, Discovery (with support of robots.txt and sitemaps).
+- Battle tested: our biggest deployment is 60 spiders/strategy workers delivering 50-60M of documents daily for 45 days, without downtime,
 - Transparent data flow, allowing to integrate custom components easily using Kafka.
 - Message bus abstraction, providing a way to implement your own transport (ZeroMQ and Kafka are available out of the box).
 - Optional use of Scrapy for fetching and parsing.
