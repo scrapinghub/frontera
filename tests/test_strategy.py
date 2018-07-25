@@ -7,7 +7,7 @@ from frontera.contrib.backends.memory import MemoryStates
 from frontera.core.components import States
 
 
-class TestingCrawlingStrategy(BaseCrawlingStrategy):
+class DummyCrawlingStrategy(BaseCrawlingStrategy):
     def read_seeds(self, seeds_file):
         pass
 
@@ -36,7 +36,7 @@ class TestCrawlingStrategy(object):
     def strategy(self):
         settings = Settings()
         settings.BACKEND = 'frontera.contrib.backends.sqlalchemy.Distributed'
-        settings.STRATEGY = 'tests.test_strategy.TestingCrawlingStrategy'
+        settings.STRATEGY = 'tests.test_strategy.DummyCrawlingStrategy'
         manager = WorkerFrontierManager.from_settings(settings, db_worker=False, strategy_worker=True)
         stream = MessageBusStream()
         states = MemoryStates(10)
