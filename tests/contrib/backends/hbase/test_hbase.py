@@ -43,17 +43,6 @@ class TestHBaseBackend(object):
             set([r1.url, r2.url, r3.url])
         self.delete_rows(table, [b'10', b'11', b'12'])
 
-    def test_queue(self):
-        connection = Connection(host='hbase-docker', port=9090)
-        queue = HBaseQueue(connection, 2, b'queue', drop=True, use_snappy=False)
-        batch = [('10', 0.5, r1, True), ('11', 0.6, r2, True),
-                 ('12', 0.7, r3, True)]
-        queue.schedule(batch)
-        assert set([r.url for r in queue.get_next_requests(10, 0, min_requests=3, min_hosts=1,
-                   max_requests_per_host=10)]) == set([r3.url])
-        assert set([r.url for r in queue.get_next_requests(10, 1, min_requests=3, min_hosts=1,
-                   max_requests_per_host=10)]) == set([r1.url, r2.url])
-
     @pytest.mark.xfail
     def test_queue_with_delay(self):
         connection = Connection(host='hbase-docker', port=9090)
@@ -70,35 +59,6 @@ class TestHBaseBackend(object):
             mocked_time.return_value = crawl_at + 1
             assert set([r.url for r in queue.get_next_requests(10, 0, min_requests=3, min_hosts=1,
                        max_requests_per_host=10)]) == set([r5.url])
-
-    @pytest.mark.skip
-    def test_state(self):
-        connection = Connection(host='hbase-docker', port=9090)
-        state = HBaseState(connection, b'states', cache_size_limit=300000,
-                           write_log_size=5000, drop_all_tables=True)
-        state.set_states([r1, r2, r3])
-        assert [r.meta[b'state'] for r in [r1, r2, r3]] == [States.NOT_CRAWLED]*3
-        state.update_cache([r1, r2, r3])
-        assert dict(state._state_cache) == {b'10': States.NOT_CRAWLED,
-                                            b'11': States.NOT_CRAWLED,
-                                            b'12': States.NOT_CRAWLED}
-        assert state._state_batch._mutation_count == 3
-        r1.meta[b'state'] = States.CRAWLED
-        r2.meta[b'state'] = States.CRAWLED
-        r3.meta[b'state'] = States.CRAWLED
-        state.update_cache([r1, r2, r3])
-        assert state._state_batch._mutation_count == 6
-        state.flush()
-        assert state._state_batch._mutation_count == 0
-        state.fetch([b'10', b'11', b'12'])
-        assert dict(state._state_cache) == {b'10': States.CRAWLED,
-                                            b'11': States.CRAWLED,
-                                            b'12': States.CRAWLED}
-        r4.meta[b'state'] = States.ERROR
-        state.set_states([r1, r2, r4])
-        assert r4.meta[b'state'] == States.CRAWLED
-        state.flush()
-        assert state._state_batch._mutation_count == 0
 
     def test_drop_all_tables_when_table_name_is_str(self):
         connection = Connection(host='hbase-docker', port=9090)
