@@ -21,6 +21,7 @@ r4 = r3.copy()
 
 hbase_connection = None
 
+
 def get_hbase_connection():
     global hbase_connection
     if hbase_connection is None:
