@@ -231,8 +231,8 @@ class KafkaMessageBusTest(unittest.TestCase):
     def test_integration(self):
         self.spider_log_activity(64)
         assert self.sw_activity() == 64
-        #assert self.db_activity(128) == (64, 32)
-        #assert self.spider_feed_activity() == 128
+        assert self.db_activity(128) == (64, 32)
+        assert self.spider_feed_activity() == 128
 
 
 class IPv6MessageBusTester(MessageBusTester):
