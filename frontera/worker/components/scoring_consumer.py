@@ -31,7 +31,7 @@ class ScoringConsumer(DBWorkerPeriodicComponent):
                 count=self.scoring_log_consumer_batch_size):
             try:
                 msg = self.worker._decoder.decode(m)
-            except (KeyError, TypeError) as e:
+            except (KeyError, TypeError):
                 self.logger.exception("Decoding error")
                 continue
             else:

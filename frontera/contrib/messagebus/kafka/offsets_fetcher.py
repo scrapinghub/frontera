@@ -223,6 +223,7 @@ class OffsetsFetcherAsync(object):
             future_request = Future()
             _f = self._client.send(node_id, request)
             _f.add_callback(self._handle_offset_response, partitions, future_request)
+
             def errback(e):
                 log.error("Offset request errback error %s", e)
                 future_request.failure(e)

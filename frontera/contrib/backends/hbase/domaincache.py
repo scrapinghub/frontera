@@ -5,15 +5,18 @@ from collections import defaultdict
 from time import time
 
 import six
-from frontera.contrib.backends.hbase.utils import HardenedBatch
-from frontera.utils.msgpack import restruct_for_pack
 from msgpack import packb, unpackb
 from w3lib.util import to_bytes, to_native_str
 
-DEFAULT_HBASE_THRIFT_FRAME_SIZE = 2097152
+from frontera.core.components import DomainMetadata
+from frontera.contrib.backends.hbase.utils import HardenedBatch
+from frontera.utils.msgpack import restruct_for_pack
 
 import collections
 from cachetools import Cache
+
+
+DEFAULT_HBASE_THRIFT_FRAME_SIZE = 2097152
 
 
 class LRUCache(Cache):
@@ -59,7 +62,7 @@ class LRUCache(Cache):
                 self.__order[key] = None
 
 
-class DomainCache(LRUCache):
+class DomainCache(LRUCache, DomainMetadata):
     """
     This is an implementation of Domain metadata cache backed by HBase table. It's main purpose is to store the domain
     metadata in Python-friendly structures while providing fast and reliable access.
@@ -109,10 +112,10 @@ class DomainCache(LRUCache):
         self._key_check(key)
         try:
             value = Cache.__getitem__(self, key)
-        except KeyError as ke1:
+        except KeyError:
             try:
                 value = self._second_gen[key]
-            except KeyError as ke2:
+            except KeyError:
                 try:
                     value = self._get_item(key)
                 except KeyError as ke3:
@@ -168,7 +171,7 @@ class DomainCache(LRUCache):
         if len(self._second_gen) >= self.batch_size:
             self._flush_second_gen()
             self._second_gen.clear()
-            self.stats["flushes"]+=1
+            self.stats["flushes"] += 1
 
     # These methods aren't meant to be implemented
 
@@ -206,7 +209,7 @@ class DomainCache(LRUCache):
         HBase-optimized setdefault
         """
         self._key_check(key)
-        self.stats["gets"]+=1
+        self.stats["gets"] += 1
         self._log_and_rotate_stats()
         if super(DomainCache, self).__contains__(key) or key in self._second_gen:
             value = self[key]
@@ -256,7 +259,7 @@ class DomainCache(LRUCache):
         return connection.table(table_name)
 
     def _get_item(self, key):
-        self.stats["hbase_gets"]+=1
+        self.stats["hbase_gets"] += 1
         hbase_key = to_bytes(key)
         row = self._table.row(hbase_key)
         if not row:
@@ -293,7 +296,7 @@ class DomainCache(LRUCache):
                 self.logger.exception("Exception happened during item storing, %d tries left", tries)
                 data_lengths = dict((k, len(v)) for k, v in six.iteritems(data))
                 self.logger.info("RK %s per-column lengths %s", key, str(data_lengths))
-                for k ,length in data_lengths.items():
+                for k, length in data_lengths.items():
                     if length > self.MAX_VALUE_SIZE:
                         self.logger.info("Dropping key %s", k)
                         del data[k]

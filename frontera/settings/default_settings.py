@@ -3,12 +3,13 @@ from datetime import timedelta
 
 
 AUTO_START = True
-BACKEND = 'frontera.contrib.backends.memory.FIFO'
+BACKEND = 'frontera.contrib.backends.memory.MemoryDistributedBackend'
 BC_MIN_REQUESTS = 64
 BC_MIN_HOSTS = 24
 BC_MAX_REQUESTS_PER_HOST = 128
 CANONICAL_SOLVER = 'frontera.contrib.canonicalsolvers.Basic'
 DELAY_ON_EMPTY = 5.0
+DISCOVERY_MAX_PAGES = 100
 DOMAIN_FINGERPRINT_FUNCTION = 'frontera.utils.fingerprint.sha1'
 DOMAIN_STATS_LOG_INTERVAL = 300
 
@@ -16,6 +17,9 @@ HBASE_THRIFT_HOST = 'localhost'
 HBASE_THRIFT_PORT = 9090
 HBASE_NAMESPACE = 'crawler'
 HBASE_DROP_ALL_TABLES = False
+HBASE_DOMAIN_METADATA_TABLE = 'domain_metadata'
+HBASE_DOMAIN_METADATA_CACHE_SIZE = 1000
+HBASE_DOMAIN_METADATA_BATCH_SIZE = 100
 HBASE_METADATA_TABLE = 'metadata'
 HBASE_STATES_TABLE = 'states'
 HBASE_USE_SNAPPY = False
@@ -25,6 +29,7 @@ HBASE_STATE_CACHE_SIZE_LIMIT = 3000000
 HBASE_STATE_WRITE_LOG_SIZE = 15000
 HBASE_QUEUE_TABLE = 'queue'
 KAFKA_GET_TIMEOUT = 5.0
+LOCAL_MODE = True
 MAX_NEXT_REQUESTS = 64
 MAX_REQUESTS = 0
 MESSAGE_BUS = 'frontera.contrib.messagebus.zeromq.MessageBus'
@@ -54,23 +59,27 @@ SPIDER_LOG_PARTITIONS = 1
 SPIDER_FEED_PARTITIONS = 1
 SPIDER_PARTITION_ID = 0
 SQLALCHEMYBACKEND_CACHE_SIZE = 10000
-SQLALCHEMYBACKEND_CLEAR_CONTENT = True
-SQLALCHEMYBACKEND_DROP_ALL_TABLES = True
+SQLALCHEMYBACKEND_CLEAR_CONTENT = False
+SQLALCHEMYBACKEND_DROP_ALL_TABLES = False
 SQLALCHEMYBACKEND_ENGINE = 'sqlite:///:memory:'
 SQLALCHEMYBACKEND_ENGINE_ECHO = False
 SQLALCHEMYBACKEND_MODELS = {
     'MetadataModel': 'frontera.contrib.backends.sqlalchemy.models.MetadataModel',
     'StateModel': 'frontera.contrib.backends.sqlalchemy.models.StateModel',
-    'QueueModel': 'frontera.contrib.backends.sqlalchemy.models.QueueModel'
+    'QueueModel': 'frontera.contrib.backends.sqlalchemy.models.QueueModel',
+    'DomainMetadataModel': 'frontera.contrib.backends.sqlalchemy.models.DomainMetadataModel'
 }
 SQLALCHEMYBACKEND_REVISIT_INTERVAL = timedelta(days=1)
 STATE_CACHE_SIZE = 1000000
 STATE_CACHE_SIZE_LIMIT = 0
 STORE_CONTENT = False
+STRATEGY = 'frontera.strategy.basic.BasicCrawlingStrategy'
+STRATEGY_ARGS = {}
 SW_FLUSH_INTERVAL = 300
 TEST_MODE = False
 TLDEXTRACT_DOMAIN_INFO = False
 URL_FINGERPRINT_FUNCTION = 'frontera.utils.fingerprint.sha1'
+USER_AGENT = 'FronteraDiscoveryBot'
 
 ZMQ_ADDRESS = '127.0.0.1'
 ZMQ_BASE_PORT = 5550

@@ -2,13 +2,10 @@
 from __future__ import absolute_import
 
 import time
+
 import logging
-import threading
-
-from twisted.internet import reactor, task, threads
-
-from frontera.exceptions import NotConfigured
-from frontera.utils.async import CallLaterOnce
+from frontera.utils.twisted_helpers import CallLaterOnce
+from twisted.internet import reactor, threads
 
 
 class DBWorkerBaseComponent(object):
@@ -79,7 +76,7 @@ class DBWorkerThreadComponent(DBWorkerBaseComponent):
         while not self.stop_event.is_set():
             try:
                 is_backoff_needed = self.run()
-            except Exception as exc:
+            except Exception:
                 self.logger.exception('Exception in the main loop')
             else:
                 if is_backoff_needed and self.run_backoff:

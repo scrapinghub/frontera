@@ -5,9 +5,9 @@ from frontera.core.components import States
 import unittest
 
 
-r1 = Request('http://www.example.com/', meta={b'fingerprint': b'1', b'state': States.DEFAULT, b'jid': 0})
-r2 = Request('http://www.scrapy.org/', meta={b'fingerprint': b'2', b'state': States.DEFAULT, b'jid': 0})
-r3 = Request('https://www.dmoz.org', meta={b'fingerprint': b'3', b'state': States.DEFAULT, b'jid': 0})
+r1 = Request('http://www.example.com/', meta={b'fingerprint': b'1', b'state': States.DEFAULT, b'jid': 0, b'domain':{b'name':'www.example.com'}})
+r2 = Request('http://www.scrapy.org/', meta={b'fingerprint': b'2', b'state': States.DEFAULT, b'jid': 0, b'domain':{b'name':'www.scrapy.org'}})
+r3 = Request('https://www.dmoz.org', meta={b'fingerprint': b'3', b'state': States.DEFAULT, b'jid': 0, b'domain':{b'name':'www.dmoz.org'}})
 
 
 class TestDBWorker(unittest.TestCase):
@@ -20,7 +20,7 @@ class TestDBWorker(unittest.TestCase):
             settings.BACKEND = 'tests.mocks.components.FakeDistributedBackend'
         else:
             settings.BACKEND = 'tests.mocks.components.FakeBackend'
-        return DBWorker(settings, False, False, False, partitions="0")
+        return DBWorker(settings, False, False, False, partitions=[0,1,2,3])
 
     def test_page_crawled(self):
         dbw = self.dbw_setup()

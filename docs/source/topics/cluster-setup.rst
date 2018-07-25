@@ -20,7 +20,7 @@ Things to setup before you start
 
 Things to implement before you start
 ====================================
-* :doc:`Crawling strategy <own_crawling_strategy>`
+* :doc:`Crawling strategy <custom_crawling_strategy>` or :doc:`pick one from Frontera package <strategies>`
 * Spider code
 
 Configuring Kafka

@@ -8,7 +8,7 @@ import six
 from kafka import KafkaConsumer, KafkaProducer, TopicPartition
 
 from frontera.contrib.backends.partitioners import FingerprintPartitioner, Crc32NamePartitioner
-from frontera.contrib.messagebus.kafka.async import OffsetsFetcherAsync
+from frontera.contrib.messagebus.kafka.offsets_fetcher import OffsetsFetcherAsync
 from frontera.core.messagebus import BaseMessageBus, BaseSpiderLogStream, BaseSpiderFeedStream, \
     BaseStreamConsumer, BaseScoringLogStream, BaseStreamProducer, BaseStatsLogStream
 from twisted.internet.task import LoopingCall
@@ -224,7 +224,7 @@ class ScoringLogStream(BaseScoringLogStream):
                               buffer_memory=DEFAULT_BUFFER_MEMORY)
 
 
-class StatsLogStream(BaseStatsLogStream, ScoringLogStream):
+class StatsLogStream(ScoringLogStream, BaseStatsLogStream):
     """Stats log stream implementation for Kafka message bus.
 
     The interface is the same as for scoring log stream, so it's better

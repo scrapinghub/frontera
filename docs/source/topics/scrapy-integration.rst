@@ -2,8 +2,8 @@
 Using the Frontier with Scrapy
 ==============================
 
-Using Frontera is quite easy, it includes a set of `Scrapy middlewares`_ and Scrapy scheduler that encapsulates
-Frontera usage and can be easily configured using `Scrapy settings`_.
+To use Frontera with Scrapy, you will need to add `Scrapy middlewares`_ and redefine the default Scrapy scheduler with
+custom Frontera scheduler. Both can be done by modifying `Scrapy settings`_.
 
 
 Activating the frontier
@@ -32,7 +32,6 @@ Create a Frontera ``settings.py`` file and add it to your Scrapy settings::
 Another option is to put these settings right into Scrapy settings module.
 
 
-
 Organizing files
 ================
 
@@ -43,8 +42,6 @@ When using frontier with a Scrapy project, we propose the following directory st
             frontera/
                 __init__.py
                 settings.py
-                middlewares.py
-                backends.py
             spiders/
                 ...
             __init__.py
@@ -54,8 +51,6 @@ When using frontier with a Scrapy project, we propose the following directory st
 These are basically:
 
 - ``my_scrapy_project/frontera/settings.py``: the Frontera settings file.
-- ``my_scrapy_project/frontera/middlewares.py``: the middlewares used by the Frontera.
-- ``my_scrapy_project/frontera/backends.py``: the backend(s) used by the Frontera.
 - ``my_scrapy_project/spiders``: the Scrapy spiders folder
 - ``my_scrapy_project/settings.py``: the Scrapy settings file
 - ``scrapy.cfg``: the Scrapy config file
@@ -124,12 +119,6 @@ Configuration guidelines
 
 There several tunings you can make for efficient broad crawling.
 
-Adding one of seed loaders for bootstrapping of crawling process::
-
-    SPIDER_MIDDLEWARES.update({
-        'frontera.contrib.scrapy.middlewares.seeds.file.FileSeedLoader': 1,
-    })
-
 Various settings suitable for broad crawling::
 
     HTTPCACHE_ENABLED = False   # Turns off disk cache, which has low hit ratio during broad crawls
@@ -160,65 +149,4 @@ Check also `Scrapy broad crawling`_ recommendations.
 
 .. _`Quick start single process`: http://frontera.readthedocs.org/en/latest/topics/quick-start-single.html
 .. _`Scrapy broad crawling`: http://doc.scrapy.org/en/master/topics/broad-crawls.html
-
-
-Scrapy Seed Loaders
-===================
-
-Frontera has some built-in Scrapy middlewares for seed loading.
-
-Seed loaders use the ``process_start_requests`` method to generate requests from a source that are added later to the
-:class:`FrontierManager <frontera.core.manager.FrontierManager>`.
-
-
-Activating a Seed loader
-------------------------
-
-Just add the Seed Loader middleware to the ``SPIDER_MIDDLEWARES`` scrapy settings::
-
-    SPIDER_MIDDLEWARES.update({
-        'frontera.contrib.scrapy.middlewares.seeds.file.FileSeedLoader': 650
-    })
-
-
-.. _seed_loader_file:
-
-FileSeedLoader
---------------
-
-Load seed URLs from a file. The file must be formatted contain one URL per line::
-
-    http://www.asite.com
-    http://www.anothersite.com
-    ...
-
-Yo can disable URLs using the ``#`` character::
-
-    ...
-    #http://www.acommentedsite.com
-    ...
-
-**Settings**:
-
-- ``SEEDS_SOURCE``: Path to the seeds file
-
-
-.. _seed_loader_s3:
-
-S3SeedLoader
-------------
-
-Load seeds from a file stored in an Amazon S3 bucket
-
-File format should the same one used in :ref:`FileSeedLoader <seed_loader_file>`.
-
-Settings:
-
-- ``SEEDS_SOURCE``: Path to S3 bucket file. eg: ``s3://some-project/seed-urls/``
-
-- ``SEEDS_AWS_ACCESS_KEY``: S3 credentials Access Key
-
-- ``SEEDS_AWS_SECRET_ACCESS_KEY``: S3 credentials Secret Access Key
-
-
 .. _`Scrapy Middleware doc`: http://doc.scrapy.org/en/latest/topics/spider-middleware.html

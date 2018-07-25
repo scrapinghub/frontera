@@ -102,7 +102,7 @@ Where *sharded* means component consumes messages of assigned partition only, e.
 stream, and *replicated* is when components consume stream regardless of partitioning.
 
 Such design allows to operate online. Crawling strategy can be changed without having to stop the crawl. Also
-:doc:`crawling strategy <own_crawling_strategy>` can be implemented as a separate module; containing logic
+:doc:`crawling strategy <custom_crawling_strategy>` can be implemented as a separate module; containing logic
 for checking the crawling stopping condition, URL ordering, and scoring model.
 
 Frontera is polite to web hosts by design and each host is downloaded by no more than one spider process.

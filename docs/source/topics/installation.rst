@@ -27,6 +27,9 @@ Each option installs dependencies needed for particular functionality.
 * *zeromq* - ZeroMQ message bus,
 * *kafka* - Kafka message bus,
 * *distributed* - workers dependencies.
+* *s3* - dependencies required for seeds addition from S3 share,
+* *redis* - RedisBackend dependencies,
+* *strategies* - built-in crawling strategy dependencies.
 
 .. _Python: http://www.python.org
 .. _pip: http://www.pip-installer.org/en/latest/installing.html

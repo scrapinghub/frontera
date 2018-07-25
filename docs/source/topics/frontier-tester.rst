@@ -55,7 +55,7 @@ settings, but also can be modified when creating the FrontierTester with the ``m
 An example of use
 =================
 
-A working example using test data from graphs and :ref:`basic backends <frontier-backends-basic-algorithms>`::
+A working example using test data from graphs and :ref:`backends <frontier-built-in-backend>`::
 
     from frontera import FrontierManager, Settings, FrontierTester, graphs
 

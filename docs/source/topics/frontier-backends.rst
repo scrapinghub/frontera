@@ -2,20 +2,21 @@
 Backends
 ========
 
-Frontier :class:`Backend <frontera.core.components.Backend>` is where the crawling logic/policies lies, essentially a
-brain of your crawler. :class:`Queue <frontera.core.components.Queue>`,
-:class:`Metadata <frontera.core.components.Metadata>` and :class:`States <frontera.core.components.States>` are classes
-where all low level code is meant to be placed, and
-Backend opposite, operates on a higher levels. Frontera is bundled with database and in-memory implementations of
-Queue, Metadata and States which can be combined in your custom backends or used standalone by directly
-instantiating :class:`FrontierManager <frontera.core.manager.FrontierManager>` and Backend.
+A :class:`DistributedBackend <frontera.core.components.DistributedBackend>` is used to separate higher level code
+of :term:`crawling strategy` from low level storage API. :class:`Queue <frontera.core.components.Queue>`,
+:class:`Metadata <frontera.core.components.Metadata>`, :class:`States <frontera.core.components.States>` and
+ :class:`DomainMetadata <frontera.core.components.DomainMetadata>` are inner components of the DistributedBackend.
+The latter is meant to instantiate and hold the references to the objects of above mentioned classes. Frontera is
+bundled with database and in-memory implementations of Queue, Metadata, States and DomainMetadata which can be combined
+in your custom backends or used standalone by directly instantiating specific variant of
+:class:`FrontierManager <frontera.core.manager.FrontierManager>`.
 
-Backend methods are called by the FrontierManager after
+DistributedBackend methods are called by the FrontierManager after
 :class:`Middleware <frontera.core.components.Middleware>`, using hooks for
 :class:`Request <frontera.core.models.Request>` and :class:`Response <frontera.core.models.Response>` processing
 according to :ref:`frontier data flow <frontier-data-flow>`.
 
-Unlike Middleware, that can have many different instances activated, only one Backend can be used per
+Unlike Middleware, that can have many different instances activated, only one DistributedBackend can be used per
 frontier.
 
 
@@ -24,11 +25,11 @@ frontier.
 Activating a backend
 ====================
 
-To activate the frontier backend component, set it through the :setting:`BACKEND` setting.
+To activate the specific backend, set it through the :setting:`BACKEND` setting.
 
 Here’s an example::
 
-    BACKEND = 'frontera.contrib.backends.memory.FIFO'
+    BACKEND = 'frontera.contrib.backends.memory.MemoryDistributedBackend'
 
 Keep in mind that some backends may need to be additionally configured through a particular setting. See
 :ref:`backends documentation <frontier-built-in-backend>` for more info.
@@ -38,9 +39,9 @@ Keep in mind that some backends may need to be additionally configured through a
 Writing your own backend
 ========================
 
-Each backend component is a single Python class inherited from :class:`Backend <frontera.core.components.Backend>` or
+Each backend component is a single Python class inherited from
 :class:`DistributedBackend <frontera.core.components.DistributedBackend>` and using one or all of
-:class:`Queue`, :class:`Metadata` and :class:`States`.
+:class:`Queue`, :class:`Metadata`, :class:`States` and :class:`DomainMetadata`.
 
 :class:`FrontierManager` will communicate with active backend through the methods described below.
 
@@ -99,6 +100,8 @@ Backend should communicate with low-level storage by means of these classes:
 Metadata
 ^^^^^^^^
 
+Is used to store the contents of the crawl.
+
 .. autoclass:: frontera.core.components.Metadata
 
     **Methods**
@@ -115,6 +118,8 @@ Known implementations are: :class:`MemoryMetadata` and :class:`sqlalchemy.compon
 Queue
 ^^^^^
 
+Is a priority queue and used to persist requests scheduled for crawling.
+
 .. autoclass:: frontera.core.components.Queue
 
     **Methods**
@@ -129,6 +134,9 @@ Known implementations are: :class:`MemoryQueue` and :class:`sqlalchemy.component
 
 States
 ^^^^^^
+
+Is a storage used for checking and storing the link states. Where state is a short integer of one of states descibed in
+:class:`frontera.core.components.States`.
 
 .. autoclass:: frontera.core.components.States
 
@@ -145,6 +153,27 @@ States
 
 Known implementations are: :class:`MemoryStates` and :class:`sqlalchemy.components.States`.
 
+DomainMetadata
+^^^^^^^^^^^^^^
+
+Is used to store per-domain flags, counters or even robots.txt contents to help :term:`crawling strategy` maintain
+features like per-domain number of crawled pages limit or automatic banning.
+
+.. autoclass:: frontera.core.components.DomainMetadata
+
+    **Methods**
+
+    .. automethod:: frontera.core.components.DomainMetadata.__setitem__
+
+    .. automethod:: frontera.core.components.DomainMetadata.__getitem__
+
+    .. automethod:: frontera.core.components.DomainMetadata.__delitem__
+
+    .. automethod:: frontera.core.components.DomainMetadata.__contains__
+
+
+Known implementations are: native dict and :class:`sqlalchemy.components.DomainMetadata`.
+
 
 .. _frontier-built-in-backend:
 
@@ -153,61 +182,16 @@ Built-in backend reference
 
 This article describes all backend components that come bundled with Frontera.
 
-To know the default activated :class:`Backend <frontera.core.components.Backend>` check the
-:setting:`BACKEND` setting.
-
-
-.. _frontier-backends-basic-algorithms:
-
-Basic algorithms
-^^^^^^^^^^^^^^^^
-Some of the built-in :class:`Backend <frontera.core.components.Backend>` objects implement basic algorithms such
-as `FIFO`_/`LIFO`_ or `DFS`_/`BFS`_ for page visit ordering.
-
-Differences between them will be on storage engine used. For instance,
-:class:`memory.FIFO <frontera.contrib.backends.memory.FIFO>` and
-:class:`sqlalchemy.FIFO <frontera.contrib.backends.sqlalchemy.FIFO>` will use the same logic but with different
-storage engines.
-
-All these backend variations are using the same :class:`CommonBackend <frontera.contrib.backends.CommonBackend>` class
-implementing one-time visit crawling policy with priority queue.
-
-.. autoclass:: frontera.contrib.backends.CommonBackend
-
 
 .. _frontier-backends-memory:
 
-Memory backends
-^^^^^^^^^^^^^^^
+Memory backend
+^^^^^^^^^^^^^^
 
-This set of :class:`Backend <frontera.core.components.Backend>` objects will use an `heapq`_ module as queue and native
-dictionaries as storage for :ref:`basic algorithms <frontier-backends-basic-algorithms>`.
+This implementation is using `heapq`_ module to store the requests queue and native dicts for other purposes and is
+meant to be used for educational or testing purposes only.
 
-
-.. class:: frontera.contrib.backends.memory.BASE
-
-    Base class for in-memory :class:`Backend <frontera.core.components.Backend>` objects.
-
-.. class:: frontera.contrib.backends.memory.FIFO
-
-    In-memory :class:`Backend <frontera.core.components.Backend>` implementation of `FIFO`_ algorithm.
-
-.. class:: frontera.contrib.backends.memory.LIFO
-
-    In-memory :class:`Backend <frontera.core.components.Backend>` implementation of `LIFO`_ algorithm.
-
-.. class:: frontera.contrib.backends.memory.BFS
-
-    In-memory :class:`Backend <frontera.core.components.Backend>` implementation of `BFS`_ algorithm.
-
-.. class:: frontera.contrib.backends.memory.DFS
-
-    In-memory :class:`Backend <frontera.core.components.Backend>` implementation of `DFS`_ algorithm.
-
-.. class:: frontera.contrib.backends.memory.RANDOM
-
-    In-memory :class:`Backend <frontera.core.components.Backend>` implementation of a random selection
-    algorithm.
+.. autoclass:: frontera.contrib.backends.memory.MemoryDistributedBackend
 
 
 .. _frontier-backends-sqlalchemy:
@@ -215,60 +199,17 @@ dictionaries as storage for :ref:`basic algorithms <frontier-backends-basic-algo
 SQLAlchemy backends
 ^^^^^^^^^^^^^^^^^^^
 
-This set of :class:`Backend <frontera.core.components.Backend>` objects will use `SQLAlchemy`_ as storage for
-:ref:`basic algorithms <frontier-backends-basic-algorithms>`.
+This implementations is using RDBMS storage with `SQLAlchemy`_ library.
 
 By default it uses an in-memory SQLite database as a storage engine, but `any databases supported by SQLAlchemy`_ can
 be used.
 
-
 If you need to use your own `declarative sqlalchemy models`_, you can do it by using the
 :setting:`SQLALCHEMYBACKEND_MODELS` setting.
 
-This setting uses a dictionary where ``key`` represents the name of the model to define and ``value`` the model to use.
-
 For a complete list of all settings used for SQLAlchemy backends check the :doc:`settings <frontera-settings>` section.
 
-.. class:: frontera.contrib.backends.sqlalchemy.BASE
-
-    Base class for SQLAlchemy :class:`Backend <frontera.core.components.Backend>` objects.
-
-.. class:: frontera.contrib.backends.sqlalchemy.FIFO
-
-    SQLAlchemy :class:`Backend <frontera.core.components.Backend>` implementation of `FIFO`_ algorithm.
-
-.. class:: frontera.contrib.backends.sqlalchemy.LIFO
-
-    SQLAlchemy :class:`Backend <frontera.core.components.Backend>` implementation of `LIFO`_ algorithm.
-
-.. class:: frontera.contrib.backends.sqlalchemy.BFS
-
-    SQLAlchemy :class:`Backend <frontera.core.components.Backend>` implementation of `BFS`_ algorithm.
-
-.. class:: frontera.contrib.backends.sqlalchemy.DFS
-
-    SQLAlchemy :class:`Backend <frontera.core.components.Backend>` implementation of `DFS`_ algorithm.
-
-.. class:: frontera.contrib.backends.sqlalchemy.RANDOM
-
-    SQLAlchemy :class:`Backend <frontera.core.components.Backend>` implementation of a random selection
-    algorithm.
-
-
-Revisiting backend
-^^^^^^^^^^^^^^^^^^
-
-Based on custom SQLAlchemy backend, and queue. Crawling starts with seeds. After seeds are crawled, every new
-document will be scheduled for immediate crawling. On fetching every new document will be scheduled for recrawling
-after fixed interval set by :setting:`SQLALCHEMYBACKEND_REVISIT_INTERVAL`.
-
-Current implementation of revisiting backend has no prioritization. During long term runs spider could go idle, because
-there are no documents available for crawling, but there are documents waiting for their scheduled revisit time.
-
-
-.. class:: frontera.contrib.backends.sqlalchemy.revisiting.Backend
-
-    Base class for SQLAlchemy :class:`Backend <frontera.core.components.Backend>` implementation of revisiting back-end.
+.. autoclass:: frontera.contrib.backends.sqlalchemy.Distributed
 
 
 HBase backend
@@ -278,13 +219,9 @@ HBase backend
 
 Is more suitable for large scale web crawlers. Settings reference can be found here :ref:`hbase-settings`. Consider
 tunning a block cache to fit states within one block for average size website. To achieve this it's recommended to use
-:attr:`hostname_local_fingerprint <frontera.utils.fingerprint.hostname_local_fingerprint>` to achieve documents closeness within the same host. This function can be selected with :setting:`URL_FINGERPRINT_FUNCTION` setting.
+:attr:`hostname_local_fingerprint <frontera.utils.fingerprint.hostname_local_fingerprint>` to achieve documents
+closeness within the same host. This function can be selected with :setting:`URL_FINGERPRINT_FUNCTION` setting.
 
-..  TODO: document details of block cache tuning,
-    BC* settings and queue get operation concept,
-    hbase tables schema and data flow
-    Queue exploration
-    shuffling with MR jobs
 
 Redis backend
 ^^^^^^^^^^^^^
@@ -299,10 +236,7 @@ items to the database; that metadata or queue items are lost.
 In case of connection errors; the crawler will attempt to reconnect three times. If the third attempt at connecting
 to Redis fails, the worker will skip that Redis operation and continue operating.
 
-.. _FIFO: http://en.wikipedia.org/wiki/FIFO
-.. _LIFO: http://en.wikipedia.org/wiki/LIFO_(computing)
-.. _DFS: http://en.wikipedia.org/wiki/Depth-first_search
-.. _BFS: http://en.wikipedia.org/wiki/Breadth-first_search
+
 .. _OrderedDict: https://docs.python.org/2/library/collections.html#collections.OrderedDict
 .. _heapq: https://docs.python.org/2/library/heapq.html
 .. _SQLAlchemy: http://www.sqlalchemy.org/

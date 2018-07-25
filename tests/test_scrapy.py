@@ -90,7 +90,7 @@ def test_request_response_converters():
 
 class TestFronteraMiddlewaresWithScrapy(unittest.TestCase):
 
-    def setUp(self):
+    def init_smw(self, custom_settings):
         class TestSpider(Spider):
             name = 'test'
 
@@ -101,10 +101,6 @@ class TestFronteraMiddlewaresWithScrapy(unittest.TestCase):
 
         # monkey patch SPIDER_MIDDLEWARES_BASE to include only referer middleware
         sys.modules['scrapy.settings.default_settings'].SPIDER_MIDDLEWARES_BASE = scrapy_default_middlewares
-
-        custom_settings = {
-            'SPIDER_MIDDLEWARES': {'frontera.contrib.scrapy.middlewares.schedulers.SchedulerSpiderMiddleware': 1000}
-        }
         crawler = get_crawler(self.spider, custom_settings)
         self.add_frontera_scheduler(crawler)
         self.smw = SpiderMiddlewareManager.from_crawler(crawler)
@@ -125,8 +121,7 @@ class TestFronteraMiddlewaresWithScrapy(unittest.TestCase):
 
         crawler.engine = Engine(scheduler)
 
-    def test_frontera_scheduler_spider_middleware_with_referer_middleware(self):
-
+    def perform_test(self, output_func):
         def request_callback(response):
             yield Request('http://frontera.org')
 
@@ -143,20 +138,37 @@ class TestFronteraMiddlewaresWithScrapy(unittest.TestCase):
             dfd.addCallback(request.callback)
             return dfd
 
-        def test_middleware_output(result):
-            out = list(result)
-            self.assertEquals(len(out), 1)
-            self.assertIsInstance(out[0], Request)
-            self.assertIn('Referer', out[0].headers)
-            self.assertEquals(out[0].headers['Referer'], to_bytes(res.url))
-
         def test_failure(failure):
             # work around for test to fail with detailed traceback
             self._observer._errors.append(failure)
 
         dfd = self.smw.scrape_response(call_request_callback, res, req, self.spider)
 
-        dfd.addCallback(test_middleware_output)
+        dfd.addCallback(output_func)
         dfd.addErrback(test_failure)
 
         dfd.callback(res)
+
+    def test_frontera_scheduler_spider_mw_with_referer_mw(self):
+
+        def test_middleware_output(result):
+            out = list(result)
+            # Frontera swallows requests but passes items
+            self.assertEquals(len(out), 0)
+
+        self.init_smw({
+            'SPIDER_MIDDLEWARES': {'frontera.contrib.scrapy.middlewares.schedulers.SchedulerSpiderMiddleware': 1000}
+        })
+        self.perform_test(test_middleware_output)
+
+    def test_frontera_scheduler_spider_mw_without_referer_mw(self):
+
+        def test_middleware_output(result):
+            out = list(result)
+            self.assertEquals(len(out), 1)
+            self.assertIsInstance(out[0], Request)
+            self.assertIn('Referer', out[0].headers)
+            self.assertEquals(out[0].headers['Referer'], to_bytes('http://www.scrapy.org'))
+
+        self.init_smw({})
+        self.perform_test(test_middleware_output)

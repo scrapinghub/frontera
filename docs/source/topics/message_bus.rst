@@ -31,7 +31,7 @@ components startup to avoid message loss:
 
 #. :term:`db worker`
 #. :term:`strategy worker`
-#. :term:`spiders`
+#. :term:`spider`s
 
 Unfortunately, it's not possible to avoid message loss when stopping running crawler with unfinished crawl. We recommend
  to use Kafka message bus if your crawler application is sensitive to small message loss.

@@ -107,7 +107,8 @@ class FronteraScheduler(Scheduler):
         for element in result:
             if isinstance(element, Request):
                 links.append(element)
-            yield element
+            else:
+                yield element
         frontier_request = response.meta[b'frontier_request']
         self.frontier.page_crawled(response)  # removed frontier part from .meta
         # putting it back, to persist .meta from original request
@@ -129,7 +130,7 @@ class FronteraScheduler(Scheduler):
     def close(self, reason):
         self.logger.info("Finishing frontier (%s)", reason)
         self.frontier.stop()
-        self.stats_manager.set_iterations(self.frontier.manager.iteration)
+        self.stats_manager.set_iterations(getattr(self.frontier.manager, 'iteration', 0))
         self.stats_manager.set_pending_requests(len(self))
 
     def __len__(self):

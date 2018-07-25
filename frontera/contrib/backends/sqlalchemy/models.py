@@ -90,3 +90,24 @@ class QueueModel(QueueModelMixin, DeclarativeBase):
 
     def __repr__(self):
         return '<Queue:%s (%d)>' % (self.url, self.id)
+
+
+class DomainMetadataModel(DeclarativeBase):
+    __tablename__ = 'domain_metadata'
+    __table_args__ = (
+        {
+            'mysql_charset': 'utf8',
+            'mysql_engine': 'InnoDB',
+            'mysql_row_format': 'DYNAMIC',
+        },
+    )
+
+    key = Column(String(256), primary_key=True, nullable=False)
+    value = Column(PickleType())
+
+    @classmethod
+    def query(cls, session):
+        return session.query(cls)
+
+    def __repr__(self):
+        return '<DomainMetadata: %s>' % (self.key)

@@ -1,11 +1,12 @@
 from __future__ import absolute_import
-from frontera.core.manager import FrontierManager
+from frontera.core.manager import LocalFrontierManager, SpiderFrontierManager
 from .converters import BaseRequestConverter, BaseResponseConverter
 
 
 class FrontierManagerWrapper(object):
     def __init__(self, settings, manager=None):
-        manager = manager or FrontierManager
+        if manager is None:
+            manager = LocalFrontierManager if settings.get("LOCAL_MODE") is True else SpiderFrontierManager
         self.manager = manager.from_settings(settings)
         self.request_converter = None
         self.response_converter = None
@@ -23,10 +24,6 @@ class FrontierManagerWrapper(object):
 
     def stop(self):
         self.manager.stop()
-
-    def add_seeds(self, seeds):
-        frontier_seeds = [self.request_converter.to_frontier(seed) for seed in seeds]
-        self.manager.add_seeds(seeds=frontier_seeds)
 
     def get_next_requests(self, max_next_requests=0, **kwargs):
         frontier_requests = self.manager.get_next_requests(max_next_requests=max_next_requests, **kwargs)

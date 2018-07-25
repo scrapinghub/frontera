@@ -4,7 +4,7 @@ import pytest
 from twisted.test.proto_helpers import MemoryReactor
 from twisted.internet.protocol import Factory
 from twisted.internet.task import Clock
-from frontera.utils.async import CallLaterOnce, listen_tcp
+from frontera.utils.twisted_helpers import CallLaterOnce, listen_tcp
 
 
 class TestCallLaterOnce(object):

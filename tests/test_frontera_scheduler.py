@@ -30,17 +30,6 @@ fr3 = Request('http://example1.com')
 
 class TestFronteraScheduler(object):
 
-    def test_enqueue_requests(self):
-        crawler = FakeCrawler()
-        fs = FronteraScheduler(crawler, manager=FakeFrontierManager)
-        fs.open(Spider)
-        assert fs.enqueue_request(r1) is True
-        assert fs.enqueue_request(r2) is True
-        assert fs.enqueue_request(r3) is True
-        assert set(seed.url for seed in fs.frontier.manager.seeds) == set([r1.url, r2.url, r3.url])
-        assert all([isinstance(seed, FRequest) for seed in fs.frontier.manager.seeds])
-        assert fs.stats_manager.stats.get_value('frontera/seeds_count') == 3
-
     def test_redirect_disabled_enqueue_requests(self):
         settings = Settings()
         settings['REDIRECT_ENABLED'] = False
@@ -49,11 +38,7 @@ class TestFronteraScheduler(object):
         fs.open(Spider)
         assert fs.enqueue_request(rr1) is False
         assert fs.enqueue_request(rr2) is False
-        assert fs.enqueue_request(rr3) is True
-        assert isinstance(fs.frontier.manager.seeds[0], FRequest)
-        assert len(fs.frontier.manager.seeds) == 1
-        assert fs.frontier.manager.seeds[0].url == rr3.url
-        assert fs.stats_manager.stats.get_value('frontera/seeds_count') == 1
+        assert fs.enqueue_request(rr3) is False
 
     def test_redirect_enabled_enqueue_requests(self):
         settings = Settings()
@@ -64,13 +49,7 @@ class TestFronteraScheduler(object):
         assert fs.enqueue_request(rr1) is True
         assert fs.enqueue_request(rr2) is True
         assert fs.enqueue_request(rr3) is True
-        assert len(fs.frontier.manager.seeds) == 1
-        assert isinstance(fs.frontier.manager.seeds[0], FRequest)
-        assert fs.frontier.manager.seeds[0].url == rr3.url
-        assert set([request.url for request in fs._pending_requests]) == set([rr1.url, rr2.url])
-        assert all([isinstance(request, Request) for request in fs._pending_requests])
-        assert fs.stats_manager.stats.get_value('frontera/seeds_count') == 1
-        assert fs.stats_manager.stats.get_value('frontera/redirected_requests_count') == 2
+        assert set([request.url for request in fs._pending_requests]) == set([rr1.url, rr2.url, rr3.url])
 
     def test_next_request(self):
         crawler = FakeCrawler()
@@ -113,19 +92,19 @@ class TestFronteraScheduler(object):
     def test_process_spider_output(self):
         i1 = {'name': 'item', 'item': 'i1'}
         i2 = {'name': 'item', 'item': 'i2'}
-        no_requests = 3
-        result = [r1, r2, r3, i1, i2]
+        items = [i1 , i2]
+        requests = [r1, r2, r3]
+        result = list(requests)
+        result.extend(items)
         resp = Response(fr1.url, request=Request(fr1.url, meta={b'frontier_request': fr1}))
         crawler = FakeCrawler()
         fs = FronteraScheduler(crawler, manager=FakeFrontierManager)
-        fs.open(Spider)
-        out = list(fs.process_spider_output(resp, result, Spider))
-        assert len(out) == len(result)
-        out_request = out[:no_requests]
-        assert set(r.url for r in out_request) == set(r.url for r in result[:no_requests])
-        out_items = out[no_requests:]
-        assert sorted(out_items, key=lambda i: sorted(i['item'])) == \
-            sorted([i1, i2], key=lambda i: sorted(i['item']))
+        spider = Spider(name="testing")
+        fs.open(spider)
+        out_items = list(fs.process_spider_output(resp, result, spider))
+        assert len(out_items) == len(items)
+        assert set([r.url for r in fs.frontier.manager.links]) == set([r.url for r in requests])
+
         assert isinstance(fs.frontier.manager.responses[0], FResponse)
         assert fs.frontier.manager.responses[0].url == resp.url
         assert set([request.url for request in fs.frontier.manager.links]) == set([r1.url, r2.url, r3.url])

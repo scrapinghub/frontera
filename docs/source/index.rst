@@ -4,16 +4,14 @@
 Frontera |version| documentation
 ================================
 
-`Frontera`_ is a web crawling tool box, allowing to build crawlers of any scale and purpose.
+`Frontera`_ is a web crawling tool box, allowing to build crawlers of any scale and purpose. It includes:
 
-`Frontera`_ provides :ref:`crawl frontier <crawl-frontier>` framework by managing *when* and *what* to crawl next,
-and checking for *crawling goal* accomplishment.
+* :ref:`crawl frontier <crawl-frontier>` framework managing *when* and *what* to crawl and checking for crawling goal* accomplishment,
 
-Frontera also provides replication, sharding and isolation of all crawler components to scale and distribute it.
+* workers, Scrapy wrappers, and data bus components to scale and distribute the crawler.
 
 Frontera contain components to allow creation of fully-operational web crawler with `Scrapy`_. Even though it was
-originally designed for Scrapy, it can also be used with any other crawling framework/system as the framework offers
-a generic tool box.
+originally designed for Scrapy, it can also be used with any other crawling framework/system.
 
 
 Introduction
@@ -53,17 +51,21 @@ Using Frontera
    :hidden:
 
    topics/installation
+   topics/strategies
    topics/frontier-objects
    topics/frontier-middlewares
    topics/frontier-canonicalsolvers
    topics/frontier-backends
    topics/message_bus
-   topics/own_crawling_strategy
+   topics/custom_crawling_strategy
    topics/scrapy-integration
    topics/frontera-settings
 
 :doc:`topics/installation`
     HOWTO and Dependencies options.
+
+:doc:`topics/strategies`
+    A list of built-in crawling strategies.
 
 :doc:`topics/frontier-objects`
     Understand the classes used to represent requests and responses.
@@ -75,13 +77,13 @@ Using Frontera
     Identify and make use of canonical url of document.
 
 :doc:`topics/frontier-backends`
-    Define your own crawling policy and custom storage.
+    Built-in backends, and tips on implementing your own.
 
 :doc:`topics/message_bus`
     Built-in message bus reference.
 
-:doc:`topics/own_crawling_strategy`
-    Implementing own crawling strategy for distributed backend.
+:doc:`topics/custom_crawling_strategy`
+    Implementing your own crawling strategy.
 
 :doc:`topics/scrapy-integration`
     Learn how to use Frontera with Scrapy.
@@ -130,11 +132,8 @@ Developer documentation
    topics/tests
    topics/loggers
    topics/frontier-tester
-   topics/faq
    topics/contributing
    topics/glossary
-
-
 
 
 :doc:`topics/architecture`
@@ -158,12 +157,8 @@ Developer documentation
 :doc:`topics/frontier-tester`
     Test your frontier in an easy way.
 
-:doc:`topics/faq`
-    Frequently asked questions.
-
 :doc:`topics/contributing`
     HOWTO contribute.
-
 
 :doc:`topics/glossary`
     Glossary of terms.

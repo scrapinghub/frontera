@@ -1,8 +1,8 @@
 from frontera.worker.strategy import StrategyWorker
-from frontera.worker.strategies.bfs import CrawlingStrategy
 from frontera.settings import Settings
 from frontera.core.models import Request, Response
 from frontera.core.components import States
+from tests.mocks.components import CrawlingStrategy
 from unittest import TestCase
 from os import remove
 from os.path import exists
@@ -23,8 +23,9 @@ class TestStrategyWorker(TestCase):
         settings = Settings()
         settings.BACKEND = 'frontera.contrib.backends.sqlalchemy.Distributed'
         settings.MESSAGE_BUS = 'tests.mocks.message_bus.FakeMessageBus'
+        settings.STRATEGY = 'tests.mocks.components.CrawlingStrategy'
         settings.SPIDER_LOG_CONSUMER_BATCH_SIZE = 100
-        self.sw = StrategyWorker(settings, CrawlingStrategy, None, None)
+        self.sw = StrategyWorker(settings, False)
 
     def tearDown(self):
         if exists("/tmp/test_urls.txt"):
@@ -35,15 +36,17 @@ class TestStrategyWorker(TestCase):
         settings = Settings()
         settings.BACKEND = 'frontera.contrib.backends.sqlalchemy.Distributed'
         settings.MESSAGE_BUS = 'tests.mocks.message_bus.FakeMessageBus'
+        settings.STRATEGY = 'tests.test_worker_strategy.FilteredLinksCrawlingStrategy'
         settings.SPIDER_LOG_CONSUMER_BATCH_SIZE = 100
-        return StrategyWorker(settings, FilteredLinksCrawlingStrategy, None, None)
+        return StrategyWorker(settings, False)
 
     def sw_setup_add_seeds(self):
         settings = Settings()
         settings.BACKEND = 'frontera.contrib.backends.sqlalchemy.Distributed'
         settings.MESSAGE_BUS = 'tests.mocks.message_bus.FakeMessageBus'
         settings.SPIDER_LOG_CONSUMER_BATCH_SIZE = 100
-        return StrategyWorker(settings, CrawlingStrategy, None, True)
+        settings.STRATEGY = 'tests.mocks.components.CrawlingStrategy'
+        return StrategyWorker(settings, True)
 
     def test_add_seeds(self):
         sw = self.sw_setup_add_seeds()
@@ -70,11 +73,11 @@ class TestStrategyWorker(TestCase):
         sw.work()
         # response should be skipped if it's jid doesn't match the strategy worker's
         assert sw.scoring_log_producer.messages == []
-        sw.job_id = 1
+        sw.workflow.job_id = 1
         sw.consumer.put_messages([msg])
         sw.work()
         r1c = r1.copy()
-        sw.states.set_states(r1c)
+        sw.workflow.states_context.states.set_states(r1c)
         assert r1c.meta[b'state'] == States.CRAWLED
 
     def test_links_extracted(self):
@@ -86,8 +89,14 @@ class TestStrategyWorker(TestCase):
         sw.work()
         r3.meta[b'state'] = States.QUEUED
         r4.meta[b'state'] = States.QUEUED
-        assert set(sw.scoring_log_producer.messages) == \
-            set(sw._encoder.encode_update_score(r, sw.strategy.get_score(r.url), True) for r in [r3, r4])
+
+        # decoding messages from scoring log
+        fprints = set()
+        for msg in sw.scoring_log_producer.messages:
+            typ, req, score, is_schedule = sw._decoder.decode(msg)
+            fprints.add(req.meta[b'fingerprint'])
+
+        assert fprints == set([r.meta[b'fingerprint'] for r in [r3, r4]])
 
     def test_filter_links_extracted(self):
         sw = self.sw_setup_filtered_links()
@@ -105,6 +114,6 @@ class TestStrategyWorker(TestCase):
         msg = sw._encoder.encode_request_error(r4, 'error')
         sw.consumer.put_messages([msg])
         sw.work()
-        r4.meta[b'state'] = States.ERROR
-        assert sw.scoring_log_producer.messages.pop() == \
-            sw._encoder.encode_update_score(r4, 0.0, False)
+        sw.workflow.states_context.states.set_states(r4)
+
+        assert r4.meta[b'state'] == States.ERROR

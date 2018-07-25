@@ -133,35 +133,6 @@ You can define the following test::
         ...
 
 
-Testing basic algorithms
-========================
-
-If your backend uses any of the :ref:`basic algorithms logics <frontier-backends-basic-algorithms>`, you can just
-inherit the correponding test base class for each logic and sequences will be automatically tested for it::
-
-    from tests import backends
-
-
-    class TestMyBackendFIFO(backends.FIFOBackendTest):
-        backend_class = 'frontera.contrib.backends.abackend.MyBackendFIFO'
-
-
-    class TestMyBackendLIFO(backends.LIFOBackendTest):
-        backend_class = 'frontera.contrib.backends.abackend.MyBackendLIFO'
-
-
-    class TestMyBackendDFS(backends.DFSBackendTest):
-        backend_class = 'frontera.contrib.backends.abackend.MyBackendDFS'
-
-
-    class TestMyBackendBFS(backends.BFSBackendTest):
-        backend_class = 'frontera.contrib.backends.abackend.MyBackendBFS'
-
-
-    class TestMyBackendRANDOM(backends.RANDOMBackendTest):
-        backend_class = 'frontera.contrib.backends.abackend.MyBackendRANDOM'
-
-
 
 .. _pytest: http://pytest.org/latest/
 

@@ -128,39 +128,6 @@ Default: ``frontera.contrib.canonicalsolvers.Basic``
 The :class:`CanonicalSolver <frontera.core.components.CanonicalSolver>` to be used by the frontier for resolving
 canonical URLs. For more info see :ref:`Canonical URL Solver <canonical-url-solver>`.
 
-.. setting:: SPIDER_LOG_CONSUMER_BATCH_SIZE
-
-SPIDER_LOG_CONSUMER_BATCH_SIZE
-------------------------------
-
-Default: ``512``
-
-This is a batch size used by strategy and db workers for consuming of spider log stream. Increasing it
-will cause worker to spend more time on every task, but processing more items per task, therefore leaving less time for
-other tasks during some fixed time interval. Reducing it will result to running several tasks within the same time
-interval, but with less overall efficiency. Use it when your consumers too slow, or too fast.
-
-.. setting:: SCORING_LOG_CONSUMER_BATCH_SIZE
-
-SCORING_LOG_CONSUMER_BATCH_SIZE
--------------------------------
-
-Default: ``512``
-
-This is a batch size used by db worker for consuming of scoring log stream. Use it when you need to adjust scoring log
-consumption speed.
-
-
-.. setting:: CRAWLING_STRATEGY
-
-CRAWLING_STRATEGY
------------------
-
-Default: ``None``
-
-The path to crawling strategy class, instantiated and used in :term:`strategy worker` to prioritize and stop crawling in
-distributed run mode.
-
 .. setting:: DELAY_ON_EMPTY
 
 DELAY_ON_EMPTY
@@ -172,6 +139,16 @@ Delay between calls to backend for new batches in Scrapy scheduler, when queue s
 ``CONCURRENT_REQUESTS``. When backend has no requests to fetch, this delay helps to exhaust the rest of the buffer
 without hitting backend on every request. Increase it if calls to your backend is taking too long, and decrease
 if you need a fast spider bootstrap from seeds.
+
+
+.. setting:: DISCOVERY_MAX_PAGES
+
+DISCOVERY_MAX_PAGES
+-------------------
+
+Default: ``100``
+
+The maximum number of pages to schedule by Discovery crawling strategy.
 
 
 .. setting:: DOMAIN_STATS_LOG_INTERVAL
@@ -193,6 +170,17 @@ Default: ``5.0``
 
 Time process should block until requested amount of data will be received from message bus. This is a general
 message bus setting with obsolete Kafka-related name.
+
+
+.. setting:: LOCAL_MODE
+
+LOCAL_MODE
+----------
+
+Default: ``True``
+
+Sets single process run mode. Crawling strategy together with backend are used from the same spider process.
+
 
 .. setting:: LOGGING_CONFIG
 
@@ -342,6 +330,29 @@ Default: ``'frontera.core.models.Response'``
 The :class:`Response <frontera.core.models.Response>` model to be used by the frontier.
 
 
+.. setting:: SPIDER_LOG_CONSUMER_BATCH_SIZE
+
+SPIDER_LOG_CONSUMER_BATCH_SIZE
+------------------------------
+
+Default: ``512``
+
+This is a batch size used by strategy and db workers for consuming of spider log stream. Increasing it
+will cause worker to spend more time on every task, but processing more items per task, therefore leaving less time for
+other tasks during some fixed time interval. Reducing it will result to running several tasks within the same time
+interval, but with less overall efficiency. Use it when your consumers too slow, or too fast.
+
+.. setting:: SCORING_LOG_CONSUMER_BATCH_SIZE
+
+SCORING_LOG_CONSUMER_BATCH_SIZE
+-------------------------------
+
+Default: ``512``
+
+This is a batch size used by db worker for consuming of scoring log stream. Use it when you need to adjust scoring log
+consumption speed.
+
+
 .. setting:: SCORING_PARTITION_ID
 
 SCORING_PARTITION_ID
@@ -400,6 +411,25 @@ Default: ``False``
 
 Determines if content should be sent over the message bus and stored in the backend: a serious performance killer.
 
+.. setting:: STRATEGY
+
+STRATEGY
+--------
+
+Default: ``frontera.worker.strategies.basic.BasicCrawlingStrategy``
+
+The path to crawling strategy class.
+
+.. setting:: STRATEGY_ARGS
+
+STRATEGY_ARGS
+-------------
+
+Default: ``{}``
+
+Dict with default arguments for crawling strategy. Can be overridien with command line option in
+:term:`strategy worker`.
+
 .. setting:: SW_FLUSH_INTERVAL
 
 SW_FLUSH_INTERVAL
@@ -418,6 +448,15 @@ TEST_MODE
 Default: ``False``
 
 Whether to enable frontier test mode. See :ref:`Frontier test mode <frontier-test-mode>`
+
+.. setting:: USER_AGENT
+
+USER_AGENT
+----------
+
+Default: ``FronteraDiscoveryBot``
+
+User agent string in use by Discovery crawling strategy.
 
 
 
@@ -531,7 +570,8 @@ Default::
         'QueueModel': 'frontera.contrib.backends.sqlalchemy.models.QueueModel'
     }
 
-This is mapping with SQLAlchemy models used by backends. It is mainly used for customization.
+This is mapping with SQLAlchemy models used by backends. It is mainly used for customization. This setting uses a
+dictionary where ``key`` represents the name of the model to define and ``value`` the model to use.
 
 
 Revisiting backend
@@ -570,6 +610,37 @@ HBASE_DROP_ALL_TABLES
 Default: ``False``
 
 Enables dropping and creation of new HBase tables on worker start.
+
+.. setting:: HBASE_DOMAIN_METADATA_TABLE
+
+HBASE_DOMAIN_METADATA_TABLE
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Default: ``domain_metadata``
+
+Name of the domain metadata table in HBase.
+
+
+.. setting:: HBASE_DOMAIN_METADATA_CACHE_SIZE
+
+HBASE_DOMAIN_METADATA_CACHE_SIZE
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Default: 1000
+
+The count of domain-value pairs cached in memory in :term:`strategy worker`. Pairs are evicted from cache using LRU
+policy.
+
+
+.. setting:: HBASE_DOMAIN_METADATA_BATCH_SIZE
+
+HBASE_DOMAIN_METADATA_BATCH_SIZE
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Default: 100
+
+Maximum count of domain-value pairs kept in write buffer before actual write happens.
+
 
 .. setting:: HBASE_METADATA_TABLE
 
