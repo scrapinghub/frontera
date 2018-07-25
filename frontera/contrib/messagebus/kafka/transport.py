@@ -29,7 +29,7 @@ class FramedTransport(object):
             self.buffer[msg_key] = buffer
         buffer[seg_id] = frame
         if len(buffer) == seg_count:
-            msgs = [buffer[seg_id][3] for seg_id in sorted(buffer.keys())]
+            msgs = [buffer[_seg_id][3] for _seg_id in sorted(buffer.keys())]
             final_msg = b''.join(msgs)
             del self.buffer[msg_key]
             return final_msg

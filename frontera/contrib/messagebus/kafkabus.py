@@ -90,7 +90,6 @@ class SimpleProducer(BaseStreamProducer):
         self._compression = compression
         self._create(enable_ssl, cert_path, **kwargs)
 
-
     def _create(self, enable_ssl, cert_path, **kwargs):
         self._transport = FramedTransport(MAX_SEGMENT_SIZE)
         kwargs.update(_prepare_kafka_ssl_kwargs(cert_path) if enable_ssl else {})
@@ -99,7 +98,6 @@ class SimpleProducer(BaseStreamProducer):
                                        compression_type=self._compression,
                                        max_request_size=DEFAULT_MAX_REQUEST_SIZE,
                                        **kwargs)
-
 
     def send(self, key, *messages):
         for msg in messages:
