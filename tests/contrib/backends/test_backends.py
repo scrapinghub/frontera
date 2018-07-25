@@ -53,6 +53,7 @@ def states(request):
                             write_log_size=5000, drop_all_tables=True)
         yield states
         states.frontier_stop()
+        return
     raise KeyError("Unknown backend param")
 
 
@@ -102,6 +103,7 @@ def queue(request):
         hq = HBaseQueue(conn, 2, b'queue')
         yield hq
         hq.frontier_stop()
+        return
     raise KeyError("Unknown backend param")
 
 
