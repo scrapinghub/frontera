@@ -58,8 +58,6 @@ distributed mode::
     SPIDER_FEED_PARTITIONS = 1
     SPIDER_LOG_PARTITIONS = 1
 
-    STRATEGY = "frontera.strategy.basic.BasicCrawlingStrategy"
-
 
 5. Choose your backend
 ======================
