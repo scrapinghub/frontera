@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-import logging
+from __future__ import absolute_import
+
 
 BACKEND = 'frontera.contrib.backends.sqlalchemy.revisiting.Backend'
 SQLALCHEMYBACKEND_ENGINE = 'sqlite:///url_storage.sqlite'
