@@ -43,7 +43,7 @@ Configuring HBase
 
 Configuring Frontera
 ====================
-Every Frontera component requires it's own configuration module, but some options are shared, so we recommend to create
+Every Frontera component requires its own configuration module, but some options are shared, so we recommend to create
 a common modules and import settings from it in component's modules.
 
 1. Create a common module and add there: ::
@@ -101,6 +101,7 @@ The logging can be configured according to https://docs.python.org/2/library/log
 
     BACKEND = 'frontera.contrib.backends.remote.messagebus.MessageBusBackend'
     KAFKA_GET_TIMEOUT = 0.5
+    LOCAL_MODE = False  # by default Frontera is prepared for single process mode
 
 
 6. Configure Scrapy settings module. It's located in Scrapy project folder and referenced in scrapy.cfg. Let's add
@@ -125,9 +126,11 @@ Starting the cluster
 First, let's start storage worker: ::
 
     # start DB worker only for batch generation
-    $ python -m frontera.worker.db --config [db worker config module] --no-incoming
-    ...
-    # Then start next one dedicated to spider log processing
+    # use single instance for every 10 partitions
+    $ python -m frontera.worker.db --config [db worker config module] --no-incoming --partitions 0,1
+
+
+    # Optionally, start next one dedicated to spider log processing.
     $ python -m frontera.worker.db --no-batches --config [db worker config module]
 
 
@@ -141,17 +144,18 @@ Next, let's start strategy workers, one process per spider log partition: ::
 You should notice that all processes are writing messages to the log. It's ok if nothing is written in streams,
 because of absence of seed URLs in the system.
 
-Let's put our seeds in text file, one URL per line and start spiders. A single spider per spider feed partition: ::
+Let's put our seeds in text file, one URL per line and run::
 
-    $ scrapy crawl [spider] -L INFO -s SEEDS_SOURCE = 'seeds.txt' -s SPIDER_PARTITION_ID=0
-    ...
+    $ python -m frontera.utils.add_seeds --config [your_frontera_config] --seeds-file [path to your seeds file]
+
+Finally, a single spider per spider feed partition: ::
+
     $ scrapy crawl [spider] -L INFO -s SPIDER_PARTITION_ID=1
     $ scrapy crawl [spider] -L INFO -s SPIDER_PARTITION_ID=2
     ...
     $ scrapy crawl [spider] -L INFO -s SPIDER_PARTITION_ID=N
 
-You should end up with N spider processes running. Usually it's enough for a single instance to read seeds from
-``SEEDS_SOURCE`` variable to pass seeds to Frontera cluster. Seeds are only read if spider queue is empty.
-::setting:`SPIDER_PARTITION_ID` can be read from config file also.
+You should end up with N spider processes running. Also :setting:`SPIDER_PARTITION_ID` can be read from config file.
 
-After some time seeds will pass the streams and will be scheduled for downloading by workers. Crawler is bootstrapped.
+You're done, crawler should start crawling. Any component can be restarted any time, without major data loss. However,
+for pausing its enough to stop batch gen only.
