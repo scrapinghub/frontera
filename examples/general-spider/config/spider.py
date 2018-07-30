@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 from frontera.settings.default_settings import MIDDLEWARES
+from config import *
 
 MAX_NEXT_REQUESTS = 256
 DELAY_ON_EMPTY = 5.0
@@ -13,6 +15,3 @@ MIDDLEWARES.extend([
 # Crawl frontier backend
 #--------------------------------------------------------
 BACKEND = 'frontera.contrib.backends.remote.messagebus.MessageBusBackend'
-SPIDER_FEED_PARTITIONS = 2
-
-

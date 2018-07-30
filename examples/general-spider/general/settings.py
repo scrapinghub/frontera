@@ -5,10 +5,9 @@ SPIDER_MODULES = ['general.spiders']
 NEWSPIDER_MODULE = 'general.spiders'
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-#USER_AGENT = 'topic (+http://www.yourdomain.com)'
+USER_AGENT = 'Frontera-based example bot (+https://github.com/scrapinghub/frontera)'
 
 SPIDER_MIDDLEWARES = {
-    'frontera.contrib.scrapy.middlewares.seeds.file.FileSeedLoader': 1,
     'frontera.contrib.scrapy.middlewares.schedulers.SchedulerSpiderMiddleware': 1000,
     'scrapy.spidermiddleware.depth.DepthMiddleware': None,
     'scrapy.spidermiddleware.offsite.OffsiteMiddleware': None,
@@ -46,3 +45,5 @@ LOG_LEVEL = 'INFO'
 
 REACTOR_THREADPOOL_MAXSIZE = 32
 DNS_TIMEOUT = 180
+FRONTERA_SETTINGS = 'config.spider'
+HTTPERROR_ALLOW_ALL = True

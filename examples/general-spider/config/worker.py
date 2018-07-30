@@ -1,22 +1,18 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 from frontera.settings.default_settings import MIDDLEWARES
+from config import *
 
 MAX_NEXT_REQUESTS = 512
-SPIDER_FEED_PARTITIONS = 2
-SPIDER_LOG_PARTITIONS = 1
 
 #--------------------------------------------------------
 # Url storage
 #--------------------------------------------------------
 
-BACKEND = 'frontera.contrib.backends.sqlalchemy.SQLAlchemyBackend'
-#BACKEND = 'frontera.contrib.backends.sqlalchemy.Distributed'
+BACKEND = 'frontera.contrib.backends.sqlalchemy.Distributed'
 
 
-SQLALCHEMYBACKEND_ENGINE = 'sqlite:///url_storage_dist.sqlite'
 SQLALCHEMYBACKEND_ENGINE_ECHO = False
-SQLALCHEMYBACKEND_DROP_ALL_TABLES = True
-SQLALCHEMYBACKEND_CLEAR_CONTENT = True
 from datetime import timedelta
 SQLALCHEMYBACKEND_REVISIT_INTERVAL = timedelta(days=3)
 
