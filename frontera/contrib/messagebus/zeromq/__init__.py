@@ -8,7 +8,7 @@ import zmq
 import six
 
 from frontera.core.messagebus import BaseMessageBus, BaseSpiderLogStream, BaseStreamConsumer, \
-    BaseSpiderFeedStream, BaseScoringLogStream, BaseStatsLogStream
+    BaseSpiderFeedStream, BaseScoringLogStream, BaseStatsLogStream, BaseStreamProducer
 from frontera.contrib.backends.partitioners import FingerprintPartitioner, Crc32NamePartitioner
 from frontera.contrib.messagebus.zeromq.socket_config import SocketConfig
 from six.moves import range
@@ -61,7 +61,7 @@ class Consumer(BaseStreamConsumer):
         return self.counter
 
 
-class Producer(object):
+class Producer(BaseStreamProducer):
     def __init__(self, context, location, identity):
         self.identity = identity
         self.sender = context.zeromq.socket(zmq.PUB)
@@ -123,9 +123,9 @@ class SpiderLogStream(BaseSpiderLogStream):
         return Consumer(self.context, location, partition_id, b'sl')
 
 
-class UpdateScoreProducer(Producer):
-    def __init__(self, context, location):
-        super(UpdateScoreProducer, self).__init__(context, location, b'us')
+class NonPartitionedProducer(Producer):
+    def __init__(self, context, location, identity):
+        super(NonPartitionedProducer, self).__init__(context, location, identity)
 
     def send(self, key, *messages):
         # Guarantee that msg is actually a list or tuple (should always be true)
@@ -155,7 +155,7 @@ class ScoringLogStream(BaseScoringLogStream):
         return Consumer(self.context, self.out_location, None, b'us')
 
     def producer(self):
-        return UpdateScoreProducer(self.context, self.in_location)
+        return NonPartitionedProducer(self.context, self.in_location, b'us')
 
 
 class SpiderFeedProducer(Producer):
@@ -194,6 +194,17 @@ class SpiderFeedStream(BaseSpiderFeedStream):
         self.ready_partitions.discard(partition_id)
 
 
+class DevNullProducer(BaseStreamProducer):
+    def send(self, key, *messages):
+        pass
+
+    def flush(self):
+        pass
+
+    def get_offset(self, partition_id):
+        pass
+
+
 class StatsLogStream(BaseStatsLogStream):
     def __init__(self, messagebus):
         self.context = messagebus.context
@@ -203,7 +214,7 @@ class StatsLogStream(BaseStatsLogStream):
         pass
 
     def producer(self):
-        return Producer(self.context, self.in_location, b'st')
+        return DevNullProducer()
 
 
 class Context(object):
