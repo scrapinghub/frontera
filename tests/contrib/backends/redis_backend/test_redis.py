@@ -501,6 +501,13 @@ class RedisBackendTest(TestCase):
         requests = subject.get_next_requests(max_next_requests=10, partitions=['0', '1'])
         self.assertEqual(3, len(requests))
 
+    def test_close_manager(self):
+        settings = Settings(module='frontera.settings.default_settings')
+        settings.set('BACKEND', 'frontera.contrib.backends.redis_backend.RedisBackend')
+        manager = WorkerFrontierManager.from_settings(settings, strategy_worker=True)
+        self.assertEqual(RedisBackend, manager.backend.__class__)
+        manager.close()
+
 
 if __name__ == '__main__':
     main()
