@@ -178,7 +178,7 @@ class OffsetsFetcherAsync(object):
 
                 if future.exception.invalid_metadata:
                     refresh_future = self._client.cluster.request_update()
-                    self._client.poll(future=refresh_future, sleep=True)
+                    self._client.poll(future=refresh_future)
                     log.warning("Got exception %s and kept the loop", future.exception)
             if offsets:
                 return offsets

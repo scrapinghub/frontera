@@ -258,7 +258,7 @@ class RedisState(States):
 
         [get(obj) for obj in objs]
 
-    def flush(self, force_clear):
+    def flush(self, force_clear=False):
         if len(self._cache) > self._cache_size_limit:
             force_clear = True
         [self._redis_pipeline.hmset(fprint, {FIELD_STATE: state}) for (fprint, state) in self._cache.items()]

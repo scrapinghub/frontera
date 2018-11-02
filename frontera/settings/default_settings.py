@@ -49,6 +49,7 @@ QUEUE_HOSTNAME_PARTITIONING = False
 REDIS_BACKEND_CODEC = 'frontera.contrib.backends.remote.codecs.msgpack'
 REDIS_HOST = 'localhost'
 REDIS_PORT = 6379
+REDIS_STATE_CACHE_SIZE_LIMIT = 0
 REQUEST_MODEL = 'frontera.core.models.Request'
 RESPONSE_MODEL = 'frontera.core.models.Response'
 
