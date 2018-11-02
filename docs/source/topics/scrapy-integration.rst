@@ -6,6 +6,20 @@ To use Frontera with Scrapy, you will need to add `Scrapy middlewares`_ and rede
 custom Frontera scheduler. Both can be done by modifying `Scrapy settings`_.
 
 
+The purpose
+===========
+
+Scrapy is expected to be used as a fetching, HTML parsing and links extracting component. Your spider code have
+ to produce responses and requests from extracted links. That's all. Frontera's business is to keep the links, queue
+and schedule links when needed.
+
+Please make sure all the middlewares affecting the crawling, like DepthMiddleware, OffsiteMiddleware or
+RobotsTxtMiddleware are disabled.
+
+All other use cases when Scrapy is busy items generation, scraping from HTML, scheduling links directly trying to bypass
+Frontera, are doomed to cause countless hours of maintenance. Please don't use Frontera integrated with Scrapy that way.
+
+
 Activating the frontier
 =======================
 
@@ -98,24 +112,64 @@ Writing Scrapy spider
 
 Spider logic
 ------------
-Creation of basic Scrapy spider is described at `Quick start single process`_ page.
 
-It's also a good practice to prevent spider from closing because of insufficiency of queued requests transport:::
+Creation of new Scrapy project is described at `Quick start single process`_ page. Again, your spider code have
+ to produce responses and requests from extracted links. Also, make sure exceptions caused by request processing are
+not intercepted by any of the middlewares. Otherwise errors delivery to :term:`crawling strategy` will be broken.
 
-    @classmethod
-    def from_crawler(cls, crawler, *args, **kwargs):
-        spider = cls(*args, **kwargs)
-        spider._set_crawler(crawler)
-        spider.crawler.signals.connect(spider.spider_idle, signal=signals.spider_idle)
-        return spider
+Here is an example code to start::
 
-    def spider_idle(self):
-        self.log("Spider idle signal caught.")
-        raise DontCloseSpider
+    from scrapy import Spider
+    from scrapy.linkextractors import LinkExtractor
+    from scrapy.http import Request
+    from scrapy.http.response.html import HtmlResponse
+
+    class CommonPageSpider(Spider):
+
+        name = "commonpage"
+
+        def __init__(self, *args, **kwargs):
+            super(CommonPageSpider, self).__init__(*args, **kwargs)
+            self.le = LinkExtractor()
+
+        def parse(self, response):
+            if not isinstance(response, HtmlResponse):
+                return
+            for link in self.le.extract_links(response):
+                r = Request(url=link.url)
+                r.meta.update(link_text=link.text)
+                yield r
+
 
 
 Configuration guidelines
 ------------------------
+
+Please specify a correct user agent string to disclose yourself to webmasters::
+
+    USER_AGENT = 'Some-Bot (+http://url/to-the-page-describing-the-purpose-of-crawling)'
+
+
+When using Frontera robots.txt obeying have to be implemented in :term:`crawling strategy`::
+
+    ROBOTSTXT_OBEY = False
+
+Disable some of the spider and downloader middlewares which may affect the crawling::
+
+    SPIDER_MIDDLEWARES.update({
+        'scrapy.spidermiddlewares.offsite.OffsiteMiddleware': None,
+        'scrapy.spidermiddlewares.referer.RefererMiddleware': None,
+        'scrapy.spidermiddlewares.urllength.UrlLengthMiddleware': None,
+        'scrapy.spidermiddlewares.depth.DepthMiddleware': None,
+        'scrapy.spidermiddlewares.httperror.HttpErrorMiddleware': None
+    })
+
+    DOWNLOADER_MIDDLEWARES.update({
+        'scrapy.downloadermiddlewares.httpauth.HttpAuthMiddleware': None,
+    })
+
+    del DOWNLOADER_MIDDLEWARES_BASE['scrapy.downloadermiddlewares.robotstxt.RobotsTxtMiddleware']
+
 
 There several tunings you can make for efficient broad crawling.
 

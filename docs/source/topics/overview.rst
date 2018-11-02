@@ -28,7 +28,7 @@ Here are few cases, external crawl frontier can be suitable for:
 
 * URL ordering/queueing isolation from the spider (e.g. distributed cluster of spiders, need of remote management of
   ordering/queueing),
-* URL (meta)data storage is needed (e.g. to demonstrate it's contents somewhere),
+* URL (meta)data storage is needed (e.g. to be able to pause and resume the crawl),
 * advanced URL ordering logic is needed, when it's hard to maintain code within spider/fetcher.
 
 
@@ -48,31 +48,8 @@ If website is big, and it's expensive to crawl the whole website, Frontera can b
 the most important documents.
 
 
-Distributed load, few websites
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-If website needs to be crawled faster than single spider one could use distributed spiders mode. In this mode Frontera
-is distributing spider processes and using one instance of backend worker. Requests are distributed using
-:term:`message bus` of your choice and distribution logic can be adjusted using custom partitioning. By default requests
-are distributed to spiders randomly, and desired request rate can be set in spiders.
-
-Consider also using proxy services, such as `Crawlera`_.
-
-
-Revisiting
-^^^^^^^^^^
-
-There is a set of websites and one need to re-crawl them on timely (or other) manner. Frontera provides simple
-revisiting backend, scheduling already visited documents for next visit using time interval set by option. This
-backend is using general relational database for persistence and can be used in single process or distributed
-spiders modes.
-
-Watchdog use case - when one needs to be notified about document changes, also could be addressed with such a backend
-and minor customization.
-
-
-Broad crawling
-^^^^^^^^^^^^^^
+Broad crawling of many websites
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This use case requires full distribution: spiders and backend. In addition to spiders process one should be running
 :term:`strategy worker` (s) and :term:`db worker` (s), depending on chosen partitioning scheme.
