@@ -1,7 +1,7 @@
 from frontera.contrib.backends.sqlalchemy.components import DomainMetadata, DomainMetadataKV
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from unittest import TestCase
+from unittest import TestCase, main
 import random
 import string
 
@@ -40,3 +40,14 @@ class TestSqlAlchemyDomainMetadata(TestCase):
             assert len(dm["key%d" % i]) == 10
             del dm["key%d" % i]
 
+    def test_save(self):
+        dm = DomainMetadata(self.session_cls)
+        domain = 'yandex.ru'
+        dm[domain] = {'test': 100}
+        dataset = dm[domain]
+        dataset['test'] = 101
+        assert dm[domain]['test'] == 101
+
+
+if __name__ == '__main__':
+    main()

@@ -16,6 +16,7 @@ from frontera.utils.misc import get_crc32, chunks
 from frontera.utils.url import parse_domain_from_url_fast
 from six.moves import range
 from w3lib.util import to_native_str, to_bytes
+from cachetools import Cache
 
 
 def retry_and_rollback(func):
@@ -280,30 +281,38 @@ class BroadCrawlingQueue(Queue):
         return results
 
 
-class DomainMetadata(BaseDomainMetadata):
+class DomainMetadataOld(BaseDomainMetadata):
     def __init__(self, session_cls):
+        self.cache = Cache(maxsize=1000)
         self.session = session_cls(expire_on_commit=False)
         self.table = DeclarativeBase.metadata.tables['domain_metadata']
         self.logger = logging.getLogger("sqlalchemy.domain_metadata")
 
     def frontier_stop(self):
+        self.cache.clear()
         self.session.close()
 
     @retry_and_rollback
     def __setitem__(self, key, value):
+        self.cache[key] = value
         pair = DomainMetadataKV(key=key, value=value)
         self.session.merge(pair)
         self.session.commit()
 
     @retry_and_rollback
     def __getitem__(self, key):
+        if key in self.cache:
+            return self.cache[key]
         result = self.session.query(DomainMetadataKV).filter(DomainMetadataKV.key == key).first()
         if result is None:
             raise KeyError
-        return result.value
+        self.cache[key] = result.value
+        return self.cache[key]
 
     @retry_and_rollback
     def __contains__(self, key):
+        if key in self.cache:
+            return True
         result = self.session.query(DomainMetadataKV.key).filter(DomainMetadataKV.key == key).first()
         if result is not None:
             return True
@@ -311,6 +320,52 @@ class DomainMetadata(BaseDomainMetadata):
 
     @retry_and_rollback
     def __delitem__(self, key):
+        if key in self.cache:
+            del self[key]
         self.session.query(DomainMetadataKV).filter(DomainMetadataKV.key == key).delete(synchronize_session=False)
         self.session.commit()
 
+
+class DomainMetadata(Cache, BaseDomainMetadata):
+    def __init__(self, session_cls):
+        self.cache = Cache(maxsize=1000)
+        self.session = session_cls(expire_on_commit=False)
+        self.table = DeclarativeBase.metadata.tables['domain_metadata']
+        self.logger = logging.getLogger("sqlalchemy.domain_metadata")
+
+    def frontier_stop(self):
+        self.cache.clear()
+        self.session.close()
+
+    @retry_and_rollback
+    def __setitem__(self, key, value):
+        self.cache[key] = value
+        pair = DomainMetadataKV(key=key, value=value)
+        self.session.merge(pair)
+        self.session.commit()
+
+    @retry_and_rollback
+    def __getitem__(self, key):
+        if key in self.cache:
+            return self.cache[key]
+        result = self.session.query(DomainMetadataKV).filter(DomainMetadataKV.key == key).first()
+        if result is None:
+            raise KeyError
+        self.cache[key] = result.value
+        return self.cache[key]
+
+    @retry_and_rollback
+    def __contains__(self, key):
+        if key in self.cache:
+            return True
+        result = self.session.query(DomainMetadataKV.key).filter(DomainMetadataKV.key == key).first()
+        if result is not None:
+            return True
+        return False
+
+    @retry_and_rollback
+    def __delitem__(self, key):
+        if key in self.cache:
+            del self[key]
+        self.session.query(DomainMetadataKV).filter(DomainMetadataKV.key == key).delete(synchronize_session=False)
+        self.session.commit()
