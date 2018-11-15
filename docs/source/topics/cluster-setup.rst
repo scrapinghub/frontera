@@ -88,7 +88,7 @@ a common modules and import settings from it in component's modules.
     from __future__ import absolute_import
     from .worker import *
 
-    CRAWLING_STRATEGY = '' # path to the crawling strategy class
+    STRATEGY = '' # path to the crawling strategy class
     LOGGING_CONFIG='logging-sw.conf' # if needed
 
 The logging can be configured according to https://docs.python.org/2/library/logging.config.html see the
@@ -127,7 +127,7 @@ First, let's start storage worker: ::
 
     # start DB worker only for batch generation
     # use single instance for every 10 partitions
-    $ python -m frontera.worker.db --config [db worker config module] --no-incoming --partitions 0,1
+    $ python -m frontera.worker.db --config [db worker config module] --no-incoming --partitions 0 1
 
 
     # Optionally, start next one dedicated to spider log processing.
