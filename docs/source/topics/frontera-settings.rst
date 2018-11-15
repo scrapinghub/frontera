@@ -310,6 +310,15 @@ Default: ``5.0``
 (in progress + queued requests in that slot) / max allowed concurrent downloads per slot before slot is considered
 overused. This affects only Scrapy scheduler."
 
+.. setting:: QUEUE_HOSTNAME_PARTITIONING
+
+QUEUE_HOSTNAME_PARTITIONING
+--------------------
+
+Default: ``False``
+
+Wheter to use the hostname as a partitioning scheme or not (uses the fingerprint as default).
+
 .. setting:: REQUEST_MODEL
 
 REQUEST_MODEL

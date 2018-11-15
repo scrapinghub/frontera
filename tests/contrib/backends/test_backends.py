@@ -1,6 +1,7 @@
 import pytest
 from frontera.core.components import States
 from frontera.core.models import Request
+from frontera import Settings
 from happybase import Connection
 from frontera.contrib.backends.hbase import HBaseState, HBaseQueue
 from frontera.contrib.backends.sqlalchemy import States as SQLAlchemyStates, Queue as SQLAlchemyQueue
@@ -88,11 +89,14 @@ def queue(request):
         return
 
     if request.param == "sqlalchemy":
+        settings = Settings()
+        settings.SPIDER_FEED_PARTITIONS = 2
+        settings.QUEUE_HOSTNAME_PARTITIONING = True
         engine = create_engine('sqlite:///:memory:', echo=False)
         session_cls = sessionmaker()
         session_cls.configure(bind=engine)
         QueueModel.__table__.create(bind=engine)
-        sqla_queue = SQLAlchemyQueue(session_cls, QueueModel, 2)
+        sqla_queue = SQLAlchemyQueue(session_cls, QueueModel, settings)
         yield sqla_queue
         sqla_queue.frontier_stop()
         engine.dispose()

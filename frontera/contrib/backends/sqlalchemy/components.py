@@ -148,12 +148,14 @@ class States(MemoryStates):
 
 
 class Queue(BaseQueue):
-    def __init__(self, session_cls, queue_cls, partitions, ordering='default'):
+    def __init__(self, session_cls, queue_cls, settings, ordering='default'):
+        partitions = settings.get('SPIDER_FEED_PARTITIONS')
         self.session = session_cls()
         self.queue_model = queue_cls
         self.logger = logging.getLogger("sqlalchemy.queue")
         self.partitions = [i for i in range(0, partitions)]
         self.partitioner = Crc32NamePartitioner(self.partitions)
+        self.hostname_partitioning = settings.get('QUEUE_HOSTNAME_PARTITIONING')
         self.ordering = ordering
 
     def frontier_stop(self):
@@ -202,7 +204,8 @@ class Queue(BaseQueue):
                     partition_id = self.partitions[0]
                     host_crc32 = 0
                 else:
-                    partition_id = self.partitioner.partition(hostname, self.partitions)
+                    partition_key = hostname if self.hostname_partitioning else to_native_str(fprint)
+                    partition_id = self.partitioner.partition(partition_key, self.partitions)
                     host_crc32 = get_crc32(hostname)
                 q = self.queue_model(fingerprint=to_native_str(fprint), score=score, url=request.url, meta=request.meta,
                                      headers=request.headers, cookies=request.cookies, method=to_native_str(request.method),

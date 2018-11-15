@@ -58,7 +58,7 @@ class Distributed(DistributedBackend):
         self.check_and_create_tables(drop, clear_content, (metadata_m, queue_m))
         self._metadata = Metadata(self.session_cls, metadata_m,
                                   settings.get('SQLALCHEMYBACKEND_CACHE_SIZE'))
-        self._queue = Queue(self.session_cls, queue_m, settings.get('SPIDER_FEED_PARTITIONS'))
+        self._queue = Queue(self.session_cls, queue_m, settings)
 
     @classmethod
     def strategy_worker(cls, manager):
