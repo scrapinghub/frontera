@@ -138,9 +138,10 @@ class BaseCrawlingStrategy(object):
 
     def refresh_states(self, requests):
         """
-        Retrieves states for all requests from storage.
-
-        :param requests: list(:class:`Request <frontera.core.models.Request>`)
+        Retrieves states for all requests from storage. Converts requests to a 1 item list() of :class:`Request <frontera.core.models.Request>` 
+        if requests is not a list of :class:`Request <frontera.core.models.Request>` objects.
+        
+        :param requests: list(:class:`Request <frontera.core.models.Request>`) or a single :class:`Request <frontera.core.models.Request>`
         """
         self._states_context.refresh_and_keep(requests)
 
