@@ -4,7 +4,7 @@ psycopg2>=2.5.4
 scrapy>=0.24
 -r tldextract.txt
 SQLAlchemy>=1.0.0
-cachetools
+cachetools==2.1.0
 pyzmq
 msgpack-python>=0.4
 kafka-python>=1.4.0

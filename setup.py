@@ -46,7 +46,7 @@ setup(
     extras_require={
         'sql': [
             'SQLAlchemy>=1.0.0',
-            'cachetools'
+            'cachetools==2.1.0'
         ],
         'graphs': [
             'pyparsing==1.5.7',
@@ -92,7 +92,7 @@ setup(
         "scrapy>=0.24",
         "tldextract>=1.5.1",
         "SQLAlchemy>=1.0.0",
-        "cachetools",
+        "cachetools==2.1.0",
         "mock",
         "boto>=2.42.0",
         "colorlog>=2.4.0",
