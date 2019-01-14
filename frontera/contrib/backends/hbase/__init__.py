@@ -599,13 +599,7 @@ class HBaseBackend(DistributedBackend):
         return results
 
     def get_stats(self):
-        """Helper to get stats dictionary for the backend.
-
-        For now it provides only HBase client stats.
-        """
         stats = {}
-        with time_elapsed('Call HBase backend get_stats()'):
-            stats.update(self.connection.client.get_stats())
         if self._states:
             stats.update(self._states.get_stats())
         return stats
