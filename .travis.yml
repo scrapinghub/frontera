@@ -35,6 +35,14 @@ matrix:
         - mysql
         - postgresql
         - redis-server
+    - python: 3.7
+      env: TOXENV=py37
+      dist: xenial
+      services:
+        - docker
+        - mysql
+        - postgresql
+        - redis-server
 
 install:
   - pip install -U tox wheel codecov
