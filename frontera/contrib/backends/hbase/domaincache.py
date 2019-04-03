@@ -180,6 +180,9 @@ class DomainCache(LRUCache, DomainMetadata):
 
     __len__ = None
 
+    def __bool__(self):
+        return True
+
     clear = None
 
     maxsize = None

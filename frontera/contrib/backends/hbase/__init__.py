@@ -561,7 +561,7 @@ class HBaseBackend(DistributedBackend):
 
     def frontier_start(self):
         for component in [self.metadata, self.queue, self.states, self.domain_metadata]:
-            if component:
+            if component is not None:
                 component.frontier_start()
 
     def frontier_stop(self):
