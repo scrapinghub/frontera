@@ -218,10 +218,10 @@ class RedisQueue(Queue):
                 raise TypeError("domain of unknown type.")
             item = (timestamp, fingerprint, host_crc32, self._encoder.encode_request(request), score)
             interval_start = self.get_interval_start(score)
-            data.setdefault(partition_id, []).extend([int(interval_start * 100), packb(item)])
-            for (key, items) in data.items():
-                self._redis_pipeline.zadd(key, *items), data.items()
-            self._redis_pipeline.execute()
+            data.setdefault(partition_id, {})[packb(item)] = int(interval_start * 100)
+        for (key, items) in data.items():
+            self._redis_pipeline.zadd(key, mapping=items)
+        self._redis_pipeline.execute()
 
     def count(self):
         return sum([self._redis.zcard(partition_id) for partition_id in self._partitions])
