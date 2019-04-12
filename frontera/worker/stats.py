@@ -51,7 +51,7 @@ class StatsExportMixin(object):
         - 'source' - source type of the metric, one of ['sw', 'dbw', 'spider']
         - 'partition_id' (optionally) - specific partition id
         """
-        raise NotImplemented("Please define the method in a child class")
+        raise NotImplementedError("Please define the method in a child class")
 
     @property
     def _stats_key_prefix(self):
