@@ -41,8 +41,8 @@ def is_accessible_domain(domain):
 
 
 def is_domain_to_ignore(domain, max_pages):
-    return (not is_accessible_domain(domain) or 'banned' in domain or
-            domain.setdefault('queued_pages', 0) >= max_pages)
+    return (not is_accessible_domain(domain) or 'banned' in domain
+            or domain.setdefault('queued_pages', 0) >= max_pages)
 
 
 def justify_request_score_by_hostname(hostname, score):
@@ -483,9 +483,9 @@ class Discovery(BaseCrawlingStrategy):
         origin_netloc = urlsplit(origin_url).netloc
         origin_2nd_name, origin_domain = self._get_domain(origin_netloc)
 
-        if redirect_urls and (b'robots' in request.meta or
-                              b'sitemap' in request.meta or
-                              b'home' in request.meta):
+        if redirect_urls and (b'robots' in request.meta
+                              or b'sitemap' in request.meta
+                              or b'home' in request.meta):
             final_netloc = urlsplit(redirect_urls[-1]).netloc
             if final_netloc != origin_netloc:
                 origin_redirects = origin_domain.setdefault('redirect_to', set())
