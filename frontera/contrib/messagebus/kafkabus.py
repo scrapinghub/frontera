@@ -53,6 +53,9 @@ class Consumer(BaseStreamConsumer):
             **kwargs
         )
 
+        # explicitly causing consumer to bootstrap the cluster metadata
+        self._consumer.topics()
+
         if partition_id is not None:
             self._partitions = [TopicPartition(self._topic, partition_id)]
             self._consumer.assign(self._partitions)
