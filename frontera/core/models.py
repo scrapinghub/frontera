@@ -82,7 +82,7 @@ class Request(FrontierObject):
     def __str__(self):
         self._body = None if self.body is None else self.body[:20]
         return "<%s at 0x%0x %s meta=%s body=%s... cookies=%s, headers=%s>" % (type(self).__name__, id(self), self.url,
-                                                                               str(self.meta), str(self.body[:20]),
+                                                                               str(self.meta), str(self.body),
                                                                                str(self.cookies), str(self.headers))
 
     def __hash__(self):
@@ -165,6 +165,6 @@ class Response(FrontierObject):
         return "<%s at 0x%0x %s %s meta=%s body=%s... headers=%s>" % (type(self).__name__,
                                                                       id(self), self.status_code,
                                                                       self.url, str(self.meta),
-                                                                      str(self.body[:20]), str(self.headers))
+                                                                      str(self.body), str(self.headers))
 
     __repr__ = __str__
