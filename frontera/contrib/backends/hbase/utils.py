@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 from happybase import Batch
 
-from thriftpy.transport import TTransportException
+from thriftpy2.transport import TTransportException
 import logging
 
 
