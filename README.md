@@ -38,5 +38,3 @@ $ pip install frontera
 
 Join our Google group at https://groups.google.com/a/scrapinghub.com/forum/#!forum/frontera or check GitHub issues and 
 pull requests.
-
-
