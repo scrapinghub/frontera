@@ -5,7 +5,7 @@ from time import asctime
 
 from frontera.exceptions import NotConfigured
 from frontera.core.components import DistributedBackend
-from . import DBWorkerPeriodicComponent
+from frontera.worker.components import DBWorkerPeriodicComponent
 
 
 class ScoringConsumer(DBWorkerPeriodicComponent):

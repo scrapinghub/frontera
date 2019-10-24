@@ -2,8 +2,8 @@ from __future__ import absolute_import
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from .models import Base, CrawlPage
-from .data import CrawlSiteData, CrawlSiteListData
+from frontera.utils.graphs.models import Base, CrawlPage
+from frontera.utils.graphs.data import CrawlSiteData, CrawlSiteListData
 
 DEFAULT_ENGINE = 'sqlite:///:memory:'
 

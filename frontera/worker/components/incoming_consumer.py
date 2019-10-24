@@ -5,7 +5,7 @@ from time import asctime
 from collections import defaultdict
 
 from frontera.exceptions import NotConfigured
-from . import DBWorkerPeriodicComponent
+from frontera.worker.components import DBWorkerPeriodicComponent
 
 
 class IncomingConsumer(DBWorkerPeriodicComponent):

@@ -23,9 +23,9 @@ from frontera.worker.server import WorkerJsonRpcService
 from frontera.utils.ossignal import install_shutdown_handlers
 from frontera.worker.stats import StatsExportMixin
 
-from .components.incoming_consumer import IncomingConsumer
-from .components.scoring_consumer import ScoringConsumer
-from .components.batch_generator import BatchGenerator
+from frontera.worker.components.incoming_consumer import IncomingConsumer
+from frontera.worker.components.scoring_consumer import ScoringConsumer
+from frontera.worker.components.batch_generator import BatchGenerator
 
 
 ALL_COMPONENTS = [ScoringConsumer, IncomingConsumer, BatchGenerator]

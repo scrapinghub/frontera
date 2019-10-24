@@ -12,7 +12,7 @@ from zmq.eventloop.ioloop import IOLoop
 from zmq.eventloop.zmqstream import ZMQStream
 
 from frontera.settings import Settings
-from .socket_config import SocketConfig
+from frontera.contrib.messagebus.zeromq.socket_config import SocketConfig
 
 
 class Server(object):

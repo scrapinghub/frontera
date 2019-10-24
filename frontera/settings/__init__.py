@@ -2,7 +2,7 @@ from __future__ import absolute_import
 import six
 from importlib import import_module
 
-from . import default_settings
+from frontera.settings import default_settings
 
 
 class BaseSettings(object):

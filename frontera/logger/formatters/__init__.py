@@ -4,7 +4,7 @@ import logging
 LOG_FORMAT = "[%(name)s] %(message)s"
 
 try:
-    from .color import ColorFormatter
+    from frontera.logger.formatters.color import ColorFormatter
 
     LOG_COLOR_FORMAT = "%(log_color)s"+LOG_FORMAT
     COLORS = {

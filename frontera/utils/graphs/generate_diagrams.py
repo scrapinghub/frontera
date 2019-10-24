@@ -3,8 +3,8 @@ from __future__ import print_function
 import os
 import sys
 
-from .manager import CrawlGraphManager
-from .data import GRAPHS
+from frontera.utils.graphs.manager import CrawlGraphManager
+from frontera.utils.graphs.data import GRAPHS
 
 SCRIPT_FOLDER = os.path.abspath(os.path.split(sys.argv[0])[0])
 CHARTS_FOLDER = os.path.join(SCRIPT_FOLDER, 'diagrams')

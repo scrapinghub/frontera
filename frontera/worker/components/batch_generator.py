@@ -8,7 +8,7 @@ from logging import DEBUG
 
 from frontera.exceptions import NotConfigured
 from frontera.utils.url import parse_domain_from_url_fast
-from . import DBWorkerThreadComponent
+from frontera.worker.components import DBWorkerThreadComponent
 
 
 class BatchGenerator(DBWorkerThreadComponent):
