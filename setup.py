@@ -41,7 +41,8 @@ setup(
     install_requires=[
         'six>=1.8.0',
         'w3lib>=1.15.0',
-        'cityhash>=0.1.7'
+        'cityhash>=0.1.7',
+        "thriftpy"
     ],
     extras_require={
         'sql': [
