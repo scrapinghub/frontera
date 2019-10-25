@@ -4,6 +4,7 @@ from frontera.settings import Settings
 from frontera.contrib.messagebus.zeromq import MessageBus as ZeroMQMessageBus
 from frontera.contrib.messagebus.kafkabus import MessageBus as KafkaMessageBus
 from frontera.utils.fingerprint import sha1
+from flaky import flaky
 from kafka import KafkaClient
 from random import randint
 from time import sleep
@@ -234,6 +235,7 @@ class IPv6MessageBusTester(MessageBusTester):
         super(IPv6MessageBusTester, self).__init__(settings)
 
 
+@flaky
 def test_zmq_message_bus():
     """
     Test MessageBus with default settings, IPv6 and Star as ZMQ_ADDRESS

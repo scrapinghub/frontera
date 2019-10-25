@@ -1,5 +1,10 @@
 # Frontera
 
+[![pypi](https://img.shields.io/pypi/v/frontera)](https://pypi.org/project/frontera/)
+[![python versions](https://img.shields.io/pypi/pyversions/frontera.svg)](https://pypi.org/project/frontera/)
+[![Build Status](https://travis-ci.org/scrapinghub/frontera.svg?branch=master)](https://travis-ci.org/scrapinghub/frontera)
+[![codecov](https://codecov.io/gh/scrapinghub/frontera/branch/master/graph/badge.svg)](https://codecov.io/gh/scrapinghub/frontera)
+
 ## Overview
 
 Frontera is a web crawling framework consisting of [crawl frontier](http://nlp.stanford.edu/IR-book/html/htmledition/the-url-frontier-1.html), and distribution/scaling primitives, allowing to build a large scale online web crawler. 
@@ -38,5 +43,3 @@ $ pip install frontera
 
 Join our Google group at https://groups.google.com/a/scrapinghub.com/forum/#!forum/frontera or check GitHub issues and 
 pull requests.
-
-
