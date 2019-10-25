@@ -44,6 +44,7 @@ matrix:
         - redis-server
 
 install:
+  - sudo apt install python-pydot graphviz
   - pip install -U tox wheel codecov
   - pip install -r requirements/tests.txt
 
