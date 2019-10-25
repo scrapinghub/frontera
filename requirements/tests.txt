@@ -17,3 +17,4 @@ boto>=2.42.0
 redis>=2.10.5
 hiredis>=0.2
 cityhash>=0.1.7
+pydot
