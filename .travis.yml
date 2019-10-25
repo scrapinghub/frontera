@@ -14,7 +14,7 @@ services:
 
 env:
   global:
-    - DOCKER_COMPOSE_VERSION=1.7.1
+    - COMPOSE_VERSION=1.7.1
   matrix:
     - TOXENV=py27
     - TOXENV=flake8
