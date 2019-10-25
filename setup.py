@@ -63,7 +63,8 @@ setup(
             'tldextract>=1.5.1',
         ],
         'hbase': [
-            'happybase>=1.0.0'
+            'happybase>=1.0.0',
+            'thriftpy2'
         ],
         'zeromq': [
             'pyzmq',
