@@ -46,7 +46,7 @@ matrix:
 install:
   - pip install -U tox wheel codecov
   - pip install -r requirements/tests.txt
-  - pip install .[tests]
+  - sudo pip install .[tests]
 
 before_install:
   - sudo apt-get update
