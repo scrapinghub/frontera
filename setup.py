@@ -34,6 +34,8 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
         'Topic :: Internet :: WWW/HTTP',
         'Topic :: Software Development :: Libraries :: Application Frameworks',
         'Topic :: Software Development :: Libraries :: Python Modules',
@@ -61,7 +63,8 @@ setup(
             'tldextract>=1.5.1',
         ],
         'hbase': [
-            'happybase>=1.0.0'
+            'happybase>=1.0.0',
+            'thriftpy2'
         ],
         'zeromq': [
             'pyzmq',
@@ -91,6 +94,7 @@ setup(
         "psycopg2>=2.5.4",
         "scrapy>=0.24",
         "tldextract>=1.5.1",
+        'thriftpy2',
         "SQLAlchemy>=1.0.0",
         "cachetools",
         "mock",
