@@ -44,7 +44,7 @@ matrix:
         - redis-server
 
 install:
-  - pip install -U tox wheel codecov
+  - pip install -U wheel codecov
   - pip install -r requirements/tests.txt
 
 before_install:
