@@ -41,8 +41,7 @@ setup(
     install_requires=[
         'six>=1.8.0',
         'w3lib>=1.15.0',
-        'cityhash>=0.1.7',
-        "thriftpy"
+        'cityhash>=0.1.7'
     ],
     extras_require={
         'sql': [
@@ -92,6 +91,7 @@ setup(
         "psycopg2>=2.5.4",
         "scrapy>=0.24",
         "tldextract>=1.5.1",
+        "thriftpy",
         "SQLAlchemy>=1.0.0",
         "cachetools",
         "mock",
