@@ -4,10 +4,16 @@ from __future__ import absolute_import
 from __future__ import print_function
 import os
 import sys
-from urllib.parse import urljoin
+
+import six
 
 from frontera.utils.graphs.manager import CrawlGraphManager
 from frontera.utils.graphs.data import GRAPHS
+
+if six.PY2:
+    from urlparse import urljoin
+elif six.PY3:
+    from urllib.parse import urljoin
 
 CHARTS_FOLDER = urljoin(__file__, "diagrams/")
 
