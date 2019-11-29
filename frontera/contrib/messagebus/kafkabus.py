@@ -190,7 +190,8 @@ class SpiderFeedStream(BaseSpiderFeedStream):
 
     def consumer(self, partition_id):
         c = Consumer(self._location, self._enable_ssl, self._cert_path, self._topic, self._general_group, partition_id)
-        assert len(c._consumer.partitions_for_topic(self._topic)) == self._partitions
+        assert len(c._consumer.partitions_for_topic(self._topic)) == self._partitions, \
+            "Number of kafka topic partitions doesn't match value in config for spider feed"
         return c
 
     def available_partitions(self):
