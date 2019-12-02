@@ -6,13 +6,19 @@ from frontera.contrib.messagebus.kafkabus import MessageBus as KafkaMessageBus
 from frontera.utils.fingerprint import sha1
 from flaky import flaky
 from kafka import KafkaClient
-from random import randint
+from random import randint, choice
 from time import sleep
+import string
 from six.moves import range
 import logging
 from sys import stdout
 import unittest
 from w3lib.util import to_bytes
+
+
+def get_blob(size):
+    s = ''.join(choice(string.ascii_letters) for x in range(size))
+    return s.encode("latin1")
 
 
 class MessageBusTester(object):
@@ -120,7 +126,8 @@ class KafkaConsumerPolling(object):
 class KafkaMessageBusTest(unittest.TestCase):
     def setUp(self):
         logging.basicConfig()
-        handler = logging.StreamHandler(stdout)
+        #handler = logging.StreamHandler(stdout)
+        handler = logging.FileHandler("kafka-debug.log")
         logger = logging.getLogger("kafka")
         logger.setLevel(logging.INFO)
         logger.addHandler(handler)
@@ -178,7 +185,8 @@ class KafkaMessageBusTest(unittest.TestCase):
             if i % 2 == 0:
                 self.sp_sl_p.send(sha1(str(randint(1, 1000))), b'http://helloworld.com/way/to/the/sun/' + b'0')
             else:
-                self.sp_sl_p.send(sha1(str(randint(1, 1000))), b'http://way.to.the.sun' + b'0')
+                msg = b'http://way.to.the.sun' + b'0' if i != messages - 1 else get_blob(10485760)
+                self.sp_sl_p.send(sha1(str(randint(1, 1000))), msg)
         self.sp_sl_p.flush()
         self.logger.debug("spider log activity finished")
 
@@ -191,12 +199,17 @@ class KafkaMessageBusTest(unittest.TestCase):
     def sw_activity(self):
         c = 0
         p = 0
+        big_message_passed = False
         for m in self.sw_sl_c.get_messages(timeout=0.1, count=512):
             if m.startswith(b'http://helloworld.com/'):
                 p += 1
                 self.sw_us_p.send(None, b'message' + b'0' + b"," + to_bytes(str(c)))
+            else:
+                if len(m) == 10485760:
+                    big_message_passed = True
             c += 1
         assert p > 0
+        assert big_message_passed
         return c
 
     def db_activity(self, messages):

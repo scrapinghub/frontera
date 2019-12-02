@@ -2,23 +2,21 @@
 from __future__ import absolute_import
 
 from logging import getLogger
-from time import sleep
 
 import six
 from kafka import KafkaConsumer, KafkaProducer, TopicPartition
 
 from frontera.contrib.backends.partitioners import FingerprintPartitioner, Crc32NamePartitioner
 from frontera.contrib.messagebus.kafka.offsets_fetcher import OffsetsFetcherAsync
+from frontera.contrib.messagebus.kafka.transport import FramedTransport
 from frontera.core.messagebus import BaseMessageBus, BaseSpiderLogStream, BaseSpiderFeedStream, \
     BaseStreamConsumer, BaseScoringLogStream, BaseStreamProducer, BaseStatsLogStream
-from twisted.internet.task import LoopingCall
-from traceback import format_tb
 from os.path import join as os_path_join
-
 
 DEFAULT_BATCH_SIZE = 1024 * 1024
 DEFAULT_BUFFER_MEMORY = 130 * 1024 * 1024
 DEFAULT_MAX_REQUEST_SIZE = 4 * 1024 * 1024
+MAX_SEGMENT_SIZE = int(DEFAULT_MAX_REQUEST_SIZE * 0.95)
 
 logger = getLogger("messagebus.kafka")
 
@@ -62,13 +60,16 @@ class Consumer(BaseStreamConsumer):
         else:
             self._partitions = [TopicPartition(self._topic, pid) for pid in self._consumer.partitions_for_topic(self._topic)]
             self._consumer.subscribe(topics=[self._topic])
+        self._transport = FramedTransport(MAX_SEGMENT_SIZE)
 
     def get_messages(self, timeout=0.1, count=1):
         result = []
         while count > 0:
             try:
-                m = next(self._consumer)
-                result.append(m.value)
+                kafka_msg = next(self._consumer)
+                msg = self._transport.read(kafka_msg)
+                if msg is not None:
+                    result.append(msg)
                 count -= 1
             except StopIteration:
                 break
@@ -93,17 +94,18 @@ class SimpleProducer(BaseStreamProducer):
         self._create(enable_ssl, cert_path, **kwargs)
 
     def _create(self, enable_ssl, cert_path, **kwargs):
-        max_request_size = kwargs.pop('max_request_size', DEFAULT_MAX_REQUEST_SIZE)
+        self._transport = FramedTransport(MAX_SEGMENT_SIZE)
         kwargs.update(_prepare_kafka_ssl_kwargs(cert_path) if enable_ssl else {})
         self._producer = KafkaProducer(bootstrap_servers=self._location,
                                        retries=5,
                                        compression_type=self._compression,
-                                       max_request_size=max_request_size,
+                                       max_request_size=DEFAULT_MAX_REQUEST_SIZE,
                                        **kwargs)
 
     def send(self, key, *messages):
         for msg in messages:
-            self._producer.send(self._topic, value=msg)
+            for kafka_msg in self._transport.write(key, msg):
+                self._producer.send(self._topic, value=kafka_msg)
 
     def flush(self):
         self._producer.flush()
@@ -118,18 +120,19 @@ class KeyedProducer(BaseStreamProducer):
         self._topic_done = topic_done
         self._partitioner = partitioner
         self._compression = compression
-        max_request_size = kwargs.pop('max_request_size', DEFAULT_MAX_REQUEST_SIZE)
         kwargs.update(_prepare_kafka_ssl_kwargs(cert_path) if enable_ssl else {})
+        self._transport = FramedTransport(MAX_SEGMENT_SIZE)
         self._producer = KafkaProducer(bootstrap_servers=self._location,
                                        partitioner=partitioner,
                                        retries=5,
                                        compression_type=self._compression,
-                                       max_request_size=max_request_size,
+                                       max_request_size=DEFAULT_MAX_REQUEST_SIZE,
                                        **kwargs)
 
     def send(self, key, *messages):
         for msg in messages:
-            self._producer.send(self._topic_done, key=key, value=msg)
+            for kafka_msg in self._transport.write(key, msg):
+                self._producer.send(self._topic_done, key=key, value=kafka_msg)
 
     def flush(self):
         self._producer.flush()
