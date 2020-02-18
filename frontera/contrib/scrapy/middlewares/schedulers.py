@@ -18,6 +18,9 @@ class SchedulerSpiderMiddleware(BaseSchedulerMiddleware):
     def process_spider_output(self, response, result, spider):
         return self.scheduler.process_spider_output(response, result, spider)
 
+    def process_spider_exception(self, response, exception, spider):
+        return self.scheduler.process_exception(response.request, exception, spider)
+
 
 class SchedulerDownloaderMiddleware(BaseSchedulerMiddleware):
     def process_exception(self, request, exception, spider):
