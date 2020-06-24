@@ -127,11 +127,11 @@ First, let's start storage worker: ::
 
     # start DB worker only for batch generation
     # use single instance for every 10 partitions
-    $ python -m frontera.worker.db --config [db worker config module] --no-incoming --partitions 0 1
+    $ python -m frontera.worker.db --config [db worker config module] --no-scoring --no-incoming --partitions 0 1
 
 
     # Optionally, start next one dedicated to spider log processing.
-    $ python -m frontera.worker.db --no-batches --config [db worker config module]
+    $ python -m frontera.worker.db --no-batches --no-incoming --config [db worker config module]
 
 
 Next, let's start strategy workers, one process per spider log partition: ::
@@ -159,3 +159,4 @@ You should end up with N spider processes running. Also :setting:`SPIDER_PARTITI
 
 You're done, crawler should start crawling. Any component can be restarted any time, without major data loss. However,
 for pausing its enough to stop batch gen only.
+
