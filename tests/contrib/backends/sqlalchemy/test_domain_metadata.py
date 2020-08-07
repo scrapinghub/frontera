@@ -39,4 +39,3 @@ class TestSqlAlchemyDomainMetadata(TestCase):
             assert "key%d" % i in dm
             assert len(dm["key%d" % i]) == 10
             del dm["key%d" % i]
-

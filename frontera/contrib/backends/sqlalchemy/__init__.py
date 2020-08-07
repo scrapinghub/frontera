@@ -36,6 +36,7 @@ class Distributed(DistributedBackend):
             if is_clear:
                 session = self.session_cls()
                 session.execute(model.__table__.delete())
+                session.commit()
                 session.close()
 
     def _init_strategy_worker(self, manager):
