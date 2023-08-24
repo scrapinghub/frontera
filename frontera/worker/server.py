@@ -159,8 +159,8 @@ class JsonRpcService(server.Site):
 class WorkerJsonRpcService(JsonRpcService):
     def __init__(self, worker, settings):
         root = RootResource()
-        root.putChild('status', StatusResource(worker))
-        root.putChild('jsonrpc', WorkerJsonRpcResource(worker))
+        root.putChild(b'status', StatusResource(worker))
+        root.putChild(b'jsonrpc', WorkerJsonRpcResource(worker))
         JsonRpcService.__init__(self, root, settings)
         self.worker = worker
 
