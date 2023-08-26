@@ -149,6 +149,7 @@ class States(MemoryStates):
 
 class Queue(BaseQueue):
     def __init__(self, session_cls, queue_cls, partitions, ordering='default'):
+        self.session_cls = session_cls
         self.session = session_cls()
         self.queue_model = queue_cls
         self.logger = logging.getLogger("sqlalchemy.queue")
@@ -175,20 +176,23 @@ class Queue(BaseQueue):
         :param partition_id: partition id
         :return: list of :class:`Request <frontera.core.models.Request>` objects.
         """
+        session = self.session_cls()
         results = []
         try:
-            for item in self._order_by(self.session.query(self.queue_model).filter_by(partition_id=partition_id)).\
+            for item in self._order_by(session.query(self.queue_model).filter_by(partition_id=partition_id)).\
                     limit(max_n_requests):
                 method = item.method or b'GET'
                 r = Request(item.url, method=method, meta=item.meta, headers=item.headers, cookies=item.cookies)
                 r.meta[b'fingerprint'] = to_bytes(item.fingerprint)
                 r.meta[b'score'] = item.score
                 results.append(r)
-                self.session.delete(item)
-            self.session.commit()
+                session.delete(item)
+            session.commit()
+            session.close()
         except Exception as exc:
             self.logger.exception(exc)
-            self.session.rollback()
+            session.rollback()
+            session.close()
         return results
 
     @retry_and_rollback
