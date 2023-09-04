@@ -165,7 +165,7 @@ class Queue(BaseQueue):
             return query.order_by(self.queue_model.created_at)
         if self.ordering == 'created_desc':
             return query.order_by(self.queue_model.created_at.desc())
-        return query.order_by(self.queue_model.score, self.queue_model.created_at)  # TODO: remove second parameter,
+        return query.order_by(self.queue_model.score.desc(), self.queue_model.created_at)  # TODO: remove second parameter,
         # it's not necessary for proper crawling, but needed for tests
 
     def get_next_requests(self, max_n_requests, partition_id, **kwargs):
