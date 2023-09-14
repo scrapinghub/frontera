@@ -66,6 +66,7 @@ class Consumer(BaseStreamConsumer):
 
     def get_messages(self, timeout=0.1, count=1):
         result = []
+        curr_time = time.time()
         while count > 0:
             try:
                 m = next(self._consumer)
@@ -73,6 +74,8 @@ class Consumer(BaseStreamConsumer):
                 count -= 1
             except StopIteration:
                 break
+        diff = time.time() - curr_time
+        logger.info(f"Time to fetch {len(result)} objects is {diff}")
         return result
 
     def get_offset(self, partition_id):
