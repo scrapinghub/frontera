@@ -3,6 +3,7 @@ from __future__ import absolute_import
 
 from logging import getLogger
 from time import sleep
+import time
 
 import six
 from kafka import KafkaConsumer, KafkaProducer, TopicPartition
