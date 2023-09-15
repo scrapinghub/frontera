@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
+import time
 from time import asctime
 from collections import defaultdict
 
@@ -33,16 +34,22 @@ class IncomingConsumer(DBWorkerPeriodicComponent):
 
     def run(self):
         consumed, stats = 0, defaultdict(int)
+        before_consumption_time = time.time()
         for m in self.spider_log_consumer.get_messages(
                 timeout=1.0, count=self.spider_log_consumer_batch_size):
+
+            before_processing_time = time.time()
             try:
                 msg = self.worker._decoder.decode(m)
             except (KeyError, TypeError) as e:
                 self.logger.error("Decoding error: %s", e)
             else:
+                self.logger.info(f"Processing message of type {msg[0]}")
                 self._handle_message(msg, stats)
+                self.logger.info(f"Time to process the message is {time.time() - before_processing_time}")
             finally:
                 consumed += 1
+        self.logger.info(f"Time to process the batch of {consumed} messages is {time.time() - before_consumption_time}")
         """
         # TODO: Think how it should be implemented in DB-worker only mode.
         if not self.strategy_disabled and self._backend.finished():

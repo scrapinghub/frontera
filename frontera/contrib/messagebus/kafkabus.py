@@ -3,6 +3,7 @@ from __future__ import absolute_import
 
 from logging import getLogger
 from time import sleep
+import time
 
 import six
 from kafka import KafkaConsumer, KafkaProducer, TopicPartition
@@ -50,6 +51,7 @@ class Consumer(BaseStreamConsumer):
             client_id="%s-%s" % (self._topic, str(partition_id) if partition_id is not None else "all"),
             request_timeout_ms=120 * 1000,
             heartbeat_interval_ms=10000,
+            session_timeout_ms=40000,
             **kwargs
         )
 
@@ -65,6 +67,7 @@ class Consumer(BaseStreamConsumer):
 
     def get_messages(self, timeout=0.1, count=1):
         result = []
+        curr_time = time.time()
         while count > 0:
             try:
                 m = next(self._consumer)
@@ -72,6 +75,8 @@ class Consumer(BaseStreamConsumer):
                 count -= 1
             except StopIteration:
                 break
+        diff = time.time() - curr_time
+        logger.info(f"Time to fetch {len(result)} objects is {diff}")
         return result
 
     def get_offset(self, partition_id):
