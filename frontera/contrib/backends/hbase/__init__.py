@@ -22,7 +22,7 @@ from time import time
 from binascii import hexlify, unhexlify
 from io import BytesIO
 from random import choice
-from collections import defaultdict, Iterable
+from collections.abc import defaultdict, Iterable
 import logging
 
 _pack_functions = {

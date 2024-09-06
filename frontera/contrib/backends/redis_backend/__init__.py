@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from collections import Iterable
+from collections.abc import Iterable
 from datetime import datetime
 from frontera.utils.url import parse_domain_from_url_fast
 from frontera import DistributedBackend
