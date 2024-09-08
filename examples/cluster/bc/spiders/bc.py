@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-from scrapy.spider import Spider
+from scrapy import Spider
 from scrapy.http import Request
 from scrapy.http.response.html import HtmlResponse
 from scrapy.linkextractors import LinkExtractor
 from scrapy import signals
 from scrapy.exceptions import DontCloseSpider
+
 
 class BCSpider(Spider):
     name = 'bc'
