@@ -9,10 +9,6 @@ USER_AGENT = 'Frontera-based example bot (+https://github.com/scrapinghub/fronte
 
 SPIDER_MIDDLEWARES = {
     'frontera.contrib.scrapy.middlewares.schedulers.SchedulerSpiderMiddleware': 1000,
-    'scrapy.spidermiddleware.depth.DepthMiddleware': None,
-    'scrapy.spidermiddleware.offsite.OffsiteMiddleware': None,
-    'scrapy.spidermiddleware.referer.RefererMiddleware': None,
-    'scrapy.spidermiddleware.urllength.UrlLengthMiddleware': None
 }
 
 DOWNLOADER_MIDDLEWARES = {

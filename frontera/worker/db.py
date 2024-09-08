@@ -40,6 +40,7 @@ class Slot(object):
     Slot is responsible for scheduling all the components, modify its behaviour
     and stop them gracefully on worker's discretion.
     """
+
     def __init__(self, worker, settings, **kwargs):
         # single event to stop all the components at once
         self.stop_event = threading.Event()
@@ -193,6 +194,7 @@ class DBWorker(StatsExportMixin, BaseDBWorker):
     The additional features are provided by using mixin classes:
      - sending crawl stats to message bus
      """
+
     def get_stats_tags(self, settings, no_batches, no_incoming, no_scoring, **kwargs):
         if no_batches and no_scoring:
             db_worker_type = 'linksdb'
