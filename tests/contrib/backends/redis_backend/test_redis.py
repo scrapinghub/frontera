@@ -1,5 +1,5 @@
 import pytest
-pytest.importorskip("redis")
+redis = pytest.importorskip("redis")
 
 from frontera.contrib.backends.redis_backend import FIELD_DOMAIN_FINGERPRINT, FIELD_ERROR, FIELD_STATE
 from frontera.contrib.backends.redis_backend import FIELD_STATUS_CODE, FIELD_URL
@@ -8,7 +8,7 @@ from frontera.core.manager import WorkerFrontierManager
 from frontera.settings import Settings
 from redis import ConnectionPool, StrictRedis
 from time import time
-from unittest import main, TestCase
+from unittest import main, TestCase, SkipTest
 
 from logging import basicConfig, INFO
 
@@ -33,14 +33,20 @@ class Request:
 def get_pool():
     port = 6379
     host = 'localhost'
-    return ConnectionPool(host=host, port=port, db=0)
+    try:
+        return ConnectionPool(host=host, port=port, db=0)
+    except redis.exceptions.ConnectionError:
+        raise SkipTest("No running redis service")
 
 
 class RedisQueueTest(TestCase):
     @staticmethod
     def setup_subject(partitions):
         settings = Settings(module='frontera.settings.default_settings')
-        return RedisQueue(WorkerFrontierManager.from_settings(settings), get_pool(), partitions, True)
+        try:
+            return RedisQueue(WorkerFrontierManager.from_settings(settings), get_pool(), partitions, True)
+        except redis.exceptions.ConnectionError:
+            raise SkipTest("No running redis service")
 
     def test_scheduling_past_1part_5(self):
         subject = self.setup_subject(1)
@@ -363,7 +369,10 @@ class RedisStateTest(TestCase):
         r3.meta[b'state'] = b'c'
         batch = [r1, r2, r3]
         subject.update_cache(batch)
-        subject.flush(False)
+        try:
+            subject.flush(False)
+        except redis.exceptions.ConnectionError:
+            raise SkipTest("No running redis service")
         self.assertEqual(3, len(subject._cache))
         connection = StrictRedis(connection_pool=pool)
         self.assertEqual({FIELD_STATE: b'a'}, connection.hgetall("1"))
@@ -381,7 +390,10 @@ class RedisStateTest(TestCase):
         r3.meta[b'state'] = b'f'
         batch = [r1, r2, r3]
         subject.update_cache(batch)
-        subject.flush(True)
+        try:
+            subject.flush(True)
+        except redis.exceptions.ConnectionError:
+            raise SkipTest("No running redis service")
         self.assertEqual(0, len(subject._cache))
         connection = StrictRedis(connection_pool=pool)
         self.assertEqual({FIELD_STATE: b'd'}, connection.hgetall("4"))
@@ -399,7 +411,10 @@ class RedisStateTest(TestCase):
         r3.meta[b'state'] = b'f'
         batch = [r1, r2, r3]
         subject.update_cache(batch)
-        subject.flush(False)
+        try:
+            subject.flush(False)
+        except redis.exceptions.ConnectionError:
+            raise SkipTest("No running redis service")
         self.assertEqual(0, len(subject._cache))
         connection = StrictRedis(connection_pool=pool)
         self.assertEqual({FIELD_STATE: b'd'}, connection.hgetall("4"))
@@ -414,7 +429,10 @@ class RedisStateTest(TestCase):
         r2.meta[b'state'] = b'h'
         batch = [r1, r2]
         subject.update_cache(batch)
-        subject.flush(True)
+        try:
+            subject.flush(True)
+        except redis.exceptions.ConnectionError:
+            raise SkipTest("No running redis service")
         r3 = Request("9", int(time()) - 10, 'https://www.hellan.me/', domain='hellan.me')
         r3.meta[b'state'] = b'i'
         subject.update_cache(r3)
@@ -429,7 +447,10 @@ class RedisStateTest(TestCase):
 class RedisMetadataTest(TestCase):
     def test_add_seeds(self):
         pool = get_pool()
-        subject = RedisMetadata(pool, True)
+        try:
+            subject = RedisMetadata(pool, True)
+        except redis.exceptions.ConnectionError:
+            raise SkipTest("No running redis service")
         r1 = Request("md1", int(time()) - 10, 'https://www.knuthellan.com/', domain='knuthellan.com')
         r2 = Request("md2", int(time()) - 10, 'https://www.khellan.com/', domain='khellan.com')
         r3 = Request("md3", int(time()) - 10, 'https://www.hellan.me/', domain='hellan.me')
@@ -445,7 +466,10 @@ class RedisMetadataTest(TestCase):
 
     def test_request_error(self):
         pool = get_pool()
-        subject = RedisMetadata(pool, True)
+        try:
+            subject = RedisMetadata(pool, True)
+        except redis.exceptions.ConnectionError:
+            raise SkipTest("No running redis service")
         r1 = Request("md1", int(time()) - 10, 'https://www.knuthellan.com/', domain='knuthellan.com')
         subject.request_error(r1, 404)
         connection = StrictRedis(connection_pool=pool)
@@ -455,7 +479,10 @@ class RedisMetadataTest(TestCase):
 
     def test_page_crawled(self):
         pool = get_pool()
-        subject = RedisMetadata(pool, True)
+        try:
+            subject = RedisMetadata(pool, True)
+        except redis.exceptions.ConnectionError:
+            raise SkipTest("No running redis service")
         r1 = Request("md1", int(time()) - 10, 'https://www.knuthellan.com/', domain='knuthellan.com')
         subject.page_crawled(r1)
         connection = StrictRedis(connection_pool=pool)
@@ -463,7 +490,10 @@ class RedisMetadataTest(TestCase):
 
     def test_links_extracted(self):
         pool = get_pool()
-        subject = RedisMetadata(pool, True)
+        try:
+            subject = RedisMetadata(pool, True)
+        except redis.exceptions.ConnectionError:
+            raise SkipTest("No running redis service")
         l1 = Request("l1", int(time()) - 10, 'https://www.knuthellan.com/', domain='knuthellan.com')
         l2 = Request("l2", int(time()) - 10, 'https://www.khellan.com/', domain='khellan.com')
         l3 = Request("l3", int(time()) - 10, 'https://www.hellan.me/', domain='hellan.me')
@@ -484,7 +514,10 @@ class RedisBackendTest(TestCase):
         settings = Settings(module='frontera.settings.default_settings')
         settings.set('SPIDER_FEED_PARTITIONS', partitions)
         settings.set('REDIS_DROP_ALL_TABLES', True)
-        return RedisBackend.db_worker(WorkerFrontierManager.from_settings(settings, db_worker=True))
+        try:
+            return RedisBackend.db_worker(WorkerFrontierManager.from_settings(settings, db_worker=True))
+        except redis.exceptions.ConnectionError:
+            raise SkipTest("No running redis service")
 
     def test_get_next_request(self):
         subject = self.setup_subject(2)

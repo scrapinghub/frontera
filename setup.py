@@ -74,8 +74,9 @@ setup(
             'boto3'
         ],
         'redis': [
+            'hiredis>=0.2',
+            'msgpack-python>=0.4',
             'redis>=2.10.5',
-            'hiredis>=0.2'
         ],
         'strategies': [
             'beautifulsoup4',

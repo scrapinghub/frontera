@@ -8,6 +8,7 @@ from frontera.utils.misc import get_crc32, load_object
 import functools
 import logging
 from msgpack import packb, unpackb
+from os import environ
 from redis import ConnectionPool, StrictRedis
 from redis.exceptions import ConnectionError, ResponseError
 from time import sleep, time
@@ -58,8 +59,10 @@ class RedisOperation:
             try:
                 return getattr(self._connection, _api)(*args, **kwargs)
             except ConnectionError:
+                if environ.get("FRONTERA_TESTING", "") == "true":
+                    raise
                 self._logger.exception("Connection to Redis failed operation")
-                pause = timeout.next()
+                pause = next(timeout)
                 if pause is None:
                     break
                 sleep(pause)
@@ -84,8 +87,10 @@ class RedisPipeline:
             try:
                 return self._pipeline.execute()
             except ConnectionError:
+                if environ.get("FRONTERA_TESTING", "") == "true":
+                    raise
                 self._logger.exception("Connection to Redis failed when executing pipeline")
-                pause = timeout.next()
+                pause = next(timeout)
                 if pause is None:
                     break
                 sleep(pause)
