@@ -21,13 +21,12 @@ setup(
         'License :: OSI Approved :: BSD License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
+        'Programming Language :: Python :: 3.13',
         'Topic :: Internet :: WWW/HTTP',
         'Topic :: Software Development :: Libraries :: Application Frameworks',
         'Topic :: Software Development :: Libraries :: Python Modules',
@@ -39,8 +38,8 @@ setup(
     ],
     extras_require={
         'sql': [
-            'SQLAlchemy>=1.0.0',
-            'cachetools'
+            'cachetools',
+            'SQLAlchemy>=1.0.0,<1.4',
         ],
         'graphs': [
             'pyparsing==1.5.7',
@@ -80,20 +79,4 @@ setup(
             'publicsuffix'
         ]
     },
-    tests_require=[
-        "pytest>=2.6.4",
-        "PyMySQL>=0.6.3",
-        "psycopg2>=2.5.4",
-        "scrapy>=0.24",
-        "tldextract>=1.5.1",
-        'thriftpy2',
-        "SQLAlchemy>=1.0.0",
-        "cachetools",
-        "mock",
-        "boto>=2.42.0",
-        "colorlog>=2.4.0",
-        "python-json-logger>=0.1.5",
-        "redis>=2.10.5",
-        "hiredis>=0.2"
-    ]
 )

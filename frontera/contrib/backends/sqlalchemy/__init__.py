@@ -25,11 +25,15 @@ class Distributed(DistributedBackend):
 
     def check_and_create_tables(self, is_drop, is_clear, models):
         inspector = Inspector.from_engine(self.engine)
+        try:
+            table_names = set(inspector.get_table_names())
+        except RuntimeError:
+            table_names = set()
         for model in models:
             if is_drop:
-                if model.__table__.name in inspector.get_table_names():
+                if model.__table__.name in table_names:
                     model.__table__.drop(bind=self.engine)
-            if model.__table__.name not in inspector.get_table_names():
+            if model.__table__.name not in table_names:
                 model.__table__.create(bind=self.engine)
             if is_clear:
                 session = self.session_cls()

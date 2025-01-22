@@ -1,8 +1,6 @@
 import pytest
 sqlalchemy = pytest.importorskip("sqlalchemy.engine")
 
-raise ValueError(sqlalchemy.__dict__)
-
 from tests.backends import BackendSequenceTest, TEST_SITES
 from frontera.utils.tester import DownloaderSimulator, BaseDownloaderSimulator
 from urllib.parse import urlparse
