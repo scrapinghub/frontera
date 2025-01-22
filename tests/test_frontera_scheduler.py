@@ -1,4 +1,8 @@
 from __future__ import absolute_import
+
+import pytest
+pytest.importorskip("scrapy")
+
 from frontera.contrib.scrapy.schedulers.frontier import FronteraScheduler
 from tests.mocks.frontier_manager import FakeFrontierManager
 from tests.mocks.crawler import FakeCrawler

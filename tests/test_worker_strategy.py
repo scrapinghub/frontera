@@ -1,3 +1,6 @@
+import pytest
+sqlalchemy = pytest.importorskip("twisted")
+
 from frontera.worker.strategy import StrategyWorker
 from frontera.settings import Settings
 from frontera.core.models import Request, Response

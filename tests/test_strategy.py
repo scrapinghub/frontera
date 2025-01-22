@@ -1,4 +1,6 @@
-# -*- coding: utf-8 -*-
+import pytest
+sqlalchemy = pytest.importorskip("sqlalchemy.engine")
+
 from frontera.strategy import BaseCrawlingStrategy
 from frontera.settings import Settings
 from frontera.core.manager import WorkerFrontierManager, StatesContext

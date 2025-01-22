@@ -1,4 +1,6 @@
-# -*- coding: utf-8 -*-
+import pytest
+pytest.importorskip("happybase")
+
 from frontera.contrib.backends.hbase.domaincache import DomainCache
 from happybase import Connection
 import logging

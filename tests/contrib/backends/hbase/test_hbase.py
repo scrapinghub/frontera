@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+import pytest
+pytest.importorskip("happybase")
+
 from Hbase_thrift import AlreadyExists  # module loaded at runtime in happybase
 from binascii import unhexlify
 from time import time

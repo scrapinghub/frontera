@@ -1,5 +1,8 @@
-# -*- coding: utf-8 -*-
 from __future__ import absolute_import
+
+import pytest
+sqlalchemy = pytest.importorskip("twisted")
+
 import pytest
 from twisted.test.proto_helpers import MemoryReactor
 from twisted.internet.protocol import Factory

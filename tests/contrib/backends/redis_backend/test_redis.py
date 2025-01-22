@@ -1,5 +1,8 @@
-# -*- coding: utf-8 -*-
 from __future__ import absolute_import
+
+import pytest
+pytest.importorskip("redis")
+
 from frontera.contrib.backends.redis_backend import FIELD_DOMAIN_FINGERPRINT, FIELD_ERROR, FIELD_STATE
 from frontera.contrib.backends.redis_backend import FIELD_STATUS_CODE, FIELD_URL
 from frontera.contrib.backends.redis_backend import RedisBackend, RedisMetadata, RedisQueue, RedisState

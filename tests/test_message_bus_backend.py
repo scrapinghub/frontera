@@ -1,4 +1,8 @@
 from __future__ import absolute_import
+
+import pytest
+pytest.importorskip("msgpack")
+
 import unittest
 
 from frontera.contrib.backends.remote.messagebus import MessageBusBackend

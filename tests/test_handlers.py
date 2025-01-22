@@ -1,3 +1,6 @@
+import pytest
+pytest.importorskip("colorlog")
+
 import unittest
 import logging
 import logging.config

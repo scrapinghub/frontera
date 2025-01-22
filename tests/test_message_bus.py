@@ -1,5 +1,8 @@
-# -*- coding: utf-8 -*-
 from __future__ import absolute_import
+
+import pytest
+pytest.importorskip("zmq")
+
 from frontera.settings import Settings
 from frontera.contrib.messagebus.zeromq import MessageBus as ZeroMQMessageBus
 from frontera.contrib.messagebus.kafkabus import MessageBus as KafkaMessageBus

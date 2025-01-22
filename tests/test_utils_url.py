@@ -1,4 +1,8 @@
 from __future__ import absolute_import
+
+import pytest
+sqlalchemy = pytest.importorskip("tdlextract")
+
 import unittest
 from frontera.utils.url import parse_url, parse_domain_from_url, \
     parse_domain_from_url_fast

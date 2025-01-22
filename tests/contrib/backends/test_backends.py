@@ -1,4 +1,7 @@
 import pytest
+pytest.importorskip("happybase")
+pytest.importorskip("sqlalchemy.engine")
+
 from frontera.core.components import States
 from frontera.core.models import Request
 from happybase import Connection

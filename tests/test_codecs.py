@@ -1,6 +1,8 @@
-# -*- coding: utf-8 -*-
-
 from __future__ import absolute_import
+
+import pytest
+pytest.importorskip("msgpack")
+
 import json
 import unittest
 from frontera.contrib.backends.remote.codecs.json import (Encoder as JsonEncoder, Decoder as JsonDecoder,

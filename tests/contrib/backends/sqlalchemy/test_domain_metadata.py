@@ -1,3 +1,6 @@
+import pytest
+pytest.importorskip("sqlalchemy.engine")
+
 from frontera.contrib.backends.sqlalchemy.components import DomainMetadata, DomainMetadataKV
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker

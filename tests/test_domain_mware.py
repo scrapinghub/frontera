@@ -1,4 +1,8 @@
 from __future__ import absolute_import
+
+import pytest
+sqlalchemy = pytest.importorskip("tldextract")
+
 import unittest
 from frontera.contrib.middlewares.domain import DomainMiddleware
 from frontera.core.models import Request
