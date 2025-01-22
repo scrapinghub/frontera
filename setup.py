@@ -56,7 +56,9 @@ setup(
         'hbase': [
             'cachetools>=0.4.0',
             'happybase>=1.2.0',
-            'msgpack-python>=0.4'
+            'msgpack-python>=0.4',
+            # https://github.com/python-happybase/happybase/pull/261
+            'setuptools>=50.3.1',
         ],
         'zeromq': [
             'pyzmq',
