@@ -1,9 +1,7 @@
-from __future__ import absolute_import
 from frontera.core.manager import LocalFrontierManager
 from frontera.settings import Settings
 from frontera.core.models import Request, Response
 from frontera.core.components import States
-from six.moves import range
 from unittest import TestCase
 
 
@@ -64,14 +62,14 @@ class TestFrontierManager(TestCase):
         SEEDS_FILE.seek(0)
         fm.add_seeds(SEEDS_FILE)
 
-        fprints_set = set([r.meta[b'fingerprint'] for r in [r1, r2, r3]])
+        fprints_set = {r.meta[b'fingerprint'] for r in [r1, r2, r3]}
 
         #seeds reached backend.
-        assert set([r.meta[b'fingerprint'] for r in fm.backend.queue.requests]) == fprints_set
+        assert {r.meta[b'fingerprint'] for r in fm.backend.queue.requests} == fprints_set
         #seeds reached canonicalsolver
-        assert set([r.meta[b'fingerprint'] for r in fm.canonicalsolver.requests]) == fprints_set
+        assert {r.meta[b'fingerprint'] for r in fm.canonicalsolver.requests} == fprints_set
         #seeds reached the 4 middlewares.
-        assert [set([r.meta[b'fingerprint'] for r in mw.requests]) for mw in fm.middlewares[-4:]] == [fprints_set]*4
+        assert [{r.meta[b'fingerprint'] for r in mw.requests} for mw in fm.middlewares[-4:]] == [fprints_set]*4
 
     def test_page_crawled(self):
         fm = self.setup_frontier_manager()
@@ -86,16 +84,16 @@ class TestFrontierManager(TestCase):
         fm = self.setup_frontier_manager()
         response = Response(r1.url, request=r1)
         fm.links_extracted(r1, links=[r2, r3])
-        assert set([link.meta[b'fingerprint'] for link in fm.backend.queue.requests]) == set([r.meta[b'fingerprint'] for r in [r2, r3]])
-        assert set([link for link in fm.canonicalsolver.links]) == set([r2, r3])
-        assert [set([link for link in mw.links]) for mw in fm.middlewares[-4:]] == [set([r2, r3])]*4
+        assert {link.meta[b'fingerprint'] for link in fm.backend.queue.requests} == {r.meta[b'fingerprint'] for r in [r2, r3]}
+        assert {link for link in fm.canonicalsolver.links} == {r2, r3}
+        assert [{link for link in mw.links} for mw in fm.middlewares[-4:]] == [{r2, r3}]*4
         assert [link.meta[b'test_links'] for link in [r2, r3]] == ['test']*2
         assert [link.meta[b'test_links_canonical_solver'] for link in [r2, r3]] == ['test']*2
 
     def test_get_next_requests(self):
         fm = self.setup_frontier_manager()
         fm.backend.put_requests([r1, r2, r3])
-        assert set(fm.get_next_requests(3)) == set([r1, r2, r3])
+        assert set(fm.get_next_requests(3)) == {r1, r2, r3}
         assert fm.iteration == 1
         assert fm.n_requests == 3
 
@@ -112,7 +110,7 @@ class TestFrontierManager(TestCase):
         fm = self.setup_frontier_manager(settings)
         fm.backend.put_requests([r1, r2, r3])
         requests = set(fm.get_next_requests(10))
-        assert requests == set([r1, r2]) or requests == set([r2, r3]) or requests == set([r1, r3])
+        assert requests == {r1, r2} or requests == {r2, r3} or requests == {r1, r3}
         assert fm.get_next_requests(10) == []
         assert fm.finished is True
 

@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import hashlib
 from struct import pack
 from binascii import hexlify

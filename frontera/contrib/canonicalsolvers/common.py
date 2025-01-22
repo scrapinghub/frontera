@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
 from .basic import BasicCanonicalSolver
 from frontera.utils.url import parse_url
 
@@ -22,4 +20,4 @@ class CorporateWebsiteFriendly(BasicCanonicalSolver):
                 return
 
             # otherwise default behavior
-            super(CorporateWebsiteFriendly, self)._set_canonical(obj)
+            super()._set_canonical(obj)

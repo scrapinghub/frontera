@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-from six.moves import range
-
-
 def create_test_site(prefix, max_depth, n_links_per_page, self_link=False, site=None, depth=0):
     if not site:
         site = []
@@ -23,14 +19,14 @@ def create_test_site(prefix, max_depth, n_links_per_page, self_link=False, site=
     return site
 
 
-class CrawlSiteData(object):
+class CrawlSiteData:
     def __init__(self, pages, name='', description=''):
         self.name = name
         self.description = description
         self.pages = pages
 
     def __repr__(self):
-        return '<CrawlSite:%s[%s]>' % (self.name, len(self.pages))
+        return f'<CrawlSite:{self.name}[{len(self.pages)}]>'
 
     @property
     def nodes(self):
@@ -45,7 +41,7 @@ class CrawlSiteData(object):
         return len(self.nodes)
 
 
-class CrawlSiteListData(object):
+class CrawlSiteListData:
     def __init__(self, sites, name='', description='', use_urls=False):
         self.name = name
         self.description = description
@@ -53,7 +49,7 @@ class CrawlSiteListData(object):
         self.use_urls = use_urls
 
     def __repr__(self):
-        return '<CrawlSiteList:%s[%s]>' % (self.name, len(self.sites))
+        return f'<CrawlSiteList:{self.name}[{len(self.sites)}]>'
 
     def __len__(self):
         return sum([len(site) for site in self.sites])

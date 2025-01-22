@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-
 import time
 
 import logging
@@ -8,7 +5,7 @@ from frontera.utils.twisted_helpers import CallLaterOnce
 from twisted.internet import reactor, threads
 
 
-class DBWorkerBaseComponent(object):
+class DBWorkerBaseComponent:
 
     NAME = None
 
@@ -16,7 +13,7 @@ class DBWorkerBaseComponent(object):
         self.worker = worker
         self.settings = settings
         self.stop_event = stop_event
-        self.logger = logging.getLogger('db-worker.{}'.format(self.NAME))
+        self.logger = logging.getLogger(f'db-worker.{self.NAME}')
 
     def schedule(self, delay=0):
         """Schedule component start with optional delay.
@@ -35,7 +32,7 @@ class DBWorkerBaseComponent(object):
 class DBWorkerPeriodicComponent(DBWorkerBaseComponent):
 
     def __init__(self, worker, settings, stop_event, *args, **kwargs):
-        super(DBWorkerPeriodicComponent, self).__init__(worker, settings, stop_event)
+        super().__init__(worker, settings, stop_event)
         self.periodic_task = CallLaterOnce(self.run_and_reschedule)
         self.periodic_task.setErrback(self.run_errback)
 
@@ -65,7 +62,7 @@ class DBWorkerThreadComponent(DBWorkerBaseComponent):
     """
 
     def __init__(self, worker, settings, stop_event, *args, **kwargs):
-        super(DBWorkerThreadComponent, self).__init__(worker, settings, stop_event)
+        super().__init__(worker, settings, stop_event)
         self.run_backoff = 0  # replace it with a proper value in subclass
 
     def schedule(self):

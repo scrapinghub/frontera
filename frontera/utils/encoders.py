@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import json
 import datetime
 
@@ -12,5 +11,5 @@ class DateTimeEncoder(json.JSONEncoder):
         elif isinstance(obj, datetime.timedelta):
             return (datetime.datetime.min + obj).time().isoformat()
         else:
-            return super(DateTimeEncoder, self).default(obj)
+            return super().default(obj)
 

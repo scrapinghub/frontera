@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -8,7 +7,7 @@ from .data import CrawlSiteData, CrawlSiteListData
 DEFAULT_ENGINE = 'sqlite:///:memory:'
 
 
-class CrawlGraphManager(object):
+class CrawlGraphManager:
     def __init__(self, engine=DEFAULT_ENGINE, autocommit=False, autoflush=False,
                  echo=False, drop_all_tables=False, clear_content=False):
         self.engine = create_engine(engine, echo=echo)

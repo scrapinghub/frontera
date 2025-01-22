@@ -8,7 +8,7 @@ from frontera.utils.misc import load_object, utc_timestamp
 logger = getLogger("messagebus.stats")
 
 
-class StatsExportMixin(object):
+class StatsExportMixin:
     """Extending Frontera worker's logic by sending stats to message bus.
 
     This is a lightweight mixin class to be used with a base worker classes
@@ -19,7 +19,7 @@ class StatsExportMixin(object):
     STATS_PREFIXES = ['consumed', 'pushed', 'dropped']
 
     def __init__(self, settings, *args, **kwargs):
-        super(StatsExportMixin, self).__init__(settings, *args, **kwargs)
+        super().__init__(settings, *args, **kwargs)
         message_bus = load_object(settings.get('MESSAGE_BUS'))(settings)
         stats_log = message_bus.stats_log()
         # FIXME can be removed after implementing stats_log for ZeroMQ bus
@@ -35,14 +35,14 @@ class StatsExportMixin(object):
         def errback_export_stats(failure):
             logger.exception(failure.value)
             if failure.frames:
-                logger.critical(str("").join(format_tb(failure.getTracebackObject())))
+                logger.critical("".join(format_tb(failure.getTracebackObject())))
             self._export_stats_task.start(interval=self._stats_interval)\
                                    .addErrback(errback_export_stats)
 
         if self.stats_producer:
             self._export_stats_task.start(interval=self._stats_interval)\
                                    .addErrback(errback_export_stats)
-        super(StatsExportMixin, self).run(*args, **kwargs)
+        super().run(*args, **kwargs)
 
     def get_stats_tags(self, *args, **kwargs):
         """Get a tags dictionary for the metrics.
@@ -79,7 +79,7 @@ class StatsExportMixin(object):
         # self._encoder is defined as a part of worker initialization
         encoded_msg = self._encoder.encode_stats(stats)
         self.stats_producer.send(stats_key, encoded_msg)
-        logger.debug("Sent stats for {} to message bus: {}".format(stats_key, stats))
+        logger.debug(f"Sent stats for {stats_key} to message bus: {stats}")
 
     def get_stats(self):
         """Return default stats with a timestamp.

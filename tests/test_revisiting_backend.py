@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 sqlalchemy = pytest.importorskip("sqlalchemy.engine")
 
@@ -33,7 +31,7 @@ class RevisitingFrontierTester(FrontierTester):
 class RevisitingBackendTest(BackendSequenceTest):
 
     def get_settings(self):
-        settings = super(RevisitingBackendTest, self).get_settings()
+        settings = super().get_settings()
         settings.set("SQLALCHEMYBACKEND_REVISIT_INTERVAL", timedelta(seconds=2))
         settings.SQLALCHEMYBACKEND_ENGINE = 'sqlite:///:memory:'
         return settings

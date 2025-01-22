@@ -1,9 +1,8 @@
-from __future__ import absolute_import
 from frontera.core.manager import LocalFrontierManager, SpiderFrontierManager
 from .converters import BaseRequestConverter, BaseResponseConverter
 
 
-class FrontierManagerWrapper(object):
+class FrontierManagerWrapper:
     def __init__(self, settings, manager=None):
         if manager is None:
             manager = LocalFrontierManager if settings.get("LOCAL_MODE") is True else SpiderFrontierManager

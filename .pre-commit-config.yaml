@@ -3,3 +3,9 @@ repos:
   rev: 7.1.0
   hooks:
   - id: flake8
+- repo: https://github.com/asottile/pyupgrade
+  rev: v3.19.1
+  hooks:
+  - id: pyupgrade
+    args:
+    - --py39-plus

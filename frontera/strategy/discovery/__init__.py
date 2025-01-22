@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import print_function, absolute_import
-
 from math import floor
 from time import time
 from zlib import crc32
@@ -9,12 +6,12 @@ import codecs
 import logging
 import random
 import six
-import six.moves.urllib.robotparser as robotparser
+import urllib.robotparser as robotparser
 from frontera.core.components import States, DomainMetadata
 from frontera.strategy import BaseCrawlingStrategy
 from frontera.strategy.discovery.sitemap import parse_sitemap
 from publicsuffix import PublicSuffixList
-from six.moves.urllib.parse import urljoin, urlsplit
+from urllib.parse import urljoin, urlsplit
 from w3lib.util import to_bytes, to_native_str
 
 
@@ -77,7 +74,7 @@ def consume_randomly(iterable):
 
 def is_valid_robotstxt(lines):
     for raw_line in lines:
-        line = raw_line.strip(u'\ufeff').lower()  # '\xef\xbb\xbf' in case of bytes
+        line = raw_line.strip('\ufeff').lower()  # '\xef\xbb\xbf' in case of bytes
         if line and not line.startswith("#"):
             if line.startswith("user-agent:") or line.startswith("sitemap:"):
                 return True
@@ -96,7 +93,7 @@ class DomainCacheProxyWeb(DomainMetadata):
 
     def __getitem__(self, key):
         value = self._domain_metadata[key]
-        for k, v in six.iteritems(value):
+        for k, v in value.items():
             if k in self._set_fields:
                 value[k] = set(value[k])
         if 'rp_url' in value and 'rp_body' in value:
@@ -134,7 +131,7 @@ class Discovery(BaseCrawlingStrategy):
 
         try:
             psl_file = codecs.open("public_suffix_list.dat", encoding='utf8')
-        except IOError:
+        except OSError:
             self.logger.exception("Please get the public suffix file from https://publicsuffix.org/")
             raise
         self._suffix_list = PublicSuffixList(psl_file)
@@ -143,7 +140,7 @@ class Discovery(BaseCrawlingStrategy):
 
         self.user_agent = to_native_str(manager.settings.get('USER_AGENT'))
         self.max_pages = int(manager.settings.get('DISCOVERY_MAX_PAGES'))
-        super(Discovery, self).__init__(manager, args, mb_stream, states_context)
+        super().__init__(manager, args, mb_stream, states_context)
 
     @classmethod
     def from_worker(cls, manager, args, mb_scheduler, states_context):
@@ -151,7 +148,7 @@ class Discovery(BaseCrawlingStrategy):
 
     def close(self):
         self.domain_cache.flush()
-        super(Discovery, self).close()
+        super().close()
 
     # Handling seeds logic
 

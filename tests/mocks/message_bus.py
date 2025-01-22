@@ -27,7 +27,7 @@ class Consumer(BaseStreamConsumer):
         return self.offset
 
 
-class Producer(object):
+class Producer:
 
     def __init__(self):
         self.messages = []

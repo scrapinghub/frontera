@@ -1,7 +1,7 @@
 mock_variable = 'test'
 
 
-class MockClass(object):
+class MockClass:
 
     val = 10
 

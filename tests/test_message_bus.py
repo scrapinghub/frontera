@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 pytest.importorskip("zmq")
 
@@ -11,14 +9,13 @@ from flaky import flaky
 from kafka import KafkaClient
 from random import randint
 from time import sleep
-from six.moves import range
 import logging
 from sys import stdout
 import unittest
 from w3lib.util import to_bytes
 
 
-class MessageBusTester(object):
+class MessageBusTester:
     def __init__(self, cls, settings=Settings()):
         settings.set('SPIDER_FEED_PARTITIONS', 1)
         settings.set('SPIDER_LOG_PARTITIONS', 1)
@@ -92,7 +89,7 @@ class MessageBusTester(object):
         return (sl_c, us_c)
 
 
-class KafkaConsumerPolling(object):
+class KafkaConsumerPolling:
     """
     This is needed to adapt for Kafka client zero-result attempts to consume messages from topic. There are reasons
     why this could happen: offset out of range or assignment/subscription problems.
@@ -235,7 +232,7 @@ class IPv6MessageBusTester(MessageBusTester):
     def __init__(self):
         settings = Settings()
         settings.set('ZMQ_ADDRESS', '::1')
-        super(IPv6MessageBusTester, self).__init__(settings)
+        super().__init__(settings)
 
 
 @flaky

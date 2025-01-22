@@ -1,4 +1,4 @@
-class BaseRequestConverter(object):
+class BaseRequestConverter:
     """Converts between frontera and XXX request objects"""
     def to_frontier(self, request):
         """request: XXX > Frontier"""
@@ -9,7 +9,7 @@ class BaseRequestConverter(object):
         raise NotImplementedError
 
 
-class BaseResponseConverter(object):
+class BaseResponseConverter:
     """Converts between frontera and XXX response objects"""
     def to_frontier(self, response):
         """response: XXX > Frontier"""

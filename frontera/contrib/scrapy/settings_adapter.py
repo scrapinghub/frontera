@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 from frontera.settings import BaseSettings, DefaultSettings
 
 
@@ -8,12 +7,12 @@ class ScrapySettingsAdapter(BaseSettings):
     """
     def __init__(self, crawler_settings):
         frontera_settings = crawler_settings.get('FRONTERA_SETTINGS', None)
-        super(ScrapySettingsAdapter, self).__init__(module=frontera_settings)
+        super().__init__(module=frontera_settings)
         self._crawler_settings = crawler_settings or {}
         self._default_settings = DefaultSettings()
 
     def get(self, key, default_value=None):
-        val = super(ScrapySettingsAdapter, self).get(key)
+        val = super().get(key)
         if val is not None:
             return val
 

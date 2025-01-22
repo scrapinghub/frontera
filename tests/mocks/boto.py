@@ -1,7 +1,7 @@
 import six
 
 
-class Content(object):
+class Content:
 
     def __init__(self, obj):
         self.obj = obj
@@ -10,7 +10,7 @@ class Content(object):
         return self.obj
 
 
-class MockKey(object):
+class MockKey:
 
     def __init__(self, name, data):
         self.name = name
@@ -20,13 +20,13 @@ class MockKey(object):
         return self.content
 
 
-class MockBucket(object):
+class MockBucket:
 
     def __init__(self):
         self.keys = {}
 
     def list(self, prefix):
-        return [key for name, key in six.iteritems(self.keys) if name.startswith(prefix)]
+        return [key for name, key in self.keys.items() if name.startswith(prefix)]
 
     def add_key(self, name, data):
         if name in self.keys:
@@ -34,7 +34,7 @@ class MockBucket(object):
         self.keys[name] = MockKey(name, data)
 
 
-class MockConnection(object):
+class MockConnection:
 
     def __init__(self):
         self.buckets = {}

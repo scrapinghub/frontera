@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 sqlalchemy = pytest.importorskip("scrapy")
 
@@ -21,7 +19,7 @@ from frontera.core.models import Request as FrontierRequest
 from frontera.contrib.scrapy.schedulers.frontier import FronteraScheduler
 
 
-class TestSpider(object):
+class TestSpider:
     def callback(self):
         pass
 
@@ -116,7 +114,7 @@ class TestFronteraMiddlewaresWithScrapy(unittest.TestCase):
         scheduler.frontier.links_extracted = lambda x, y: x
         scheduler.stats_manager.add_crawled_page = lambda x, y: x
 
-        class Engine(object):
+        class Engine:
             def __init__(self, scheduler):
                 self.slot = type('slot', (object,), {})
                 self.slot.scheduler = scheduler
@@ -156,7 +154,7 @@ class TestFronteraMiddlewaresWithScrapy(unittest.TestCase):
         def test_middleware_output(result):
             out = list(result)
             # Frontera swallows requests but passes items
-            self.assertEquals(len(out), 0)
+            self.assertEqual(len(out), 0)
 
         self.init_smw({
             'SPIDER_MIDDLEWARES': {'frontera.contrib.scrapy.middlewares.schedulers.SchedulerSpiderMiddleware': 1000}
@@ -167,10 +165,10 @@ class TestFronteraMiddlewaresWithScrapy(unittest.TestCase):
 
         def test_middleware_output(result):
             out = list(result)
-            self.assertEquals(len(out), 1)
+            self.assertEqual(len(out), 1)
             self.assertIsInstance(out[0], Request)
             self.assertIn('Referer', out[0].headers)
-            self.assertEquals(out[0].headers['Referer'], to_bytes('http://www.scrapy.org'))
+            self.assertEqual(out[0].headers['Referer'], to_bytes('http://www.scrapy.org'))
 
         self.init_smw({})
         self.perform_test(test_middleware_output)

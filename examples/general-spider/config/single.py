@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-
-
 BACKEND = 'frontera.contrib.backends.sqlalchemy.revisiting.Backend'
 SQLALCHEMYBACKEND_ENGINE = 'sqlite:///url_storage.sqlite'
 SQLALCHEMYBACKEND_ENGINE_ECHO = False

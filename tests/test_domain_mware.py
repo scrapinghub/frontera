@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 sqlalchemy = pytest.importorskip("tldextract")
 
@@ -8,7 +6,7 @@ from frontera.contrib.middlewares.domain import DomainMiddleware
 from frontera.core.models import Request
 
 
-class FakeManager(object):
+class FakeManager:
     settings = {}
     test_mode = False
 
@@ -29,7 +27,7 @@ class DomainMiddlewareTest(unittest.TestCase):
         mware = DomainMiddleware(self.fake_manager)
         result = mware.add_seeds(seeds)
 
-        self.assertEquals(len(result), len(seeds))
+        self.assertEqual(len(result), len(seeds))
 
         for r in result:
             self.assertIn(b'domain', r.meta, 'Missing domain info for %r' % r)
@@ -40,7 +38,7 @@ class DomainMiddlewareTest(unittest.TestCase):
             {b'name': b'www.google.com', b'netloc': b'www.google.com', b'scheme': b'https',
              b'sld': b'', b'subdomain': b'', b'tld': b''},
         ]
-        self.assertEquals(expected, [r.meta[b'domain'] for r in result])
+        self.assertEqual(expected, [r.meta[b'domain'] for r in result])
 
     def test_should_parse_tldextract_extra_domain_info(self):
         seeds = [
@@ -53,7 +51,7 @@ class DomainMiddlewareTest(unittest.TestCase):
         mware = DomainMiddleware(self.fake_manager)
         result = mware.add_seeds(seeds)
 
-        self.assertEquals(len(result), len(seeds))
+        self.assertEqual(len(result), len(seeds))
 
         for r in result:
             self.assertIn(b'domain', r.meta, 'Missing domain info for %r' % r)
@@ -64,4 +62,4 @@ class DomainMiddlewareTest(unittest.TestCase):
             {b'name': b'google.com', b'netloc': b'www.google.com', b'scheme': b'https',
              b'sld': b'google', b'subdomain': b'www', b'tld': b'com'},
         ]
-        self.assertEquals(expected, [r.meta[b'domain'] for r in result])
+        self.assertEqual(expected, [r.meta[b'domain'] for r in result])

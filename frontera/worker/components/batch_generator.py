@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-
 import threading
 from time import asctime, time
 from collections import defaultdict
@@ -18,7 +15,7 @@ class BatchGenerator(DBWorkerThreadComponent):
 
     def __init__(self, worker, settings, stop_event,
                  no_batches=False, partitions=None, **kwargs):
-        super(BatchGenerator, self).__init__(worker, settings, stop_event, **kwargs)
+        super().__init__(worker, settings, stop_event, **kwargs)
         if no_batches:
             raise NotConfigured('BatchGenerator is disabled with --no-batches')
 
@@ -38,7 +35,7 @@ class BatchGenerator(DBWorkerThreadComponent):
         self.disabled_event = threading.Event()
 
         # domain statistics logging
-        self.domain_stats = dict([(partition_id, defaultdict(int)) for partition_id in self.partitions])
+        self.domain_stats = {partition_id: defaultdict(int) for partition_id in self.partitions}
         self.domain_stats_interval = settings.get('DOMAIN_STATS_LOG_INTERVAL')
         self.rotate_time = time() + self.domain_stats_interval
 

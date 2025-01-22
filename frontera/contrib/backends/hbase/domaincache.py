@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 from collections import defaultdict
 from time import time
@@ -86,7 +84,7 @@ class DomainCache(LRUCache, DomainMetadata):
     LOG_INTERVAL = 60.0
 
     def __init__(self, maxsize, connection, table_name, set_fields=None, on_get_func=None, batch_size=100):
-        super(DomainCache, self).__init__(maxsize)
+        super().__init__(maxsize)
 
         self._second_gen = dict()
 
@@ -106,7 +104,7 @@ class DomainCache(LRUCache, DomainMetadata):
     def __setitem__(self, key, value):
         self._key_check(key)
         assert isinstance(value, dict)
-        super(DomainCache, self).__setitem__(key, value)
+        super().__setitem__(key, value)
 
     def __getitem__(self, key):
         self._key_check(key)
@@ -133,8 +131,8 @@ class DomainCache(LRUCache, DomainMetadata):
     def __delitem__(self, key):
         self._key_check(key)
         not_found = True
-        if super(DomainCache, self).__contains__(key):
-            super(DomainCache, self).__delitem__(key)
+        if super().__contains__(key):
+            super().__delitem__(key)
             not_found = False
         if key in self._second_gen:
             del self._second_gen[key]
@@ -149,7 +147,7 @@ class DomainCache(LRUCache, DomainMetadata):
     def __contains__(self, key):
         self._key_check(key)
         self.stats["contains"] += 1
-        if super(DomainCache, self).__contains__(key):
+        if super().__contains__(key):
             self.stats["contains_in_memory"] += 1
             return True
         if key in self._second_gen:
@@ -165,7 +163,7 @@ class DomainCache(LRUCache, DomainMetadata):
         """
         Called every time item is evicted by LRU cache
         """
-        key, value = super(DomainCache, self).popitem()
+        key, value = super().popitem()
         self._second_gen[key] = value
         self.stats["pops"] += 1
         if len(self._second_gen) >= self.batch_size:
@@ -195,7 +193,7 @@ class DomainCache(LRUCache, DomainMetadata):
         """
         self._key_check(key)
         self._log_and_rotate_stats()
-        if super(DomainCache, self).__contains__(key) or key in self._second_gen:
+        if super().__contains__(key) or key in self._second_gen:
             self.stats["gets_memory_hit"] += 1
             return self[key]
         try:
@@ -214,7 +212,7 @@ class DomainCache(LRUCache, DomainMetadata):
         self._key_check(key)
         self.stats["gets"] += 1
         self._log_and_rotate_stats()
-        if super(DomainCache, self).__contains__(key) or key in self._second_gen:
+        if super().__contains__(key) or key in self._second_gen:
             value = self[key]
             self.stats["gets_memory_hit"] += 1
         else:
@@ -229,7 +227,7 @@ class DomainCache(LRUCache, DomainMetadata):
         return value
 
     def flush(self):
-        for k, v in six.iteritems(self):
+        for k, v in self.items():
             try:
                 self._store_item_batch(k, v)
             except Exception:
@@ -241,7 +239,7 @@ class DomainCache(LRUCache, DomainMetadata):
     # private
 
     def _flush_second_gen(self):
-        for key, value in six.iteritems(self._second_gen):
+        for key, value in self._second_gen.items():
             self._store_item_batch(key, value)
         self._batch.send()
 
@@ -267,10 +265,10 @@ class DomainCache(LRUCache, DomainMetadata):
         row = self._table.row(hbase_key)
         if not row:
             self.stats["hbase_misses"] += 1
-            super(DomainCache, self).__missing__(key)
+            super().__missing__(key)
             raise KeyError
         value = {}
-        for k, v in six.iteritems(row):
+        for k, v in row.items():
             cf, _, col = k.partition(b':')
             col = to_native_str(col)
             value[col] = unpackb(v, encoding='utf-8')
@@ -284,7 +282,7 @@ class DomainCache(LRUCache, DomainMetadata):
     def _store_item_batch(self, key, value):
         data = {}
         self._key_check(key)
-        for k, v in six.iteritems(value):
+        for k, v in value.items():
             if k.startswith('_'):
                 continue
             # convert set to list manually for successful serialization
@@ -297,7 +295,7 @@ class DomainCache(LRUCache, DomainMetadata):
                 self._batch.put(key, data)
             except ValueError:
                 self.logger.exception("Exception happened during item storing, %d tries left", tries)
-                data_lengths = dict((k, len(v)) for k, v in six.iteritems(data))
+                data_lengths = {k: len(v) for k, v in data.items()}
                 self.logger.info("RK %s per-column lengths %s", key, str(data_lengths))
                 for k, length in data_lengths.items():
                     if length > self.MAX_VALUE_SIZE:

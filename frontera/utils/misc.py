@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import time
 import logging
 import calendar
@@ -8,7 +6,6 @@ from timeit import default_timer
 from importlib import import_module
 
 import six
-from six.moves import range
 from w3lib.util import to_bytes
 
 
@@ -35,12 +32,12 @@ def load_object(path):
     try:
         mod = import_module(module)
     except ImportError as e:
-        raise ImportError("Error loading object '%s': %s" % (path, e))
+        raise ImportError(f"Error loading object '{path}': {e}")
 
     try:
         obj = getattr(mod, name)
     except AttributeError:
-        raise NameError("Module '%s' doesn't define any object named '%s'" % (module, name))
+        raise NameError(f"Module '{module}' doesn't define any object named '{name}'")
 
     return obj
 
@@ -68,8 +65,8 @@ def chunks(l, n):  # noqa: E741
 
 def dict_to_bytes(obj):
     if isinstance(obj, dict):
-        return {dict_to_bytes(k): dict_to_bytes(v) for k, v in six.iteritems(obj)}
-    if isinstance(obj, six.text_type):
+        return {dict_to_bytes(k): dict_to_bytes(v) for k, v in obj.items()}
+    if isinstance(obj, str):
         return obj.encode('utf8')
     if isinstance(obj, list):
         return map(dict_to_bytes, obj)
@@ -79,8 +76,8 @@ def dict_to_bytes(obj):
 
 def dict_to_unicode(obj):
     if isinstance(obj, dict):
-        return {dict_to_unicode(k): dict_to_unicode(v) for k, v in six.iteritems(obj)}
-    if isinstance(obj, six.binary_type):
+        return {dict_to_unicode(k): dict_to_unicode(v) for k, v in obj.items()}
+    if isinstance(obj, bytes):
         return obj.decode('utf8')
     if isinstance(obj, list):
         return map(dict_to_unicode, obj)
@@ -88,7 +85,7 @@ def dict_to_unicode(obj):
         return obj
 
 
-class time_elapsed(object):
+class time_elapsed:
     """Useful context manager to measure elapsed time."""
 
     def __init__(self, name):
@@ -99,5 +96,5 @@ class time_elapsed(object):
 
     def __exit__(self, ty, val, tb):
         end = default_timer()
-        logger.debug("%s : %0.3f seconds" % (self.name, end-self.start))
+        logger.debug(f"{self.name} : {end-self.start:0.3f} seconds")
         return False

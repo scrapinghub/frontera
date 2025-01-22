@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import pytest
 
 from frontera.core.components import States
@@ -11,7 +10,7 @@ from frontera.utils.tester import BaseDownloaderSimulator
 
 class BasicCrawlingStrategy(BaseCrawlingStrategy):
     def __init__(self, manager, args, scheduled_stream, states_context):
-        super(BasicCrawlingStrategy, self).__init__(manager, args, scheduled_stream, states_context)
+        super().__init__(manager, args, scheduled_stream, states_context)
         self._id = 0
 
     def read_seeds(self, stream):
@@ -73,7 +72,7 @@ class BFSCrawlingStrategy(DFSCrawlingStrategy):
         return float(depth) / 10.0
 
 
-class BackendTest(object):
+class BackendTest:
     """
     A simple pytest base class with helper methods for
     :class:`Backend <frontera.core.components.Backend>` testing.
@@ -131,7 +130,7 @@ class BackendSequenceTest(BackendTest):
     :class:`Backend <frontera.core.components.Backend>` crawling sequences.
     """
     def get_settings(self):
-        settings = super(BackendSequenceTest, self).get_settings()
+        settings = super().get_settings()
         settings.TEST_MODE = True
         settings.LOGGING_MANAGER_ENABLED = False
         settings.LOGGING_BACKEND_ENABLED = False
@@ -512,7 +511,7 @@ class DFSBackendTest(BackendSequenceTest):
         )
 
     def get_settings(self):
-        settings = super(DFSBackendTest, self).get_settings()
+        settings = super().get_settings()
         settings.TEST_MODE = True
         settings.LOGGING_MANAGER_ENABLED = False
         settings.LOGGING_BACKEND_ENABLED = False
@@ -577,7 +576,7 @@ class BFSBackendTest(BackendSequenceTest):
             max_next_requests=max_next_requests,
         )
     def get_settings(self):
-        settings = super(BFSBackendTest, self).get_settings()
+        settings = super().get_settings()
         settings.TEST_MODE = True
         settings.LOGGING_MANAGER_ENABLED = False
         settings.LOGGING_BACKEND_ENABLED = False

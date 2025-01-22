@@ -26,7 +26,7 @@ class DummyCrawlingStrategy(BaseCrawlingStrategy):
         pass
 
 
-class MessageBusStream(object):
+class MessageBusStream:
     def send(self, request, score=1.0, dont_queue=False):
         pass
 
@@ -34,7 +34,7 @@ class MessageBusStream(object):
         pass
 
 
-class TestCrawlingStrategy(object):
+class TestCrawlingStrategy:
     def strategy(self):
         settings = Settings()
         settings.BACKEND = 'frontera.contrib.backends.sqlalchemy.Distributed'

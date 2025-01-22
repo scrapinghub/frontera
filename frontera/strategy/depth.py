@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
 from frontera.core.components import States
 from frontera.strategy import BaseCrawlingStrategy
 

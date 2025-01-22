@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 pytest.importorskip("redis")
 
@@ -24,7 +22,7 @@ class Request:
             b'fingerprint': fingerprint
         }
         if domain:
-            self.meta[b'domain'] = {b'name': domain, b'fingerprint': "d_{}".format(fingerprint)}
+            self.meta[b'domain'] = {b'name': domain, b'fingerprint': f"d_{fingerprint}"}
         self.url = url
         self.method = 'https'
         self.headers = {}

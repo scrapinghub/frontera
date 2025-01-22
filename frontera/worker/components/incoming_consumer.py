@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-
 from time import asctime
 from collections import defaultdict
 
@@ -14,7 +11,7 @@ class IncomingConsumer(DBWorkerPeriodicComponent):
     NAME = 'incoming'
 
     def __init__(self, worker, settings, stop_event, no_incoming=False, **kwargs):
-        super(IncomingConsumer, self).__init__(worker, settings, stop_event, **kwargs)
+        super().__init__(worker, settings, stop_event, **kwargs)
         if no_incoming:
             raise NotConfigured('IncomingConsumer is disabled with --no-incoming')
 

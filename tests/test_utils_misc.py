@@ -1,23 +1,22 @@
-from __future__ import absolute_import
 import hashlib
 import pytest
 from frontera.utils.misc import load_object, get_crc32, chunks, to_signed32
 import six
 
 
-class TestGetCRC32(object):
+class TestGetCRC32:
 
     def test_bytes(self):
         assert get_crc32(b'example') == 1861000095
 
     def test_ascii_unicode(self):
-        assert get_crc32(u'example') == 1861000095
+        assert get_crc32('example') == 1861000095
 
     def test_non_ascii_unicode(self):
-        assert get_crc32(u'example\u5000') == 1259721235
+        assert get_crc32('example\u5000') == 1259721235
 
     def test_non_ascii_bytes(self):
-        assert get_crc32(u'example\u5000'.encode('utf8')) == 1259721235
+        assert get_crc32('example\u5000'.encode()) == 1259721235
 
     def test_negative_crc32(self):
         assert get_crc32(b'1') == -2082672713
@@ -32,7 +31,7 @@ class TestGetCRC32(object):
             assert left <= to_signed32(x) <= right
 
 
-class TestChunks(object):
+class TestChunks:
 
     def test_empty_list(self):
         assert list(chunks([], 1)) == []
@@ -44,7 +43,7 @@ class TestChunks(object):
         assert list(chunks([1, 2, 3, 4, 5, 6, 7, 8], 3)) == [[1, 2, 3], [4, 5, 6], [7, 8]]
 
 
-class TestLoadObject(object):
+class TestLoadObject:
 
     def test_load_class(self):
         obj = load_object('tests.mocks.load_objects.MockClass')
@@ -70,12 +69,8 @@ class TestLoadObject(object):
     def test_import_error(self):
         with pytest.raises(ImportError) as info:
             load_object('frontera.non_existent_module.object')
-        if six.PY2:
-            assert str(info.value) == ("Error loading object 'frontera.non_existent_module.object'"
-                                       ": No module named non_existent_module")
-        else:
-            assert str(info.value) == ("Error loading object 'frontera.non_existent_module.object'"
-                                       ": No module named 'frontera.non_existent_module'")
+        assert str(info.value) == ("Error loading object 'frontera.non_existent_module.object'"
+                                   ": No module named 'frontera.non_existent_module'")
 
     def test_name_error(self):
         with pytest.raises(NameError) as info:

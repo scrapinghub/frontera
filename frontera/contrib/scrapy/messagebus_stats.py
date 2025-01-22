@@ -17,7 +17,7 @@ STATS_DEFAULT_BLACKLIST = [
 ]
 
 
-class StatsExporterToMessageBus(object):
+class StatsExporterToMessageBus:
     """Export crawl stats to message bus."""
 
     def __init__(self, crawler):
@@ -50,7 +50,7 @@ class StatsExporterToMessageBus(object):
         def errback_export_stats(failure):
             logger.exception(failure.value)
             if failure.frames:
-                logger.critical(str("").join(format_tb(failure.getTracebackObject())))
+                logger.critical("".join(format_tb(failure.getTracebackObject())))
             self._export_stats_task.start(self._stats_interval)\
                                    .addErrback(errback_export_stats)
 

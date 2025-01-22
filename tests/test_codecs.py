@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 pytest.importorskip("msgpack")
 
@@ -132,7 +130,7 @@ class TestEncodeDecodeJson(unittest.TestCase):
     def test_encode_decode_json_recursively(self):
         _int = 1
         _bytes = b'bytes'
-        _unicode = u'unicode'
+        _unicode = 'unicode'
         _bool = True
         _none = None
         simple_dict = {'key': 'value'}

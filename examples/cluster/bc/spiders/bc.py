@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from scrapy.spider import Spider
 from scrapy.http import Request
 from scrapy.http.response.html import HtmlResponse
@@ -10,7 +9,7 @@ class BCSpider(Spider):
     name = 'bc'
 
     def __init__(self, *args, **kwargs):
-        super(BCSpider, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.le = LinkExtractor()
 
     def parse(self, response):
@@ -24,7 +23,7 @@ class BCSpider(Spider):
 
     @classmethod
     def from_crawler(cls, crawler, *args, **kwargs):
-        spider = super(BCSpider, cls).from_crawler(crawler, *args, **kwargs)
+        spider = super().from_crawler(crawler, *args, **kwargs)
         spider._set_crawler(crawler)
         spider.crawler.signals.connect(spider.spider_idle, signal=signals.spider_idle)
         return spider

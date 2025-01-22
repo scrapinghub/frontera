@@ -1,10 +1,9 @@
-from __future__ import absolute_import
 import copy
 from w3lib.util import to_bytes, to_native_str
 from w3lib.url import safe_url_string
 
 
-class FrontierObject(object):
+class FrontierObject:
     def copy(self):
         return copy.copy(self)
 
@@ -80,9 +79,9 @@ class Request(FrontierObject):
         return self._body
 
     def __str__(self):
-        return "<%s at 0x%0x %s meta=%s body=%s... cookies=%s, headers=%s>" % (type(self).__name__, id(self), self.url,
-                                                                               str(self.meta), str(self.body[:20]) if self.body is not None else None,
-                                                                               str(self.cookies), str(self.headers))
+        return "<{} at 0x{:0x} {} meta={} body={}... cookies={}, headers={}>".format(type(self).__name__, id(self), self.url,
+                                                                                     str(self.meta), str(self.body[:20]) if self.body is not None else None,
+                                                                                     str(self.cookies), str(self.headers))
 
     def __hash__(self):
         return hash(self.meta[b'fingerprint'])
@@ -160,9 +159,9 @@ class Response(FrontierObject):
                                  "is not tied to any request")
 
     def __str__(self):
-        return "<%s at 0x%0x %s %s meta=%s body=%s... headers=%s>" % (type(self).__name__,
-                                                                      id(self), self.status_code,
-                                                                      self.url, str(self.meta),
-                                                                      str(self.body[:20]) if self.body is not None else None, str(self.headers))
+        return "<{} at 0x{:0x} {} {} meta={} body={}... headers={}>".format(type(self).__name__,
+                                                                            id(self), self.status_code,
+                                                                            self.url, str(self.meta),
+                                                                            str(self.body[:20]) if self.body is not None else None, str(self.headers))
 
     __repr__ = __str__

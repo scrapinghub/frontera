@@ -32,7 +32,7 @@ class TestDBWorker(unittest.TestCase):
         incoming_consumer = dbw.slot.components[IncomingConsumer]
         incoming_consumer.spider_log_consumer.put_messages([msg])
         incoming_consumer.run()
-        assert set([r.url for r in incoming_consumer.backend.responses]) == set([r1.url])
+        assert {r.url for r in incoming_consumer.backend.responses} == {r1.url}
 
     def test_links_extracted(self):
         dbw = self.dbw_setup()
@@ -40,7 +40,7 @@ class TestDBWorker(unittest.TestCase):
         incoming_consumer = dbw.slot.components[IncomingConsumer]
         incoming_consumer.spider_log_consumer.put_messages([msg])
         incoming_consumer.run()
-        assert set([r.url for r in incoming_consumer.backend.links]) == set([r2.url, r3.url])
+        assert {r.url for r in incoming_consumer.backend.links} == {r2.url, r3.url}
 
     def test_request_error(self):
         dbw = self.dbw_setup()
@@ -61,7 +61,7 @@ class TestDBWorker(unittest.TestCase):
         scoring_worker = dbw.slot.components[ScoringConsumer]
         scoring_worker.scoring_log_consumer.put_messages([msg1, msg2])
         scoring_worker.run()
-        assert set([r.url for r in dbw.backend.queue.requests]) == set([r1.url, r3.url])
+        assert {r.url for r in dbw.backend.queue.requests} == {r1.url, r3.url}
         batch_gen.run()
         assert dbw.stats["last_batch_size"] == 2
 
@@ -72,7 +72,7 @@ class TestDBWorker(unittest.TestCase):
         batch_gen.run()
         assert dbw.stats["last_batch_size"] == 3
         assert set(batch_gen.spider_feed_producer.messages) == \
-            set([dbw._encoder.encode_request(r) for r in [r1, r2, r3]])
+            {dbw._encoder.encode_request(r) for r in [r1, r2, r3]}
 
     def test_offset(self):
         dbw = self.dbw_setup(True)

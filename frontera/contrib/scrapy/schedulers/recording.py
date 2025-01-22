@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import pprint
 
 from scrapy.core.scheduler import Scheduler
@@ -15,7 +14,7 @@ DEFAULT_RECORDER_STORAGE_CLEAR_CONTENT = True
 STATS_PREFIX = 'recorder'
 
 
-class StatsManager(object):
+class StatsManager:
     """
         'recorder/pages_count': xx,
         'recorder/seeds_count': xx,
@@ -40,7 +39,7 @@ class StatsManager(object):
         self._inc_value('links_count', -count)
 
     def _get_stats_name(self, variable):
-        return '%s/%s' % (self.prefix, variable)
+        return f'{self.prefix}/{variable}'
 
     def _inc_value(self, variable, count=1):
         self.stats.inc_value(self._get_stats_name(variable), count)
@@ -52,7 +51,7 @@ class StatsManager(object):
 class RecorderScheduler(Scheduler):
 
     def open(self, spider):
-        super(RecorderScheduler, self).open(spider)
+        super().open(spider)
 
         self.stats_manager = StatsManager(spider.crawler.stats)
 
@@ -79,7 +78,7 @@ class RecorderScheduler(Scheduler):
                                            DEFAULT_RECORDER_STORAGE_CLEAR_CONTENT))
 
     def close(self, reason):
-        super(RecorderScheduler, self).close(reason)
+        super().close(reason)
         if self.recorder_enabled:
             log.msg('Finishing recorder (%s)' % reason, log.INFO)
             pages = self.graph.session.query(graphs.Page).filter_by(status=None).all()
@@ -112,15 +111,14 @@ class RecorderScheduler(Scheduler):
             request.meta[b'page'] = page
 
     def next_request(self):
-        request = super(RecorderScheduler, self).next_request()
+        request = super().next_request()
         if self.recorder_enabled and request:
             request.meta[b'origin_is_recorder'] = True
         return request
 
     def process_spider_output(self, response, result, spider):
         if not self.recorder_enabled:
-            for r in result:
-                yield r
+            yield from result
             return
 
         page = response.meta[b'page']

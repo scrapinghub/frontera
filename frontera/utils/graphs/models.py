@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 from sqlalchemy import Column, String, Integer, Boolean, ForeignKey
 from sqlalchemy.orm import relation
 from sqlalchemy import UniqueConstraint
@@ -14,11 +13,11 @@ class Choice(types.TypeDecorator):
 
     def __init__(self, choices, default, **kwargs):
         self.choices = dict(choices)
-        values = [k for k, v in six.iteritems(self.choices)]
+        values = [k for k, v in self.choices.items()]
         if default not in values:
-            raise ValueError("default value '%s' not found in choices %s" % (default, values))
+            raise ValueError(f"default value '{default}' not found in choices {values}")
         self.default = default
-        super(Choice, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def process_bind_param(self, value, dialect):
         return value or self.default
@@ -27,7 +26,7 @@ class Choice(types.TypeDecorator):
         return self.choices[value]
 
 
-class BaseModel(object):
+class BaseModel:
     __abstract__ = True
 
     @classmethod
@@ -93,7 +92,7 @@ class CrawlPage(Model):
         backref="links")
 
     def __repr__(self):
-        return '<%s:%s%s>' % (self.id, self.url, '*' if self.is_seed else '')
+        return '<{}:{}{}>'.format(self.id, self.url, '*' if self.is_seed else '')
 
     def _get_status_code(self):
         try:

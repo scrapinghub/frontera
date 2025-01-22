@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
 from sqlalchemy import Column, String, Integer, PickleType, SmallInteger, Float, DateTime, BigInteger
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -34,7 +32,7 @@ class MetadataModel(DeclarativeBase):
         return session.query(cls)
 
     def __repr__(self):
-        return '<Metadata:%s (%s)>' % (self.url, self.fingerprint)
+        return f'<Metadata:{self.url} ({self.fingerprint})>'
 
 
 class StateModel(DeclarativeBase):
@@ -58,7 +56,7 @@ class StateModel(DeclarativeBase):
         return '<State:%s=%d>' % (self.fingerprint, self.state)
 
 
-class QueueModelMixin(object):
+class QueueModelMixin:
     __table_args__ = (
         {
             'mysql_charset': 'utf8',

@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-from collections import Iterable
+from collections.abc import Iterable
 from datetime import datetime
 from frontera.utils.url import parse_domain_from_url_fast
 from frontera import DistributedBackend
@@ -41,12 +40,11 @@ Error handling:
 
 def _get_retry_timeouts():
     # Timeout generator with back off until 60 seconds
-    for timeout in [0, 10, 30]:
-        yield timeout
+    yield from [0, 10, 30]
     yield None
 
 
-class RedisOperation(object):
+class RedisOperation:
     def __init__(self, pool):
         self._connection = StrictRedis(connection_pool=pool)
         self._logger = logging.getLogger("redis_backend.RedisOperation")
@@ -70,7 +68,7 @@ class RedisOperation(object):
                 break
 
 
-class RedisPipeline(object):
+class RedisPipeline:
     def __init__(self, pool):
         connection = StrictRedis(connection_pool=pool)
         self._pipeline = connection.pipeline()
@@ -164,7 +162,7 @@ class RedisQueue(Queue):
                 max_n_requests, to_remove)
             count += subset_count
 
-        self._logger.debug("Finished: hosts {}, requests {}".format(len(queue.keys()), count))
+        self._logger.debug(f"Finished: hosts {len(queue.keys())}, requests {count}")
 
         results = []
         for host_crc32, items in queue.items():
@@ -369,7 +367,7 @@ class RedisBackend(DistributedBackend):
         self._max_requests_per_host = settings.get('BC_MAX_REQUESTS_PER_HOST')
 
         self.queue_partitions = settings.get('SPIDER_FEED_PARTITIONS')
-        self._logger.info("RedisBackend started with {} partitions".format(self.queue_partitions))
+        self._logger.info(f"RedisBackend started with {self.queue_partitions} partitions")
         self.pool = ConnectionPool(host=host, port=port, db=0)
         self._metadata = None
         self._queue = None

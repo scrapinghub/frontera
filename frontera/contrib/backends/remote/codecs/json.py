@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 """ A JSON codec for Frontera. Implemented using native json library.
 """
-from __future__ import absolute_import
 import json
 import six
 from base64 import b64decode, b64encode
@@ -27,7 +25,7 @@ def _convert_and_save_type(obj):
     if isinstance(obj, bytes):
         return 'bytes', to_unicode(obj)
     elif isinstance(obj, dict):
-        return 'dict', [(_convert_and_save_type(k), _convert_and_save_type(v)) for k, v in six.iteritems(obj)]
+        return 'dict', [(_convert_and_save_type(k), _convert_and_save_type(v)) for k, v in obj.items()]
     elif isinstance(obj, (list, tuple)):
         return type(obj).__name__, [_convert_and_save_type(item) for item in obj]
     return 'other', obj
@@ -48,7 +46,7 @@ def _convert_from_saved_type(obj):
     if obj_type == 'bytes':
         return to_bytes(obj_value)
     elif obj_type == 'dict':
-        return dict([(_convert_from_saved_type(k), _convert_from_saved_type(v)) for k, v in obj_value])
+        return {_convert_from_saved_type(k): _convert_from_saved_type(v) for k, v in obj_value}
     elif obj_type in ['list', 'tuple']:
         _type = list if obj_type == 'list' else tuple
         return _type([_convert_from_saved_type(item) for item in obj_value])
@@ -77,23 +75,23 @@ def _prepare_response_message(response, send_body):
 class CrawlFrontierJSONEncoder(json.JSONEncoder):
     def __init__(self, request_model, *a, **kw):
         self._request_model = request_model
-        super(CrawlFrontierJSONEncoder, self).__init__(*a, **kw)
+        super().__init__(*a, **kw)
 
     def default(self, o):
         if isinstance(o, self._request_model):
             return _prepare_request_message(o)
         else:
-            return super(CrawlFrontierJSONEncoder, self).default(o)
+            return super().default(o)
 
 
 class Encoder(BaseEncoder, CrawlFrontierJSONEncoder):
     def __init__(self, request_model, *a, **kw):
         self.send_body = kw.pop('send_body', False)
-        super(Encoder, self).__init__(request_model, *a, **kw)
+        super().__init__(request_model, *a, **kw)
 
     def encode(self, obj):
         encoded = _convert_and_save_type(obj)
-        return super(Encoder, self).encode(encoded)
+        return super().encode(encoded)
 
     def encode_page_crawled(self, response):
         return self.encode({
@@ -148,7 +146,7 @@ class Decoder(json.JSONDecoder, BaseDecoder):
     def __init__(self, request_model, response_model, *a, **kw):
         self._request_model = request_model
         self._response_model = response_model
-        super(Decoder, self).__init__(*a, **kw)
+        super().__init__(*a, **kw)
 
     def _response_from_object(self, obj):
         url = obj['url']
@@ -167,7 +165,7 @@ class Decoder(json.JSONDecoder, BaseDecoder):
                                    meta=obj['meta'])
 
     def decode(self, message):
-        message = _convert_from_saved_type(super(Decoder, self).decode(message))
+        message = _convert_from_saved_type(super().decode(message))
         if message['type'] == 'links_extracted':
             request = self._request_from_object(message['r'])
             links = [self._request_from_object(link) for link in message['links']]
@@ -189,7 +187,7 @@ class Decoder(json.JSONDecoder, BaseDecoder):
         raise TypeError('Unknown message type')
 
     def decode_request(self, message):
-        obj = _convert_from_saved_type(super(Decoder, self).decode(message))
+        obj = _convert_from_saved_type(super().decode(message))
         return self._request_model(url=obj['url'],
                                    method=obj['method'],
                                    headers=obj['headers'],

@@ -3,9 +3,9 @@ import six
 
 def restruct_for_pack(obj):
     """Recursively walk object's hierarchy."""
-    if isinstance(obj, six.text_type):
+    if isinstance(obj, str):
         return obj
-    if isinstance(obj, (bool, six.integer_types, float, six.binary_type)):
+    if isinstance(obj, (bool, (int,), float, bytes)):
         return obj
     elif isinstance(obj, dict):
         obj = obj.copy()

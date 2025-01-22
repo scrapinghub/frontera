@@ -1,7 +1,5 @@
-from __future__ import absolute_import
 from frontera.core import OverusedBuffer
 from frontera.core.models import Request
-from six.moves import range
 from itertools import cycle
 from random import choice
 from string import ascii_lowercase
@@ -15,7 +13,7 @@ r5 = Request('http://example.com/some/page', meta={b'fingerprint':b'9dbd730bdce2
 r6 = Request('http://example1.com', meta={b'fingerprint': b'0ac55362d7391707e121dace4d203a0dc4393afc'})
 
 
-class TestOverusedBuffer(object):
+class TestOverusedBuffer:
 
     requests = [r1, r2, r3, r4, r5, r6]
 
@@ -34,7 +32,7 @@ class TestOverusedBuffer(object):
 
         assert ob._get_pending_count() == 0
         assert set(ob.get_next_requests(10, overused_keys=['www.example.com', 'example1.com'],
-                                        key_type='domain')) == set([r4, r5])
+                                        key_type='domain')) == {r4, r5}
         assert ob._get_pending_count() == 4
         assert ob.get_next_requests(10, overused_keys=['www.example.com'],
                                     key_type='domain') == [r6]
@@ -46,7 +44,7 @@ class TestOverusedBuffer(object):
 
         #the max_next_requests is 3 here to cover the "len(requests) == max_next_requests" case.
         assert set(ob.get_next_requests(3, overused_keys=['example.com'],
-                                        key_type='domain')) == set([r1, r2, r3])
+                                        key_type='domain')) == {r1, r2, r3}
         assert ob._get_pending_count() == 0
 
         assert ob.get_next_requests(10, overused_keys=[], key_type='domain') == []
@@ -64,7 +62,7 @@ class TestOverusedBuffer(object):
 
     def generate_requests(self):
         def get_random_host():
-            return str("").join([choice(ascii_lowercase) for i in range(5)])
+            return "".join([choice(ascii_lowercase) for i in range(5)])
 
         self.hosts = set()
         for _ in range(21):

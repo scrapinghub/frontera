@@ -6,7 +6,7 @@ from tests.utils import LoggingCaptureMixin, SetupDefaultLoggingMixin
 
 class BaseTestFilters(SetupDefaultLoggingMixin, LoggingCaptureMixin, unittest.TestCase):
     def tearDown(self):
-        super(BaseTestFilters, self).setUp()
+        super().setUp()
         self.logger.handlers[0].filters = []
 
     def addFilter(self, filter):

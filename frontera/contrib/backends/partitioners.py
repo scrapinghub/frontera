@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-
 from frontera.core.components import Partitioner
 from cityhash import CityHash64
 from frontera.utils.misc import get_crc32

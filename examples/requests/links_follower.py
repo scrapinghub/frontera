@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import re
 
 import requests
@@ -7,7 +5,7 @@ import requests
 from frontera.contrib.requests.manager import RequestsFrontierManager
 from frontera import Settings
 
-from six.moves.urllib.parse import urljoin
+from urllib.parse import urljoin
 
 
 SETTINGS = Settings()

@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-
 import logging
 from argparse import ArgumentParser
 from binascii import hexlify
@@ -13,7 +10,7 @@ from traceback import format_stack, format_tb
 from collections import defaultdict
 
 import six
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 from twisted.internet import reactor, task
 from twisted.internet.defer import Deferred
 from twisted.internet.task import LoopingCall
@@ -29,7 +26,7 @@ from frontera.worker.stats import StatsExportMixin
 logger = logging.getLogger("strategy-worker")
 
 
-class BatchedWorkflow(object):
+class BatchedWorkflow:
     def __init__(self, manager, scoring_stream, stats, job_id):
         self.strategy = manager.strategy
         self.states_context = manager.states_context
@@ -135,7 +132,7 @@ class BatchedWorkflow(object):
         self.states_context.states.update_cache(request)
 
 
-class BaseStrategyWorker(object):
+class BaseStrategyWorker:
     """Base strategy worker class."""
 
     def __init__(self, settings, is_add_seeds_mode):
@@ -234,7 +231,7 @@ class BaseStrategyWorker(object):
         def log_failure(failure):
             logger.exception(failure.value)
             if failure.frames:
-                logger.critical(str("").join(format_tb(failure.getTracebackObject())))
+                logger.critical("".join(format_tb(failure.getTracebackObject())))
 
         def errback_main(failure):
             log_failure(failure)
@@ -250,7 +247,7 @@ class BaseStrategyWorker(object):
 
         def debug(sig, frame):
             logger.critical("Signal received: printing stack trace")
-            logger.critical(str("").join(format_stack(frame)))
+            logger.critical("".join(format_stack(frame)))
 
         install_shutdown_handlers(self._handle_shutdown)
         signal(SIGUSR1, debug)
@@ -269,7 +266,7 @@ class BaseStrategyWorker(object):
         reactor.run(installSignalHandlers=False)
 
     def log_status(self):
-        for k, v in six.iteritems(self.stats):
+        for k, v in self.stats.items():
             logger.info("%s=%s", k, v)
 
     def flush_states(self):

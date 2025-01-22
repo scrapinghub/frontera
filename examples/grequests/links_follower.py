@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import re
 from time import time
 
@@ -14,7 +12,7 @@ from frontera.core import get_slot_key
 from frontera import Settings
 
 from six import iteritems
-from six.moves.urllib.parse import urljoin
+from urllib.parse import urljoin
 
 
 SETTINGS = Settings()
@@ -49,12 +47,12 @@ class GRequestsConverter(BaseRequestConverter):
 
 class GRequestsFrontierManager(FrontierManagerWrapper):
     def __init__(self, settings):
-        super(GRequestsFrontierManager, self).__init__(settings)
+        super().__init__(settings)
         self.request_converter = GRequestsConverter()
         self.response_converter = ResponseConverter(self.request_converter)
 
 
-class HostnameStatistics(object):
+class HostnameStatistics:
     def __init__(self):
         self.stats = {}
 
@@ -67,7 +65,7 @@ class HostnameStatistics(object):
 
         return [
             key
-            for key, timestamp in iteritems(self.stats)
+            for key, timestamp in self.stats.items()
             if ts - timestamp < 5.0  # querying each hostname with at least 5 seconds delay
         ]
 

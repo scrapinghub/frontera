@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 import sys
 
@@ -10,8 +8,8 @@ from colorlog import ColoredFormatter
 class ColorFormatter(ColoredFormatter):
 
     def __init__(self, format, log_colors, log_color_field, datefmt=None, reset=True, style='%'):
-        super(ColorFormatter, self).__init__(fmt=format, datefmt=datefmt, log_colors=log_colors,
-                                             reset=reset, style=style)
+        super().__init__(fmt=format, datefmt=datefmt, log_colors=log_colors,
+                         reset=reset, style=style)
         self.log_color_field = log_color_field
 
     def format(self, record):

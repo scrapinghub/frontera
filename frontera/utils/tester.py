@@ -1,16 +1,13 @@
-from __future__ import absolute_import, print_function
-
 from collections import OrderedDict, deque
 
 import six
 
 from io import BytesIO
 from os import linesep
-from six.moves import range
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 
-class FrontierTester(object):
+class FrontierTester:
 
     def __init__(self, frontier, graph_manager, downloader_simulator, max_next_requests=0):
         self.frontier = frontier
@@ -95,7 +92,7 @@ class FrontierTester(object):
         return (requests, self.frontier.iteration, kwargs)
 
 
-class BaseDownloaderSimulator(object):
+class BaseDownloaderSimulator:
     def __init__(self):
         self.requests = None
 
@@ -119,7 +116,7 @@ class DownloaderSimulator(BaseDownloaderSimulator):
     def __init__(self, rate):
         self._requests_per_slot = rate
         self.slots = OrderedDict()
-        super(DownloaderSimulator, self).__init__()
+        super().__init__()
 
     def update(self, requests):
         for request in requests:
@@ -129,7 +126,7 @@ class DownloaderSimulator(BaseDownloaderSimulator):
     def download(self):
         output = []
         _trash_can = []
-        for key, requests in six.iteritems(self.slots):
+        for key, requests in self.slots.items():
             for i in range(min(len(requests), self._requests_per_slot)):
                 output.append(requests.popleft())
             if not requests:
@@ -144,7 +141,7 @@ class DownloaderSimulator(BaseDownloaderSimulator):
             'key_type': 'domain',
             'overused_keys': []
         }
-        for key, requests in six.iteritems(self.slots):
+        for key, requests in self.slots.items():
             if len(requests) > self._requests_per_slot:
                 info['overused_keys'].append(key)
         return info

@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-
 import os
 import logging
 import threading
@@ -34,7 +31,7 @@ LOGGING_TASK_INTERVAL = 30
 logger = logging.getLogger("db-worker")
 
 
-class Slot(object):
+class Slot:
     """Slot component to manage worker components.
 
     Slot is responsible for scheduling all the components, modify its behaviour
@@ -54,7 +51,7 @@ class Slot(object):
             try:
                 component = cls(worker, settings, stop_event=self.stop_event, **kwargs)
             except NotConfigured:
-                logger.info("Component {} is disabled".format(cls.NAME))
+                logger.info(f"Component {cls.NAME} is disabled")
             else:
                 components[cls] = component
         if not components:
@@ -91,7 +88,7 @@ class Slot(object):
             self.batches_disabled_event.clear() if enable else self.batches_disabled_event.set()
 
 
-class BaseDBWorker(object):
+class BaseDBWorker:
     """Base database worker class."""
 
     def __init__(self, settings, no_batches, no_incoming, no_scoring, **kwargs):
@@ -121,7 +118,7 @@ class BaseDBWorker(object):
     def run(self):
         def debug(sig, frame):
             logger.critical("Signal received: printing stack trace")
-            logger.critical(str("").join(format_stack(frame)))
+            logger.critical("".join(format_stack(frame)))
 
         self.slot.schedule()
         self._logging_task.start(LOGGING_TASK_INTERVAL)
@@ -143,7 +140,7 @@ class BaseDBWorker(object):
         self.process_info = process_info
 
     def log_status(self):
-        for k, v in six.iteritems(self.stats):
+        for k, v in self.stats.items():
             logger.info("%s=%s", k, v)
 
     # Graceful shutdown
@@ -205,7 +202,7 @@ class DBWorker(StatsExportMixin, BaseDBWorker):
                            "(no-scoring {}, no-batches {}, no-incoming {})"
                            .format(no_scoring, no_batches, no_incoming))
             db_worker_type = 'none'
-        tags = {'source': 'dbw-{}'.format(db_worker_type)}
+        tags = {'source': f'dbw-{db_worker_type}'}
         # add mesos task id as a tag if running via marathon
         mesos_task_id = os.environ.get('MESOS_TASK_ID')
         if mesos_task_id:

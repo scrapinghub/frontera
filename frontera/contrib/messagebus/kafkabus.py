@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-
 from logging import getLogger
 from time import sleep
 
@@ -47,7 +44,7 @@ class Consumer(BaseStreamConsumer):
             group_id=self._group,
             max_partition_fetch_bytes=10485760,
             consumer_timeout_ms=100,
-            client_id="%s-%s" % (self._topic, str(partition_id) if partition_id is not None else "all"),
+            client_id="{}-{}".format(self._topic, str(partition_id) if partition_id is not None else "all"),
             request_timeout_ms=120 * 1000,
             heartbeat_interval_ms=10000,
             **kwargs
@@ -197,7 +194,7 @@ class SpiderFeedStream(BaseSpiderFeedStream):
     def available_partitions(self):
         partitions = []
         lags = self._offset_fetcher.get()
-        for partition, lag in six.iteritems(lags):
+        for partition, lag in lags.items():
             if lag < self._max_next_requests:
                 partitions.append(partition)
         return partitions
@@ -235,7 +232,7 @@ class StatsLogStream(ScoringLogStream, BaseStatsLogStream):
     to reuse it with proper topic and group.
     """
     def __init__(self, messagebus):
-        super(StatsLogStream, self).__init__(messagebus)
+        super().__init__(messagebus)
         self._topic = messagebus.topic_stats
         self._group = messagebus.statslog_reader_group
 

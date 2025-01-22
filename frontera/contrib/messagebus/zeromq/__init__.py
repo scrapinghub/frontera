@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
 from time import time, sleep
 from struct import pack, unpack
 from logging import getLogger
@@ -11,7 +9,6 @@ from frontera.core.messagebus import BaseMessageBus, BaseSpiderLogStream, BaseSt
     BaseSpiderFeedStream, BaseScoringLogStream, BaseStatsLogStream, BaseStreamProducer
 from frontera.contrib.backends.partitioners import FingerprintPartitioner, Crc32NamePartitioner
 from frontera.contrib.messagebus.zeromq.socket_config import SocketConfig
-from six.moves import range
 
 
 class Consumer(BaseStreamConsumer):
@@ -24,7 +21,7 @@ class Consumer(BaseStreamConsumer):
         self.subscriber.setsockopt(zmq.SUBSCRIBE, filter)
         self.counter = 0
         self.count_global = partition_id is None
-        self.logger = getLogger("distributed_frontera.messagebus.zeromq.Consumer(%s-%s)" % (identity, partition_id))
+        self.logger = getLogger(f"distributed_frontera.messagebus.zeromq.Consumer({identity}-{partition_id})")
         self.seq_warnings = seq_warnings
 
         self.stats = context.stats
@@ -78,7 +75,7 @@ class Producer(BaseStreamProducer):
             raise TypeError("msg is not a list or tuple!")
 
         # Raise TypeError if any message is not encoded as bytes
-        if any(not isinstance(m, six.binary_type) for m in messages):
+        if any(not isinstance(m, bytes) for m in messages):
             raise TypeError("all produce message payloads must be type bytes")
         partition = self.partitioner.partition(key)
         counter = self.counters.get(partition, 0)
@@ -103,7 +100,7 @@ class Producer(BaseStreamProducer):
 
 class SpiderLogProducer(Producer):
     def __init__(self, context, location, partitions):
-        super(SpiderLogProducer, self).__init__(context, location, b'sl')
+        super().__init__(context, location, b'sl')
         self.partitioner = FingerprintPartitioner(partitions)
 
 
@@ -125,7 +122,7 @@ class SpiderLogStream(BaseSpiderLogStream):
 
 class NonPartitionedProducer(Producer):
     def __init__(self, context, location, identity):
-        super(NonPartitionedProducer, self).__init__(context, location, identity)
+        super().__init__(context, location, identity)
 
     def send(self, key, *messages):
         # Guarantee that msg is actually a list or tuple (should always be true)
@@ -133,7 +130,7 @@ class NonPartitionedProducer(Producer):
             raise TypeError("msg is not a list or tuple!")
 
         # Raise TypeError if any message is not encoded as bytes
-        if any(not isinstance(m, six.binary_type) for m in messages):
+        if any(not isinstance(m, bytes) for m in messages):
             raise TypeError("all produce message payloads must be type bytes")
         counter = self.counters.get(0, 0)
         for msg in messages:
@@ -160,7 +157,7 @@ class ScoringLogStream(BaseScoringLogStream):
 
 class SpiderFeedProducer(Producer):
     def __init__(self, context, location, partitions, hwm, hostname_partitioning):
-        super(SpiderFeedProducer, self).__init__(context, location, b'sf')
+        super().__init__(context, location, b'sf')
         self.partitioner = Crc32NamePartitioner(partitions) if hostname_partitioning else \
             FingerprintPartitioner(partitions)
         self.sender.set(zmq.SNDHWM, hwm)
@@ -217,7 +214,7 @@ class StatsLogStream(BaseStatsLogStream):
         return DevNullProducer()
 
 
-class Context(object):
+class Context:
 
     zeromq = zmq.Context()
     stats = {}

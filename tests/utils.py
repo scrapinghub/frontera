@@ -34,7 +34,7 @@ DEFAULT_LOGGING = {
 }
 
 
-class LoggingCaptureMixin(object):
+class LoggingCaptureMixin:
     """
     Capture the output from the 'frontera' logger and store it on the class's
     logger_output attribute.
@@ -50,12 +50,12 @@ class LoggingCaptureMixin(object):
         self.logger.handlers[0].stream = self.old_stream
 
 
-class SetupDefaultLoggingMixin(object):
+class SetupDefaultLoggingMixin:
     @classmethod
     def setUpClass(cls):
-        super(SetupDefaultLoggingMixin, cls).setUpClass()
+        super().setUpClass()
         logging.config.dictConfig(DEFAULT_LOGGING)
 
     @classmethod
     def tearDownClass(cls):
-        super(SetupDefaultLoggingMixin, cls).tearDownClass()
+        super().tearDownClass()

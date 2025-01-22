@@ -8,7 +8,7 @@ class GeneralSpider(Spider):
     name = 'general'
 
     def __init__(self, *args, **kwargs):
-        super(GeneralSpider, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.le = LinkExtractor()
 
     def parse(self, response):

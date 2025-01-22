@@ -15,11 +15,11 @@ from tests.utils import LoggingCaptureMixin, SetupDefaultLoggingMixin, colors
 
 class BaseTestFormatters(SetupDefaultLoggingMixin, LoggingCaptureMixin, unittest.TestCase):
     def setUp(self):
-        super(BaseTestFormatters, self).setUp()
+        super().setUp()
         self.default_formatter = self.logger.handlers[0].formatter
 
     def tearDown(self):
-        super(BaseTestFormatters, self).setUp()
+        super().setUp()
         self.logger.handlers[0].formatter = self.default_formatter
 
     def setFormatter(self, formatter):
@@ -61,8 +61,8 @@ class TestFormatterColor(BaseTestFormatters):
             log_color_field="levelname")
         self.setFormatter(c)
         self.logger.debug('debug message')
-        self.assertRegexpMatches(self.logger_output.getvalue(),
-                                 '{white} \d{{2}}-\d{{2}}-\d{{4}} \d{{2}}:\d{{2}}:\d{{2}} '
+        self.assertRegex(self.logger_output.getvalue(),
+                                 r'{white} \d{{2}}-\d{{2}}-\d{{4}} \d{{2}}:\d{{2}}:\d{{2}} '
                                  '\\[frontera\\] debug message{reset}\n'.format(
                                      white=re.escape(colors['white']),
                                      reset=re.escape(colors['reset'])))
@@ -71,7 +71,7 @@ class TestFormatterColor(BaseTestFormatters):
 class TestFormatterJson(BaseTestFormatters):
 
     def setUp(self):
-        super(TestFormatterJson, self).setUp()
+        super().setUp()
         self.setFormatter(JSONFormatter())
 
     def test_formatter_json_log_text(self):

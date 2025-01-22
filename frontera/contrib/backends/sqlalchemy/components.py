@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-
 from time import time, sleep
 
 import logging
@@ -14,7 +11,6 @@ from frontera.core.components import Metadata as BaseMetadata, Queue as BaseQueu
 from frontera.core.models import Request, Response
 from frontera.utils.misc import get_crc32, chunks
 from frontera.utils.url import parse_domain_from_url_fast
-from six.moves import range
 from w3lib.util import to_native_str, to_bytes
 
 
@@ -116,7 +112,7 @@ class Metadata(BaseMetadata):
 class States(MemoryStates):
 
     def __init__(self, session_cls, model_cls, cache_size_limit):
-        super(States, self).__init__(cache_size_limit)
+        super().__init__(cache_size_limit)
         self.session = session_cls()
         self.model = model_cls
         self.table = DeclarativeBase.metadata.tables['states']
@@ -139,12 +135,12 @@ class States(MemoryStates):
 
     @retry_and_rollback
     def flush(self):
-        for fingerprint, state_val in six.iteritems(self._cache):
+        for fingerprint, state_val in self._cache.items():
             state = self.model(fingerprint=to_native_str(fingerprint), state=state_val)
             self.session.merge(state)
         self.session.commit()
         self.logger.debug("State cache has been flushed.")
-        super(States, self).flush()
+        super().flush()
 
 
 class Queue(BaseQueue):
@@ -198,7 +194,7 @@ class Queue(BaseQueue):
             if schedule:
                 _, hostname, _, _, _, _ = parse_domain_from_url_fast(request.url)
                 if not hostname:
-                    self.logger.error("Can't get hostname for URL %s, fingerprint %s" % (request.url, fprint))
+                    self.logger.error(f"Can't get hostname for URL {request.url}, fingerprint {fprint}")
                     partition_id = self.partitions[0]
                     host_crc32 = 0
                 else:
@@ -270,7 +266,7 @@ class BroadCrawlingQueue(Queue):
         self.logger.debug("Finished: tries %d, hosts %d, requests %d", tries, len(queue.keys()), count)
 
         results = []
-        for items in six.itervalues(queue):
+        for items in queue.values():
             for item in items:
                 method = item.method or b'GET'
                 results.append(Request(item.url, method=method,

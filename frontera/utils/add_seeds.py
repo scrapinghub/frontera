@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from frontera.core.manager import LocalFrontierManager
 from frontera.settings import Settings
 from frontera.logger.handlers import CONSOLE

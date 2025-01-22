@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import, division
 from frontera import DistributedBackend
 from frontera.core.components import Metadata, Queue, States
 from frontera.core.models import Request
@@ -11,7 +9,6 @@ from frontera.contrib.backends.hbase.domaincache import DomainCache
 from happybase import Connection
 from msgpack import Unpacker, Packer, packb
 import six
-from six.moves import range
 from w3lib.util import to_bytes
 from cachetools import LRUCache
 
@@ -22,7 +19,8 @@ from time import time
 from binascii import hexlify, unhexlify
 from io import BytesIO
 from random import choice
-from collections import defaultdict, Iterable
+from collections import defaultdict
+from collections.abc import Iterable
 import logging
 
 _pack_functions = {
@@ -47,7 +45,7 @@ def unpack_score(blob):
 def prepare_hbase_object(obj=None, **kwargs):
     if not obj:
         obj = dict()
-    for k, v in six.iteritems(kwargs):
+    for k, v in kwargs.items():
         if k in ['score', 'state']:
             cf = 's'
         elif k == 'content':
@@ -70,13 +68,13 @@ class LRUCacheWithStats(LRUCache):
     EVICTED_STATNAME = 'states.cache.evicted'
 
     def __init__(self, stats=None, *args, **kwargs):
-        super(LRUCacheWithStats, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._stats = stats
         if self._stats is not None:
             self._stats.setdefault(self.EVICTED_STATNAME, 0)
 
     def popitem(self):
-        key, val = super(LRUCacheWithStats, self).popitem()
+        key, val = super().popitem()
         if self._stats:
             self._stats[self.EVICTED_STATNAME] += 1
         return key, val
@@ -123,7 +121,7 @@ class HBaseQueue(Queue):
                 assert b'domain' in request.meta
                 timestamp = request.meta[b'crawl_at'] if b'crawl_at' in request.meta else now
                 to_schedule.setdefault(timestamp, []).append((request, score))
-        for timestamp, batch in six.iteritems(to_schedule):
+        for timestamp, batch in to_schedule.items():
             self._schedule(batch, timestamp)
 
     def _schedule(self, batch, timestamp):
@@ -179,7 +177,7 @@ class HBaseQueue(Queue):
 
         table = self.connection.table(self.table_name)
         with table.batch(transaction=True) as b:
-            for rk, tuples in six.iteritems(data):
+            for rk, tuples in data.items():
                 obj = dict()
                 for score, item in tuples:
                     column = 'f:%0.3f_%0.3f' % get_interval(score, 0.001)
@@ -187,7 +185,7 @@ class HBaseQueue(Queue):
 
                 final = dict()
                 packer = Packer()
-                for column, items in six.iteritems(obj):
+                for column, items in obj.items():
                     stream = BytesIO()
                     for item in items:
                         stream.write(packer.pack(item))
@@ -236,7 +234,7 @@ class HBaseQueue(Queue):
             scan_gen = table.scan(limit=int(limit), batch_size=256, row_prefix=prefix, sorted_columns=True)
             try:
                 for rk, data in scan_gen:
-                    for cq, buf in six.iteritems(data):
+                    for cq, buf in data.items():
                         if cq == b'f:t':
                             continue
                         stream = BytesIO(buf)
@@ -269,14 +267,14 @@ class HBaseQueue(Queue):
 
         # For every fingerprint collect it's row keys and return all fingerprints from them
         fprint_map = {}
-        for fprint, meta_list in six.iteritems(meta_map):
+        for fprint, meta_list in meta_map.items():
             for rk, _ in meta_list:
                 fprint_map.setdefault(rk, []).append(fprint)
 
         results = []
         trash_can = set()
 
-        for _, fprints in six.iteritems(queue):
+        for _, fprints in queue.items():
             for fprint in fprints:
                 for rk, _ in meta_map[fprint]:
                     if rk in trash_can:
@@ -434,7 +432,7 @@ class HBaseMetadata(Metadata):
         links_dict = dict()
         for link in links:
             links_dict[unhexlify(link.meta[b'fingerprint'])] = (link, link.url, link.meta[b'domain'])
-        for link_fingerprint, (link, link_url, link_domain) in six.iteritems(links_dict):
+        for link_fingerprint, (link, link_url, link_domain) in links_dict.items():
             obj = prepare_hbase_object(url=link_url,
                                        created_at=utcnow_timestamp(),
                                        domain_fprint=link_domain[b'fingerprint'])
@@ -457,7 +455,7 @@ class HBaseMetadata(Metadata):
     def update_score(self, batch):
         if not isinstance(batch, dict):
             raise TypeError('batch should be dict with fingerprint as key, and float score as value')
-        for fprint, (score, url, schedule) in six.iteritems(batch):
+        for fprint, (score, url, schedule) in batch.items():
             obj = prepare_hbase_object(score=score)
             rk = unhexlify(fprint)
             self.batch.put(rk, obj)

@@ -1,5 +1,4 @@
-from __future__ import absolute_import
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 from socket import getaddrinfo
 from collections import defaultdict, deque
 from logging import getLogger, DEBUG
@@ -25,7 +24,7 @@ def get_slot_key(request, type):  # TODO: Probably use caching here
     return key
 
 
-class OverusedBuffer(object):
+class OverusedBuffer:
     """
     A buffering object for implementing the buffer of Frontera requests for overused domains/ips. It can be used
     when customizing backend to address efficient downloader pool usage.
@@ -46,7 +45,7 @@ class OverusedBuffer(object):
         return get_slot_key(request, type)
 
     def _get_pending_count(self):
-        return sum(six.moves.map(len, six.itervalues(self._pending)))
+        return sum(map(len, self._pending.values()))
 
     def _get_key_count(self):
         return len(self._pending)

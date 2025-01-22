@@ -1,6 +1,4 @@
-from __future__ import absolute_import
-
-from collections import Iterable
+from collections.abc import Iterable
 
 import logging
 import six
@@ -8,7 +6,6 @@ from frontera.contrib.backends.partitioners import Crc32NamePartitioner
 from frontera.core.components import Metadata, Queue, States, DistributedBackend
 from frontera.utils.heap import Heap
 from frontera.utils.url import parse_domain_from_url_fast
-from six.moves import range
 
 
 def cmp(a, b):
@@ -58,7 +55,7 @@ class MemoryQueue(Queue):
             self.heap[partition] = Heap(self._compare_pages)
 
     def count(self):
-        return sum([len(h.heap) for h in six.itervalues(self.heap)])
+        return sum([len(h.heap) for h in self.heap.values()])
 
     def get_next_requests(self, max_n_requests, partition_id, **kwargs):
         return self.heap[partition_id].pop(max_n_requests)

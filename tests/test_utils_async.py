@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 sqlalchemy = pytest.importorskip("twisted")
 
@@ -10,7 +8,7 @@ from twisted.internet.task import Clock
 from frontera.utils.twisted_helpers import CallLaterOnce, listen_tcp
 
 
-class TestCallLaterOnce(object):
+class TestCallLaterOnce:
 
     called = 0
 
@@ -54,7 +52,7 @@ class TestCallLaterOnce(object):
         assert self.called == 0
 
 
-class TestListenTCP(object):
+class TestListenTCP:
 
     host = '127.0.0.1'
     port = 6023

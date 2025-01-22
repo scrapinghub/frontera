@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 """ A MsgPack codec for Frontera. Implemented using native msgpack-python library.
 """
-from __future__ import absolute_import
 
 from frontera.core.codec import BaseDecoder, BaseEncoder
 from frontera.utils.msgpack import restruct_for_pack

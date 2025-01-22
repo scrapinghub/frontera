@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
 from time import time
 from datetime import timedelta
 import logging
@@ -15,7 +12,7 @@ from frontera.settings import Settings
 from .socket_config import SocketConfig
 
 
-class Server(object):
+class Server:
 
     ctx = None
     loop = None

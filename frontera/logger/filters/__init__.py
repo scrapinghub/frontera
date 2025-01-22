@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import logging
 import six
 from w3lib.util import to_native_str
@@ -6,7 +5,7 @@ from w3lib.util import to_native_str
 
 class PlainValuesFilter(logging.Filter):
     def __init__(self, separator=None, excluded_fields=None, msg_max_length=0):
-        super(PlainValuesFilter, self).__init__()
+        super().__init__()
         self.separator = to_native_str(separator or " ")
         self.excluded_fields = excluded_fields or []
         self.msg_max_length = msg_max_length
@@ -16,7 +15,7 @@ class PlainValuesFilter(logging.Filter):
             for field_name in self.excluded_fields:
                 setattr(record, field_name, record.msg.get(field_name, ''))
             record.msg = self.separator.join([to_native_str(value)
-                                              for key, value in six.iteritems(record.msg)
+                                              for key, value in record.msg.items()
                                               if key not in self.excluded_fields])
             if self.msg_max_length and len(record.msg) > self.msg_max_length:
                 record.msg = record.msg[0:self.msg_max_length-3] + "..."
@@ -26,7 +25,7 @@ class PlainValuesFilter(logging.Filter):
 
 class FilterFields(logging.Filter):
     def __init__(self, field_name):
-        super(FilterFields, self).__init__()
+        super().__init__()
         self.field_name = field_name
 
     def _get_field(self, record):
@@ -42,7 +41,7 @@ class FilterFields(logging.Filter):
 
 class IncludeFields(FilterFields):
     def __init__(self, field_name, included_values):
-        super(IncludeFields, self).__init__(field_name)
+        super().__init__(field_name)
         self.included_values = included_values
 
     def filter(self, record):
@@ -54,7 +53,7 @@ class IncludeFields(FilterFields):
 
 class ExcludeFields(FilterFields):
     def __init__(self, field_name, excluded_fields):
-        super(ExcludeFields, self).__init__(field_name)
+        super().__init__(field_name)
         self.excluded_fields = excluded_fields
 
     def filter(self, record):

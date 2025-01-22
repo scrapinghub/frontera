@@ -12,7 +12,7 @@ from tests.utils import SetupDefaultLoggingMixin, LoggingCaptureMixin, colors
 class SetupHandler(SetupDefaultLoggingMixin):
     @classmethod
     def setUpClass(cls):
-        super(SetupHandler, cls).setUpClass()
+        super().setUpClass()
         l = logging.getLogger('frontera')
         l.handlers[0] = cls.handler
 

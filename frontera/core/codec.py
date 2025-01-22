@@ -1,11 +1,8 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
 from abc import ABCMeta, abstractmethod
 import six
 
 
-@six.add_metaclass(ABCMeta)
-class BaseDecoder(object):
+class BaseDecoder(metaclass=ABCMeta):
 
     @abstractmethod
     def decode(self, buffer):
@@ -28,8 +25,7 @@ class BaseDecoder(object):
         pass
 
 
-@six.add_metaclass(ABCMeta)
-class BaseEncoder(object):
+class BaseEncoder(metaclass=ABCMeta):
 
     @abstractmethod
     def encode_page_crawled(self, response):

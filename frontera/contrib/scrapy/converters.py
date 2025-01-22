@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 from scrapy.http.request import Request as ScrapyRequest
 from scrapy.http.response import Response as ScrapyResponse
 from scrapy.http.response.html import TextResponse
@@ -114,7 +113,7 @@ def _find_method(obj, func):
     if obj and hasattr(func, '__self__') and func.__self__ is obj:
         return to_bytes(func.__func__.__name__)
     else:
-        raise ValueError("Function %s is not a method of: %s" % (func, obj))
+        raise ValueError(f"Function {func} is not a method of: {obj}")
 
 
 def _get_method(obj, name):
@@ -122,4 +121,4 @@ def _get_method(obj, name):
     try:
         return getattr(obj, name)
     except AttributeError:
-        raise ValueError("Method %r not found in: %s" % (name, obj))
+        raise ValueError(f"Method {name!r} not found in: {obj}")

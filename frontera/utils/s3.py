@@ -6,7 +6,7 @@ class StreamingBodyIOBase(RawIOBase):
     def __init__(self, streaming_body, *args, **kwargs):
         assert isinstance(streaming_body, StreamingBody)
         self._sb = streaming_body
-        super(StreamingBodyIOBase, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def close(self):
         self._sb.close()

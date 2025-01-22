@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
 from frontera.contrib.canonicalsolvers import Basic, CorporateWebsiteFriendly
 from frontera.core.models import Request, Response
 from frontera.utils.fingerprint import sha1

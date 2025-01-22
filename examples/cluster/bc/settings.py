@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 FRONTERA_SETTINGS = 'bc.config.spider'
 
 SCHEDULER = 'frontera.contrib.scrapy.schedulers.frontier.FronteraScheduler'

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
 from frontera import Backend
 from frontera.core import OverusedBuffer
 from frontera.utils.misc import load_object
@@ -53,7 +51,7 @@ class MessageBusBackend(Backend):
 
     def links_extracted(self, request, links):
         per_host = aggregate_per_host(links)
-        for host_fprint, host_links in six.iteritems(per_host):
+        for host_fprint, host_links in per_host.items():
             self.spider_log_producer.send(host_fprint,
                                           self._encoder.encode_links_extracted(request, host_links))
 
@@ -67,7 +65,7 @@ class MessageBusBackend(Backend):
             try:
                 request = self._decoder.decode_request(encoded)
             except Exception as exc:
-                self._logger.warning("Could not decode message: {0}, error {1}".format(encoded, str(exc)))
+                self._logger.warning(f"Could not decode message: {encoded}, error {str(exc)}")
             else:
                 requests.append(request)
         self.spider_log_producer.send(b'0123456789abcdef0123456789abcdef012345678',

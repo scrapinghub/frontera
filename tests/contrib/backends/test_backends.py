@@ -114,7 +114,7 @@ def test_queue(queue):
     batch = [('10', 0.5, r1, True), ('11', 0.6, r2, True),
              ('12', 0.7, r3, True)]
     queue.schedule(batch)
-    assert set([r.url for r in queue.get_next_requests(10, 0, min_requests=3, min_hosts=1,
-                                                       max_requests_per_host=10)]) == set([r3.url])
-    assert set([r.url for r in queue.get_next_requests(10, 1, min_requests=3, min_hosts=1,
-                                                       max_requests_per_host=10)]) == set([r1.url, r2.url])
+    assert {r.url for r in queue.get_next_requests(10, 0, min_requests=3, min_hosts=1,
+                                                       max_requests_per_host=10)} == {r3.url}
+    assert {r.url for r in queue.get_next_requests(10, 1, min_requests=3, min_hosts=1,
+                                                       max_requests_per_host=10)} == {r1.url, r2.url}

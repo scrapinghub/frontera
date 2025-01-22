@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from frontera.settings.default_settings import MIDDLEWARES
 
 MAX_NEXT_REQUESTS = 512

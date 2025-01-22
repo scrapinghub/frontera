@@ -7,7 +7,7 @@ DOMAIN = 'diffeo.com'
 ALLOWED_RE = 'http://' + DOMAIN
 
 
-class FallbackLinkExtractor(object):
+class FallbackLinkExtractor:
     def __init__(self, extractors):
         self.extractors = extractors
 

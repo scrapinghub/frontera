@@ -99,7 +99,7 @@ class TestStrategyWorker(TestCase):
             typ, req, score, is_schedule = sw._decoder.decode(msg)
             fprints.add(req.meta[b'fingerprint'])
 
-        assert fprints == set([r.meta[b'fingerprint'] for r in [r3, r4]])
+        assert fprints == {r.meta[b'fingerprint'] for r in [r3, r4]}
 
     def test_filter_links_extracted(self):
         sw = self.sw_setup_filtered_links()

@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import copy
 import logging
 import time
@@ -15,7 +14,7 @@ from kafka.structs import OffsetAndMetadata
 log = logging.getLogger('offsets-fetcher')
 
 
-class OffsetsFetcherAsync(object):
+class OffsetsFetcherAsync:
 
     DEFAULT_CONFIG = {
         'session_timeout_ms': 30000,
@@ -216,7 +215,7 @@ class OffsetsFetcherAsync(object):
         # based on response error codes
 
         futures = []
-        for node_id, partitions in six.iteritems(nodes_per_partitions):
+        for node_id, partitions in nodes_per_partitions.items():
             request = OffsetRequest[0](
                 -1, [(topic, [(partition.partition, timestamp, 1) for partition in partitions])]
             )
@@ -246,7 +245,7 @@ class OffsetsFetcherAsync(object):
         topic, partition_info = response.topics[0]
         assert len(response.topics) == 1, (
             'OffsetResponse should only be for a single topic')
-        partition_ids = set([part.partition for part in partitions])
+        partition_ids = {part.partition for part in partitions}
         result = []
         for pi in partition_info:
             part, error_code, offsets = pi
@@ -399,7 +398,7 @@ class OffsetsFetcherAsync(object):
         offsets = self.offsets(partitions, -1)
         committed = self.fetch_committed_offsets(partitions)
         lags = {}
-        for tp, offset in six.iteritems(offsets):
+        for tp, offset in offsets.items():
             commit_offset = committed[tp] if tp in committed else 0
             numerical = commit_offset if isinstance(commit_offset, int) else commit_offset.offset
             lag = offset - numerical

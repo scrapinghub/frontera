@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 sqlalchemy = pytest.importorskip("sqlalchemy.engine")
 
@@ -7,7 +5,7 @@ raise ValueError(sqlalchemy.__dict__)
 
 from tests.backends import BackendSequenceTest, TEST_SITES
 from frontera.utils.tester import DownloaderSimulator, BaseDownloaderSimulator
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 
 class DFSOverusedBackendTest(BackendSequenceTest):
@@ -28,7 +26,7 @@ class DFSOverusedBackendTest(BackendSequenceTest):
     }
 
     def get_settings(self):
-        settings = super(DFSOverusedBackendTest, self).get_settings()
+        settings = super().get_settings()
         settings.TEST_MODE = True
         settings.LOGGING_MANAGER_ENABLED = False
         settings.LOGGING_BACKEND_ENABLED = False

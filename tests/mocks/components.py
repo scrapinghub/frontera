@@ -1,8 +1,6 @@
-from __future__ import absolute_import
 from frontera.core.components import Backend, Middleware, CanonicalSolver, \
     DistributedBackend, Queue
 from frontera.contrib.backends.memory import MemoryStates
-from six.moves import range
 from frontera.core.models import Request
 from frontera.strategy import BaseCrawlingStrategy
 from frontera.core.components import States
@@ -79,7 +77,7 @@ class FakeBackend(FakeMiddleware, Backend):
         self._finished = False
         self._queue = FakeQueue()
         self._states = MemoryStates(10000)
-        super(FakeBackend, self).__init__()
+        super().__init__()
 
     @property
     def queue(self):

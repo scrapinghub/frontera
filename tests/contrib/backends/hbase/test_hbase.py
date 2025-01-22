@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 pytest.importorskip("happybase")
 
@@ -24,7 +22,7 @@ r3 = Request('http://www.scrapy.org', meta={b'fingerprint': b'12',
 r4 = r3.copy()
 
 
-class TestHBaseBackend(object):
+class TestHBaseBackend:
 
     def delete_rows(self, table, row_keys):
         batch = table.batch()
@@ -42,8 +40,8 @@ class TestHBaseBackend(object):
         metadata.request_error(r4, 'error')
         metadata.frontier_stop()
         table = connection.table('metadata')
-        assert set([to_native_str(data[b'm:url'], 'utf-8') for _, data in table.scan()]) == \
-            set([r1.url, r2.url, r3.url])
+        assert {to_native_str(data[b'm:url'], 'utf-8') for _, data in table.scan()} == \
+            {r1.url, r2.url, r3.url}
         self.delete_rows(table, [b'10', b'11', b'12'])
 
     @pytest.mark.xfail
@@ -60,8 +58,8 @@ class TestHBaseBackend(object):
             assert queue.get_next_requests(10, 0, min_requests=3, min_hosts=1,
                                            max_requests_per_host=10) == []
             mocked_time.return_value = crawl_at + 1
-            assert set([r.url for r in queue.get_next_requests(10, 0, min_requests=3, min_hosts=1,
-                       max_requests_per_host=10)]) == set([r5.url])
+            assert {r.url for r in queue.get_next_requests(10, 0, min_requests=3, min_hosts=1,
+                       max_requests_per_host=10)} == {r5.url}
 
     def test_drop_all_tables_when_table_name_is_str(self):
         connection = Connection(host='hbase-docker', port=9090)
@@ -74,7 +72,7 @@ class TestHBaseBackend(object):
         connection.create_table(hbase_metadata_table, {'f': {'max_versions': 1}})
         connection.create_table(hbase_states_table, {'f': {'max_versions': 1}})
         tables = connection.tables()
-        assert set(tables) == set([b'metadata', b'queue', b'states'])  # Failure of test itself
+        assert set(tables) == {b'metadata', b'queue', b'states'}  # Failure of test itself
         try:
             HBaseQueue(connection=connection, partitions=1,
                        table_name=hbase_queue_table, use_snappy=False, drop=True)

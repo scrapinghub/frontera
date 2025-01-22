@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 BOT_NAME = 'general'
 
 SPIDER_MODULES = ['general.spiders']

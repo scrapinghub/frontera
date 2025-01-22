@@ -3,8 +3,7 @@ from abc import ABCMeta, abstractmethod
 import six
 
 
-@six.add_metaclass(ABCMeta)
-class BaseCrawlingStrategy(object):
+class BaseCrawlingStrategy(metaclass=ABCMeta):
     """
     Interface definition for a crawling strategy.
 

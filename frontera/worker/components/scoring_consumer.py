@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-
 from time import asctime
 
 from frontera.exceptions import NotConfigured
@@ -14,7 +11,7 @@ class ScoringConsumer(DBWorkerPeriodicComponent):
     NAME = 'scoring'
 
     def __init__(self, worker, settings, stop_event, no_scoring=False, **kwargs):
-        super(ScoringConsumer, self).__init__(worker, settings, stop_event, **kwargs)
+        super().__init__(worker, settings, stop_event, **kwargs)
         if no_scoring:
             raise NotConfigured('ScoringConsumer is disabled with --no-scoring')
         if not isinstance(worker.backend, DistributedBackend):

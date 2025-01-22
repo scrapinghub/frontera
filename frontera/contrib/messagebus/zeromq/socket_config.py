@@ -1,12 +1,10 @@
-# -*- coding: utf-8 -*-
 """
 Contains the SocketConfig class
 """
-from __future__ import absolute_import
 from socket import getaddrinfo, gaierror
 
 
-class SocketConfig(object):
+class SocketConfig:
     """
     Converts address to IPv4 or IPv6 or * and returns the necessary socket
     addresses.

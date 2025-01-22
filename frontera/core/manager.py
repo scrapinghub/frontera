@@ -1,8 +1,6 @@
-from __future__ import absolute_import
-
 import logging
 from abc import ABCMeta, abstractmethod
-from collections import Iterable
+from collections.abc import Iterable
 
 import six
 
@@ -13,7 +11,7 @@ from frontera.settings import Settings
 from frontera.utils.misc import load_object
 
 
-class BackendMixin(object):
+class BackendMixin:
     def __init__(self, backend, db_worker=False, strategy_worker=False):
         # Load backend
         self._logger_components.debug("Loading backend '%s'", backend)
@@ -50,7 +48,7 @@ class BackendMixin(object):
         self.backend.frontier_stop()
 
 
-class StrategyMixin(object):
+class StrategyMixin:
     def __init__(self, strategy_class, strategy_args, scoring_stream):
         self._scoring_stream = scoring_stream if scoring_stream else LocalUpdateScoreStream(self.backend.queue)
         self._states_context = StatesContext(self.backend.states)
@@ -149,20 +147,20 @@ class ComponentsPipelineMixin(BackendMixin):
 
     def close(self):
         BackendMixin.close(self)
-        super(ComponentsPipelineMixin, self).close()
+        super().close()
 
 
 class StrategyComponentsPipelineMixin(ComponentsPipelineMixin, StrategyMixin):
     def __init__(self, backend, strategy_class, strategy_args, scoring_stream, **kwargs):
-        super(StrategyComponentsPipelineMixin, self).__init__(backend, **kwargs)
+        super().__init__(backend, **kwargs)
         StrategyMixin.__init__(self, strategy_class, strategy_args, scoring_stream)
 
     def close(self):
         StrategyMixin.close(self)
-        super(StrategyComponentsPipelineMixin, self).close()
+        super().close()
 
 
-class BaseContext(object):
+class BaseContext:
     def __init__(self, request_model, response_model, settings=None):
 
         # Settings
@@ -230,7 +228,7 @@ class BaseContext(object):
         return self._settings
 
 
-class BaseManager(object):
+class BaseManager:
     def get_next_requests(self, max_next_requests=0, **kwargs):
         """
         Returns a list of next requests to be crawled. Optionally a maximum number of pages can be passed. If no
@@ -524,7 +522,7 @@ class LocalFrontierManager(BaseContext, StrategyComponentsPipelineMixin, BaseMan
                     max_next_requests = self.max_requests - self.n_requests
 
         # get next requests
-        next_requests = super(LocalFrontierManager, self).get_next_requests(max_next_requests, **kwargs)
+        next_requests = super().get_next_requests(max_next_requests, **kwargs)
 
         # Increment requests counter
         self._n_requests += len(next_requests)
@@ -549,7 +547,7 @@ class LocalFrontierManager(BaseContext, StrategyComponentsPipelineMixin, BaseMan
         self.states_context.to_fetch(response)
         self.states_context.fetch()
         self.states_context.states.set_states(response)
-        super(LocalFrontierManager, self).page_crawled(response)
+        super().page_crawled(response)
         self.states_context.states.update_cache(response)
 
     def links_extracted(self, request, links):
@@ -559,14 +557,14 @@ class LocalFrontierManager(BaseContext, StrategyComponentsPipelineMixin, BaseMan
         for link in links:
             assert isinstance(link, self._request_model), "Link objects must subclass '%s', '%s' found" % \
                                                           (self._request_model.__name__, type(link).__name__)
-        super(LocalFrontierManager, self).links_extracted(request, links)
+        super().links_extracted(request, links)
         filtered = self.strategy.filter_extracted_links(request, links)
         if filtered:
             self.states_context.to_fetch(request)
             self.states_context.to_fetch(filtered)
             self.states_context.fetch()
             self.states_context.states.set_states(filtered)
-            super(LocalFrontierManager, self).links_extracted_after(request, filtered)
+            super().links_extracted_after(request, filtered)
             self.states_context.states.update_cache(filtered)
 
     def request_error(self, request, error):
@@ -582,7 +580,7 @@ class LocalFrontierManager(BaseContext, StrategyComponentsPipelineMixin, BaseMan
         self.states_context.to_fetch(request)
         self.states_context.fetch()
         self.states_context.states.set_states(request)
-        processed_page = super(LocalFrontierManager, self).request_error(request, error)
+        processed_page = super().request_error(request, error)
         self.states_context.states.update_cache(request)
         return processed_page
 
@@ -748,11 +746,11 @@ class SpiderFrontierManager(BaseContext, ComponentsPipelineMixin, BaseManager):
         return True
 
     def get_next_requests(self, max_next_requests=0, **kwargs):
-        return super(SpiderFrontierManager, self).get_next_requests(max_next_requests=max_next_requests or self.max_next_requests, **kwargs)
+        return super().get_next_requests(max_next_requests=max_next_requests or self.max_next_requests, **kwargs)
 
     def links_extracted(self, request, links):
-        super(SpiderFrontierManager, self).links_extracted(request, links)
-        super(SpiderFrontierManager, self).links_extracted_after(request, links)
+        super().links_extracted(request, links)
+        super().links_extracted_after(request, links)
 
     @property
     def finished(self):
@@ -763,11 +761,10 @@ class SpiderFrontierManager(BaseContext, ComponentsPipelineMixin, BaseManager):
         self._process_components(method_name='frontier_start')
 
     def stop(self):
-        super(SpiderFrontierManager, self).close()
+        super().close()
 
 
-@six.add_metaclass(ABCMeta)
-class UpdateScoreStream(object):
+class UpdateScoreStream(metaclass=ABCMeta):
     @abstractmethod
     def send(self, request, score=1.0, dont_queue=False):
         pass
@@ -798,7 +795,7 @@ class LocalUpdateScoreStream(UpdateScoreStream):
         self._queue.schedule([(request.meta[b'fingerprint'], score, request, not dont_queue)])
 
 
-class StatesContext(object):
+class StatesContext:
     def __init__(self, states):
         self._requests = []
         self.states = states

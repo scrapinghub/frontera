@@ -1,10 +1,8 @@
-from __future__ import absolute_import
-
 import six
 from abc import ABCMeta, abstractmethod
 
 
-class StartStopMixin(object):
+class StartStopMixin:
     def frontier_start(self):
         """
         Called when the frontier starts, see :ref:`starting/stopping the frontier <frontier-start-stop>`.
@@ -18,8 +16,7 @@ class StartStopMixin(object):
         pass
 
 
-@six.add_metaclass(ABCMeta)
-class Metadata(StartStopMixin):
+class Metadata(StartStopMixin, metaclass=ABCMeta):
     """Interface definition for a frontier metadata class. This class is responsible for storing documents metadata,
     including content and optimized for write-only data flow."""
 
@@ -53,8 +50,7 @@ class Metadata(StartStopMixin):
         pass
 
 
-@six.add_metaclass(ABCMeta)
-class Queue(StartStopMixin):
+class Queue(StartStopMixin, metaclass=ABCMeta):
     """Interface definition for a frontier queue class. The queue has priorities and partitions."""
 
     @abstractmethod
@@ -89,8 +85,7 @@ class Queue(StartStopMixin):
         raise NotImplementedError
 
 
-@six.add_metaclass(ABCMeta)
-class States(StartStopMixin):
+class States(StartStopMixin, metaclass=ABCMeta):
     """Interface definition for a link states management class. This class is responsible for providing actual
     link state, and persist the state changes in batch-oriented manner."""
 
@@ -134,8 +129,7 @@ class States(StartStopMixin):
         raise NotImplementedError
 
 
-@six.add_metaclass(ABCMeta)
-class DomainMetadata(StartStopMixin):
+class DomainMetadata(StartStopMixin, metaclass=ABCMeta):
     """
     Interface definition for a domain metadata storage. It's main purpose is to store the per-domain metadata using
     Python-friendly structures. Meant to be used by crawling strategy to store counters and flags in low level
@@ -181,8 +175,7 @@ class DomainMetadata(StartStopMixin):
         raise NotImplementedError
 
 
-@six.add_metaclass(ABCMeta)
-class Component(Metadata):
+class Component(Metadata, metaclass=ABCMeta):
     """
     Interface definition for a frontier component
     The :class:`Component <frontera.core.components.Component>` object is the base class for frontier
@@ -221,8 +214,7 @@ class Component(Metadata):
         return cls()
 
 
-@six.add_metaclass(ABCMeta)
-class Middleware(Component):
+class Middleware(Component, metaclass=ABCMeta):
     """Interface definition for a Frontier Middlewares"""
     component_name = 'Base Middleware'
 
@@ -236,13 +228,12 @@ class Middleware(Component):
         pass
 
 
-@six.add_metaclass(ABCMeta)
-class CanonicalSolver(Middleware):
+class CanonicalSolver(Middleware, metaclass=ABCMeta):
     """Interface definition for a Frontera Canonical Solver"""
     component_name = 'Base CanonicalSolver'
 
 
-class PropertiesMixin(object):
+class PropertiesMixin:
     @property
     @abstractmethod
     def queue(self):
@@ -276,8 +267,7 @@ class PropertiesMixin(object):
         raise NotImplementedError
 
 
-@six.add_metaclass(ABCMeta)
-class Backend(PropertiesMixin, Component):
+class Backend(PropertiesMixin, Component, metaclass=ABCMeta):
     """Interface definition for frontier backend."""
 
     @abstractmethod
@@ -302,8 +292,7 @@ class Backend(PropertiesMixin, Component):
         raise NotImplementedError
 
 
-@six.add_metaclass(ABCMeta)
-class DistributedBackend(Backend):
+class DistributedBackend(Backend, metaclass=ABCMeta):
     """Interface definition for distributed frontier backend. Implies using in strategy worker and DB worker."""
 
     @classmethod
@@ -330,7 +319,7 @@ class DistributedBackend(Backend):
         return None
 
 
-class Partitioner(object):
+class Partitioner:
     """
     Base class for a partitioner
     """

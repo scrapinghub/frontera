@@ -1,12 +1,11 @@
-from __future__ import absolute_import
 from scrapy.settings import Settings
 from frontera.utils.misc import load_object
 import six
 
 
-class FakeCrawler(object):
+class FakeCrawler:
 
-    class Slot(object):
+    class Slot:
 
         def __init__(self, active=0, concurrency=0):
             self.active = active
@@ -26,6 +25,6 @@ class FakeCrawler(object):
 
     def set_slots(self, slotDict):
         slots = {}
-        for key, slotPair in six.iteritems(slotDict):
+        for key, slotPair in slotDict.items():
             slots[key] = self.Slot(slotPair[0], slotPair[1])
         self.engine.downloader.slots = slots
