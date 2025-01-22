@@ -1,5 +1,6 @@
 import pytest
-sqlalchemy = pytest.importorskip("twisted")
+pytest.importorskip("msgpack")
+pytest.importorskip("twisted")
 
 from frontera.core.models import Request, Response
 from frontera.worker.db import DBWorker, ScoringConsumer, IncomingConsumer, BatchGenerator

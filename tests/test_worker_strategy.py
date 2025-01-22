@@ -1,5 +1,6 @@
 import pytest
-sqlalchemy = pytest.importorskip("twisted")
+pytest.importorskip("msgpack")
+pytest.importorskip("twisted")
 
 from frontera.worker.strategy import StrategyWorker
 from frontera.settings import Settings

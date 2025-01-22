@@ -37,6 +37,9 @@ setup(
         'cityhash>=0.1.7'
     ],
     extras_require={
+        'scrapy': [
+            'scrapy>=1.1.0',
+        ],
         'sql': [
             'cachetools>=0.4.0',
             'SQLAlchemy>=1.0.0,<1.4',
