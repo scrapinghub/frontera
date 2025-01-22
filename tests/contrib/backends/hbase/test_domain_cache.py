@@ -3,6 +3,7 @@ pytest.importorskip("happybase")
 
 from frontera.contrib.backends.hbase.domaincache import DomainCache
 from happybase import Connection
+from thriftpy2.transport import TTransportException
 import logging
 import unittest
 
@@ -10,7 +11,10 @@ import unittest
 class TestDomainCache(unittest.TestCase):
     def setUp(self):
         logging.basicConfig(level=logging.DEBUG)
-        self.conn = Connection(host="hbase-docker")
+        try:
+            self.conn = Connection(host="hbase-docker")
+        except TTransportException:
+            raise self.skipTest("No running hbase-docker image")
         if b'domain_metadata' not in self.conn.tables():
             self.conn.create_table('domain_metadata', {
                 'm': {'max_versions': 1, 'block_cache_enabled': 1,}

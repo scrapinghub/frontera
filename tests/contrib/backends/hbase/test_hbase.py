@@ -4,14 +4,16 @@ pytest.importorskip("happybase")
 from Hbase_thrift import AlreadyExists  # module loaded at runtime in happybase
 from binascii import unhexlify
 from time import time
+from unittest import mock
 
 import pytest
 from frontera.contrib.backends.hbase import HBaseState, HBaseMetadata, HBaseQueue
 from frontera.core.components import States
 from frontera.core.models import Request, Response
 from happybase import Connection
-from tests import mock
 from w3lib.util import to_native_str
+from thriftpy2.transport import TTransportException
+from unittest import TestCase
 
 r1 = Request('https://www.example.com', meta={b'fingerprint': b'10',
              b'domain': {b'name': b'www.example.com', b'fingerprint': b'81'}})
@@ -22,7 +24,7 @@ r3 = Request('http://www.scrapy.org', meta={b'fingerprint': b'12',
 r4 = r3.copy()
 
 
-class TestHBaseBackend:
+class TestHBaseBackend(TestCase):
 
     def delete_rows(self, table, row_keys):
         batch = table.batch()
@@ -31,7 +33,10 @@ class TestHBaseBackend:
         batch.send()
 
     def test_metadata(self):
-        connection = Connection(host='hbase-docker', port=9090)
+        try:
+            connection = Connection(host='hbase-docker', port=9090)
+        except TTransportException:
+            raise self.skipTest("No running hbase-docker image")
         metadata = HBaseMetadata(connection, b'metadata', True, False, 300000, True)
         metadata.add_seeds([r1, r2, r3])
         resp = Response('https://www.example.com', request=r1)
@@ -46,7 +51,10 @@ class TestHBaseBackend:
 
     @pytest.mark.xfail
     def test_queue_with_delay(self):
-        connection = Connection(host='hbase-docker', port=9090)
+        try:
+            connection = Connection(host='hbase-docker', port=9090)
+        except TTransportException:
+            raise self.skipTest("No running hbase-docker image")
         queue = HBaseQueue(connection, 1, b'queue', use_snappy=False, drop=True)
         r5 = r3.copy()
         crawl_at = int(time()) + 1000
@@ -62,7 +70,10 @@ class TestHBaseBackend:
                        max_requests_per_host=10)} == {r5.url}
 
     def test_drop_all_tables_when_table_name_is_str(self):
-        connection = Connection(host='hbase-docker', port=9090)
+        try:
+            connection = Connection(host='hbase-docker', port=9090)
+        except TTransportException:
+            raise self.skipTest("No running hbase-docker image")
         for table in connection.tables():
             connection.delete_table(table, True)
         hbase_queue_table = 'queue'

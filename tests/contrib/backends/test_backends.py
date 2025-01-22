@@ -2,6 +2,8 @@ import pytest
 pytest.importorskip("happybase")
 pytest.importorskip("sqlalchemy.engine")
 
+from unittest import SkipTest
+
 from frontera.core.components import States
 from frontera.core.models import Request
 from happybase import Connection
@@ -11,6 +13,7 @@ from frontera.contrib.backends.sqlalchemy.models import StateModel, QueueModel
 from frontera.contrib.backends.memory import MemoryStates, MemoryQueue
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from thriftpy2.transport import TTransportException
 
 
 r1 = Request('https://www.example.com', meta={b'fingerprint': b'10',
@@ -28,7 +31,10 @@ hbase_connection = None
 def get_hbase_connection():
     global hbase_connection
     if hbase_connection is None:
-        hbase_connection = Connection(host='hbase-docker', port=9090)
+        try:
+            hbase_connection = Connection(host='hbase-docker', port=9090)
+        except TTransportException:
+            raise SkipTest("No running hbase-docker image")
     return hbase_connection
 
 

@@ -38,7 +38,7 @@ setup(
     ],
     extras_require={
         'sql': [
-            'cachetools',
+            'cachetools>=0.4.0',
             'SQLAlchemy>=1.0.0,<1.4',
         ],
         'graphs': [
@@ -54,8 +54,9 @@ setup(
             'tldextract>=1.5.1',
         ],
         'hbase': [
-            'happybase>=1.0.0',
-            'thriftpy2'
+            'cachetools>=0.4.0',
+            'happybase>=1.2.0',
+            'msgpack-python>=0.4'
         ],
         'zeromq': [
             'pyzmq',
