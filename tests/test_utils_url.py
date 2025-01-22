@@ -1,5 +1,5 @@
 import pytest
-sqlalchemy = pytest.importorskip("tdlextract")
+sqlalchemy = pytest.importorskip("tldextract")
 
 import unittest
 from frontera.utils.url import parse_url, parse_domain_from_url, \
