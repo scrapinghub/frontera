@@ -1,17 +1,9 @@
 from setuptools import setup, find_packages
 
-import versioneer
-versioneer.VCS = 'git'
-versioneer.versionfile_source = 'frontera/_version.py'
-versioneer.versionfile_build = 'frontera/_version.py'
-versioneer.tag_prefix = 'v'  # tags are like v1.2.0
-versioneer.parentdir_prefix = 'frontera-'
-
 
 setup(
     name='frontera',
-    version=versioneer.get_version(),
-    cmdclass=versioneer.get_cmdclass(),
+    version="0.8.1",
     packages=find_packages(exclude=('tests', 'tests.*', 'examples', 'examples.*')),
     url='https://github.com/scrapinghub/frontera',
     description='A scalable frontier for web crawlers',

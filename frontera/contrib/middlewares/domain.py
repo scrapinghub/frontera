@@ -102,7 +102,7 @@ class DomainMiddleware(Middleware):
 
     def _parse_domain_info(self, url, test_mode=False):
         if test_mode:
-            match = re.match('([A-Z])\w+', url)
+            match = re.match(r'([A-Z])\w+', url)
             netloc = name = to_bytes(match.groups()[0]) if match else b'?'
             scheme = sld = tld = subdomain = b'-'
         else:

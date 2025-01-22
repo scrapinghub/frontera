@@ -164,10 +164,10 @@ class HBaseQueue(Queue):
             if slot is not None:
                 partition_id = self.partitioner.partition(slot, self.partitions)
                 key_crc32 = get_crc32(slot)
-            elif type(domain) == dict:
+            elif isinstance(domain, dict):
                 partition_id = self.partitioner.partition(domain[b'name'], self.partitions)
                 key_crc32 = get_crc32(domain[b'name'])
-            elif type(domain) == int:
+            elif isinstance(domain, int):
                 partition_id = self.partitioner.partition_by_hash(domain, self.partitions)
                 key_crc32 = domain
             else:

@@ -208,10 +208,10 @@ class RedisQueue(Queue):
         for request, score in batch:
             domain = request.meta[FIELD_DOMAIN]
             fingerprint = request.meta[FIELD_FINGERPRINT]
-            if type(domain) == dict:
+            if isinstance(domain, dict):
                 partition_id = self._partitioner.partition(domain[FIELD_NAME], self._partitions)
                 host_crc32 = get_crc32(domain[FIELD_NAME])
-            elif type(domain) == int:
+            elif isinstance(domain, int):
                 partition_id = self._partitioner.partition_by_hash(domain, self._partitions)
                 host_crc32 = domain
             else:

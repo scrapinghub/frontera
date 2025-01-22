@@ -9,7 +9,7 @@ def create_test_site(prefix, max_depth, n_links_per_page, self_link=False, site=
     depth += 1
     if depth < max_depth:
         page = prefix
-        links = [page + str(l) for l in range(1, n_links_per_page+1)]
+        links = [page + str(link) for link in range(1, n_links_per_page+1)]
         site.append((page, links))
         for link in links:
             create_test_site(prefix=link,

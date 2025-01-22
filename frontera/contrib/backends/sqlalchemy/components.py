@@ -24,7 +24,7 @@ def retry_and_rollback(func):
         while True:
             try:
                 return func(self, *args, **kwargs)
-            except KeyError as exc:
+            except KeyError:
                 raise
             except Exception as exc:
                 self.logger.exception(exc)
@@ -239,7 +239,7 @@ class BroadCrawlingQueue(Queue):
         min_requests = kwargs.pop("min_requests", None)
         min_hosts = kwargs.pop("min_hosts", None)
         max_requests_per_host = kwargs.pop("max_requests_per_host", None)
-        assert(max_n_requests > min_requests)
+        assert max_n_requests > min_requests
 
         queue = {}
         limit = max_n_requests

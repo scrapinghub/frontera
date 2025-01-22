@@ -140,7 +140,7 @@ class BaseStrategyWorker(object):
 
     def __init__(self, settings, is_add_seeds_mode):
         partition_id = settings.get('SCORING_PARTITION_ID')
-        if partition_id is None or type(partition_id) != int:
+        if partition_id is None or not isinstance(partition_id, int):
             raise AttributeError("Scoring worker partition id isn't set.")
 
         messagebus = load_object(settings.get('MESSAGE_BUS'))

@@ -61,7 +61,7 @@ def to_signed32(x):
     return x - 0x100000000 if x > 0x7fffffff else x
 
 
-def chunks(l, n):
+def chunks(l, n):  # noqa: E741
     for i in range(0, len(l), n):
         yield l[i:i+n]
 
