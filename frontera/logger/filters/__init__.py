@@ -1,12 +1,12 @@
 import logging
 import six
-from w3lib.util import to_native_str
+from w3lib.util import to_unicode
 
 
 class PlainValuesFilter(logging.Filter):
     def __init__(self, separator=None, excluded_fields=None, msg_max_length=0):
         super().__init__()
-        self.separator = to_native_str(separator or " ")
+        self.separator = to_unicode(separator or " ")
         self.excluded_fields = excluded_fields or []
         self.msg_max_length = msg_max_length
 
@@ -14,7 +14,7 @@ class PlainValuesFilter(logging.Filter):
         if isinstance(record.msg, dict):
             for field_name in self.excluded_fields:
                 setattr(record, field_name, record.msg.get(field_name, ''))
-            record.msg = self.separator.join([to_native_str(value)
+            record.msg = self.separator.join([to_unicode(value)
                                               for key, value in record.msg.items()
                                               if key not in self.excluded_fields])
             if self.msg_max_length and len(record.msg) > self.msg_max_length:

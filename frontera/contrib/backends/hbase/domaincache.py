@@ -4,7 +4,7 @@ from time import time
 
 import six
 from msgpack import packb, unpackb
-from w3lib.util import to_bytes, to_native_str
+from w3lib.util import to_bytes, to_unicode
 
 from frontera.core.components import DomainMetadata
 from frontera.contrib.backends.hbase.utils import HardenedBatch
@@ -270,7 +270,7 @@ class DomainCache(LRUCache, DomainMetadata):
         value = {}
         for k, v in row.items():
             cf, _, col = k.partition(b':')
-            col = to_native_str(col)
+            col = to_unicode(col)
             value[col] = unpackb(v, encoding='utf-8')
             # XXX extract some fields as a set for faster in-checks
             if col in self._set_fields:

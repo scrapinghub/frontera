@@ -4,7 +4,7 @@
 from frontera.core.codec import BaseDecoder, BaseEncoder
 from frontera.utils.msgpack import restruct_for_pack
 from msgpack import packb, unpackb
-from w3lib.util import to_native_str
+from w3lib.util import to_unicode
 
 
 def _prepare_request_message(request):
@@ -51,7 +51,7 @@ class Decoder(BaseDecoder):
         self._response_model = response_model
 
     def _response_from_object(self, obj):
-        url = to_native_str(obj[0])
+        url = to_unicode(obj[0])
         return self._response_model(url=url,
                                     status_code=obj[1],
                                     body=obj[4],
@@ -60,7 +60,7 @@ class Decoder(BaseDecoder):
                                                                 meta=obj[2]))
 
     def _request_from_object(self, obj):
-        return self._request_model(url=to_native_str(obj[0]),
+        return self._request_model(url=to_unicode(obj[0]),
                                    method=obj[1],
                                    headers=obj[2],
                                    cookies=obj[3],
@@ -78,7 +78,7 @@ class Decoder(BaseDecoder):
         if obj[0] == b'us':
             return ('update_score', self._request_from_object(obj[1]), obj[2], obj[3])
         if obj[0] == b're':
-            return ('request_error', self._request_from_object(obj[1]), to_native_str(obj[2]))
+            return ('request_error', self._request_from_object(obj[1]), to_unicode(obj[2]))
         if obj[0] == b'njid':
             return ('new_job_id', int(obj[1]))
         if obj[0] == b'of':

@@ -5,7 +5,7 @@ from scrapy.http.response.html import TextResponse
 from frontera.core.models import Request as FrontierRequest
 from frontera.core.models import Response as FrontierResponse
 from frontera.utils.converters import BaseRequestConverter, BaseResponseConverter
-from w3lib.util import to_bytes, to_native_str
+from w3lib.util import to_bytes, to_unicode
 
 
 class RequestConverter(BaseRequestConverter):
@@ -64,7 +64,7 @@ class RequestConverter(BaseRequestConverter):
                              callback=cb,
                              errback=eb,
                              body=body,
-                             method=to_native_str(frontier_request.method),
+                             method=to_unicode(frontier_request.method),
                              headers=frontier_request.headers,
                              cookies=frontier_request.cookies,
                              meta=meta,
@@ -117,7 +117,7 @@ def _find_method(obj, func):
 
 
 def _get_method(obj, name):
-    name = to_native_str(name)
+    name = to_unicode(name)
     try:
         return getattr(obj, name)
     except AttributeError:

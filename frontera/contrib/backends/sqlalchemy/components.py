@@ -11,7 +11,7 @@ from frontera.core.components import Metadata as BaseMetadata, Queue as BaseQueu
 from frontera.core.models import Request, Response
 from frontera.utils.misc import get_crc32, chunks
 from frontera.utils.url import parse_domain_from_url_fast
-from w3lib.util import to_native_str, to_bytes
+from w3lib.util import to_unicode, to_bytes
 
 
 def retry_and_rollback(func):
@@ -77,14 +77,14 @@ class Metadata(BaseMetadata):
         db_page.fetched_at = datetime.utcnow()
         if isinstance(obj, Response):
             db_page.headers = obj.request.headers
-            db_page.method = to_native_str(obj.request.method)
+            db_page.method = to_unicode(obj.request.method)
             db_page.cookies = obj.request.cookies
             db_page.status_code = obj.status_code
         return db_page
 
     def _create_page(self, obj):
         db_page = self.model()
-        db_page.fingerprint = to_native_str(obj.meta[b'fingerprint'])
+        db_page.fingerprint = to_unicode(obj.meta[b'fingerprint'])
         db_page.url = obj.url
         db_page.created_at = datetime.utcnow()
         db_page.meta = obj.meta
@@ -92,11 +92,11 @@ class Metadata(BaseMetadata):
 
         if isinstance(obj, Request):
             db_page.headers = obj.headers
-            db_page.method = to_native_str(obj.method)
+            db_page.method = to_unicode(obj.method)
             db_page.cookies = obj.cookies
         elif isinstance(obj, Response):
             db_page.headers = obj.request.headers
-            db_page.method = to_native_str(obj.request.method)
+            db_page.method = to_unicode(obj.request.method)
             db_page.cookies = obj.request.cookies
             db_page.status_code = obj.status_code
         return db_page
@@ -104,7 +104,7 @@ class Metadata(BaseMetadata):
     @retry_and_rollback
     def update_score(self, batch):
         for fprint, score, request, schedule in batch:
-            m = self.model(fingerprint=to_native_str(fprint), score=score)
+            m = self.model(fingerprint=to_unicode(fprint), score=score)
             self.session.merge(m)
         self.session.commit()
 
@@ -125,7 +125,7 @@ class States(MemoryStates):
 
     @retry_and_rollback
     def fetch(self, fingerprints):
-        to_fetch = [to_native_str(f) for f in fingerprints if f not in self._cache]
+        to_fetch = [to_unicode(f) for f in fingerprints if f not in self._cache]
         self.logger.debug("cache size %s", len(self._cache))
         self.logger.debug("to fetch %d from %d", len(to_fetch), len(fingerprints))
 
@@ -136,7 +136,7 @@ class States(MemoryStates):
     @retry_and_rollback
     def flush(self):
         for fingerprint, state_val in self._cache.items():
-            state = self.model(fingerprint=to_native_str(fingerprint), state=state_val)
+            state = self.model(fingerprint=to_unicode(fingerprint), state=state_val)
             self.session.merge(state)
         self.session.commit()
         self.logger.debug("State cache has been flushed.")
@@ -200,8 +200,8 @@ class Queue(BaseQueue):
                 else:
                     partition_id = self.partitioner.partition(hostname, self.partitions)
                     host_crc32 = get_crc32(hostname)
-                q = self.queue_model(fingerprint=to_native_str(fprint), score=score, url=request.url, meta=request.meta,
-                                     headers=request.headers, cookies=request.cookies, method=to_native_str(request.method),
+                q = self.queue_model(fingerprint=to_unicode(fprint), score=score, url=request.url, meta=request.meta,
+                                     headers=request.headers, cookies=request.cookies, method=to_unicode(request.method),
                                      partition_id=partition_id, host_crc32=host_crc32, created_at=time()*1E+6)
                 to_save.append(q)
                 request.meta[b'state'] = States.QUEUED

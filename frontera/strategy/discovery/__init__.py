@@ -12,7 +12,7 @@ from frontera.strategy import BaseCrawlingStrategy
 from frontera.strategy.discovery.sitemap import parse_sitemap
 from publicsuffix import PublicSuffixList
 from urllib.parse import urljoin, urlsplit
-from w3lib.util import to_bytes, to_native_str
+from w3lib.util import to_bytes, to_unicode
 
 
 MAX_SITEMAPS = 100
@@ -138,7 +138,7 @@ class Discovery(BaseCrawlingStrategy):
         self._states_ctx = states_context
         self.states = backend.states
 
-        self.user_agent = to_native_str(manager.settings.get('USER_AGENT'))
+        self.user_agent = to_unicode(manager.settings.get('USER_AGENT'))
         self.max_pages = int(manager.settings.get('DISCOVERY_MAX_PAGES'))
         super().__init__(manager, args, mb_stream, states_context)
 
@@ -156,7 +156,7 @@ class Discovery(BaseCrawlingStrategy):
         processed, scheduled = 0, 0
         requests = []
         for line in stream:
-            url = to_native_str(line.strip())
+            url = to_unicode(line.strip())
             if url.startswith("#"):
                 continue
             if not url.startswith("http"):

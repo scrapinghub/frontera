@@ -1,5 +1,5 @@
 from urllib import parse
-from w3lib.util import to_native_str
+from w3lib.util import to_unicode
 
 
 def parse_url(url, encoding=None):
@@ -7,7 +7,7 @@ def parse_url(url, encoding=None):
     parsed url)
     """
     return url if isinstance(url, parse.ParseResult) else \
-        parse.urlparse(to_native_str(url))
+        parse.urlparse(to_unicode(url))
 
 
 def parse_domain_from_url(url):

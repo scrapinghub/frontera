@@ -1,5 +1,5 @@
 import copy
-from w3lib.util import to_bytes, to_native_str
+from w3lib.util import to_bytes, to_unicode
 from w3lib.url import safe_url_string
 
 
@@ -25,7 +25,7 @@ class Request(FrontierObject):
         :param dict meta: dictionary that contains arbitrary metadata for this request, the keys must be bytes and \
         the values must be either bytes or serializable objects such as lists, tuples, dictionaries with byte type items.
         """
-        self._url = to_native_str(url)
+        self._url = to_unicode(url)
         self._method = to_bytes((method or b'GET').upper())
         self._headers = headers or {}
         self._cookies = cookies or {}
@@ -105,7 +105,7 @@ class Response(FrontierObject):
         :param Request request: The Request object that generated this response.
         """
 
-        self._url = to_native_str(url)
+        self._url = to_unicode(url)
         self._status_code = int(status_code)
         self._headers = headers or {}
         self._body = body

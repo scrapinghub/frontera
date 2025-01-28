@@ -11,7 +11,7 @@ from frontera.contrib.backends.hbase import HBaseState, HBaseMetadata, HBaseQueu
 from frontera.core.components import States
 from frontera.core.models import Request, Response
 from happybase import Connection
-from w3lib.util import to_native_str
+from w3lib.util import to_unicode
 from thriftpy2.transport import TTransportException
 from unittest import TestCase
 
@@ -45,7 +45,7 @@ class TestHBaseBackend(TestCase):
         metadata.request_error(r4, 'error')
         metadata.frontier_stop()
         table = connection.table('metadata')
-        assert {to_native_str(data[b'm:url'], 'utf-8') for _, data in table.scan()} == \
+        assert {to_unicode(data[b'm:url'], 'utf-8') for _, data in table.scan()} == \
             {r1.url, r2.url, r3.url}
         self.delete_rows(table, [b'10', b'11', b'12'])
 
