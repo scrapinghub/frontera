@@ -21,7 +21,7 @@ jobs:
         - python-version: '3.9'
           toxenv: min-logging
         - python-version: '3.9'
-          toxenv: min-redis
+          toxenv: min-s3
         - python-version: '3.9'
           toxenv: min-scrapy
         - python-version: '3.9'
@@ -42,7 +42,7 @@ jobs:
         - python-version: '3.13'
           toxenv: logging
         - python-version: '3.13'
-          toxenv: redis
+          toxenv: s3
         - python-version: '3.13'
           toxenv: scrapy
         - python-version: '3.13'
