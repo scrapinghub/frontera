@@ -1,7 +1,4 @@
-
-
-class BaseSchedulerMiddleware(object):
-
+class BaseSchedulerMiddleware:
     def __init__(self, crawler):
         self.crawler = crawler
 

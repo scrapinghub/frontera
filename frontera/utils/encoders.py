@@ -1,16 +1,11 @@
-from __future__ import absolute_import
-import json
 import datetime
+import json
 
 
 class DateTimeEncoder(json.JSONEncoder):
     def default(self, obj):
-        if isinstance(obj, datetime.datetime):
+        if isinstance(obj, (datetime.datetime, datetime.date)):
             return obj.isoformat()
-        elif isinstance(obj, datetime.date):
-            return obj.isoformat()
-        elif isinstance(obj, datetime.timedelta):
+        if isinstance(obj, datetime.timedelta):
             return (datetime.datetime.min + obj).time().isoformat()
-        else:
-            return super(DateTimeEncoder, self).default(obj)
-
+        return super().default(obj)

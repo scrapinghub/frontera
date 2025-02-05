@@ -1,22 +1,20 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-from time import time
-from datetime import timedelta
+import contextlib
 import logging
 from argparse import ArgumentParser
+from datetime import timedelta
 from struct import unpack
+from time import time
 
 import zmq
 from zmq.eventloop.ioloop import IOLoop
 from zmq.eventloop.zmqstream import ZMQStream
 
 from frontera.settings import Settings
+
 from .socket_config import SocketConfig
 
 
-class Server(object):
-
+class Server:
     ctx = None
     loop = None
     stats = None
@@ -31,13 +29,13 @@ class Server(object):
         self.ctx = zmq.Context()
         self.loop = IOLoop.instance()
         self.stats = {
-            'started': time(),
-            'spiders_out_recvd': 0,
-            'spiders_in_recvd': 0,
-            'db_in_recvd': 0,
-            'db_out_recvd': 0,
-            'sw_in_recvd': 0,
-            'sw_out_recvd': 0
+            "started": time(),
+            "spiders_out_recvd": 0,
+            "spiders_in_recvd": 0,
+            "db_in_recvd": 0,
+            "db_out_recvd": 0,
+            "sw_in_recvd": 0,
+            "sw_out_recvd": 0,
         }
 
         socket_config = SocketConfig(address, base_port)
@@ -73,20 +71,23 @@ class Server(object):
         self.sw_in.on_recv(self.handle_sw_in_recv)
         self.db_in.on_recv(self.handle_db_in_recv)
         self.spiders_in.on_recv(self.handle_spiders_in_recv)
-        logging.basicConfig(format="%(asctime)s %(message)s",
-                            datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
-        self.logger = logging.getLogger("distributed_frontera.messagebus"
-                                        ".zeromq.broker.Server")
-        self.logger.info("Using socket: {}:{}".format(socket_config.ip_addr,
-                                                      socket_config.base_port))
+        logging.basicConfig(
+            format="%(asctime)s %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+            level=logging.INFO,
+        )
+        self.logger = logging.getLogger(
+            "distributed_frontera.messagebus.zeromq.broker.Server"
+        )
+        self.logger.info(
+            f"Using socket: {socket_config.ip_addr}:{socket_config.base_port}"
+        )
 
     def start(self):
         self.logger.info("Distributed Frontera ZeroMQ broker is started.")
         self.log_stats()
-        try:
+        with contextlib.suppress(KeyboardInterrupt):
             self.loop.start()
-        except KeyboardInterrupt:
-            pass
 
     def log_stats(self):
         self.logger.info(self.stats)
@@ -95,37 +96,37 @@ class Server(object):
     def handle_spiders_out_recv(self, msg):
         self.sw_in.send_multipart(msg)
         self.db_in.send_multipart(msg)
-        self.stats['spiders_out_recvd'] += 1
+        self.stats["spiders_out_recvd"] += 1
 
     def handle_sw_out_recv(self, msg):
         self.db_in.send_multipart(msg)
-        self.stats['sw_out_recvd'] += 1
+        self.stats["sw_out_recvd"] += 1
 
     def handle_db_out_recv(self, msg):
         self.spiders_in.send_multipart(msg)
-        self.stats['db_out_recvd'] += 1
+        self.stats["db_out_recvd"] += 1
 
     def handle_db_in_recv(self, msg):
-        self.stats['db_in_recvd'] += 1
-        if b'\x01' in msg[0] or b'\x00' in msg[0]:
+        self.stats["db_in_recvd"] += 1
+        if b"\x01" in msg[0] or b"\x00" in msg[0]:
             action, identity, partition_id = self.decode_subscription(msg[0])
-            if identity == b'sl':
+            if identity == b"sl":
                 self.spiders_out.send_multipart(msg)
                 return
-            if identity == b'us':
+            if identity == b"us":
                 self.sw_out.send_multipart(msg)
                 return
-            raise AttributeError('Unknown identity in channel subscription.')
+            raise AttributeError("Unknown identity in channel subscription.")
 
     def handle_sw_in_recv(self, msg):
-        if b'\x01' in msg[0] or b'\x00' in msg[0]:
+        if b"\x01" in msg[0] or b"\x00" in msg[0]:
             self.spiders_out.send_multipart(msg)
-        self.stats['sw_in_recvd'] += 1
+        self.stats["sw_in_recvd"] += 1
 
     def handle_spiders_in_recv(self, msg):
-        if b'\x01' in msg[0] or b'\x00' in msg[0]:
+        if b"\x01" in msg[0] or b"\x00" in msg[0]:
             self.db_out.send_multipart(msg)
-        self.stats['spiders_in_recvd'] += 1
+        self.stats["spiders_in_recvd"] += 1
 
     def decode_subscription(self, msg):
         """
@@ -139,7 +140,7 @@ class Server(object):
         """
         if len(msg) == 4:
             return unpack(">B2sB", msg)
-        elif len(msg) == 3:
+        if len(msg) == 3:
             action, identity = unpack(">B2s", msg)
             return action, identity, None
         raise ValueError("Can't decode subscription correctly.")
@@ -151,20 +152,29 @@ def main():
     """
     parser = ArgumentParser(description="Crawl frontier worker.")
     parser.add_argument(
-        '--config', type=str,
-        help='Settings module name, should be accessible by import.')
+        "--config",
+        type=str,
+        help="Settings module name, should be accessible by import.",
+    )
     parser.add_argument(
-        '--address', type=str,
-        help='Hostname, IP address or Wildcard * to bind. Default is 127.0.0.1'
-        '. When binding to wildcard it defaults to IPv4.')
+        "--address",
+        type=str,
+        help="Hostname, IP address or Wildcard * to bind. Default is 127.0.0.1"
+        ". When binding to wildcard it defaults to IPv4.",
+    )
     parser.add_argument(
-        '--log-level', '-L', type=str, default='INFO',
-        help='Log level, for ex. DEBUG, INFO, WARN, ERROR, FATAL. Default is'
-        ' INFO.')
+        "--log-level",
+        "-L",
+        type=str,
+        default="INFO",
+        help="Log level, for ex. DEBUG, INFO, WARN, ERROR, FATAL. Default is INFO.",
+    )
     parser.add_argument(
-        '--port', type=int,
-        help='Base port number, server will bind to 6 ports starting from base'
-        '. Default is 5550')
+        "--port",
+        type=int,
+        help="Base port number, server will bind to 6 ports starting from base"
+        ". Default is 5550",
+    )
     args = parser.parse_args()
 
     settings = Settings(module=args.config)
@@ -175,5 +185,5 @@ def main():
     server.start()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

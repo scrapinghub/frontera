@@ -1,11 +1,12 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from tests.backends import BackendSequenceTest, TEST_SITES
-from frontera.utils.tester import FrontierTester
+import pytest
+
+sqlalchemy = pytest.importorskip("sqlalchemy.engine")
 
 from datetime import timedelta
-import pytest
 from time import sleep
+
+from frontera.utils.tester import FrontierTester
+from tests.backends import TEST_SITES, BackendSequenceTest
 
 
 class RevisitingFrontierTester(FrontierTester):
@@ -28,24 +29,24 @@ class RevisitingFrontierTester(FrontierTester):
 
 
 class RevisitingBackendTest(BackendSequenceTest):
-
     def get_settings(self):
-        settings = super(RevisitingBackendTest, self).get_settings()
+        settings = super().get_settings()
         settings.set("SQLALCHEMYBACKEND_REVISIT_INTERVAL", timedelta(seconds=2))
-        settings.SQLALCHEMYBACKEND_ENGINE = 'sqlite:///:memory:'
+        settings.SQLALCHEMYBACKEND_ENGINE = "sqlite:///:memory:"
         return settings
 
     @pytest.mark.parametrize(
-        ('site_list', 'max_next_requests'), [
-            ('SITE_01', 5),
-            ('SITE_02', 10),
-        ]
+        ("site_list", "max_next_requests"),
+        [
+            ("SITE_01", 5),
+            ("SITE_02", 10),
+        ],
     )
     def test_sequence(self, site_list, max_next_requests):
         sequence = self.get_url_sequence(
             site_list=TEST_SITES[site_list],
             max_next_requests=max_next_requests,
-            frontier_tester=RevisitingFrontierTester
+            frontier_tester=RevisitingFrontierTester,
         )
         seen = set()
         for url in sequence:
@@ -53,5 +54,4 @@ class RevisitingBackendTest(BackendSequenceTest):
                 return
             seen.add(url)
 
-        assert False, "None of the URLs were revisted"
-
+        raise AssertionError("None of the URLs were revisted")

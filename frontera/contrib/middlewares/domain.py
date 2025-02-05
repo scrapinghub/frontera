@@ -1,9 +1,9 @@
-from __future__ import absolute_import
 import re
 
-from frontera.core.components import Middleware
-from frontera.utils.url import parse_domain_from_url_fast, parse_domain_from_url
 from w3lib.util import to_bytes
+
+from frontera.core.components import Middleware
+from frontera.utils.url import parse_domain_from_url, parse_domain_from_url_fast
 
 # TODO: Why not to put the whole url_parse result here in meta?
 
@@ -57,12 +57,15 @@ class DomainMiddleware(Middleware):
     .. _`RFC 1808`: http://tools.ietf.org/html/rfc1808.html
 
     """
-    component_name = 'Domain Middleware'
+
+    component_name = "Domain Middleware"
 
     def __init__(self, manager):
         self.manager = manager
-        use_tldextract = self.manager.settings.get('TLDEXTRACT_DOMAIN_INFO', False)
-        self.parse_domain_func = parse_domain_from_url if use_tldextract else parse_domain_from_url_fast
+        use_tldextract = self.manager.settings.get("TLDEXTRACT_DOMAIN_INFO", False)
+        self.parse_domain_func = (
+            parse_domain_from_url if use_tldextract else parse_domain_from_url_fast
+        )
 
     @classmethod
     def from_manager(cls, manager):
@@ -91,24 +94,26 @@ class DomainMiddleware(Middleware):
         return self._add_domain(request)
 
     def _add_domain(self, obj):
-        obj.meta[b'domain'] = self.parse_domain_info(obj.url, self.manager.test_mode)
-        if b'redirect_urls' in obj.meta:
-            obj.meta[b'redirect_domains'] = [self.parse_domain_info(url, self.manager.test_mode)
-                                             for url in obj.meta[b'redirect_urls']]
+        obj.meta[b"domain"] = self.parse_domain_info(obj.url, self.manager.test_mode)
+        if b"redirect_urls" in obj.meta:
+            obj.meta[b"redirect_domains"] = [
+                self.parse_domain_info(url, self.manager.test_mode)
+                for url in obj.meta[b"redirect_urls"]
+            ]
         return obj
 
     def parse_domain_info(self, url, test_mode=False):
         if test_mode:
-            match = re.match('([A-Z])\w+', url)
-            netloc = name = to_bytes(match.groups()[0]) if match else b'?'
-            scheme = sld = tld = subdomain = b'-'
+            match = re.match(r"([A-Z])\w+", url)
+            netloc = name = to_bytes(match.groups()[0]) if match else b"?"
+            scheme = sld = tld = subdomain = b"-"
         else:
             netloc, name, scheme, sld, tld, subdomain = self.parse_domain_func(url)
         return {
-            b'netloc': to_bytes(netloc),
-            b'name': to_bytes(name),
-            b'scheme': to_bytes(scheme),
-            b'sld': to_bytes(sld),
-            b'tld': to_bytes(tld),
-            b'subdomain': to_bytes(subdomain),
+            b"netloc": to_bytes(netloc),
+            b"name": to_bytes(name),
+            b"scheme": to_bytes(scheme),
+            b"sld": to_bytes(sld),
+            b"tld": to_bytes(tld),
+            b"subdomain": to_bytes(subdomain),
         }

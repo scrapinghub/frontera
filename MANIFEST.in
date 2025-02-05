@@ -1,2 +1,0 @@
-include versioneer.py
-include frontera/_version.py

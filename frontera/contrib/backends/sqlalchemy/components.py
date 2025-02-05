@@ -1,20 +1,18 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
 import logging
 from datetime import datetime
-from time import time, sleep
+from time import sleep, time
 
 from cachetools import LRUCache
-from frontera.contrib.backends.partitioners import Crc32NamePartitioner
+from w3lib.util import to_bytes, to_unicode
+
 from frontera.contrib.backends.memory import MemoryStates
+from frontera.contrib.backends.partitioners import Crc32NamePartitioner
 from frontera.contrib.backends.sqlalchemy.models import DeclarativeBase
-from frontera.core.components import Metadata as BaseMetadata, Queue as BaseQueue
+from frontera.core.components import Metadata as BaseMetadata
+from frontera.core.components import Queue as BaseQueue
 from frontera.core.models import Request, Response
-from frontera.utils.misc import get_crc32, chunks
+from frontera.utils.misc import chunks, get_crc32
 from frontera.utils.url import parse_domain_from_url_fast
-import six
-from six.moves import range
-from w3lib.util import to_native_str, to_bytes
 
 
 def retry_and_rollback(func):
@@ -23,24 +21,26 @@ def retry_and_rollback(func):
         while True:
             try:
                 return func(self, *args, **kwargs)
-            except Exception as exc:
+            except Exception as exc:  # noqa: PERF203
                 self.logger.exception(exc)
                 self.session.rollback()
                 sleep(5)
                 tries -= 1
                 if tries > 0:
-                    self.logger.info("Tries left %i" % tries)
+                    self.logger.info(f"Tries left {tries}")
                     continue
-                else:
-                    raise exc
+                raise exc
+
     return func_wrapper
 
 
 class Metadata(BaseMetadata):
     def __init__(self, session_cls, model_cls, cache_size):
-        self.session = session_cls(expire_on_commit=False)   # FIXME: Should be explicitly mentioned in docs
+        self.session = session_cls(
+            expire_on_commit=False
+        )  # FIXME: Should be explicitly mentioned in docs
         self.model = model_cls
-        self.table = DeclarativeBase.metadata.tables['metadata']
+        self.table = DeclarativeBase.metadata.tables["metadata"]
         self.cache = LRUCache(cache_size)
         self.logger = logging.getLogger("sqlalchemy.metadata")
 
@@ -56,36 +56,46 @@ class Metadata(BaseMetadata):
 
     @retry_and_rollback
     def request_error(self, page, error):
-        m = self._modify_page(page) if page.meta[b'fingerprint'] in self.cache else self._create_page(page)
+        m = (
+            self._modify_page(page)
+            if page.meta[b"fingerprint"] in self.cache
+            else self._create_page(page)
+        )
         m.error = error
         self.cache[to_bytes(m.fingerprint)] = self.session.merge(m)
         self.session.commit()
 
     @retry_and_rollback
     def page_crawled(self, response):
-        r = self._modify_page(response) if response.meta[b'fingerprint'] in self.cache else self._create_page(response)
+        r = (
+            self._modify_page(response)
+            if response.meta[b"fingerprint"] in self.cache
+            else self._create_page(response)
+        )
         self.cache[r.fingerprint] = self.session.merge(r)
         self.session.commit()
 
     def links_extracted(self, request, links):
         for link in links:
-            if link.meta[b'fingerprint'] not in self.cache:
-                self.cache[link.meta[b'fingerprint']] = self.session.merge(self._create_page(link))
+            if link.meta[b"fingerprint"] not in self.cache:
+                self.cache[link.meta[b"fingerprint"]] = self.session.merge(
+                    self._create_page(link)
+                )
         self.session.commit()
 
     def _modify_page(self, obj):
-        db_page = self.cache[obj.meta[b'fingerprint']]
+        db_page = self.cache[obj.meta[b"fingerprint"]]
         db_page.fetched_at = datetime.utcnow()
         if isinstance(obj, Response):
             db_page.headers = obj.request.headers
-            db_page.method = to_native_str(obj.request.method)
+            db_page.method = to_unicode(obj.request.method)
             db_page.cookies = obj.request.cookies
             db_page.status_code = obj.status_code
         return db_page
 
     def _create_page(self, obj):
         db_page = self.model()
-        db_page.fingerprint = to_native_str(obj.meta[b'fingerprint'])
+        db_page.fingerprint = to_unicode(obj.meta[b"fingerprint"])
         db_page.url = obj.url
         db_page.created_at = datetime.utcnow()
         db_page.meta = obj.meta
@@ -93,30 +103,29 @@ class Metadata(BaseMetadata):
 
         if isinstance(obj, Request):
             db_page.headers = obj.headers
-            db_page.method = to_native_str(obj.method)
+            db_page.method = to_unicode(obj.method)
             db_page.cookies = obj.cookies
         elif isinstance(obj, Response):
             db_page.headers = obj.request.headers
-            db_page.method = to_native_str(obj.request.method)
+            db_page.method = to_unicode(obj.request.method)
             db_page.cookies = obj.request.cookies
             db_page.status_code = obj.status_code
         return db_page
 
     @retry_and_rollback
     def update_score(self, batch):
-        for fprint, score, request, schedule in batch:
-            m = self.model(fingerprint=to_native_str(fprint), score=score)
+        for fprint, score, _request, _schedule in batch:
+            m = self.model(fingerprint=to_unicode(fprint), score=score)
             self.session.merge(m)
         self.session.commit()
 
 
 class States(MemoryStates):
-
     def __init__(self, session_cls, model_cls, cache_size_limit):
-        super(States, self).__init__(cache_size_limit)
+        super().__init__(cache_size_limit)
         self.session = session_cls()
         self.model = model_cls
-        self.table = DeclarativeBase.metadata.tables['states']
+        self.table = DeclarativeBase.metadata.tables["states"]
         self.logger = logging.getLogger("sqlalchemy.states")
 
     @retry_and_rollback
@@ -126,30 +135,32 @@ class States(MemoryStates):
 
     @retry_and_rollback
     def fetch(self, fingerprints):
-        to_fetch = [to_native_str(f) for f in fingerprints if f not in self._cache]
+        to_fetch = [to_unicode(f) for f in fingerprints if f not in self._cache]
         self.logger.debug("cache size %s", len(self._cache))
         self.logger.debug("to fetch %d from %d", len(to_fetch), len(fingerprints))
 
         for chunk in chunks(to_fetch, 128):
-            for state in self.session.query(self.model).filter(self.model.fingerprint.in_(chunk)):
+            for state in self.session.query(self.model).filter(
+                self.model.fingerprint.in_(chunk)
+            ):
                 self._cache[to_bytes(state.fingerprint)] = state.state
 
     @retry_and_rollback
     def flush(self, force_clear=False):
-        for fingerprint, state_val in six.iteritems(self._cache):
-            state = self.model(fingerprint=to_native_str(fingerprint), state=state_val)
+        for fingerprint, state_val in self._cache.items():
+            state = self.model(fingerprint=to_unicode(fingerprint), state=state_val)
             self.session.merge(state)
         self.session.commit()
         self.logger.debug("State cache has been flushed.")
-        super(States, self).flush(force_clear)
+        super().flush(force_clear)
 
 
 class Queue(BaseQueue):
-    def __init__(self, session_cls, queue_cls, partitions, ordering='default'):
+    def __init__(self, session_cls, queue_cls, partitions, ordering="default"):
         self.session = session_cls()
         self.queue_model = queue_cls
         self.logger = logging.getLogger("sqlalchemy.queue")
-        self.partitions = [i for i in range(0, partitions)]
+        self.partitions = list(range(partitions))
         self.partitioner = Crc32NamePartitioner(self.partitions)
         self.ordering = ordering
 
@@ -157,11 +168,13 @@ class Queue(BaseQueue):
         self.session.close()
 
     def _order_by(self, query):
-        if self.ordering == 'created':
+        if self.ordering == "created":
             return query.order_by(self.queue_model.created_at)
-        if self.ordering == 'created_desc':
+        if self.ordering == "created_desc":
             return query.order_by(self.queue_model.created_at.desc())
-        return query.order_by(self.queue_model.score, self.queue_model.created_at)  # TODO: remove second parameter,
+        return query.order_by(
+            self.queue_model.score, self.queue_model.created_at
+        )  # TODO: remove second parameter,
         # it's not necessary for proper crawling, but needed for tests
 
     def get_next_requests(self, max_n_requests, partition_id, **kwargs):
@@ -174,12 +187,21 @@ class Queue(BaseQueue):
         """
         results = []
         try:
-            for item in self._order_by(self.session.query(self.queue_model).filter_by(partition_id=partition_id)).\
-                    limit(max_n_requests):
-                method = item.method or b'GET'
-                r = Request(item.url, method=method, meta=item.meta, headers=item.headers, cookies=item.cookies)
-                r.meta[b'fingerprint'] = to_bytes(item.fingerprint)
-                r.meta[b'score'] = item.score
+            for item in self._order_by(
+                self.session.query(self.queue_model).filter_by(
+                    partition_id=partition_id
+                )
+            ).limit(max_n_requests):
+                method = item.method or b"GET"
+                r = Request(
+                    item.url,
+                    method=method,
+                    meta=item.meta,
+                    headers=item.headers,
+                    cookies=item.cookies,
+                )
+                r.meta[b"fingerprint"] = to_bytes(item.fingerprint)
+                r.meta[b"score"] = item.score
                 results.append(r)
                 self.session.delete(item)
             self.session.commit()
@@ -195,17 +217,28 @@ class Queue(BaseQueue):
             if schedule:
                 _, hostname, _, _, _, _ = parse_domain_from_url_fast(request.url)
                 if not hostname:
-                    self.logger.error("Can't get hostname for URL %s, fingerprint %s" % (request.url, fprint))
+                    self.logger.error(
+                        f"Can't get hostname for URL {request.url}, fingerprint {fprint}"
+                    )
                     partition_id = self.partitions[0]
                     host_crc32 = 0
                 else:
                     partition_id = self.partitioner.partition(hostname, self.partitions)
                     host_crc32 = get_crc32(hostname)
-                q = self.queue_model(fingerprint=to_native_str(fprint), score=score, url=request.url, meta=request.meta,
-                                     headers=request.headers, cookies=request.cookies, method=to_native_str(request.method),
-                                     partition_id=partition_id, host_crc32=host_crc32, created_at=time()*1E+6)
+                q = self.queue_model(
+                    fingerprint=to_unicode(fprint),
+                    score=score,
+                    url=request.url,
+                    meta=request.meta,
+                    headers=request.headers,
+                    cookies=request.cookies,
+                    method=to_unicode(request.method),
+                    partition_id=partition_id,
+                    host_crc32=host_crc32,
+                    created_at=time() * 1e6,
+                )
                 to_save.append(q)
-                request.meta[b'state'] = States.QUEUED
+                request.meta[b"state"] = States.QUEUED
         self.session.bulk_save_objects(to_save)
         self.session.commit()
 
@@ -215,7 +248,6 @@ class Queue(BaseQueue):
 
 
 class BroadCrawlingQueue(Queue):
-
     GET_RETRIES = 3
 
     @retry_and_rollback
@@ -236,7 +268,7 @@ class BroadCrawlingQueue(Queue):
         min_requests = kwargs.pop("min_requests", None)
         min_hosts = kwargs.pop("min_hosts", None)
         max_requests_per_host = kwargs.pop("max_requests_per_host", None)
-        assert(max_n_requests > min_requests)
+        assert max_n_requests > min_requests
 
         queue = {}
         limit = max_n_requests
@@ -245,15 +277,26 @@ class BroadCrawlingQueue(Queue):
         while tries < self.GET_RETRIES:
             tries += 1
             limit *= 5.5 if tries > 1 else 1.0
-            self.logger.debug("Try %d, limit %d, last attempt: requests %d, hosts %d",
-                              tries, limit, count, len(queue.keys()))
+            self.logger.debug(
+                "Try %d, limit %d, last attempt: requests %d, hosts %d",
+                tries,
+                limit,
+                count,
+                len(queue.keys()),
+            )
             queue.clear()
             count = 0
-            for item in self._order_by(self.session.query(self.queue_model).filter_by(partition_id=partition_id)).\
-                    limit(limit):
+            for item in self._order_by(
+                self.session.query(self.queue_model).filter_by(
+                    partition_id=partition_id
+                )
+            ).limit(limit):
                 if item.host_crc32 not in queue:
                     queue[item.host_crc32] = []
-                if max_requests_per_host is not None and len(queue[item.host_crc32]) > max_requests_per_host:
+                if (
+                    max_requests_per_host is not None
+                    and len(queue[item.host_crc32]) > max_requests_per_host
+                ):
                     continue
                 queue[item.host_crc32].append(item)
                 count += 1
@@ -264,14 +307,23 @@ class BroadCrawlingQueue(Queue):
             if min_requests is not None and count < min_requests:
                 continue
             break
-        self.logger.debug("Finished: tries %d, hosts %d, requests %d", tries, len(queue.keys()), count)
+        self.logger.debug(
+            "Finished: tries %d, hosts %d, requests %d", tries, len(queue.keys()), count
+        )
 
         results = []
-        for items in six.itervalues(queue):
+        for items in queue.values():
             for item in items:
-                method = item.method or b'GET'
-                results.append(Request(item.url, method=method,
-                                       meta=item.meta, headers=item.headers, cookies=item.cookies))
+                method = item.method or b"GET"
+                results.append(
+                    Request(
+                        item.url,
+                        method=method,
+                        meta=item.meta,
+                        headers=item.headers,
+                        cookies=item.cookies,
+                    )
+                )
                 self.session.delete(item)
         self.session.commit()
         return results

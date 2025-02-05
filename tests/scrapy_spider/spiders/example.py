@@ -1,21 +1,10 @@
-from __future__ import absolute_import
-from scrapy.linkextractors import LinkExtractor
-from scrapy.spiders import CrawlSpider, Rule
+from scrapy import Spider
 
 
-class MySpider(CrawlSpider):
-    name = 'example'
-    start_urls = ['http://www.dmoz.org']
+class MySpider(Spider):
+    name = "example"
+    start_urls = ["data:,"]
     callback_calls = 0
 
-    rules = [Rule(LinkExtractor(),
-             callback='parse_page', follow=True)]
-
-    def parse_page(self, response):
+    def parse(self, response):
         self.callback_calls += 1
-        pass
-
-    def parse_nothing(self, response):
-        pass
-
-    parse_start_url = parse_nothing

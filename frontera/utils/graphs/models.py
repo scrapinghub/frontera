@@ -1,10 +1,14 @@
-from __future__ import absolute_import
-from sqlalchemy import Column, String, Integer, Boolean, ForeignKey
-from sqlalchemy.orm import relation
-from sqlalchemy import UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    Column,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+    types,
+)
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import types
-import six
+from sqlalchemy.orm import relation
 
 Base = declarative_base()
 
@@ -14,11 +18,11 @@ class Choice(types.TypeDecorator):
 
     def __init__(self, choices, default, **kwargs):
         self.choices = dict(choices)
-        values = [k for k, v in six.iteritems(self.choices)]
+        values = [k for k, v in self.choices.items()]
         if default not in values:
-            raise ValueError("default value '%s' not found in choices %s" % (default, values))
+            raise ValueError(f"default value '{default}' not found in choices {values}")
         self.default = default
-        super(Choice, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def process_bind_param(self, value, dialect):
         return value or self.default
@@ -27,7 +31,7 @@ class Choice(types.TypeDecorator):
         return self.choices[value]
 
 
-class BaseModel(object):
+class BaseModel:
     __abstract__ = True
 
     @classmethod
@@ -51,10 +55,9 @@ class BaseModel(object):
         instance = session.query(cls).filter_by(**kwargs).first()
         if instance:
             return instance, False
-        else:
-            instance = cls(**kwargs)
-            session.add(instance)
-            return instance, True
+        instance = cls(**kwargs)
+        session.add(instance)
+        return instance, True
 
     def get_pk(self):
         return getattr(self, self.get_pk_name())
@@ -69,16 +72,18 @@ class Model(Base, BaseModel):
 
 
 class CrawlPageRelation(Model):
-    __tablename__ = 'crawl_page_relations'
-    parent_id = Column(Integer, ForeignKey('crawl_pages.id'), primary_key=True, index=True)
-    child_id = Column(Integer, ForeignKey('crawl_pages.id'), primary_key=True, index=True)
+    __tablename__ = "crawl_page_relations"
+    parent_id = Column(
+        Integer, ForeignKey("crawl_pages.id"), primary_key=True, index=True
+    )
+    child_id = Column(
+        Integer, ForeignKey("crawl_pages.id"), primary_key=True, index=True
+    )
 
 
 class CrawlPage(Model):
-    __tablename__ = 'crawl_pages'
-    __table_args__ = (
-        UniqueConstraint('url'),
-    )
+    __tablename__ = "crawl_pages"
+    __table_args__ = (UniqueConstraint("url"),)
 
     id = Column(Integer, primary_key=True, nullable=False, index=True, unique=True)
     url = Column(String(1000))
@@ -86,14 +91,15 @@ class CrawlPage(Model):
     n_redirects = Column(Integer, default=0)
     is_seed = Column(Boolean, default=False)
     referers = relation(
-        'CrawlPage',
-        secondary='crawl_page_relations',
+        "CrawlPage",
+        secondary="crawl_page_relations",
         primaryjoin=CrawlPageRelation.child_id == id,
         secondaryjoin=CrawlPageRelation.parent_id == id,
-        backref="links")
+        backref="links",
+    )
 
     def __repr__(self):
-        return '<%s:%s%s>' % (self.id, self.url, '*' if self.is_seed else '')
+        return f"<{self.id}:{self.url}{'*' if self.is_seed else ''}>"
 
     def _get_status_code(self):
         try:
@@ -110,5 +116,4 @@ class CrawlPage(Model):
         status_code = self._get_status_code()
         if status_code:
             return 300 <= status_code < 400
-        else:
-            return False
+        return False

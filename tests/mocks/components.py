@@ -1,12 +1,14 @@
-from __future__ import absolute_import
-from frontera.core.components import Backend, Middleware, CanonicalSolver, \
-    DistributedBackend, Queue
-from six.moves import range
+from frontera.core.components import (
+    Backend,
+    CanonicalSolver,
+    DistributedBackend,
+    Middleware,
+    Queue,
+)
 from frontera.core.models import Request
 
 
 class FakeMiddleware(Middleware):
-
     def __init__(self):
         self.seeds = []
         self.responses = []
@@ -15,7 +17,7 @@ class FakeMiddleware(Middleware):
         self.lists = [self.seeds, self.responses, self.links, self.errors]
         self._started = False
         self._stopped = False
-        self.test_value = 'test'
+        self.test_value = "test"
 
     @classmethod
     def from_manager(cls, manager):
@@ -47,7 +49,6 @@ class FakeMiddleware(Middleware):
 
 
 class FakeQueue(Queue):
-
     def __init__(self):
         self.requests = []
 
@@ -56,11 +57,7 @@ class FakeQueue(Queue):
             self.requests.append(request)
 
     def get_next_requests(self, max_next_requests, **kwargs):
-        lst = []
-        for i in range(max_next_requests):
-            if self.requests:
-                lst.append(self.requests.pop())
-        return lst
+        return [self.requests.pop() for _i in range(max_next_requests) if self.requests]
 
     def count(self):
         return len(self.requests)
@@ -68,11 +65,12 @@ class FakeQueue(Queue):
     def schedule(self, batch):
         for obj in batch:
             if obj[3]:
-                self.requests.append(Request(obj[2].url, meta={b'fingerprint': obj[0], b'score': obj[1]}))
+                self.requests.append(
+                    Request(obj[2].url, meta={b"fingerprint": obj[0], b"score": obj[1]})
+                )
 
 
 class FakeBackend(FakeMiddleware, Backend):
-
     _finished = False
     queue = FakeQueue()
 
@@ -87,7 +85,6 @@ class FakeBackend(FakeMiddleware, Backend):
 
 
 class FakeDistributedBackend(FakeBackend, DistributedBackend):
-
     def __init__(self):
         FakeBackend.__init__(self)
         self._queue = FakeQueue()
@@ -112,7 +109,6 @@ class FakeDistributedBackend(FakeBackend, DistributedBackend):
 
 
 class FakeMiddlewareBlocking(FakeMiddleware):
-
     def add_seeds(self, seeds):
         for seed in seeds:
             self.seeds.append(seed)
@@ -129,19 +125,17 @@ class FakeMiddlewareBlocking(FakeMiddleware):
 
 
 class FakeMiddlewareModifySeeds(FakeMiddleware):
-
     def add_seeds(self, seeds):
         for seed in seeds:
             self.seeds.append(seed)
-            seed.meta[b'test_seeds'] = self.test_value
+            seed.meta[b"test_seeds"] = self.test_value
         return seeds
 
 
 class FakeMiddlewareModifyResponse(FakeMiddleware):
-
     def page_crawled(self, response):
         self.responses.append(response)
-        response.meta[b'test_response'] = self.test_value
+        response.meta[b"test_response"] = self.test_value
         return response
 
     def links_extracted(self, request, links):
@@ -151,7 +145,6 @@ class FakeMiddlewareModifyResponse(FakeMiddleware):
 
 
 class FakeMiddlewareModifyLinks(FakeMiddleware):
-
     def page_crawled(self, response):
         self.responses.append(response)
         return response
@@ -159,15 +152,15 @@ class FakeMiddlewareModifyLinks(FakeMiddleware):
     def links_extracted(self, request, links):
         for link in links:
             self.links.append(link)
-            link.meta[b'test_links'] = self.test_value
+            link.meta[b"test_links"] = self.test_value
         return request
 
-class FakeCanonicalSolver(CanonicalSolver, FakeMiddleware):
 
+class FakeCanonicalSolver(CanonicalSolver, FakeMiddleware):
     def add_seeds(self, seeds):
         for seed in seeds:
             self.seeds.append(seed)
-            seed.meta[b'test_seeds_canonical_solver'] = self.test_value
+            seed.meta[b"test_seeds_canonical_solver"] = self.test_value
         return seeds
 
     def page_crawled(self, response):
@@ -177,5 +170,5 @@ class FakeCanonicalSolver(CanonicalSolver, FakeMiddleware):
     def links_extracted(self, request, links):
         for link in links:
             self.links.append(link)
-            link.meta[b'test_links_canonical_solver'] = self.test_value
+            link.meta[b"test_links_canonical_solver"] = self.test_value
         return request

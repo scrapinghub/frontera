@@ -1,11 +1,12 @@
 """
 Frontier tester usage example
 """
+
 from frontera import FrontierManager, FrontierTester, Settings, graphs
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Graph
-    graph = graphs.Manager('sqlite:///data/graph.db')
+    graph = graphs.Manager("sqlite:///data/graph.db")
 
     # Frontier
     settings = Settings()
@@ -23,4 +24,4 @@ if __name__ == '__main__':
 
     # Show crawling sequence
     for page in tester.sequence:
-        print page.url
+        print(page.url)

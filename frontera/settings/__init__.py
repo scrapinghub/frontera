@@ -1,17 +1,16 @@
-from __future__ import absolute_import
-import six
 from importlib import import_module
 
 from . import default_settings
 
 
-class BaseSettings(object):
+class BaseSettings:
     """
     An object that holds frontier settings values.
 
     This also defines the base interface for all classes that are to be used
     as settings in frontera.
     """
+
     def __init__(self, module=None, attributes=None):
         """
         :param object/string module: A :class:`Settings <frontera.settings.Settings>` object or a path string.
@@ -39,15 +38,13 @@ class BaseSettings(object):
         """
         if isinstance(settings, BaseSettings):
             return settings
-        else:
-            return cls(settings)
+        return cls(settings)
 
     def __getattr__(self, name):
         val = self.get(name)
         if val is not None:
             return val
-        else:
-            return self.__dict__[name]
+        return self.__dict__[name]
 
     def __setattr__(self, name, value):
         if name.isupper():
@@ -56,7 +53,7 @@ class BaseSettings(object):
             self.__dict__[name] = value
 
     def add_module(self, module):
-        if isinstance(module, six.string_types):
+        if isinstance(module, str):
             module = import_module(module)
         for key in dir(module):
             if key.isupper():
@@ -78,12 +75,12 @@ class BaseSettings(object):
 
 class DefaultSettings(BaseSettings):
     def __init__(self):
-        super(DefaultSettings, self).__init__(default_settings)
+        super().__init__(default_settings)
 
 
 class Settings(BaseSettings):
     def __init__(self, module=None, attributes=None):
-        super(Settings, self).__init__(default_settings, attributes)
+        super().__init__(default_settings, attributes)
 
         if module:
             self.add_module(module)

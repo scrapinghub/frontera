@@ -1,18 +1,25 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from sqlalchemy import Column, String, Integer, PickleType, SmallInteger, Float, DateTime, BigInteger
+from sqlalchemy import (
+    BigInteger,
+    Column,
+    DateTime,
+    Float,
+    Integer,
+    PickleType,
+    SmallInteger,
+    String,
+)
 from sqlalchemy.ext.declarative import declarative_base
 
 DeclarativeBase = declarative_base()
 
 
 class MetadataModel(DeclarativeBase):
-    __tablename__ = 'metadata'
+    __tablename__ = "metadata"
     __table_args__ = (
         {
-            'mysql_charset': 'utf8',
-            'mysql_engine': 'InnoDB',
-            'mysql_row_format': 'DYNAMIC',
+            "mysql_charset": "utf8",
+            "mysql_engine": "InnoDB",
+            "mysql_row_format": "DYNAMIC",
         },
     )
 
@@ -34,16 +41,16 @@ class MetadataModel(DeclarativeBase):
         return session.query(cls)
 
     def __repr__(self):
-        return '<Metadata:%s (%s)>' % (self.url, self.fingerprint)
+        return f"<Metadata:{self.url} ({self.fingerprint})>"
 
 
 class StateModel(DeclarativeBase):
-    __tablename__ = 'states'
+    __tablename__ = "states"
     __table_args__ = (
         {
-            'mysql_charset': 'utf8',
-            'mysql_engine': 'InnoDB',
-            'mysql_row_format': 'DYNAMIC',
+            "mysql_charset": "utf8",
+            "mysql_engine": "InnoDB",
+            "mysql_row_format": "DYNAMIC",
         },
     )
 
@@ -55,15 +62,15 @@ class StateModel(DeclarativeBase):
         return session.query(cls)
 
     def __repr__(self):
-        return '<State:%s=%d>' % (self.fingerprint, self.state)
+        return f"<State:{self.fingerprint}={self.state}>"
 
 
-class QueueModelMixin(object):
+class QueueModelMixin:
     __table_args__ = (
         {
-            'mysql_charset': 'utf8',
-            'mysql_engine': 'InnoDB',
-            'mysql_row_format': 'DYNAMIC',
+            "mysql_charset": "utf8",
+            "mysql_engine": "InnoDB",
+            "mysql_row_format": "DYNAMIC",
         },
     )
 
@@ -82,11 +89,11 @@ class QueueModelMixin(object):
 
 
 class QueueModel(QueueModelMixin, DeclarativeBase):
-    __tablename__ = 'queue'
+    __tablename__ = "queue"
 
     @classmethod
     def query(cls, session):
         return session.query(cls)
 
     def __repr__(self):
-        return '<Queue:%s (%d)>' % (self.url, self.id)
+        return f"<Queue:{self.url} ({self.id})>"

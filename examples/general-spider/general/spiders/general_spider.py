@@ -1,14 +1,14 @@
-from scrapy.spider import Spider
 from scrapy.http import Request
 from scrapy.http.response.html import HtmlResponse
 from scrapy.linkextractors import LinkExtractor
+from scrapy.spider import Spider
 
 
 class GeneralSpider(Spider):
-    name = 'general'
+    name = "general"
 
     def __init__(self, *args, **kwargs):
-        super(GeneralSpider, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.le = LinkExtractor()
 
     def parse(self, response):
@@ -19,4 +19,3 @@ class GeneralSpider(Spider):
             r = Request(url=link.url)
             r.meta.update(link_text=link.text)
             yield r
-

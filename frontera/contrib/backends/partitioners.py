@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from struct import unpack
 from binascii import unhexlify
+from struct import unpack
 
 from frontera.core.components import Partitioner
 from frontera.utils.misc import get_crc32
@@ -12,7 +10,9 @@ class Crc32NamePartitioner(Partitioner):
         if key is None:
             return self.partitions[0]
         value = get_crc32(key)
-        return self.partition_by_hash(value, partitions if partitions else self.partitions)
+        return self.partition_by_hash(
+            value, partitions if partitions else self.partitions
+        )
 
     def partition_by_hash(self, value, partitions):
         size = len(partitions)

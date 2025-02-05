@@ -72,7 +72,7 @@ And let's say too that it uses a database file and you need to clean it before a
 
         def _delete_test_db(self):
             try:
-                os.remove('mytestdb.db')
+                Path('mytestdb.db').unlink()
             except OSError:
                 pass
 

@@ -1,13 +1,10 @@
-from __future__ import absolute_import
 from frontera.settings import Settings
-from six.moves import range
 
 
-class FakeFrontierManager(object):
-
+class FakeFrontierManager:
     def __init__(self, settings):
         self.settings = settings
-        self.auto_start = settings.get('AUTO_START')
+        self.auto_start = settings.get("AUTO_START")
         self.iteration = 0
         self.finished = False
         self._started = True
@@ -40,13 +37,9 @@ class FakeFrontierManager(object):
 
     def get_next_requests(self, max_next_requests=0, **kwargs):
         self.get_next_requests_kwargs.append(kwargs)
-        max_next_requests = max_next_requests or self.settings.get('MAX_NEXT_REQUESTS')
-        lst = []
-        for i in range(max_next_requests):
-            if self.requests:
-                lst.append(self.requests.pop())
+        max_next_requests = max_next_requests or self.settings.get("MAX_NEXT_REQUESTS")
         self.iteration += 1
-        return lst
+        return [self.requests.pop() for _i in range(max_next_requests) if self.requests]
 
     def page_crawled(self, response):
         self.responses.append(response)
@@ -58,5 +51,3 @@ class FakeFrontierManager(object):
 
     def request_error(self, request, error):
         self.errors.append((request, error))
-
-

@@ -1,8 +1,7 @@
-mock_variable = 'test'
+mock_variable = "test"
 
 
-class MockClass(object):
-
+class MockClass:
     val = 10
 
     def __init__(self, val):

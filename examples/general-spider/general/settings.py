@@ -1,26 +1,25 @@
-# -*- coding: utf-8 -*-
-BOT_NAME = 'general'
+BOT_NAME = "general"
 
-SPIDER_MODULES = ['general.spiders']
-NEWSPIDER_MODULE = 'general.spiders'
+SPIDER_MODULES = ["general.spiders"]
+NEWSPIDER_MODULE = "general.spiders"
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-#USER_AGENT = 'topic (+http://www.yourdomain.com)'
+# USER_AGENT = 'topic (+http://www.yourdomain.com)'
 
 SPIDER_MIDDLEWARES = {
-    'frontera.contrib.scrapy.middlewares.seeds.file.FileSeedLoader': 1,
-    'frontera.contrib.scrapy.middlewares.schedulers.SchedulerSpiderMiddleware': 1000,
-    'scrapy.spidermiddleware.depth.DepthMiddleware': None,
-    'scrapy.spidermiddleware.offsite.OffsiteMiddleware': None,
-    'scrapy.spidermiddleware.referer.RefererMiddleware': None,
-    'scrapy.spidermiddleware.urllength.UrlLengthMiddleware': None
+    "frontera.contrib.scrapy.middlewares.seeds.file.FileSeedLoader": 1,
+    "frontera.contrib.scrapy.middlewares.schedulers.SchedulerSpiderMiddleware": 1000,
+    "scrapy.spidermiddleware.depth.DepthMiddleware": None,
+    "scrapy.spidermiddleware.offsite.OffsiteMiddleware": None,
+    "scrapy.spidermiddleware.referer.RefererMiddleware": None,
+    "scrapy.spidermiddleware.urllength.UrlLengthMiddleware": None,
 }
 
 DOWNLOADER_MIDDLEWARES = {
-    'frontera.contrib.scrapy.middlewares.schedulers.SchedulerDownloaderMiddleware': 1000,
+    "frontera.contrib.scrapy.middlewares.schedulers.SchedulerDownloaderMiddleware": 1000,
 }
 
-SCHEDULER = 'frontera.contrib.scrapy.schedulers.frontier.FronteraScheduler'
+SCHEDULER = "frontera.contrib.scrapy.schedulers.frontier.FronteraScheduler"
 
 
 HTTPCACHE_ENABLED = False
@@ -28,7 +27,7 @@ REDIRECT_ENABLED = True
 COOKIES_ENABLED = False
 DOWNLOAD_TIMEOUT = 240
 RETRY_ENABLED = False
-DOWNLOAD_MAXSIZE = 1*1024*1024
+DOWNLOAD_MAXSIZE = 1 * 1024 * 1024
 
 # auto throttling
 AUTOTHROTTLE_ENABLED = True
@@ -42,7 +41,7 @@ CONCURRENT_REQUESTS = 64
 CONCURRENT_REQUESTS_PER_DOMAIN = 10
 DOWNLOAD_DELAY = 0.0
 
-LOG_LEVEL = 'INFO'
+LOG_LEVEL = "INFO"
 
 REACTOR_THREADPOOL_MAXSIZE = 32
 DNS_TIMEOUT = 180

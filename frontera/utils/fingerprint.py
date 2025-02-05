@@ -1,19 +1,19 @@
-from __future__ import absolute_import
 import hashlib
-from six.moves.urllib.parse import urlparse
-from struct import pack
 from binascii import hexlify
+from struct import pack
+
+from w3lib.util import to_bytes
+
 from frontera.utils.misc import get_crc32
 from frontera.utils.url import parse_url
-from w3lib.util import to_native_str, to_bytes
 
 
 def sha1(key):
-    return to_bytes(hashlib.sha1(to_bytes(key, 'utf8')).hexdigest())
+    return to_bytes(hashlib.sha1(to_bytes(key, "utf8")).hexdigest())  # noqa: S324
 
 
 def md5(key):
-    return to_bytes(hashlib.md5(to_bytes(key, 'utf8')).hexdigest())
+    return to_bytes(hashlib.md5(to_bytes(key, "utf8")).hexdigest())  # noqa: S324
 
 
 def hostname_local_fingerprint(key):
@@ -30,9 +30,10 @@ def hostname_local_fingerprint(key):
     if not result.hostname:
         return sha1(key)
     host_checksum = get_crc32(result.hostname)
-    doc_uri_combined = result.path+';'+result.params+result.query+result.fragment
+    doc_uri_combined = (
+        result.path + ";" + result.params + result.query + result.fragment
+    )
 
-    doc_uri_combined = to_bytes(doc_uri_combined, 'utf8', 'ignore')
-    doc_fprint = hashlib.md5(doc_uri_combined).digest()
-    fprint = hexlify(pack(">i16s", host_checksum, doc_fprint))
-    return fprint
+    doc_uri_combined = to_bytes(doc_uri_combined, "utf8", "ignore")
+    doc_fprint = hashlib.md5(doc_uri_combined).digest()  # noqa: S324
+    return hexlify(pack(">i16s", host_checksum, doc_fprint))

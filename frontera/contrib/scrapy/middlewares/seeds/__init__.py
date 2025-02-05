@@ -1,7 +1,7 @@
-from __future__ import absolute_import
+from scrapy import Request
 
 
-class SeedLoader(object):
+class SeedLoader:
     def __init__(self, crawler):
         self.crawler = crawler
         self.configure(crawler.settings)
@@ -14,11 +14,8 @@ class SeedLoader(object):
         return cls(crawler)
 
     def process_start_requests(self, start_requests, spider):
-        urls = [url for url in self.load_seeds() if not url.startswith('#')]
-        return [spider.make_requests_from_url(url) for url in urls]
+        urls = [url for url in self.load_seeds() if not url.startswith("#")]
+        return [Request(url, dont_filter=True) for url in urls]
 
     def load_seeds(self):
         raise NotImplementedError
-
-
-

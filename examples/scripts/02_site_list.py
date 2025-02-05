@@ -1,6 +1,7 @@
 """
 Graph manager example with site list
 """
+
 from frontera import graphs
 
 SITE_LIST = [
@@ -16,7 +17,7 @@ SITE_LIST = [
     ],
 ]
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Create graph
     graph = graphs.Manager()
 
@@ -25,4 +26,4 @@ if __name__ == '__main__':
 
     # Show graph pages
     for page in graph.pages:
-        print page
+        print(page)

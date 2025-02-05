@@ -1,31 +1,34 @@
-from __future__ import absolute_import
-from tests.test_overused_buffer import DFSOverusedBackendTest
-from tests import backends
+import pytest
+
+pytest.importorskip("sqlalchemy.engine")
+
+from .... import backends
+from ....test_overused_buffer import DFSOverusedBackendTest
 
 
 class TestFIFO(backends.FIFOBackendTest):
-    backend_class = 'frontera.contrib.backends.memory.FIFO'
+    backend_class = "frontera.contrib.backends.memory.FIFO"
 
 
 class TestLIFO(backends.LIFOBackendTest):
-    backend_class = 'frontera.contrib.backends.memory.LIFO'
+    backend_class = "frontera.contrib.backends.memory.LIFO"
 
 
 class TestDFS(backends.DFSBackendTest):
-    backend_class = 'frontera.contrib.backends.memory.DFS'
+    backend_class = "frontera.contrib.backends.memory.DFS"
 
 
 class TestDFSOverused(backends.DFSBackendTest):
-    backend_class = 'frontera.contrib.backends.memory.MemoryDFSOverusedBackend'
+    backend_class = "frontera.contrib.backends.memory.MemoryDFSOverusedBackend"
 
 
 class TestDFSOverusedSimulation(DFSOverusedBackendTest):
-    backend_class = 'frontera.contrib.backends.memory.MemoryDFSOverusedBackend'
+    backend_class = "frontera.contrib.backends.memory.MemoryDFSOverusedBackend"
 
 
 class TestBFS(backends.BFSBackendTest):
-    backend_class = 'frontera.contrib.backends.memory.BFS'
+    backend_class = "frontera.contrib.backends.memory.BFS"
 
 
 class TestRANDOM(backends.RANDOMBackendTest):
-    backend_class = 'frontera.contrib.backends.memory.RANDOM'
+    backend_class = "frontera.contrib.backends.memory.RANDOM"
