@@ -85,7 +85,7 @@ class Consumer(BaseStreamConsumer):
         for tp in self._partition_ids:
             if tp.partition == partition_id:
                 return self._consumer.position(tp)
-        raise KeyError("Can't find partition %d", partition_id)
+        raise KeyError(f"Can't find partition {partition_id}")
 
     def close(self):
         self._poll_task.stop()
