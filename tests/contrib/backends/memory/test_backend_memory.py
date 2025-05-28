@@ -2,7 +2,7 @@ import pytest
 
 pytest.importorskip("sqlalchemy.engine")
 
-from tests.contrib import backends
+from tests import backends
 from tests.test_overused_buffer import DFSOverusedBackendTest
 
 
