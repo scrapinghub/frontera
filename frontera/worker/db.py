@@ -6,7 +6,7 @@ from signal import SIGUSR1, signal
 from time import asctime
 from traceback import format_stack
 
-from twisted.internet import reactor, task
+from twisted.internet import task
 
 from frontera.core.components import DistributedBackend
 from frontera.core.manager import FrontierManager
@@ -126,6 +126,8 @@ class DBWorker:
         self.process_info = process_info
 
     def run(self):
+        from twisted.internet import reactor
+
         def debug(sig, frame):
             logger.critical("Signal received: printing stack trace")
             logger.critical("".join(format_stack(frame)))

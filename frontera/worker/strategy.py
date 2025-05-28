@@ -8,7 +8,6 @@ from signal import SIGUSR1, signal
 from time import asctime
 from traceback import format_stack, format_tb
 
-from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
 
 from frontera.core.manager import FrontierManager
@@ -202,6 +201,8 @@ class StrategyWorker:
                 logger.exception(exc)
 
     def work(self):
+        from twisted.internet import reactor
+
         batch, consumed = self.collect_batch()
         self.states_context.fetch()
         self.process_batch(batch)
@@ -221,6 +222,8 @@ class StrategyWorker:
         self.stats["consumed_since_start"] += consumed
 
     def run(self):
+        from twisted.internet import reactor
+
         def log_failure(failure):
             logger.exception(failure.value)
             if failure.frames:

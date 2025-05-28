@@ -2,8 +2,8 @@ import pytest
 
 pytest.importorskip("sqlalchemy.engine")
 
-from .... import backends
-from ....test_overused_buffer import DFSOverusedBackendTest
+from tests.contrib import backends
+from tests.test_overused_buffer import DFSOverusedBackendTest
 
 
 class TestFIFO(backends.FIFOBackendTest):

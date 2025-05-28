@@ -1,4 +1,4 @@
-from twisted.internet import error, reactor
+from twisted.internet import error
 from twisted.internet.defer import Deferred
 
 
@@ -7,9 +7,11 @@ class CallLaterOnce:
     it hasn't been already scheduled since the last time it run.
     """
 
-    def __init__(self, func, reactor=reactor, *a, **kw):
+    def __init__(self, func, reactor=None, *a, **kw):
+        from twisted.internet import reactor as default_reactor
+
         self._func = func
-        self._reactor = reactor
+        self._reactor = reactor or default_reactor
         self._a = a
         self._kw = kw
         self._call = None
@@ -45,8 +47,12 @@ class CallLaterOnce:
         return f
 
 
-def listen_tcp(portrange, host, factory, reactor=reactor):
+def listen_tcp(portrange, host, factory, reactor=None):
     """Like reactor.listenTCP but tries different ports in a range."""
+    from twisted.internet import reactor as default_reactor
+
+    reactor = reactor or default_reactor
+
     if isinstance(portrange, int):
         return reactor.listenTCP(portrange, factory, interface=host)
     assert len(portrange) <= 2, f"invalid portrange: {portrange}"
