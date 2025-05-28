@@ -53,7 +53,7 @@ setup(
             "setuptools>=50.3.1",
         ],
         "zeromq": ["pyzmq>=19.0.2", "msgpack-python>=0.4"],
-        "kafka": ["kafka-python>=1.4.3", "twisted>=20.3.0"],
+        "kafka": ["kafka-python>=1.4.3,<2.1", "twisted>=20.3.0"],
         "distributed": ["Twisted"],
     },
 )
