@@ -1,7 +1,4 @@
-
-
-class BaseSchedulerMiddleware(object):
-
+class BaseSchedulerMiddleware:
     def __init__(self, crawler):
         self.crawler = crawler
 
@@ -11,7 +8,12 @@ class BaseSchedulerMiddleware(object):
 
     @property
     def scheduler(self):
-        return self.crawler.engine.slot.scheduler
+        try:
+            # To be exposed as engine.scheduler as part of
+            # https://github.com/scrapy/scrapy/pull/6715
+            return self.crawler.engine._slot.scheduler
+        except AttributeError:  # Scrapy < 2.13.0
+            return self.crawler.engine.slot.scheduler
 
 
 class SchedulerSpiderMiddleware(BaseSchedulerMiddleware):

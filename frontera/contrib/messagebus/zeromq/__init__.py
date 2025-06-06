@@ -1,34 +1,46 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from time import time, sleep
-from struct import pack, unpack
 from logging import getLogger
+from struct import pack, unpack
+from time import sleep, time
 
 import zmq
-import six
 
-from frontera.core.messagebus import BaseMessageBus, BaseSpiderLogStream, BaseStreamConsumer, \
-    BaseSpiderFeedStream, BaseScoringLogStream
-from frontera.contrib.backends.partitioners import FingerprintPartitioner, Crc32NamePartitioner
+from frontera.contrib.backends.partitioners import (
+    Crc32NamePartitioner,
+    FingerprintPartitioner,
+)
 from frontera.contrib.messagebus.zeromq.socket_config import SocketConfig
-from six.moves import range
+from frontera.core.messagebus import (
+    BaseMessageBus,
+    BaseScoringLogStream,
+    BaseSpiderFeedStream,
+    BaseSpiderLogStream,
+    BaseStreamConsumer,
+)
 
 
 class Consumer(BaseStreamConsumer):
-    def __init__(self, context, location, partition_id, identity, seq_warnings=False, hwm=1000):
+    def __init__(
+        self, context, location, partition_id, identity, seq_warnings=False, hwm=1000
+    ):
         self.subscriber = context.zeromq.socket(zmq.SUB)
         self.subscriber.connect(location)
         self.subscriber.set(zmq.RCVHWM, hwm)
 
-        filter = identity + pack('>B', partition_id) if partition_id is not None else identity
+        filter = (
+            identity + pack(">B", partition_id)
+            if partition_id is not None
+            else identity
+        )
         self.subscriber.setsockopt(zmq.SUBSCRIBE, filter)
         self.counter = 0
         self.count_global = partition_id is None
-        self.logger = getLogger("distributed_frontera.messagebus.zeromq.Consumer(%s-%s)" % (identity, partition_id))
+        self.logger = getLogger(
+            f"distributed_frontera.messagebus.zeromq.Consumer({identity}-{partition_id})"
+        )
         self.seq_warnings = seq_warnings
 
         self.stats = context.stats
-        self.stat_key = "consumer-%s" % identity
+        self.stat_key = f"consumer-{identity}"
         self.stats[self.stat_key] = 0
 
     def get_messages(self, timeout=0.1, count=1):
@@ -37,7 +49,7 @@ class Consumer(BaseStreamConsumer):
         while count:
             try:
                 msg = self.subscriber.recv_multipart(copy=True, flags=zmq.NOBLOCK)
-            except zmq.Again:
+            except zmq.Again:  # noqa: PERF203
                 if time() - started > timeout:
                     break
                 sleep(sleep_time)
@@ -48,8 +60,11 @@ class Consumer(BaseStreamConsumer):
                     self.counter = seqno
                 elif self.counter != seqno:
                     if self.seq_warnings:
-                        self.logger.warning("Sequence counter mismatch: expected %d, got %d. Check if system "
-                                            "isn't missing messages." % (self.counter, seqno))
+                        self.logger.warning(
+                            f"Sequence counter mismatch: expected "
+                            f"{self.counter}, got {seqno}. Check if system "
+                            f"isn't missing messages."
+                        )
                     self.counter = None
                 yield msg[1]
                 count -= 1
@@ -61,7 +76,7 @@ class Consumer(BaseStreamConsumer):
         return self.counter
 
 
-class Producer(object):
+class Producer:
     def __init__(self, context, location, identity):
         self.identity = identity
         self.sender = context.zeromq.socket(zmq.PUB)
@@ -69,7 +84,7 @@ class Producer(object):
         self.counters = {}
         self.global_counter = 0
         self.stats = context.stats
-        self.stat_key = "producer-%s" % identity
+        self.stat_key = f"producer-{identity}"
         self.stats[self.stat_key] = 0
 
     def send(self, key, *messages):
@@ -78,13 +93,18 @@ class Producer(object):
             raise TypeError("msg is not a list or tuple!")
 
         # Raise TypeError if any message is not encoded as bytes
-        if any(not isinstance(m, six.binary_type) for m in messages):
+        if any(not isinstance(m, bytes) for m in messages):
             raise TypeError("all produce message payloads must be type bytes")
         partition = self.partitioner.partition(key)
         counter = self.counters.get(partition, 0)
         for msg in messages:
-            self.sender.send_multipart([self.identity + pack(">B", partition), msg,
-                                        pack(">II", counter, self.global_counter)])
+            self.sender.send_multipart(
+                [
+                    self.identity + pack(">B", partition),
+                    msg,
+                    pack(">II", counter, self.global_counter),
+                ]
+            )
             counter += 1
             self.global_counter += 1
             if counter == 4294967296:
@@ -103,7 +123,7 @@ class Producer(object):
 
 class SpiderLogProducer(Producer):
     def __init__(self, context, location, partitions):
-        super(SpiderLogProducer, self).__init__(context, location, b'sl')
+        super().__init__(context, location, b"sl")
         self.partitioner = FingerprintPartitioner(partitions)
 
 
@@ -119,13 +139,13 @@ class SpiderLogStream(BaseSpiderLogStream):
         return SpiderLogProducer(self.context, self.out_location, self.partitions)
 
     def consumer(self, partition_id, type):
-        location = self.sw_in_location if type == b'sw' else self.db_in_location
-        return Consumer(self.context, location, partition_id, b'sl')
+        location = self.sw_in_location if type == b"sw" else self.db_in_location
+        return Consumer(self.context, location, partition_id, b"sl")
 
 
 class UpdateScoreProducer(Producer):
     def __init__(self, context, location):
-        super(UpdateScoreProducer, self).__init__(context, location, b'us')
+        super().__init__(context, location, b"us")
 
     def send(self, key, *messages):
         # Guarantee that msg is actually a list or tuple (should always be true)
@@ -133,11 +153,13 @@ class UpdateScoreProducer(Producer):
             raise TypeError("msg is not a list or tuple!")
 
         # Raise TypeError if any message is not encoded as bytes
-        if any(not isinstance(m, six.binary_type) for m in messages):
+        if any(not isinstance(m, bytes) for m in messages):
             raise TypeError("all produce message payloads must be type bytes")
         counter = self.counters.get(0, 0)
         for msg in messages:
-            self.sender.send_multipart([self.identity, msg, pack(">II", counter, counter)])
+            self.sender.send_multipart(
+                [self.identity, msg, pack(">II", counter, counter)]
+            )
             counter += 1
             if counter == 4294967296:
                 counter = 0
@@ -152,7 +174,7 @@ class ScoringLogStream(BaseScoringLogStream):
         self.out_location = messagebus.socket_config.db_in()
 
     def consumer(self):
-        return Consumer(self.context, self.out_location, None, b'us')
+        return Consumer(self.context, self.out_location, None, b"us")
 
     def producer(self):
         return UpdateScoreProducer(self.context, self.in_location)
@@ -160,9 +182,12 @@ class ScoringLogStream(BaseScoringLogStream):
 
 class SpiderFeedProducer(Producer):
     def __init__(self, context, location, partitions, hwm, hostname_partitioning):
-        super(SpiderFeedProducer, self).__init__(context, location, b'sf')
-        self.partitioner = Crc32NamePartitioner(partitions) if hostname_partitioning else \
-            FingerprintPartitioner(partitions)
+        super().__init__(context, location, b"sf")
+        self.partitioner = (
+            Crc32NamePartitioner(partitions)
+            if hostname_partitioning
+            else FingerprintPartitioner(partitions)
+        )
         self.sender.set(zmq.SNDHWM, hwm)
 
 
@@ -178,11 +203,23 @@ class SpiderFeedStream(BaseSpiderFeedStream):
         self.hostname_partitioning = messagebus.hostname_partitioning
 
     def consumer(self, partition_id):
-        return Consumer(self.context, self.out_location, partition_id, b'sf', seq_warnings=True, hwm=self.consumer_hwm)
+        return Consumer(
+            self.context,
+            self.out_location,
+            partition_id,
+            b"sf",
+            seq_warnings=True,
+            hwm=self.consumer_hwm,
+        )
 
     def producer(self):
-        return SpiderFeedProducer(self.context, self.in_location, self.partitions,
-                                  self.producer_hwm, self.hostname_partitioning)
+        return SpiderFeedProducer(
+            self.context,
+            self.in_location,
+            self.partitions,
+            self.producer_hwm,
+            self.hostname_partitioning,
+        )
 
     def available_partitions(self):
         return self.ready_partitions
@@ -194,8 +231,7 @@ class SpiderFeedStream(BaseSpiderFeedStream):
         self.ready_partitions.discard(partition_id)
 
 
-class Context(object):
-
+class Context:
     zeromq = zmq.Context()
     stats = {}
 
@@ -203,13 +239,18 @@ class Context(object):
 class MessageBus(BaseMessageBus):
     def __init__(self, settings):
         self.context = Context()
-        self.socket_config = SocketConfig(settings.get('ZMQ_ADDRESS'),
-                                          settings.get('ZMQ_BASE_PORT'))
-        self.spider_log_partitions = [i for i in range(settings.get('SPIDER_LOG_PARTITIONS'))]
-        self.spider_feed_partitions = [i for i in range(settings.get('SPIDER_FEED_PARTITIONS'))]
-        self.spider_feed_sndhwm = int(settings.get('MAX_NEXT_REQUESTS') * len(self.spider_feed_partitions) * 1.2)
-        self.spider_feed_rcvhwm = int(settings.get('MAX_NEXT_REQUESTS') * 2.0)
-        self.hostname_partitioning = settings.get('QUEUE_HOSTNAME_PARTITIONING')
+        self.socket_config = SocketConfig(
+            settings.get("ZMQ_ADDRESS"), settings.get("ZMQ_BASE_PORT")
+        )
+        self.spider_log_partitions = list(range(settings.get("SPIDER_LOG_PARTITIONS")))
+        self.spider_feed_partitions = list(
+            range(settings.get("SPIDER_FEED_PARTITIONS"))
+        )
+        self.spider_feed_sndhwm = int(
+            settings.get("MAX_NEXT_REQUESTS") * len(self.spider_feed_partitions) * 1.2
+        )
+        self.spider_feed_rcvhwm = int(settings.get("MAX_NEXT_REQUESTS") * 2.0)
+        self.hostname_partitioning = settings.get("QUEUE_HOSTNAME_PARTITIONING")
         if self.socket_config.is_ipv6:
             self.context.zeromq.setsockopt(zmq.IPV6, True)
 

@@ -1,10 +1,9 @@
-from __future__ import absolute_import
 import copy
-from w3lib.util import to_bytes, to_native_str
-from w3lib.url import safe_url_string
+
+from w3lib.util import to_bytes, to_unicode
 
 
-class FrontierObject(object):
+class FrontierObject:
     def copy(self):
         return copy.copy(self)
 
@@ -16,7 +15,10 @@ class Request(FrontierObject):
     :class:`Response <frontera.core.models.Response>` object when crawled.
 
     """
-    def __init__(self, url, method=b'GET', headers=None, cookies=None, meta=None, body=''):
+
+    def __init__(
+        self, url, method=b"GET", headers=None, cookies=None, meta=None, body=""
+    ):
         """
         :param string url: URL to send.
         :param string method: HTTP method to use.
@@ -25,11 +27,11 @@ class Request(FrontierObject):
         :param dict meta: dictionary that contains arbitrary metadata for this request, the keys must be bytes and \
         the values must be either bytes or serializable objects such as lists, tuples, dictionaries with byte type items.
         """
-        self._url = to_native_str(url)
-        self._method = to_bytes((method or b'GET').upper())
+        self._url = to_unicode(url)
+        self._method = to_bytes((method or b"GET").upper())
         self._headers = headers or {}
         self._cookies = cookies or {}
-        self._meta = meta or {b'scrapy_meta': {}}
+        self._meta = meta or {b"scrapy_meta": {}}
         self._body = body
 
     @property
@@ -79,9 +81,7 @@ class Request(FrontierObject):
         return self._body
 
     def __str__(self):
-        return "<%s at 0x%0x %s meta=%s body=%s... cookies=%s, headers=%s>" % (type(self).__name__, id(self), self.url,
-                                                                               str(self.meta), str(self.body[:20]),
-                                                                               str(self.cookies), str(self.headers))
+        return f"<{type(self).__name__} at 0x{id(self):0x} {self.url} meta={self.meta!s} body={self.body[:20]!s}... cookies={self.cookies!s}, headers={self.headers!s}>"
 
     __repr__ = __str__
 
@@ -93,7 +93,7 @@ class Response(FrontierObject):
 
     """
 
-    def __init__(self, url, status_code=200, headers=None, body='', request=None):
+    def __init__(self, url, status_code=200, headers=None, body="", request=None):
         """
         :param string url: URL of this response.
         :param int status_code: the HTTP status of the response. Defaults to 200.
@@ -102,7 +102,7 @@ class Response(FrontierObject):
         :param Request request: The Request object that generated this response.
         """
 
-        self._url = to_native_str(url)
+        self._url = to_unicode(url)
         self._status_code = int(status_code)
         self._headers = headers or {}
         self._body = body
@@ -151,14 +151,12 @@ class Response(FrontierObject):
         """
         try:
             return self.request.meta
-        except AttributeError:
-            raise AttributeError("Response.meta not available, this response "
-                                 "is not tied to any request")
+        except AttributeError as e:
+            raise AttributeError(
+                "Response.meta not available, this response is not tied to any request"
+            ) from e
 
     def __str__(self):
-        return "<%s at 0x%0x %s %s meta=%s body=%s... headers=%s>" % (type(self).__name__,
-                                                                      id(self), self.status_code,
-                                                                      self.url, str(self.meta),
-                                                                      str(self.body[:20]), str(self.headers))
+        return f"<{type(self).__name__} at 0x{id(self):0x} {self.status_code} {self.url} meta={self.meta!s} body={self.body[:20]!s}... headers={self.headers!s}>"
 
     __repr__ = __str__

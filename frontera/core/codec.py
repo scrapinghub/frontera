@@ -1,12 +1,7 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
 from abc import ABCMeta, abstractmethod
-import six
 
 
-@six.add_metaclass(ABCMeta)
-class BaseDecoder(object):
-
+class BaseDecoder(metaclass=ABCMeta):
     @abstractmethod
     def decode(self, buffer):
         """
@@ -15,7 +10,6 @@ class BaseDecoder(object):
         :param bytes buffer: encoded message
         :return: tuple of message type and related objects
         """
-        pass
 
     @abstractmethod
     def decode_request(self, buffer):
@@ -25,12 +19,9 @@ class BaseDecoder(object):
         :param bytes buffer: serialized string
         :return: object Request
         """
-        pass
 
 
-@six.add_metaclass(ABCMeta)
-class BaseEncoder(object):
-
+class BaseEncoder(metaclass=ABCMeta):
     @abstractmethod
     def encode_add_seeds(self, seeds):
         """
@@ -39,7 +30,6 @@ class BaseEncoder(object):
         :param list seeds: A list of frontier Request objects
         :return: bytes encoded message
         """
-        pass
 
     @abstractmethod
     def encode_page_crawled(self, response):
@@ -50,7 +40,6 @@ class BaseEncoder(object):
 
         :return: bytes encoded message
         """
-        pass
 
     @abstractmethod
     def encode_links_extracted(self, request, links):
@@ -62,7 +51,6 @@ class BaseEncoder(object):
 
         :return: bytes encoded message
         """
-        pass
 
     @abstractmethod
     def encode_request_error(self, request, error):
@@ -74,7 +62,6 @@ class BaseEncoder(object):
 
         :return: bytes encoded message
         """
-        pass
 
     @abstractmethod
     def encode_request(self, request):
@@ -84,7 +71,6 @@ class BaseEncoder(object):
         :param object request: Frontera Request object
         :return: bytes encoded message
         """
-        pass
 
     @abstractmethod
     def encode_update_score(self, request, score, schedule):
@@ -96,7 +82,6 @@ class BaseEncoder(object):
         :param bool schedule: True if document needs to be scheduled for download
         :return: bytes encoded message
         """
-        pass
 
     @abstractmethod
     def encode_new_job_id(self, job_id):
@@ -106,7 +91,6 @@ class BaseEncoder(object):
         :param int job_id:
         :return: bytes encoded message
         """
-        pass
 
     @abstractmethod
     def encode_offset(self, partition_id, offset):
@@ -117,4 +101,3 @@ class BaseEncoder(object):
         :param int offset:
         :return: bytes encoded message
         """
-        pass

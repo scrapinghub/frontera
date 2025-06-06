@@ -1,45 +1,37 @@
-from __future__ import print_function
-
 import re
 from time import time
+from urllib.parse import urljoin
 
-from grequests import AsyncRequest, get as grequests_get, map as grequests_map
+from grequests import AsyncRequest
+from grequests import get as grequests_get
+from grequests import map as grequests_map
 
+from frontera import Settings
+from frontera.contrib.requests.converters import ResponseConverter
+from frontera.core import get_slot_key
 from frontera.core.models import Request as FrontierRequest
 from frontera.utils.converters import BaseRequestConverter
-from frontera.contrib.requests.converters import ResponseConverter
-
 from frontera.utils.managers import FrontierManagerWrapper
-from frontera.core import get_slot_key
-from frontera import Settings
-
-from six import iteritems
-from six.moves.urllib.parse import urljoin
-
 
 SETTINGS = Settings()
-SETTINGS.BACKEND = 'frontera.contrib.backends.memory.MemoryDFSOverusedBackend'
+SETTINGS.BACKEND = "frontera.contrib.backends.memory.MemoryDFSOverusedBackend"
 SETTINGS.LOGGING_MANAGER_ENABLED = True
 SETTINGS.LOGGING_BACKEND_ENABLED = False
 SETTINGS.MAX_REQUESTS = 0
 SETTINGS.MAX_NEXT_REQUESTS = 40
 
-SEEDS = [
-    'http://www.imdb.com',
-    'http://www.bbc.com/',
-    'http://www.amazon.com/'
-]
+SEEDS = ["http://www.imdb.com", "http://www.bbc.com/", "http://www.amazon.com/"]
 
-LINK_RE = re.compile(r'<a.+?href="(.*?)".?>', re.I)
+LINK_RE = re.compile(r'<a.+?href="(.*?)".?>', re.IGNORECASE)
 
 
 class GRequestsConverter(BaseRequestConverter):
     """Converts between frontera and grequests request objects"""
+
     @classmethod
     def to_frontier(cls, request):
         """request: AsyncRequest > Frontier"""
-        return FrontierRequest(url=request.url,
-                               method=request.method)
+        return FrontierRequest(url=request.url, method=request.method)
 
     @classmethod
     def from_frontier(cls, request):
@@ -49,17 +41,17 @@ class GRequestsConverter(BaseRequestConverter):
 
 class GRequestsFrontierManager(FrontierManagerWrapper):
     def __init__(self, settings):
-        super(GRequestsFrontierManager, self).__init__(settings)
+        super().__init__(settings)
         self.request_converter = GRequestsConverter()
         self.response_converter = ResponseConverter(self.request_converter)
 
 
-class HostnameStatistics(object):
+class HostnameStatistics:
     def __init__(self):
         self.stats = {}
 
     def on_request(self, request):
-        key = get_slot_key(request, 'domain')
+        key = get_slot_key(request, "domain")
         self.stats[key] = time()
 
     def collect_overused_keys(self):
@@ -67,8 +59,9 @@ class HostnameStatistics(object):
 
         return [
             key
-            for key, timestamp in iteritems(self.stats)
-            if ts - timestamp < 5.0  # querying each hostname with at least 5 seconds delay
+            for key, timestamp in self.stats.items()
+            if ts - timestamp
+            < 5.0  # querying each hostname with at least 5 seconds delay
         ]
 
 
@@ -84,15 +77,15 @@ seconds delays per batch.
 """
 
 
-if __name__ == '__main__':
-
+if __name__ == "__main__":
     frontier = GRequestsFrontierManager(SETTINGS)
     stats = HostnameStatistics()
     frontier.add_seeds([grequests_get(url=url.strip()) for url in SEEDS])
 
     while True:
+
         def error_handler(request, exception):
-            print('Failed to process request', request.url, 'Error:', exception)
+            print("Failed to process request", request.url, "Error:", exception)
             frontier.request_error(request, str(exception))
 
         def callback(response, **kwargs):
@@ -103,17 +96,17 @@ if __name__ == '__main__':
                 frontier.links_extracted(response.request, links)
 
             frontier.page_crawled(response)
-            print('Crawled', response.url, '(found', len(links), 'urls)')
+            print("Crawled", response.url, "(found", len(links), "urls)")
 
         next_requests = frontier.get_next_requests(
             frontier.manager.max_next_requests,
-            key_type='domain',
+            key_type="domain",
             overused_keys=stats.collect_overused_keys(),
         )
         if not next_requests:
             continue
 
         for r in next_requests:
-            r.kwargs['hooks'] = {'response': callback}
+            r.kwargs["hooks"] = {"response": callback}
 
         grequests_map(next_requests, size=10, exception_handler=error_handler)

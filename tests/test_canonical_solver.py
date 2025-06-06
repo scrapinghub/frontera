@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
 from frontera.contrib.canonicalsolvers import Basic, CorporateWebsiteFriendly
 from frontera.core.models import Request, Response
 from frontera.utils.fingerprint import sha1
@@ -8,9 +6,9 @@ from frontera.utils.fingerprint import sha1
 def single_node_chain(url1, url2):
     r = Request(url=url1)
     re = Response(url=url2, request=r)
-    re.meta[b'fingerprint'] = sha1(url2)
-    re.meta[b'redirect_urls'] = [url1]
-    re.meta[b'redirect_fingerprints'] = [sha1(url1)]
+    re.meta[b"fingerprint"] = sha1(url2)
+    re.meta[b"redirect_urls"] = [url1]
+    re.meta[b"redirect_fingerprints"] = [sha1(url1)]
     return re
 
 
@@ -38,4 +36,3 @@ def test_corporate_website_friendly():
     re = single_node_chain("http://www.yandex.ru", "http://www.yandex.ru/search")
     cs.page_crawled(re)
     assert re.url == "http://www.yandex.ru/search"
-

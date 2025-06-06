@@ -2,32 +2,39 @@ from scrapy.linkextractors import LinkExtractor
 from scrapy.linkextractors.regex import RegexLinkExtractor
 from scrapy.spiders import CrawlSpider, Rule
 
+DOMAIN = "diffeo.com"
+ALLOWED_RE = "http://" + DOMAIN
 
-DOMAIN = 'diffeo.com'
-ALLOWED_RE = 'http://' + DOMAIN
 
-
-class FallbackLinkExtractor(object):
+class FallbackLinkExtractor:
     def __init__(self, extractors):
         self.extractors = extractors
 
     def extract_links(self, response):
         for lx in self.extractors:
-            links = lx.extract_links(response)
-            return links
+            return lx.extract_links(response)
+        return None
 
 
 class MySpider(CrawlSpider):
-    name = 'recorder'
+    name = "recorder"
     start_urls = [
-        'http://' + DOMAIN,
+        "http://" + DOMAIN,
     ]
     allowed_domains = [DOMAIN]
 
-    rules = [Rule(FallbackLinkExtractor([
-        LinkExtractor(allow=ALLOWED_RE),
-        RegexLinkExtractor(allow=ALLOWED_RE),
-    ]), callback='parse_page', follow=True)]
+    rules = [
+        Rule(
+            FallbackLinkExtractor(
+                [
+                    LinkExtractor(allow=ALLOWED_RE),
+                    RegexLinkExtractor(allow=ALLOWED_RE),
+                ]
+            ),
+            callback="parse_page",
+            follow=True,
+        )
+    ]
 
     def parse_page(self, response):
         pass

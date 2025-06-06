@@ -1,16 +1,18 @@
-from __future__ import absolute_import
+from w3lib.url import canonicalize_url
+
 from frontera.core.components import Middleware
 from frontera.exceptions import NotConfigured
-from w3lib.url import canonicalize_url
 from frontera.utils.misc import load_object
 
 
 class BaseFingerprintMiddleware(Middleware):
-    component_name = 'Base Fingerprint Middleware'
-    fingerprint_function_name = ''
+    component_name = "Base Fingerprint Middleware"
+    fingerprint_function_name = ""
 
     def __init__(self, manager):
-        fingerprint_function_name = manager.settings.get(self.fingerprint_function_name, None)
+        fingerprint_function_name = manager.settings.get(
+            self.fingerprint_function_name, None
+        )
         if not fingerprint_function_name:
             raise NotConfigured
         self.fingerprint_function = load_object(fingerprint_function_name)
@@ -66,16 +68,18 @@ class UrlFingerprintMiddleware(BaseFingerprintMiddleware):
 
     """
 
-    component_name = 'URL Fingerprint Middleware'
-    fingerprint_function_name = 'URL_FINGERPRINT_FUNCTION'
+    component_name = "URL Fingerprint Middleware"
+    fingerprint_function_name = "URL_FINGERPRINT_FUNCTION"
 
     def _get_fingerprint(self, url):
         return self.fingerprint_function(canonicalize_url(url))
 
     def _add_fingerprint(self, obj):
-        obj.meta[b'fingerprint'] = self._get_fingerprint(obj.url)
-        if b'redirect_urls' in obj.meta:
-            obj.meta[b'redirect_fingerprints'] = [self._get_fingerprint(url) for url in obj.meta[b'redirect_urls']]
+        obj.meta[b"fingerprint"] = self._get_fingerprint(obj.url)
+        if b"redirect_urls" in obj.meta:
+            obj.meta[b"redirect_fingerprints"] = [
+                self._get_fingerprint(url) for url in obj.meta[b"redirect_urls"]
+            ]
         return obj
 
 
@@ -108,13 +112,15 @@ class DomainFingerprintMiddleware(BaseFingerprintMiddleware):
 
     """
 
-    component_name = 'Domain Fingerprint Middleware'
-    fingerprint_function_name = 'DOMAIN_FINGERPRINT_FUNCTION'
+    component_name = "Domain Fingerprint Middleware"
+    fingerprint_function_name = "DOMAIN_FINGERPRINT_FUNCTION"
 
     def _add_fingerprint(self, obj):
-        if b'domain' in obj.meta and b'name' in obj.meta[b'domain']:
-            obj.meta[b'domain'][b'fingerprint'] = self.fingerprint_function(obj.meta[b'domain'][b'name'])
-        if b'redirect_domains' in obj.meta:
-            for domain in obj.meta[b'redirect_domains']:
-                domain[b'fingerprint'] = self.fingerprint_function(domain[b'name'])
+        if b"domain" in obj.meta and b"name" in obj.meta[b"domain"]:
+            obj.meta[b"domain"][b"fingerprint"] = self.fingerprint_function(
+                obj.meta[b"domain"][b"name"]
+            )
+        if b"redirect_domains" in obj.meta:
+            for domain in obj.meta[b"redirect_domains"]:
+                domain[b"fingerprint"] = self.fingerprint_function(domain[b"name"])
         return obj

@@ -1,6 +1,7 @@
 """
 Graph manager with database
 """
+
 from frontera import graphs
 
 SITE_LIST = [
@@ -16,14 +17,13 @@ SITE_LIST = [
     ],
 ]
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Create graph with sqlite db
-    graph = graphs.Manager('sqlite:///data/graph.db', drop_all_tables=True)
+    graph = graphs.Manager("sqlite:///data/graph.db", drop_all_tables=True)
 
     # Add site list to graph
     graph.add_site_list(SITE_LIST)
 
     # Show graph pages
     for page in graph.pages:
-        print page
-
+        print(page)

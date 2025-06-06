@@ -1,14 +1,11 @@
-from __future__ import absolute_import
-
 from collections import OrderedDict, deque
-from six.moves.urllib.parse import urlparse
-import six
-from six.moves import range
+from urllib.parse import urlparse
 
 
-class FrontierTester(object):
-
-    def __init__(self, frontier, graph_manager, downloader_simulator, max_next_requests=0):
+class FrontierTester:
+    def __init__(
+        self, frontier, graph_manager, downloader_simulator, max_next_requests=0
+    ):
         self.frontier = frontier
         self.graph_manager = graph_manager
         self.max_next_requests = max_next_requests
@@ -31,7 +28,9 @@ class FrontierTester(object):
         self.frontier.stop()
 
     def _add_seeds(self):
-        self.frontier.add_seeds([self._make_request(seed.url) for seed in self.graph_manager.seeds])
+        self.frontier.add_seeds(
+            [self._make_request(seed.url) for seed in self.graph_manager.seeds]
+        )
 
     def _add_all(self):
         for page in self.graph_manager.pages:
@@ -42,22 +41,24 @@ class FrontierTester(object):
                     self.frontier.add_seeds([self._make_request(link.url)])
 
     def _make_request(self, url):
-        r = self.frontier.request_model(url=url,
-                                        headers={
-                                            b'X-Important-Header': b'Frontera'
-                                        },
-                                        method=b'POST',
-                                        cookies={b'currency': b'USD'})
-        r.meta[b'this_param'] = b'should be passed over'
+        r = self.frontier.request_model(
+            url=url,
+            headers={b"X-Important-Header": b"Frontera"},
+            method=b"POST",
+            cookies={b"currency": b"USD"},
+        )
+        r.meta[b"this_param"] = b"should be passed over"
         return r
 
     def _make_response(self, url, status_code, request):
-        return self.frontier.response_model(url=url, status_code=status_code, request=request)
+        return self.frontier.response_model(
+            url=url, status_code=status_code, request=request
+        )
 
     def _run_iteration(self):
         kwargs = self.downloader_simulator.downloader_info()
         if self.max_next_requests:
-            kwargs['max_next_requests'] = self.max_next_requests
+            kwargs["max_next_requests"] = self.max_next_requests
 
         requests = self.frontier.get_next_requests(**kwargs)
 
@@ -66,23 +67,28 @@ class FrontierTester(object):
         for page_to_crawl in self.downloader_simulator.download():
             crawled_page = self.graph_manager.get_page(url=page_to_crawl.url)
             if not crawled_page.has_errors:
-                response = self._make_response(url=page_to_crawl.url,
-                                               status_code=crawled_page.status,
-                                               request=page_to_crawl)
+                response = self._make_response(
+                    url=page_to_crawl.url,
+                    status_code=crawled_page.status,
+                    request=page_to_crawl,
+                )
                 self.frontier.page_crawled(response=response)
-                self.frontier.links_extracted(request=response.request,
-                                              links=[self._make_request(link.url) for link in crawled_page.links])
+                self.frontier.links_extracted(
+                    request=response.request,
+                    links=[self._make_request(link.url) for link in crawled_page.links],
+                )
             else:
-                self.frontier.request_error(request=page_to_crawl,
-                                            error=crawled_page.status)
-            assert page_to_crawl.meta[b'this_param'] == b'should be passed over'
-            assert page_to_crawl.headers[b'X-Important-Header'] == b'Frontera'
-            assert page_to_crawl.method == b'POST'
-            assert page_to_crawl.cookies[b'currency'] == b'USD'
+                self.frontier.request_error(
+                    request=page_to_crawl, error=crawled_page.status
+                )
+            assert page_to_crawl.meta[b"this_param"] == b"should be passed over"
+            assert page_to_crawl.headers[b"X-Important-Header"] == b"Frontera"
+            assert page_to_crawl.method == b"POST"
+            assert page_to_crawl.cookies[b"currency"] == b"USD"
         return (requests, self.frontier.iteration, kwargs)
 
 
-class BaseDownloaderSimulator(object):
+class BaseDownloaderSimulator:
     def __init__(self):
         self.requests = None
 
@@ -93,10 +99,7 @@ class BaseDownloaderSimulator(object):
         return self.requests
 
     def downloader_info(self):
-        return {
-            'key_type': 'domain',
-            'overused_keys': []
-        }
+        return {"key_type": "domain", "overused_keys": []}
 
     def idle(self):
         return True
@@ -106,19 +109,19 @@ class DownloaderSimulator(BaseDownloaderSimulator):
     def __init__(self, rate):
         self._requests_per_slot = rate
         self.slots = OrderedDict()
-        super(DownloaderSimulator, self).__init__()
+        super().__init__()
 
     def update(self, requests):
         for request in requests:
-            hostname = urlparse(request.url).hostname or ''
+            hostname = urlparse(request.url).hostname or ""
             self.slots.setdefault(hostname, deque()).append(request)
 
     def download(self):
         output = []
         _trash_can = []
-        for key, requests in six.iteritems(self.slots):
-            for i in range(min(len(requests), self._requests_per_slot)):
-                output.append(requests.popleft())
+        for key, requests in self.slots.items():
+            for _i in range(min(len(requests), self._requests_per_slot)):
+                output.append(requests.popleft())  # noqa: PERF401
             if not requests:
                 _trash_can.append(key)
 
@@ -127,13 +130,10 @@ class DownloaderSimulator(BaseDownloaderSimulator):
         return output
 
     def downloader_info(self):
-        info = {
-            'key_type': 'domain',
-            'overused_keys': []
-        }
-        for key, requests in six.iteritems(self.slots):
+        info = {"key_type": "domain", "overused_keys": []}
+        for key, requests in self.slots.items():
             if len(requests) > self._requests_per_slot:
-                info['overused_keys'].append(key)
+                info["overused_keys"].append(key)
         return info
 
     def idle(self):

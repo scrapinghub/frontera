@@ -76,11 +76,11 @@ A working example using test data from graphs and :ref:`basic backends <frontier
         tester.run(add_all_pages=True)
 
         # Show crawling sequence
-        print '-'*40
-        print frontier.backend.name
-        print '-'*40
+        print('-'*40)
+        print(frontier.backend.name)
+        print('-'*40)
         for page in tester.sequence:
-            print page.url
+            print(page.url)
 
     if __name__ == '__main__':
         test_backend('frontera.contrib.backends.memory.heapq.FIFO')

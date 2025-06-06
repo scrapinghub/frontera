@@ -1,14 +1,15 @@
-from __future__ import absolute_import
-from six.moves.urllib import parse
-from w3lib.util import to_native_str
+from urllib import parse
+
+from w3lib.util import to_unicode
 
 
 def parse_url(url, encoding=None):
     """Return urlparsed url from the given argument (which could be an already
     parsed url)
     """
-    return url if isinstance(url, parse.ParseResult) else \
-        parse.urlparse(to_native_str(url))
+    return (
+        url if isinstance(url, parse.ParseResult) else parse.urlparse(to_unicode(url))
+    )
 
 
 def parse_domain_from_url(url):
@@ -24,14 +25,15 @@ def parse_domain_from_url(url):
     -------------------------------------------------------------------------------------------------------
     """
     import tldextract
+
     extracted = tldextract.extract(url)
     scheme, _, _, _, _, _ = parse_url(url)
 
     sld = extracted.domain
     tld = extracted.suffix
     subdomain = extracted.subdomain
-    name = '.'.join([sld, tld]) if tld else sld
-    netloc = '.'.join([subdomain, name]) if subdomain else name
+    name = f"{sld}.{tld}" if tld else sld
+    netloc = f"{subdomain}.{name}" if subdomain else name
 
     return netloc, name, scheme, sld, tld, subdomain
 

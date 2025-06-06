@@ -1,12 +1,7 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
 from abc import ABCMeta, abstractmethod
-import six
 
 
-@six.add_metaclass(ABCMeta)
-class BaseStreamConsumer(object):
-
+class BaseStreamConsumer(metaclass=ABCMeta):
     @abstractmethod
     def get_messages(self, timeout=0.1, count=1):
         """
@@ -17,7 +12,6 @@ class BaseStreamConsumer(object):
         :param count: int, number of messages
         :return: generator with raw messages
         """
-        raise NotImplementedError
 
     @abstractmethod
     def get_offset(self, partition_id):
@@ -27,19 +21,15 @@ class BaseStreamConsumer(object):
         :param partition_id: int
         :return: int consumer offset
         """
-        raise NotImplementedError
 
-    def close(self):
+    def close(self):  # noqa: B027
         """
         Performs necessary cleanup and closes consumer.
         :return: none
         """
-        pass
 
 
-@six.add_metaclass(ABCMeta)
-class BaseStreamProducer(object):
-
+class BaseStreamProducer(metaclass=ABCMeta):
     @abstractmethod
     def send(self, key, *messages):
         """
@@ -47,7 +37,6 @@ class BaseStreamProducer(object):
         :param key: str key used for partitioning, None for non-keyed channels
         :param *messages: encoded message(s)
         """
-        raise NotImplementedError
 
     @abstractmethod
     def flush(self):
@@ -55,8 +44,8 @@ class BaseStreamProducer(object):
         Flushes all internal buffers.
         :return: nothing
         """
-        raise NotImplementedError
 
+    @abstractmethod
     def get_offset(self, partition_id):
         """
         Returns producer offset for partition. Raises KeyError, if partition isn't available or doesn't exist.
@@ -65,18 +54,15 @@ class BaseStreamProducer(object):
         :param partition_id: int
         :return: int producer offset
         """
-        raise NotImplementedError
 
-    def close(self):
+    def close(self):  # noqa: B027
         """
         Performs all necessary cleanup and closes the producer.
         :return:  none
         """
-        pass
 
 
-@six.add_metaclass(ABCMeta)
-class BaseSpiderLogStream(object):
+class BaseSpiderLogStream(metaclass=ABCMeta):
     """
     Spider Log Stream base class. This stream transfers results from spiders to Strategy and DB workers. Any producer
     can write to any partition of this stream. Consumers can be bound to specific partition (SW worker) or not
@@ -102,8 +88,7 @@ class BaseSpiderLogStream(object):
         raise NotImplementedError
 
 
-@six.add_metaclass(ABCMeta)
-class BaseScoringLogStream(object):
+class BaseScoringLogStream(metaclass=ABCMeta):
     """
     Scoring log stream base class. This stream is transfering score and scheduling information from Strategy workers to
     DB Workers. This type of stream isn't requiring any partitioning.
@@ -124,8 +109,7 @@ class BaseScoringLogStream(object):
         raise NotImplementedError
 
 
-@six.add_metaclass(ABCMeta)
-class BaseSpiderFeedStream(object):
+class BaseSpiderFeedStream(metaclass=ABCMeta):
     """
     Spider Feed Stream base class. This stream transfers new batches from DB worker to spiders. Every consumer is
     strictly bounded to specific partition, and producer could write to any partition. This class also has methods
@@ -139,7 +123,6 @@ class BaseSpiderFeedStream(object):
         :param partition_id: int
         :return: BaseStreamConsumer instance assigned to given partition_id
         """
-        raise NotImplementedError
 
     @abstractmethod
     def producer(self):
@@ -148,7 +131,6 @@ class BaseSpiderFeedStream(object):
         (separating feed by hosts, so each host will be downloaded by at most one spider).
         :return: BaseStreamProducer instance
         """
-        raise NotImplementedError
 
     @abstractmethod
     def available_partitions(self):
@@ -156,27 +138,25 @@ class BaseSpiderFeedStream(object):
         Returns the iterable of available (ready for processing new batches) partitions.
         :return: iterable of ints
         """
-        raise NotImplementedError
 
+    @abstractmethod
     def mark_ready(self, partition_id):
         """
         Marks partition as ready/available for receiving new batches.
         :param partition_id: int
         :return: nothing
         """
-        pass
 
+    @abstractmethod
     def mark_busy(self, partition_id):
         """
         Marks partition as busy, so that spider assigned to this partition is busy processing previous batches.
         :param partition_id: int
         :return: nothing
         """
-        pass
 
 
-@six.add_metaclass(ABCMeta)
-class BaseMessageBus(object):
+class BaseMessageBus(metaclass=ABCMeta):
     """
     Main message bus class, encapsulating message bus context. Serving as a factory for stream-specific objects.
     """

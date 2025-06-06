@@ -1,6 +1,7 @@
 """
 Graph manager example with single site
 """
+
 from frontera import graphs
 
 SITE = [
@@ -24,15 +25,15 @@ def test_site(site):
     graph.add_site(site)
 
     # Show graph pages
-    print '-'*80
+    print("-" * 80)
     for page in graph.pages:
-        print page, page.status
+        print(page, page.status)
 
     # Show single page
     a_page = graph.get_page("A")
-    print a_page.url, [link.url for link in a_page.links]
+    print(a_page.url, [link.url for link in a_page.links])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test_site(SITE)
     test_site(SITE_WITH_STATUS_CODES)

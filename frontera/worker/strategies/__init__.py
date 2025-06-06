@@ -1,14 +1,10 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from frontera.core.models import Request
-from frontera.contrib.middlewares.fingerprint import UrlFingerprintMiddleware
-
 from abc import ABCMeta, abstractmethod
-import six
+
+from frontera.contrib.middlewares.fingerprint import UrlFingerprintMiddleware
+from frontera.core.models import Request
 
 
-@six.add_metaclass(ABCMeta)
-class BaseCrawlingStrategy(object):
+class BaseCrawlingStrategy(metaclass=ABCMeta):
     """
     Interface definition for a crawling strategy.
 
@@ -96,7 +92,9 @@ class BaseCrawlingStrategy(object):
         """
         self._mb_stream.send(request, score, dont_queue)
 
-    def create_request(self, url, method=b'GET', headers=None, cookies=None, meta=None, body=b''):
+    def create_request(
+        self, url, method=b"GET", headers=None, cookies=None, meta=None, body=b""
+    ):
         """
         Creates request with specified fields, with state fetched from backend. This method only creates request, but
         isn't getting it's state from storage. Use self.refresh_states on a batch of requests to get their states
@@ -110,7 +108,9 @@ class BaseCrawlingStrategy(object):
         :param body: str
         :return: :class:`Request <frontera.core.models.Request>`
         """
-        r = Request(url, method=method, headers=headers, cookies=cookies, meta=meta, body=body)
+        r = Request(
+            url, method=method, headers=headers, cookies=cookies, meta=meta, body=body
+        )
         self.url_mw._add_fingerprint(r)
         return r
 

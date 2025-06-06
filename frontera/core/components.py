@@ -1,24 +1,19 @@
-from __future__ import absolute_import
 from abc import ABCMeta, abstractmethod, abstractproperty
-import six
 
 
-class StartStopMixin(object):
+class StartStopMixin:
     def frontier_start(self):
         """
         Called when the frontier starts, see :ref:`starting/stopping the frontier <frontier-start-stop>`.
         """
-        pass
 
     def frontier_stop(self):
         """
         Called when the frontier stops, see :ref:`starting/stopping the frontier <frontier-start-stop>`.
         """
-        pass
 
 
-@six.add_metaclass(ABCMeta)
-class Metadata(StartStopMixin):
+class Metadata(StartStopMixin, metaclass=ABCMeta):
     """Interface definition for a frontier metadata class. This class is responsible for storing documents metadata,
     including content and optimized for write-only data flow."""
 
@@ -29,7 +24,6 @@ class Metadata(StartStopMixin):
 
         :param list seeds: A list of :class:`Request <frontera.core.models.Request>` objects.
         """
-        pass
 
     @abstractmethod
     def page_crawled(self, response):
@@ -38,7 +32,6 @@ class Metadata(StartStopMixin):
 
         :param object response: The :class:`Response <frontera.core.models.Response>` object for the crawled page.
         """
-        pass
 
     @abstractmethod
     def links_extracted(self, request, links):
@@ -48,7 +41,6 @@ class Metadata(StartStopMixin):
         :param object request: The original :class:`Request <frontera.core.models.Request>` object for the crawled page.
         :param list links: A list of :class:`Request <frontera.core.models.Request>` objects containing extracted links.
         """
-        pass
 
     @abstractmethod
     def request_error(self, page, error):
@@ -58,11 +50,9 @@ class Metadata(StartStopMixin):
         :param object request: The crawled with error :class:`Request <frontera.core.models.Request>` object.
         :param string error: A string identifier for the error.
         """
-        pass
 
 
-@six.add_metaclass(ABCMeta)
-class Queue(StartStopMixin):
+class Queue(StartStopMixin, metaclass=ABCMeta):
     """Interface definition for a frontier queue class. The queue has priorities and partitions."""
 
     @abstractmethod
@@ -97,8 +87,7 @@ class Queue(StartStopMixin):
         raise NotImplementedError
 
 
-@six.add_metaclass(ABCMeta)
-class States(StartStopMixin):
+class States(StartStopMixin, metaclass=ABCMeta):
     """Interface definition for a document states management class. This class is responsible for providing actual
     documents state, and persist the state changes in batch-oriented manner."""
 
@@ -144,8 +133,7 @@ class States(StartStopMixin):
         raise NotImplementedError
 
 
-@six.add_metaclass(ABCMeta)
-class Component(Metadata):
+class Component(Metadata, metaclass=ABCMeta):
     """
     Interface definition for a frontier component
     The :class:`Component <frontera.core.components.Component>` object is the base class for frontier
@@ -160,7 +148,8 @@ class Component(Metadata):
     but in their corresponding section.
 
     """
-    component_name = 'Base Component'
+
+    component_name = "Base Component"
 
     @property
     def name(self):
@@ -184,19 +173,19 @@ class Component(Metadata):
         return cls()
 
 
-@six.add_metaclass(ABCMeta)
-class Middleware(Component):
+class Middleware(Component, metaclass=ABCMeta):
     """Interface definition for a Frontier Middlewares"""
-    component_name = 'Base Middleware'
+
+    component_name = "Base Middleware"
 
 
-@six.add_metaclass(ABCMeta)
-class CanonicalSolver(Middleware):
+class CanonicalSolver(Middleware, metaclass=ABCMeta):
     """Interface definition for a Frontera Canonical Solver"""
-    component_name = 'Base CanonicalSolver'
+
+    component_name = "Base CanonicalSolver"
 
 
-class PropertiesMixin(object):
+class PropertiesMixin:
     @abstractproperty
     def queue(self):
         """
@@ -219,8 +208,7 @@ class PropertiesMixin(object):
         raise NotImplementedError
 
 
-@six.add_metaclass(ABCMeta)
-class Backend(PropertiesMixin, Component):
+class Backend(PropertiesMixin, Component, metaclass=ABCMeta):
     """Interface definition for frontier backend."""
 
     @abstractmethod
@@ -245,8 +233,7 @@ class Backend(PropertiesMixin, Component):
         raise NotImplementedError
 
 
-@six.add_metaclass(ABCMeta)
-class DistributedBackend(Backend):
+class DistributedBackend(Backend, metaclass=ABCMeta):
     """Interface definition for distributed frontier backend. Implies using in strategy worker and DB worker."""
 
     @classmethod
@@ -258,10 +245,11 @@ class DistributedBackend(Backend):
         raise NotImplementedError
 
 
-class Partitioner(object):
+class Partitioner:
     """
     Base class for a partitioner
     """
+
     def __init__(self, partitions):
         """
         Initialize the partitioner
@@ -280,6 +268,4 @@ class Partitioner(object):
             key: the key to use for partitioning
             partitions: (optional) a list of partitions.
         """
-        raise NotImplementedError('partition function has to be implemented')
-
-
+        raise NotImplementedError("partition function has to be implemented")

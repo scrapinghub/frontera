@@ -50,7 +50,7 @@ How to access settings
         def from_manager(cls, manager):
             manager = crawler.settings
             if settings.TEST_MODE:
-                print "test mode is enabled!"
+                print("test mode is enabled!")
 
 In other words, settings can be accessed as attributes of the
 :class:`Settings <frontera.settings.Settings>` object.

@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 from frontera.utils.heap import Heap
 
 
@@ -6,8 +5,7 @@ def cmp(a, b):
     return (a > b) - (a < b)
 
 
-class TestHeap(object):
-
+class TestHeap:
     def test_heap_order(self):
         heap = Heap(cmp)
         heap.push(5)
@@ -21,7 +19,7 @@ class TestHeap(object):
         assert heap.pop(1) == []
 
     def test_heap_obj(self):
-        obj = type('obj', (object,), {})
+        obj = type("obj", (object,), {})
         a = obj()
         a.score = 3
         b = obj()

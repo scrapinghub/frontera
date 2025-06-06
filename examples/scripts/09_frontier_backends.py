@@ -1,12 +1,13 @@
 """
 Test different frontier backends
 """
-from frontera import FrontierManager, Settings, FrontierTester, graphs
+
+from frontera import FrontierManager, FrontierTester, Settings, graphs
 
 
 def test_logic(backend):
     # Graph
-    graph = graphs.Manager('sqlite:///data/graph.db')
+    graph = graphs.Manager("sqlite:///data/graph.db")
 
     # Frontier
     settings = Settings()
@@ -22,15 +23,16 @@ def test_logic(backend):
     tester.run(add_all_pages=True)
 
     # Show crawling sequence
-    print '-'*80
-    print frontier.backend.name
-    print '-'*80
+    print("-" * 80)
+    print(frontier.backend.name)
+    print("-" * 80)
     for page in tester.sequence:
-        print page.url
+        print(page.url)
 
-if __name__ == '__main__':
-    test_logic('frontera.contrib.backends.memory.FIFO')
-    test_logic('frontera.contrib.backends.memory.LIFO')
-    test_logic('frontera.contrib.backends.memory.BFS')
-    test_logic('frontera.contrib.backends.memory.DFS')
-    test_logic('frontera.contrib.backends.memory.RANDOM')
+
+if __name__ == "__main__":
+    test_logic("frontera.contrib.backends.memory.FIFO")
+    test_logic("frontera.contrib.backends.memory.LIFO")
+    test_logic("frontera.contrib.backends.memory.BFS")
+    test_logic("frontera.contrib.backends.memory.DFS")
+    test_logic("frontera.contrib.backends.memory.RANDOM")

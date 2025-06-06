@@ -1,26 +1,39 @@
-from __future__ import absolute_import
-from collections import OrderedDict
-
-from frontera.exceptions import NotConfigured
-from frontera.utils.misc import load_object
-from frontera.settings import Settings, BaseSettings
-from frontera.core.components import Backend, DistributedBackend, Middleware, CanonicalSolver
-from frontera.core import models
 import logging
 
+from frontera.core import models
+from frontera.core.components import (
+    Backend,
+    CanonicalSolver,
+    DistributedBackend,
+    Middleware,
+)
+from frontera.exceptions import NotConfigured
+from frontera.settings import Settings
+from frontera.utils.misc import load_object
 
-class ComponentsPipelineMixin(object):
-    def __init__(self, backend, middlewares=None, canonicalsolver=None, db_worker=False, strategy_worker=False):
+
+class ComponentsPipelineMixin:
+    def __init__(
+        self,
+        backend,
+        middlewares=None,
+        canonicalsolver=None,
+        db_worker=False,
+        strategy_worker=False,
+    ):
         self._logger_components = logging.getLogger("manager.components")
 
         # Load middlewares
         self._middlewares = self._load_middlewares(middlewares)
 
         # Load canonical solver
-        self._logger_components.debug("Loading canonical url solver '%s'", canonicalsolver)
+        self._logger_components.debug(
+            "Loading canonical url solver '%s'", canonicalsolver
+        )
         self._canonicalsolver = self._load_object(canonicalsolver)
-        assert isinstance(self.canonicalsolver, CanonicalSolver), \
-            "canonical solver '%s' must subclass CanonicalSolver" % self.canonicalsolver.__class__.__name__
+        assert isinstance(self.canonicalsolver, CanonicalSolver), (
+            f"canonical solver '{self.canonicalsolver.__class__.__name__}' must subclass CanonicalSolver"
+        )
 
         # Load backend
         self._logger_components.debug("Loading backend '%s'", backend)
@@ -51,20 +64,22 @@ class ComponentsPipelineMixin(object):
 
     def _load_backend(self, backend, db_worker, strategy_worker):
         cls = load_object(backend)
-        assert issubclass(cls, Backend), "backend '%s' must subclass Backend" % cls.__name__
+        assert issubclass(cls, Backend), (
+            f"backend '{cls.__name__}' must subclass Backend"
+        )
         if issubclass(cls, DistributedBackend):
             if db_worker:
                 return cls.db_worker(self)
             if strategy_worker:
                 return cls.strategy_worker(self)
             raise RuntimeError("Distributed backends are meant to be used in workers.")
-        else:
-            assert not strategy_worker, "In order to distribute backend only DistributedBackend " \
-                                        "subclasses are allowed to use."
-        if hasattr(cls, 'from_manager'):
+        assert not strategy_worker, (
+            "In order to distribute backend only DistributedBackend "
+            "subclasses are allowed to use."
+        )
+        if hasattr(cls, "from_manager"):
             return cls.from_manager(self)
-        else:
-            return cls()
+        return cls()
 
     def _load_middlewares(self, middleware_names):
         # TO-DO: Use dict for middleware ordering
@@ -73,7 +88,9 @@ class ComponentsPipelineMixin(object):
             self._logger_components.debug("Loading middleware '%s'", mw_name)
             try:
                 mw = self._load_object(mw_name, silent=False)
-                assert isinstance(mw, Middleware), "middleware '%s' must subclass Middleware" % mw.__class__.__name__
+                assert isinstance(mw, Middleware), (
+                    f"middleware '{mw.__class__.__name__}' must subclass Middleware"
+                )
                 if mw:
                     mws.append(mw)
             except NotConfigured:
@@ -83,37 +100,58 @@ class ComponentsPipelineMixin(object):
 
     def _process_components(self, method_name, obj=None, return_classes=None, **kwargs):
         return_obj = obj
-        for component_category, component, check_response in self._components_pipeline:
-            components = component if isinstance(component, list) else [component]
-            for component in components:
-                result = self._process_component(component=component, method_name=method_name,
-                                                 component_category=component_category, obj=return_obj,
-                                                 return_classes=return_classes, **kwargs)
+        for component_category, components, check_response in self._components_pipeline:
+            component_list = (
+                components if isinstance(components, list) else [components]
+            )
+            for component in component_list:
+                result = self._process_component(
+                    component=component,
+                    method_name=method_name,
+                    component_category=component_category,
+                    obj=return_obj,
+                    return_classes=return_classes,
+                    **kwargs,
+                )
                 if check_response:
                     return_obj = result
                 if check_response and obj and not return_obj:
-                    self._logger_components.warning("Object '%s' filtered in '%s' by '%s'",
-                                                    obj.__class__.__name__, method_name, component.__class__.__name__)
-                    return
+                    self._logger_components.warning(
+                        "Object '%s' filtered in '%s' by '%s'",
+                        obj.__class__.__name__,
+                        method_name,
+                        component.__class__.__name__,
+                    )
+                    return None
         return return_obj
 
-    def _process_component(self, component, method_name, component_category, obj, return_classes, **kwargs):
-        self._logger_components.debug("processing '%s' '%s.%s' %s",
-                                      method_name, component_category, component.__class__.__name__, obj)
+    def _process_component(
+        self, component, method_name, component_category, obj, return_classes, **kwargs
+    ):
+        self._logger_components.debug(
+            "processing '%s' '%s.%s' %s",
+            method_name,
+            component_category,
+            component.__class__.__name__,
+            obj,
+        )
         return_obj = getattr(component, method_name)(*([obj] if obj else []), **kwargs)
-        assert return_obj is None or isinstance(return_obj, return_classes), \
-            "%s '%s.%s' must return None or %s, Got '%s'" % \
-            (component_category, obj.__class__.__name__, method_name,
-             ' or '.join(c.__name__ for c in return_classes)
-             if isinstance(return_classes, tuple) else
-             return_classes.__name__,
-             return_obj.__class__.__name__)
+        assert return_obj is None or isinstance(return_obj, return_classes), (
+            "{} '{}.{}' must return None or {}, Got '{}'".format(
+                component_category,
+                obj.__class__.__name__,
+                method_name,
+                " or ".join(c.__name__ for c in return_classes)
+                if isinstance(return_classes, tuple)
+                else return_classes.__name__,
+                return_obj.__class__.__name__,
+            )
+        )
         return return_obj
 
 
-class BaseManager(object):
+class BaseManager:
     def __init__(self, request_model, response_model, settings=None):
-
         # Settings
         self._settings = settings or Settings()
 
@@ -121,25 +159,29 @@ class BaseManager(object):
         self._logger = logging.getLogger("manager")
 
         # Log frontier manager starting
-        self._logger.info('-'*80)
-        self._logger.info('Starting Frontier Manager...')
+        self._logger.info("-" * 80)
+        self._logger.info("Starting Frontier Manager...")
 
         # Load request model
         self._request_model = load_object(request_model)
-        assert issubclass(self._request_model, models.Request), "Request model '%s' must subclass 'Request'" % \
-                                                                self._request_model.__name__
+        assert issubclass(self._request_model, models.Request), (
+            f"Request model '{self._request_model.__name__}' must subclass 'Request'"
+        )
 
         # Load response model
         self._response_model = load_object(response_model)
-        assert issubclass(self._response_model, models.Response), "Response model '%s' must subclass 'Response'" % \
-                                                                  self._response_model.__name__
+        assert issubclass(self._response_model, models.Response), (
+            f"Response model '{self._response_model.__name__}' must subclass 'Response'"
+        )
 
     @classmethod
     def from_settings(cls, settings=None):
         manager_settings = Settings(settings)
-        return BaseManager(request_model=manager_settings.REQUEST_MODEL,
-                           response_model=manager_settings.RESPONSE_MODEL,
-                           settings=manager_settings)
+        return BaseManager(
+            request_model=manager_settings.REQUEST_MODEL,
+            response_model=manager_settings.RESPONSE_MODEL,
+            settings=manager_settings,
+        )
 
     def _load_object(self, obj_class_name, silent=False):
         obj_class = load_object(obj_class_name)
@@ -147,13 +189,12 @@ class BaseManager(object):
             return self._load_frontier_object(obj_class)
         except NotConfigured:
             if not silent:
-                raise NotConfigured
+                raise
 
     def _load_frontier_object(self, obj_class):
-        if hasattr(obj_class, 'from_manager'):
+        if hasattr(obj_class, "from_manager"):
             return obj_class.from_manager(self)
-        else:
-            return obj_class()
+        return obj_class()
 
     @property
     def request_model(self):
@@ -185,9 +226,22 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
     providing an API to interact with. It's also responsible of loading and communicating all different frontier
     components.
     """
-    def __init__(self, request_model, response_model, backend, middlewares=None, test_mode=False, max_requests=0,
-                 max_next_requests=0, auto_start=True, settings=None, canonicalsolver=None, db_worker=False,
-                 strategy_worker=False):
+
+    def __init__(
+        self,
+        request_model,
+        response_model,
+        backend,
+        middlewares=None,
+        test_mode=False,
+        max_requests=0,
+        max_next_requests=0,
+        auto_start=True,
+        settings=None,
+        canonicalsolver=None,
+        db_worker=False,
+        strategy_worker=False,
+    ):
         """
         :param object/string request_model: The :class:`Request <frontera.core.models.Request>` object to be \
             used by the frontier.
@@ -227,7 +281,7 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
 
         # Test mode
         self._test_mode = test_mode
-        self._logger.debug('Test mode %s' % ("ENABLED" if self.test_mode else "DISABLED"))
+        self._logger.debug(f"Test mode {'ENABLED' if self.test_mode else 'DISABLED'}")
 
         # Page counters
         self._max_requests = max_requests
@@ -240,20 +294,25 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
         # Manager finished flag
         self._finished = False
 
-        ComponentsPipelineMixin.__init__(self, backend=backend, middlewares=middlewares,
-                                         canonicalsolver=canonicalsolver, db_worker=db_worker,
-                                         strategy_worker=strategy_worker)
+        ComponentsPipelineMixin.__init__(
+            self,
+            backend=backend,
+            middlewares=middlewares,
+            canonicalsolver=canonicalsolver,
+            db_worker=db_worker,
+            strategy_worker=strategy_worker,
+        )
 
         # Init frontier components pipeline
         self._components_pipeline = [
-            ('Middleware', self.middlewares, True),
-            ('CanonicalSolver', self.canonicalsolver, False),
-            ('Backend', self.backend, False)
+            ("Middleware", self.middlewares, True),
+            ("CanonicalSolver", self.canonicalsolver, False),
+            ("Backend", self.backend, False),
         ]
 
         # Log frontier manager start
-        self._logger.info('Frontier Manager Started!')
-        self._logger.info('-'*80)
+        self._logger.info("Frontier Manager Started!")
+        self._logger.info("-" * 80)
 
         # start/stop
         self._started = False
@@ -270,18 +329,20 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
         :ref:`frontier default settings <frontier-default-settings>` are used.
         """
         manager_settings = Settings.object_from(settings)
-        return FrontierManager(request_model=manager_settings.REQUEST_MODEL,
-                               response_model=manager_settings.RESPONSE_MODEL,
-                               backend=manager_settings.BACKEND,
-                               middlewares=manager_settings.MIDDLEWARES,
-                               test_mode=manager_settings.TEST_MODE,
-                               max_requests=manager_settings.MAX_REQUESTS,
-                               max_next_requests=manager_settings.MAX_NEXT_REQUESTS,
-                               auto_start=manager_settings.AUTO_START,
-                               settings=manager_settings,
-                               canonicalsolver=manager_settings.CANONICAL_SOLVER,
-                               db_worker=db_worker,
-                               strategy_worker=strategy_worker)
+        return FrontierManager(
+            request_model=manager_settings.REQUEST_MODEL,
+            response_model=manager_settings.RESPONSE_MODEL,
+            backend=manager_settings.BACKEND,
+            middlewares=manager_settings.MIDDLEWARES,
+            test_mode=manager_settings.TEST_MODE,
+            max_requests=manager_settings.MAX_REQUESTS,
+            max_next_requests=manager_settings.MAX_NEXT_REQUESTS,
+            auto_start=manager_settings.AUTO_START,
+            settings=manager_settings,
+            canonicalsolver=manager_settings.CANONICAL_SOLVER,
+            db_worker=db_worker,
+            strategy_worker=strategy_worker,
+        )
 
     @property
     def test_mode(self):
@@ -347,9 +408,9 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
 
         :return: None.
         """
-        assert not self._started, 'Frontier already started!'
-        self._logger.debug('START')
-        self._process_components(method_name='frontier_start')
+        assert not self._started, "Frontier already started!"
+        self._logger.debug("START")
+        self._process_components(method_name="frontier_start")
         self._started = True
 
     def stop(self):
@@ -360,8 +421,8 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
         :return: None.
         """
         self._check_startstop()
-        self._logger.debug('STOP')
-        self._process_components(method_name='frontier_stop')
+        self._logger.debug("STOP")
+        self._process_components(method_name="frontier_stop")
         self._stopped = True
 
     def add_seeds(self, seeds):
@@ -376,12 +437,13 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
         # FIXME probably seeds should be a generator here
         assert len(seeds), "Empty seeds list"
         for seed in seeds:
-            assert isinstance(seed, self._request_model), "Seed objects must subclass '%s', '%s' found" % \
-                                                          (self._request_model.__name__, type(seed).__name__)
-        self._logger.debug('ADD_SEEDS urls_length=%d', len(seeds))
-        self._process_components(method_name='add_seeds',
-                                 obj=seeds,
-                                 return_classes=(list,))  # TODO: Dar vuelta
+            assert isinstance(seed, self._request_model), (
+                f"Seed objects must subclass '{self._request_model.__name__}', '{type(seed).__name__}' found"
+            )
+        self._logger.debug("ADD_SEEDS urls_length=%d", len(seeds))
+        self._process_components(
+            method_name="add_seeds", obj=seeds, return_classes=(list,)
+        )  # TODO: Dar vuelta
 
     def get_next_requests(self, max_next_requests=0, **kwargs):
         """
@@ -399,22 +461,27 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
 
         # End condition check
         if self.max_requests and self.n_requests >= self.max_requests:
-            self._logger.info('MAX PAGES REACHED! (%s/%s)', self.n_requests, self.max_requests)
+            self._logger.info(
+                "MAX PAGES REACHED! (%s/%s)", self.n_requests, self.max_requests
+            )
             self._finished = True
             return []
 
         # Calculate number of requests
         max_next_requests = max_next_requests or self.max_next_requests
-        if self.max_requests:
-            if not max_next_requests:
-                max_next_requests = self.max_requests - self.n_requests
-            else:
-                if self.n_requests+max_next_requests > self.max_requests:
-                    max_next_requests = self.max_requests - self.n_requests
+        if self.max_requests and (
+            not max_next_requests
+            or self.n_requests + max_next_requests > self.max_requests
+        ):
+            max_next_requests = self.max_requests - self.n_requests
 
         # log (in)
-        self._logger.debug('GET_NEXT_REQUESTS(in) max_next_requests=%s n_requests=%s/%s',
-                           max_next_requests, self.n_requests, self.max_requests or '-')
+        self._logger.debug(
+            "GET_NEXT_REQUESTS(in) max_next_requests=%s n_requests=%s/%s",
+            max_next_requests,
+            self.n_requests,
+            self.max_requests or "-",
+        )
 
         # get next requests
         next_requests = self.backend.get_next_requests(max_next_requests, **kwargs)
@@ -427,8 +494,12 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
             self._iteration += 1
 
         # log (out)
-        self._logger.debug('GET_NEXT_REQUESTS(out) returned_requests=%s n_requests=%s/%s',
-                           len(next_requests), self.n_requests, self.max_requests or '-')
+        self._logger.debug(
+            "GET_NEXT_REQUESTS(out) returned_requests=%s n_requests=%s/%s",
+            len(next_requests),
+            self.n_requests,
+            self.max_requests or "-",
+        )
         return next_requests
 
     def page_crawled(self, response):
@@ -440,19 +511,25 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
         :return: None.
         """
         self._check_startstop()
-        self._logger.debug('PAGE_CRAWLED url=%s status=%s', response.url, response.status_code)
-        assert isinstance(response, self.response_model), "Response object must subclass '%s', '%s' found" % \
-                                                          (self.response_model.__name__, type(response).__name__)
-        assert hasattr(response, 'request') and response.request, "Empty response request"
-        assert isinstance(response.request, self.request_model), "Response request object must subclass '%s', " \
-                                                                 "'%s' found" % \
-                                                                 (self.request_model.__name__,
-                                                                  type(response.request).__name__)
-        assert isinstance(response, self.response_model), "Response object must subclass '%s', '%s' found" % \
-                                                          (self.response_model.__name__, type(response).__name__)
-        self._process_components(method_name='page_crawled',
-                                 obj=response,
-                                 return_classes=self.response_model)
+        self._logger.debug(
+            "PAGE_CRAWLED url=%s status=%s", response.url, response.status_code
+        )
+        assert isinstance(response, self.response_model), (
+            f"Response object must subclass '{self.response_model.__name__}', '{type(response).__name__}' found"
+        )
+        assert hasattr(response, "request") and response.request, (
+            "Empty response request"
+        )
+        assert isinstance(response.request, self.request_model), (
+            f"Response request object must subclass '{self.request_model.__name__}', "
+            f"'{type(response.request).__name__}' found"
+        )
+        assert isinstance(response, self.response_model), (
+            f"Response object must subclass '{self.response_model.__name__}', '{type(response).__name__}' found"
+        )
+        self._process_components(
+            method_name="page_crawled", obj=response, return_classes=self.response_model
+        )
 
     def links_extracted(self, request, links):
         """
@@ -465,16 +542,20 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
         :return: None.
         """
         self._check_startstop()
-        self._logger.debug('LINKS_EXTRACTED url=%s links=%d', request.url, len(links))
-        assert isinstance(request, self.request_model), "Request object must subclass '%s', '%s' found" % \
-                                                        (self.request_model.__name__, type(request).__name__)
+        self._logger.debug("LINKS_EXTRACTED url=%s links=%d", request.url, len(links))
+        assert isinstance(request, self.request_model), (
+            f"Request object must subclass '{self.request_model.__name__}', '{type(request).__name__}' found"
+        )
         for link in links:
-            assert isinstance(link, self._request_model), "Link objects must subclass '%s', '%s' found" % \
-                                                          (self._request_model.__name__, type(link).__name__)
-        self._process_components(method_name='links_extracted',
-                                 obj=request,
-                                 return_classes=self.request_model,
-                                 links=links)
+            assert isinstance(link, self._request_model), (
+                f"Link objects must subclass '{self._request_model.__name__}', '{type(link).__name__}' found"
+            )
+        self._process_components(
+            method_name="links_extracted",
+            obj=request,
+            return_classes=self.request_model,
+            links=links,
+        )
 
     def request_error(self, request, error):
         """
@@ -486,12 +567,13 @@ class FrontierManager(BaseManager, ComponentsPipelineMixin):
         :return: None.
         """
         self._check_startstop()
-        self._logger.debug('PAGE_REQUEST_ERROR url=%s error=%s', request.url, error)
-        processed_page = self._process_components(method_name='request_error',
-                                                  obj=request,
-                                                  return_classes=self.request_model,
-                                                  error=error)
-        return processed_page
+        self._logger.debug("PAGE_REQUEST_ERROR url=%s error=%s", request.url, error)
+        return self._process_components(
+            method_name="request_error",
+            obj=request,
+            return_classes=self.request_model,
+            error=error,
+        )
 
     def _check_startstop(self):
         assert self._started, "Frontier not started!"

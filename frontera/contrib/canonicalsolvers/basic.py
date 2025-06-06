@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
 from frontera.core.components import CanonicalSolver
 
 
@@ -11,6 +9,7 @@ class BasicCanonicalSolver(CanonicalSolver):
     :attr:`page_crawled() <frontera.core.manager.FrontierManager.page_crawled>`) at the price of duplicating
     records in Frontera for pages having more than one URL or complex redirects chains.
     """
+
     def frontier_start(self):
         pass
 
@@ -32,15 +31,15 @@ class BasicCanonicalSolver(CanonicalSolver):
         self._set_canonical(page)
 
     def _set_canonical(self, obj):
-        if b'redirect_urls' in obj.meta:
-            redirect_urls = obj.meta[b'redirect_urls']
-            redirect_fingerprints = obj.meta[b'redirect_fingerprints']
+        if b"redirect_urls" in obj.meta:
+            redirect_urls = obj.meta[b"redirect_urls"]
+            redirect_fingerprints = obj.meta[b"redirect_fingerprints"]
             redirect_urls.append(obj.url)
-            redirect_fingerprints.append(obj.meta[b'fingerprint'])
+            redirect_fingerprints.append(obj.meta[b"fingerprint"])
             obj._url = redirect_urls[0]
-            obj.meta[b'fingerprint'] = redirect_fingerprints[0]
+            obj.meta[b"fingerprint"] = redirect_fingerprints[0]
 
-            if b'redirect_domains' in obj.meta:
-                redirect_domains = obj.meta[b'redirect_domains']
-                redirect_domains.append(obj.meta[b'domain'])
-                obj.meta[b'domain'] = redirect_domains[0]
+            if b"redirect_domains" in obj.meta:
+                redirect_domains = obj.meta[b"redirect_domains"]
+                redirect_domains.append(obj.meta[b"domain"])
+                obj.meta[b"domain"] = redirect_domains[0]

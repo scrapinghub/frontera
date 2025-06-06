@@ -1,14 +1,20 @@
-from frontera.core.messagebus import BaseMessageBus, BaseSpiderLogStream, BaseStreamConsumer, \
-    BaseScoringLogStream, BaseSpiderFeedStream
+from frontera.core.messagebus import (
+    BaseMessageBus,
+    BaseScoringLogStream,
+    BaseSpiderFeedStream,
+    BaseSpiderLogStream,
+    BaseStreamConsumer,
+)
 
 
 class Consumer(BaseStreamConsumer):
-
     def __init__(self):
         self.messages = []
         self.offset = None
 
-    def put_messages(self, messages=[]):
+    def put_messages(self, messages=None):
+        if messages is None:
+            messages = []
         self.messages += messages
 
     def get_messages(self, timeout=0, count=1):
@@ -27,8 +33,7 @@ class Consumer(BaseStreamConsumer):
         return self.offset
 
 
-class Producer(object):
-
+class Producer:
     def __init__(self):
         self.messages = []
         self.offset = 0
@@ -44,7 +49,6 @@ class Producer(object):
 
 
 class ScoringLogStream(BaseScoringLogStream):
-
     def __init__(self, messagebus):
         pass
 
@@ -56,7 +60,6 @@ class ScoringLogStream(BaseScoringLogStream):
 
 
 class SpiderLogStream(BaseSpiderLogStream):
-
     def __init__(self, messagebus):
         pass
 
@@ -68,7 +71,6 @@ class SpiderLogStream(BaseSpiderLogStream):
 
 
 class SpiderFeedStream(BaseSpiderFeedStream):
-
     def __init__(self, messagebus):
         self.ready_partitions = set(messagebus.spider_feed_partitions)
 
@@ -89,11 +91,12 @@ class SpiderFeedStream(BaseSpiderFeedStream):
 
 
 class FakeMessageBus(BaseMessageBus):
-
     def __init__(self, settings):
-        self.spider_log_partitions = [i for i in range(settings.get('SPIDER_LOG_PARTITIONS'))]
-        self.spider_feed_partitions = [i for i in range(settings.get('SPIDER_FEED_PARTITIONS'))]
-        self.max_next_requests = settings.get('MAX_NEXT_REQUESTS')
+        self.spider_log_partitions = list(range(settings.get("SPIDER_LOG_PARTITIONS")))
+        self.spider_feed_partitions = list(
+            range(settings.get("SPIDER_FEED_PARTITIONS"))
+        )
+        self.max_next_requests = settings.get("MAX_NEXT_REQUESTS")
 
     def spider_log(self):
         return SpiderLogStream(self)

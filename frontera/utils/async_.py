@@ -1,17 +1,17 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from twisted.internet import reactor, error
+from twisted.internet import error
 from twisted.internet.defer import Deferred
-from six.moves import range
 
 
-class CallLaterOnce(object):
+class CallLaterOnce:
     """Schedule a function to be called in the next reactor loop, but only if
     it hasn't been already scheduled since the last time it run.
     """
-    def __init__(self, func, reactor=reactor, *a, **kw):
+
+    def __init__(self, func, reactor=None, *a, **kw):
+        from twisted.internet import reactor as default_reactor
+
         self._func = func
-        self._reactor = reactor
+        self._reactor = reactor or default_reactor
         self._a = a
         self._kw = kw
         self._call = None
@@ -47,11 +47,15 @@ class CallLaterOnce(object):
         return f
 
 
-def listen_tcp(portrange, host, factory, reactor=reactor):
+def listen_tcp(portrange, host, factory, reactor=None):
     """Like reactor.listenTCP but tries different ports in a range."""
+    from twisted.internet import reactor as default_reactor
+
+    reactor = reactor or default_reactor
+
     if isinstance(portrange, int):
         return reactor.listenTCP(portrange, factory, interface=host)
-    assert len(portrange) <= 2, "invalid portrange: %s" % portrange
+    assert len(portrange) <= 2, f"invalid portrange: {portrange}"
     if not portrange:
         return reactor.listenTCP(0, factory, interface=host)
     if len(portrange) == 1:
@@ -59,6 +63,7 @@ def listen_tcp(portrange, host, factory, reactor=reactor):
     for x in range(portrange[0], portrange[1] + 1):
         try:
             return reactor.listenTCP(x, factory, interface=host)
-        except error.CannotListenError:
+        except error.CannotListenError:  # noqa: PERF203
             if x == portrange[1]:
                 raise
+    return None

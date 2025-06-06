@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import codecs
 
 from scrapy.exceptions import NotConfigured
@@ -8,7 +7,7 @@ from frontera.contrib.scrapy.middlewares.seeds import SeedLoader
 
 class FileSeedLoader(SeedLoader):
     def configure(self, settings):
-        self.seeds_source = settings.get('SEEDS_SOURCE')
+        self.seeds_source = settings.get("SEEDS_SOURCE")
         if not self.seeds_source:
             raise NotConfigured
 
@@ -17,8 +16,8 @@ class FileSeedLoader(SeedLoader):
         return self.load_seeds_from_file(self.seeds_source)
 
     def load_seeds_from_file(self, file_path):
-        with codecs.open(file_path, 'rU') as f:
-            return self.load_seeds_from_data((f))
+        with codecs.open(file_path, "rU") as f:
+            return self.load_seeds_from_data(f)
 
     def load_seeds_from_data(self, data):
         seeds = []
@@ -29,4 +28,4 @@ class FileSeedLoader(SeedLoader):
         return seeds
 
     def clean_seed(self, url):
-        return url.strip('\t\n\r')
+        return url.strip("\t\n\r")
