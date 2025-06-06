@@ -1,0 +1,91 @@
+# TODO: Run Docker images to run tests that are otherwise skipped. Run ‘tox -e
+# all -- tests -rs’ to get a list of those services.
+name: test
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - python-version: '3.9'
+          toxenv: min
+        - python-version: '3.9'
+          toxenv: min-hbase
+        - python-version: '3.9'
+          toxenv: min-kafka
+        - python-version: '3.9'
+          toxenv: min-logging
+        - python-version: '3.9'
+          toxenv: min-s3
+        - python-version: '3.9'
+          toxenv: min-scrapy
+        - python-version: '3.9'
+          toxenv: min-sql
+        - python-version: '3.9'
+          toxenv: min-zeromq
+        - python-version: '3.9'
+          toxenv: min-all
+        - python-version: '3.9'
+        - python-version: '3.10'
+        - python-version: '3.11'
+        - python-version: '3.11'
+          toxenv: kafka
+        - python-version: '3.12'
+        - python-version: '3.13'
+        - python-version: '3.13'
+          toxenv: hbase
+        - python-version: '3.13'
+          toxenv: logging
+        - python-version: '3.13'
+          toxenv: s3
+        - python-version: '3.13'
+          toxenv: scrapy
+        - python-version: '3.13'
+          toxenv: sql
+        - python-version: '3.13'
+          toxenv: zeromq
+        - python-version: '3.13'
+          toxenv: all
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install tox
+    - name: tox
+      run: |
+        tox -e ${{ matrix.toxenv || 'py' }}
+    - name: coverage
+      if: ${{ success() }}
+      uses: codecov/codecov-action@v4.0.1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.13"]
+        tox-job: ["pre-commit"]
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install tox
+    - name: tox
+      run: |
+        tox -e ${{ matrix.tox-job }}
