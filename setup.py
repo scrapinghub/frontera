@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="frontera",
-    version="0.7.1",
+    version="0.7.2",
     packages=find_packages(exclude=("tests", "tests.*", "examples", "examples.*")),
     url="https://github.com/scrapinghub/frontera",
     description="A scalable frontier for web crawlers",

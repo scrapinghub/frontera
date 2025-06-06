@@ -2,7 +2,7 @@
 frontera changelog
 ==================
 
-0.7.2 (unreleased)
+0.7.2 (2025-06-06)
 ==================
 
 -   Dropped support for Python 3.8 and lower, add support for Python 3.9 and
